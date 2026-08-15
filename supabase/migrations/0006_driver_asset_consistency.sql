@@ -1,0 +1,369 @@
+-- ============================================================================
+-- DDS — 0006_driver_asset_consistency
+-- ----------------------------------------------------------------------------
+-- Adds per-entity consistency data for the Driver & Asset Monitoring page:
+--   - topAssets / topOperators gain `activeDays` (distinct shift_date count)
+--   - two new uncapped arrays, assetConsistency / operatorConsistency, each
+--     carrying a HIGH-CONSISTENCY FLAG per driver/asset — mirrors
+--     withConsistency() in dds-state.js exactly:
+--
+--       A driver/unit is flagged `flagged: true` when MORE THAN HALF of its
+--       active days (days it appears in the filtered data at all) each had
+--       total alerts > HIGH_DAY_THRESHOLD (10) that day. A single bad day
+--       is not enough — the flag exists to surface a repeated pattern, not
+--       a one-off spike. `highDays` (count of over-threshold days) and
+--       `highDayRatio` (highDays/activeDays * 100) are exposed so the UI
+--       can explain the flag with real numbers ("6 of 7 active days (86%)
+--       had more than 10 alerts") rather than just a bare label.
+--
+-- Only additive: every field dds_metrics() already returned is unchanged, so
+-- this is safe to apply without touching any existing chart/KPI consumer.
+-- Based on the LIVE function definition (confirmed via pg_get_functiondef
+-- against project rispydfovrnvnwvfwrnw), which already differs from the
+-- 0002_metrics.sql file on disk — it additionally carries kpis.distinctOperators
+-- (added by an undocumented on-disk migration, dds_metrics_add_distinct_operators)
+-- that 0002's file doesn't have. This migration preserves that field too.
+--
+-- Supersedes the first version of this migration (same file, same name),
+-- which computed a relative-to-fleet-average "consistencyRate" flag instead
+-- of the day-threshold rule above, before product direction changed to the
+-- simpler ">10 alerts on most active days" rule. consistencyRate (alerts
+-- per active day) is kept as a supporting number the table already showed,
+-- just no longer the basis for the flag itself.
+-- ============================================================================
+
+create or replace function public.dds_metrics(
+  p_from            date    default null,
+  p_to              date    default null,
+  p_shift           text    default null,   -- 'DAY' | 'NIGHT' | null
+  p_asset_ids       text[]  default null,
+  p_event_codes     text[]  default null,
+  p_actionable_only boolean default false
+)
+returns jsonb
+language plpgsql
+stable
+security invoker            -- RLS still applies; this is not a bypass
+set search_path = public
+as $$
+declare
+  result jsonb;
+  v_high_day_threshold constant integer := 10;
+begin
+  if auth.uid() is null then
+    raise exception 'UNAUTHENTICATED' using errcode = '42501';
+  end if;
+
+  with filtered as (
+    select *
+    from public.events e
+    where (p_from        is null or e.shift_date >= p_from)
+      and (p_to          is null or e.shift_date <= p_to)
+      and (p_shift       is null or e.shift = p_shift)
+      and (p_asset_ids   is null or e.asset_id   = any(p_asset_ids))
+      and (p_event_codes is null or e.event_code = any(p_event_codes))
+      and (not p_actionable_only or e.actionable)
+  ),
+
+  kpis as (
+    select
+      coalesce(sum(event_count), 0)                                    as total_alerts,
+      count(distinct asset_id)                                         as distinct_assets,
+      count(distinct operator) filter (where operator is not null)     as distinct_operators,
+      avg(sync_seconds)                                                as avg_sync_seconds,
+      coalesce(sum(event_count) filter (where actionable), 0)          as actionable_alerts,
+      count(*)                                                         as row_count
+    from filtered
+  ),
+
+  trend as (
+    select shift_date,
+           sum(event_count)          as units,
+           count(*)                  as events,
+           count(distinct asset_id)  as assets
+    from filtered group by shift_date order by shift_date
+  ),
+
+  by_shift as (
+    select shift,
+           sum(event_count)         as units,
+           count(distinct asset_id) as assets
+    from filtered group by shift
+  ),
+
+  by_code as (
+    select event_code,
+           sum(event_count) as units,
+           count(*)         as events
+    from filtered group by event_code order by 2 desc, event_code
+  ),
+
+  hours as (select generate_series(0, 23) as h),
+  hourly as (
+    select h.h,
+           coalesce(sum(f.event_count) filter (where f.shift = 'DAY'),   0) as day_units,
+           coalesce(sum(f.event_count) filter (where f.shift = 'NIGHT'), 0) as night_units
+    from hours h
+    left join filtered f on extract(hour from f.start_time)::int = h.h
+    group by h.h order by h.h
+  ),
+
+  sync_buckets as (
+    select
+      case
+        when sync_seconds < 10800 then 0   -- <3h
+        when sync_seconds < 21600 then 1   -- 3-6h
+        when sync_seconds < 28800 then 2   -- 6-8h
+        when sync_seconds < 36000 then 3   -- 8-10h
+        else 4                             -- 10h+
+      end as bucket,
+      actionable,
+      count(*) as n
+    from filtered where sync_seconds is not null
+    group by 1, 2
+  ),
+
+  alert_buckets as (
+    select
+      case
+        when event_count < 5  then 0
+        when event_count < 10 then 1
+        when event_count < 15 then 2
+        when event_count < 20 then 3
+        else 4
+      end as bucket,
+      actionable,
+      count(*) as n
+    from filtered group by 1, 2
+  ),
+
+  -- Per-asset / per-operator rollups, each carrying its distinct active-day
+  -- count. asset_all/operator_all are the FULL (uncapped) versions that feed
+  -- assetConsistency/operatorConsistency; top_assets/top_operators stay
+  -- capped at 10 for the existing topAssets/topOperators fields.
+  asset_all as (
+    select asset_id,
+           sum(event_count)                                           as total,
+           coalesce(sum(event_count) filter (where actionable), 0)     as actionable,
+           coalesce(sum(event_count) filter (where not actionable), 0) as non_actionable,
+           count(distinct shift_date)                                  as active_days
+    from filtered group by asset_id
+  ),
+  operator_all as (
+    select operator,
+           sum(event_count)                                           as total,
+           coalesce(sum(event_count) filter (where actionable), 0)     as actionable,
+           coalesce(sum(event_count) filter (where not actionable), 0) as non_actionable,
+           count(distinct shift_date)                                  as active_days
+    from filtered where operator is not null
+    group by operator
+  ),
+
+  -- Separate from operator_all: topOperators (existing field, pre-dating
+  -- this migration) has always excluded blank/null OPERATOR entirely, and
+  -- that long-standing behavior is left untouched here. operatorConsistency
+  -- is a NEW field with no such precedent, so it must match dds-state.js's
+  -- withConsistency() exactly — which buckets a blank/missing OPERATOR
+  -- under the literal 'Unspecified' (UNSPECIFIED_OPERATOR) rather than
+  -- dropping those rows.
+  --
+  -- Per-day totals (one row per asset_id/operator x shift_date) are needed
+  -- here — not just the per-entity total above — because the flag counts
+  -- how many INDIVIDUAL DAYS exceeded the threshold, which asset_all/
+  -- operator_all's single summed total per entity can't answer.
+  asset_days as (
+    select asset_id, shift_date, sum(event_count) as day_total
+    from filtered group by asset_id, shift_date
+  ),
+  operator_days as (
+    select coalesce(nullif(operator, ''), 'Unspecified') as operator,
+           shift_date, sum(event_count) as day_total
+    from filtered group by 1, shift_date
+  ),
+
+  asset_consistency_all as (
+    select a.asset_id, a.total, a.actionable, a.non_actionable, a.active_days,
+           coalesce(hd.high_days, 0) as high_days
+    from asset_all a
+    left join (
+      select asset_id, count(*) as high_days
+      from asset_days where day_total > v_high_day_threshold
+      group by asset_id
+    ) hd on hd.asset_id = a.asset_id
+  ),
+  operator_consistency_all as (
+    select o.operator,
+           sum(f.event_count)                                           as total,
+           coalesce(sum(f.event_count) filter (where f.actionable), 0)   as actionable,
+           coalesce(sum(f.event_count) filter (where not f.actionable), 0) as non_actionable,
+           count(distinct f.shift_date)                                  as active_days,
+           coalesce(hd.high_days, 0)                                     as high_days
+    from (select distinct coalesce(nullif(operator, ''), 'Unspecified') as operator from filtered) o
+    join filtered f on coalesce(nullif(f.operator, ''), 'Unspecified') = o.operator
+    left join (
+      select operator, count(*) as high_days
+      from operator_days where day_total > v_high_day_threshold
+      group by operator
+    ) hd on hd.operator = o.operator
+    group by o.operator, hd.high_days
+  ),
+
+  top_assets as (
+    select * from asset_all order by total desc, asset_id limit 10
+  ),
+
+  top_operators as (
+    select * from operator_all order by total desc, operator limit 10
+  ),
+
+  bucket_array as (
+    select
+      (select jsonb_agg(coalesce(v, 0) order by i)
+         from generate_series(0, 4) i
+         left join (select bucket, sum(n) v from sync_buckets where actionable group by 1) b
+           on b.bucket = i) as sync_act,
+      (select jsonb_agg(coalesce(v, 0) order by i)
+         from generate_series(0, 4) i
+         left join (select bucket, sum(n) v from sync_buckets where not actionable group by 1) b
+           on b.bucket = i) as sync_non,
+      (select jsonb_agg(coalesce(v, 0) order by i)
+         from generate_series(0, 4) i
+         left join (select bucket, sum(n) v from alert_buckets where actionable group by 1) b
+           on b.bucket = i) as alert_act,
+      (select jsonb_agg(coalesce(v, 0) order by i)
+         from generate_series(0, 4) i
+         left join (select bucket, sum(n) v from alert_buckets where not actionable group by 1) b
+           on b.bucket = i) as alert_non
+  )
+
+  select jsonb_build_object(
+    'meta', jsonb_build_object(
+      'rowCount',          k.row_count,
+      'unclassifiedRows',  0,
+      'unclassifiedUnits', 0,
+      'reconciles',        true,
+      'filters', jsonb_build_object(
+        'from', p_from, 'to', p_to, 'shift', p_shift,
+        'assetIds', coalesce(to_jsonb(p_asset_ids), '[]'::jsonb),
+        'eventCodes', coalesce(to_jsonb(p_event_codes), '[]'::jsonb),
+        'actionableOnly', p_actionable_only
+      ),
+      'generatedAt', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+    ),
+
+    'kpis', jsonb_build_object(
+      'totalAlerts',       k.total_alerts,
+      'distinctAssets',    k.distinct_assets,
+      'distinctOperators', k.distinct_operators,
+      'avgSyncSeconds',    k.avg_sync_seconds,
+      'actionableRatio',
+        case when k.total_alerts > 0
+          then (k.actionable_alerts::numeric / k.total_alerts) * 100 else 0 end
+    ),
+
+    'trend', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'date',   to_char(shift_date, 'MM/DD/YYYY'),
+        'units',  units, 'events', events, 'assets', assets
+      ) order by shift_date) from trend), '[]'::jsonb),
+
+    'shiftDistribution', jsonb_build_object(
+      'DAY', jsonb_build_object(
+        'units',  coalesce((select units  from by_shift where shift = 'DAY'), 0),
+        'assets', coalesce((select assets from by_shift where shift = 'DAY'), 0),
+        'pct', case when k.total_alerts > 0 then
+          (coalesce((select units from by_shift where shift = 'DAY'), 0)::numeric
+            / k.total_alerts) * 100 else 0 end),
+      'NIGHT', jsonb_build_object(
+        'units',  coalesce((select units  from by_shift where shift = 'NIGHT'), 0),
+        'assets', coalesce((select assets from by_shift where shift = 'NIGHT'), 0),
+        'pct', case when k.total_alerts > 0 then
+          (coalesce((select units from by_shift where shift = 'NIGHT'), 0)::numeric
+            / k.total_alerts) * 100 else 0 end)
+    ),
+
+    'eventCodeDistribution', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'code', event_code, 'units', units, 'events', events,
+        'pct', case when k.total_alerts > 0
+          then (units::numeric / k.total_alerts) * 100 else 0 end
+      ) order by units desc, event_code) from by_code), '[]'::jsonb),
+
+    'hourly', jsonb_build_object(
+      'DAY',   (select jsonb_agg(day_units   order by h) from hourly),
+      'NIGHT', (select jsonb_agg(night_units order by h) from hourly)
+    ),
+
+    'syncBuckets', jsonb_build_object(
+      'labels', '["<3h","3-6h","6-8h","8-10h","10h+"]'::jsonb,
+      'actionable', b.sync_act, 'nonActionable', b.sync_non),
+
+    'alertBuckets', jsonb_build_object(
+      'labels', '["<5","5-10","10-15","15-20","20+"]'::jsonb,
+      'actionable', b.alert_act, 'nonActionable', b.alert_non),
+
+    'topAssets', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', asset_id, 'total', total,
+        'actionable', actionable, 'nonActionable', non_actionable,
+        'activeDays', active_days
+      ) order by total desc, asset_id) from top_assets), '[]'::jsonb),
+
+    'topOperators', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', operator, 'total', total,
+        'actionable', actionable, 'nonActionable', non_actionable,
+        'activeDays', active_days
+      ) order by total desc, operator) from top_operators), '[]'::jsonb),
+
+    -- Full (uncapped) per-entity breakdown, sorted flagged-first — feeds
+    -- the Driver & Asset Monitoring page. flagged = true when highDays is
+    -- MORE THAN HALF of activeDays (mirrors withConsistency() in
+    -- dds-state.js / index.html exactly, including the tie-break order).
+    'assetConsistency', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', asset_id, 'total', total,
+        'actionable', actionable, 'nonActionable', non_actionable,
+        'activeDays', active_days,
+        'highDays', high_days,
+        'highDayRatio', case when active_days > 0
+          then (high_days::numeric / active_days) * 100 else 0 end,
+        'flagged', active_days > 0 and high_days::numeric / active_days > 0.5,
+        'consistencyRate', total::numeric / greatest(active_days, 1),
+        'actionableRatio', case when total > 0
+          then (actionable::numeric / total) * 100 else 0 end
+      ) order by
+        (active_days > 0 and high_days::numeric / active_days > 0.5) desc,
+        (case when active_days > 0 then (high_days::numeric / active_days) else 0 end) desc,
+        (total::numeric / greatest(active_days, 1)) desc,
+        asset_id)
+      from asset_consistency_all), '[]'::jsonb),
+
+    'operatorConsistency', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', operator, 'total', total,
+        'actionable', actionable, 'nonActionable', non_actionable,
+        'activeDays', active_days,
+        'highDays', high_days,
+        'highDayRatio', case when active_days > 0
+          then (high_days::numeric / active_days) * 100 else 0 end,
+        'flagged', active_days > 0 and high_days::numeric / active_days > 0.5,
+        'consistencyRate', total::numeric / greatest(active_days, 1),
+        'actionableRatio', case when total > 0
+          then (actionable::numeric / total) * 100 else 0 end
+      ) order by
+        (active_days > 0 and high_days::numeric / active_days > 0.5) desc,
+        (case when active_days > 0 then (high_days::numeric / active_days) else 0 end) desc,
+        (total::numeric / greatest(active_days, 1)) desc,
+        operator)
+      from operator_consistency_all), '[]'::jsonb)
+  )
+  into result
+  from kpis k, bucket_array b;
+
+  return result;
+end;
+$$;
+
+revoke all on function public.dds_metrics from public;
+grant execute on function public.dds_metrics to authenticated;

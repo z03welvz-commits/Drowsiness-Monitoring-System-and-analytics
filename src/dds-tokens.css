@@ -1,0 +1,552 @@
+/* ============================================================================
+   DDS — Design Tokens & State Layer
+   ----------------------------------------------------------------------------
+   Load AFTER the existing <style> block. Replaces the :root block and adds the
+   five token categories that didn't exist, plus the states v2.2 never defined.
+
+   Scales are derived from what the file actually used, not invented:
+     spacing  18 distinct px values -> 10 steps
+     type     12 sizes (incl. 8.5/9.5/10.5/12.5) -> 7 steps, no half-pixels
+     radius   11 values -> 5 steps
+     shadow   6 ad-hoc -> 3 elevations
+     motion   4 ad-hoc -> 2 durations + 1 easing
+   ========================================================================= */
+
+:root {
+  /* ── Color: private hue ramp (unchanged from v2.2) ───────────────────── */
+  --navy: #1B3A6B;  --navy-dark: #0F2A50;
+  --blue: #185FA5;  --blue-50: #E6F1FB;  --blue-200: #85B7EB;
+  --teal: #0F6E56;  --teal-50: #E1F5EE;  --teal-200: #5DCAA5;
+  --red:  #A32D2D;  --red-50:  #FCEBEB;
+  --amber:#BA7517;  --amber-50:#FAEEDA;
+  --purple:#3C3489; --purple-50:#EEEDFE;
+  /* Orange: sits between --red (critical) and --amber (elevated-but-lower)
+     on the severity ramp used by the Analytics severity color system below.
+     Distinct hue from both — not a tint of either — so a 3-step severity
+     scale (critical/elevated/caution) stays tell-apart at a glance and under
+     CVD simulation, not just by adjacency in a legend. */
+  --orange: #C4531D; --orange-50: #FBE8DC;
+
+  /* Text-on-tint variants. The raw hues above are tuned for chart FILLS,
+     where WCAG's 4.5:1 text rule doesn't apply. As TEXT on their own -50
+     tint, --amber scored 3.24:1 (fail) and --text-muted 3.61:1 on white
+     (fail). These darkened variants clear AA and are used wherever the
+     color carries words. Chart fills keep the original hues. */
+  --amber-text: #965D0D;              /* 4.73:1 on --amber-50 */
+  --text-muted: #767570;              /* 4.62:1 on white (was #888780) */
+
+  --text: #2C2C2A;  --text-sec: #5F5E5A;
+  --border: #D3D1C7; --border-light: #F1EFE8; --divider: #F0F4FB;
+
+  /* Neutrals that were hardcoded 26 times (#fff x19, plus 5 near-whites) */
+  --surface: #FFFFFF;
+  --surface-sunken: #F8FAFF;
+  --surface-raised: #FAFBFF;
+  --canvas-from: #EEF2F7;
+  --canvas-to:   #E8EDF5;
+  --neutral-bar: #B4B2A9;      /* non-actionable series in stacked bars */
+
+  /* ── Color: SEMANTIC layer ───────────────────────────────────────────── */
+  /* Components reference these, never the hue ramp. Rebrand = edit 6 lines. */
+  --primary:   var(--navy);
+  --accent:    var(--blue);
+  --accent-bg: var(--blue-50);
+  --success:   var(--teal);   --success-bg: var(--teal-50);
+  --warning:   var(--amber);  --warning-bg: var(--amber-50);
+  --warning-text: var(--amber-text);   /* use on tint; --warning for fills */
+  --danger:    var(--red);    --danger-bg:  var(--red-50);
+  --info:      var(--purple); --info-bg:    var(--purple-50);
+  --elevated:  var(--orange); --elevated-bg: var(--orange-50);
+  --elevated-text: #8A3C13;   /* 6.46:1 on --orange-50, 7.67:1 on white — AA text-safe */
+
+  /* ── Color: EVENT SEVERITY layer ──────────────────────────────────────
+     EVENT_CODE is free text from uploaded CSVs — there is no fixed enum.
+     Known categories get a stable, meaningful color; anything else falls
+     back to a hash-based color (see colorForCode/severityForCode in
+     dds-charts.js) so unrecognized codes are still visually distinct from
+     each other, just without a specific semantic meaning. Confirmed real
+     values: "Sleep Alert", "Drowsiness Alert". "Inattentive" and "Poor
+     Driver Posture" are anticipated but unconfirmed in production data. */
+  --sev-critical: var(--red);      --sev-critical-bg: var(--red-50);
+  --sev-elevated: var(--orange);   --sev-elevated-bg: var(--orange-50);
+  --sev-caution:  var(--amber);    --sev-caution-bg:  var(--amber-50);
+  --sev-notice:   var(--purple);   --sev-notice-bg:   var(--purple-50);
+
+  /* ── Color: DECORATIVE layer ────────────────────────────────────────────
+     Modern dashboard practice (2026): a neutral base dominates the page,
+     with color reserved for status/semantics — not spent on chrome that
+     carries no meaning. --teal and --purple ARE meaningful (--success,
+     --info, and --purple's second role as the 2nd data series in the
+     Assets-vs-Alerts trend chart) — reusing them for unrelated decoration
+     (nav active-dot, card-head accent tick, KPI icon tints with no status)
+     dilutes what they signal everywhere else. Decoration now draws from
+     the accent family instead, so teal/purple stay legible as signals.
+     NOTE: the KPI icon multi-tint pattern (amber/teal/purple/blue on
+     Overview's 4 KPI cards) and role-badge tints in User Management are
+     NOT decoration in this sense — they're a small-multiples scanning
+     pattern (fast visual differentiation between cards/rows) and were
+     deliberately kept multi-color. See project memory before "fixing"
+     those to match this decorative-layer pattern. */
+  --decor-1: var(--blue);     --decor-1-bg: var(--blue-50);
+  --decor-2: var(--navy);     --decor-2-bg: var(--blue-50);
+
+  /* ── Spacing ─────────────────────────────────────────────────────────── */
+  --sp-1:  2px;  --sp-2:  4px;  --sp-3:  6px;  --sp-4:  8px;  --sp-5: 12px;
+  --sp-6: 16px;  --sp-7: 20px;  --sp-8: 24px;  --sp-9: 32px;  --sp-10:40px;
+
+  /* ── Typography ──────────────────────────────────────────────────────── */
+  /* --fs-base was 11px in v2.2 — below the ~12px floor for sustained reading
+     on a control-room monitor. Bumped to 13px. This is the ONE token that
+     visibly changes density; set it back to 11px to restore v2.2 exactly. */
+  --fs-base: 13px;
+
+  /* --fs-2xs exists ONLY for chrome with no data content (nav section
+     labels). Never route a number, percentage, or table cell through it —
+     dashboard-density research puts 11px+ as the floor for anything a
+     reader has to get right, not just glance past. */
+  --fs-2xs: 9px;
+  --fs-xs:  11px;   /* practical floor for data: labels, axis ticks, table headers */
+  --fs-sm:  12px;   /* secondary text, table cells */
+  --fs-md:  13px;   /* body default */
+  --fs-lg:  var(--fs-base);
+  --fs-xl:  16px;   /* card headings */
+  --fs-2xl: 19px;   /* page title */
+  --fs-3xl: 24px;   /* KPI values */
+
+  --fw-medium: 500; --fw-semi: 600; --fw-bold: 700; --fw-black: 800;
+  --lh-tight: 1.2;  --lh-base: 1.5;  --lh-loose: 1.6;
+  --tracking-label: .06em;  /* uppercase micro-labels read better tracked out */
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;  /* IDs, timestamps */
+
+  /* ── Border & radius ─────────────────────────────────────────────────── */
+  /* --r-2xl (new): 2026 dashboard practice favors larger card radii for a
+     calmer, more "breathing" surface than the tighter 12px v2.2 shipped
+     with. Buttons/pills/small chrome keep the tighter --r-md/--r-lg scale;
+     only card SHELLS move up. */
+  --bw: 1px;  --bw-thick: 3px;
+  --r-xs: 2px;  --r-sm: 4px;  --r-md: 6px;  --r-lg: 8px;
+  --r-xl: 12px; --r-2xl: 16px; --r-full: 999px;
+
+  /* ── Elevation ───────────────────────────────────────────────────────── */
+  --shadow-1: 0 1px 3px rgba(27,58,107,.06);
+  --shadow-2: 0 2px 10px rgba(27,58,107,.08);
+  --shadow-3: 0 8px 24px rgba(27,58,107,.14);
+  --shadow-focus: 0 0 0 3px var(--accent-bg);
+
+  /* ── Motion ──────────────────────────────────────────────────────────── */
+  --dur-fast: .15s;  --dur-base: .25s;
+  --ease: cubic-bezier(.4, 0, .2, 1);
+
+  /* ── Layout ──────────────────────────────────────────────────────────── */
+  --sidebar-w: 190px;
+  --sidebar-w-collapsed: 56px;
+}
+
+/* ══ ACCESSIBILITY ═══════════════════════════════════════════════════════
+   v2.2 had 0 :focus-visible rules and 19 buttons. Keyboard users had no way
+   to tell where they were. This single rule closes that. */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* Screen-reader-only: pair every chart with a data table so the 58 inline
+   SVGs stop being invisible to assistive tech. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; left: var(--sp-4); top: -100px;
+  background: var(--surface); color: var(--text);
+  padding: var(--sp-3) var(--sp-5); border-radius: var(--r-md);
+  box-shadow: var(--shadow-2); z-index: 100;
+  transition: top var(--dur-fast) var(--ease);
+}
+.skip-link:focus { top: var(--sp-4); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ══ STATE LAYER ═════════════════════════════════════════════════════════
+   v2.2 had 0 :disabled and no loading/empty/error states, because with mock
+   data nothing is ever pending. These bind to body[data-status], which
+   mount() in dds-charts.js already sets. */
+
+/* --- Disabled: applies to every interactive element at once --- */
+button:disabled, [aria-disabled="true"],
+input:disabled, select:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* --- Loading --- */
+@keyframes dds-shimmer { to { background-position: -200% 0; } }
+@keyframes dds-spin    { to { transform: rotate(360deg); } }
+
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--border-light) 25%, var(--surface-sunken) 37%, var(--border-light) 63%);
+  background-size: 200% 100%;
+  animation: dds-shimmer 1.4s linear infinite;
+  border-radius: var(--r-sm);
+  color: transparent !important;
+  user-select: none;
+}
+.skeleton-text { height: 1em; display: block; }
+.skeleton-kpi  { height: 24px; width: 60%; }
+
+body[data-status="loading"] .card { pointer-events: none; }
+body[data-status="loading"] .kpi-val,
+body[data-status="loading"] .akpi-rate-val,
+body[data-status="loading"] .akpi-avg7d-val,
+body[data-status="loading"] .ev-row,
+body[data-status="loading"] .chart-body {
+  background: linear-gradient(90deg,
+    var(--border-light) 25%, var(--surface-sunken) 37%, var(--border-light) 63%);
+  background-size: 200% 100%;
+  animation: dds-shimmer 1.4s linear infinite;
+  color: transparent;
+}
+
+.btn[data-loading="true"] { position: relative; color: transparent; }
+.btn[data-loading="true"]::after {
+  content: ""; position: absolute; inset: 0; margin: auto;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  color: var(--surface);
+  animation: dds-spin .6s linear infinite;
+}
+
+/* --- Empty --- */
+.state-empty, .ev-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--sp-3); padding: var(--sp-9) var(--sp-6);
+  color: var(--text-muted); font-size: var(--fs-sm); text-align: center;
+}
+.state-empty-title { font-weight: var(--fw-semi); color: var(--text-sec); }
+
+/* Charts with an x-axis row (trend/hourly/bucket bars) append .state-empty
+   as a trailing flex child of .chart-body, alongside the axis labels. Taking
+   it out of flow and overlaying it keeps the axis pinned to the bottom of
+   the card instead of being pushed up by the message, while the message
+   itself stays centered over the (hidden) plot area. */
+.chart-body > .state-empty {
+  position: absolute;
+  inset: 0;
+  padding: var(--sp-6);
+}
+
+/* --- Error --- */
+.state-error {
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--sp-4); padding: var(--sp-8) var(--sp-6);
+  background: var(--danger-bg); border: var(--bw) solid var(--danger);
+  border-radius: var(--r-lg); color: var(--danger); font-size: var(--fs-sm);
+}
+body[data-status="error"] .chart-body { display: none; }
+
+/* ══ CONSOLIDATED PILL ═══════════════════════════════════════════════════
+   Replaces .badge-* (5) + .flag-* (5) + .status-* (3) + .role-* (4) +
+   .drive-* (2) = 19 classes doing one job. Markup:
+       <span class="pill" data-variant="success">Synced</span> */
+
+.pill {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs); font-weight: var(--fw-semi);
+  line-height: var(--lh-tight); white-space: nowrap;
+  background: var(--border-light); color: var(--text-sec);
+}
+.pill::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.pill[data-variant="neutral"]::before { display: none; }
+.pill[data-variant="success"] { background: var(--success-bg); color: var(--success); }
+.pill[data-variant="warning"] { background: var(--warning-bg); color: var(--warning-text); }
+.pill[data-variant="danger"]  { background: var(--danger-bg);  color: var(--danger); }
+.pill[data-variant="info"]    { background: var(--accent-bg);  color: var(--accent); }
+.pill[data-variant="admin"]   { background: var(--info-bg);    color: var(--info); }
+.pill[data-variant="elevated"]{ background: var(--elevated-bg); color: var(--elevated-text); }
+
+/* ══ BUTTON — full state coverage ════════════════════════════════════════
+   v2.2 defined default only, and .btn-sm was byte-identical to .btn. */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-5);
+  border: var(--bw) solid transparent; border-radius: var(--r-md);
+  font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  line-height: var(--lh-tight); cursor: pointer;
+  background: var(--accent); color: var(--surface);
+  transition: background var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease),
+              transform var(--dur-fast) var(--ease);
+}
+.btn:hover  { background: var(--primary); }
+.btn:active { transform: translateY(1px); }
+
+.btn-outline {
+  background: var(--surface); color: var(--text);
+  border-color: var(--border);
+}
+.btn-outline:hover { background: var(--surface-sunken); border-color: var(--accent); }
+
+.btn-ghost { background: none; color: var(--accent); border-color: transparent; }
+.btn-ghost:hover { background: var(--accent-bg); }
+
+.btn-danger { background: var(--danger); }
+.btn-danger:hover { background: #8A2424; }
+
+/* Real size variants — sm now actually differs from md. */
+.btn-sm { padding: var(--sp-2) var(--sp-4); font-size: var(--fs-xs); }
+.btn-lg { padding: var(--sp-4) var(--sp-7); font-size: var(--fs-lg); }
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;                /* 28px min; see touch note below */
+  border: none; background: none; border-radius: var(--r-md);
+  color: var(--text-muted); cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.icon-btn:hover { background: var(--border-light); color: var(--primary); }
+
+/* ══ INPUT — full state coverage ═════════════════════════════════════════ */
+
+.field-input, .sound-select {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--bw) solid var(--border); border-radius: var(--r-md);
+  background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: var(--fs-sm); line-height: var(--lh-base);
+  transition: border-color var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease);
+}
+.field-input:hover { border-color: var(--text-muted); }
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+.field-input[aria-invalid="true"] { border-color: var(--danger); }
+.field-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px var(--danger-bg); }
+.field-input::placeholder { color: var(--text-muted); }
+
+.field-error {
+  display: block; margin-top: var(--sp-2);
+  font-size: var(--fs-xs); color: var(--danger);
+}
+
+/* ══ DROPZONE — full state coverage ══════════════════════════════════════ */
+
+.dz {
+  border: 2px dashed var(--border); border-radius: var(--r-xl);
+  padding: var(--sp-9) var(--sp-6); text-align: center;
+  background: var(--surface-raised);
+  transition: border-color var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease);
+}
+.dz:hover, .dz:focus-within { border-color: var(--accent); background: var(--accent-bg); }
+.dz[data-state="drag"]      { border-color: var(--accent); background: var(--accent-bg); }
+.dz[data-state="uploading"] { border-style: solid; pointer-events: none; opacity: .7; }
+.dz[data-state="error"]     { border-color: var(--danger); background: var(--danger-bg); }
+
+/* ══ RESPONSIVE ══════════════════════════════════════════════════════════
+   v2.2 had a viewport meta tag, 0 media queries, a fixed 190px grid, and
+   overflow:hidden on html/body — so on any short screen, content below the
+   fold was unreachable rather than scrollable. */
+
+html, body { height: 100%; }
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  color: var(--text);
+  background: linear-gradient(135deg, var(--canvas-from) 0%, var(--canvas-to) 100%);
+  background-attachment: fixed;
+}
+
+.app { min-height: 100vh; display: grid; grid-template-columns: var(--sidebar-w) 1fr; }
+.main { overflow-y: auto; }          /* scrolls instead of clipping */
+
+@media (max-width: 1100px) {
+  .app { grid-template-columns: var(--sidebar-w-collapsed) 1fr; }
+  .nav-brand-title, .nav-brand-sub,
+  .nav-item span, .nav-section-label { display: none; }
+  .nav-item { justify-content: center; }
+}
+
+@media (max-width: 720px) {
+  .app { grid-template-columns: 1fr; }
+  .sidenav {
+    position: fixed; inset: 0 auto 0 0; z-index: 50;
+    width: var(--sidebar-w);
+    transform: translateX(-100%);
+    transition: transform var(--dur-base) var(--ease);
+  }
+  .sidenav[data-open="true"] { transform: none; }
+  .kpi-row, .settings-grid { grid-template-columns: 1fr; }
+  .card { padding: var(--sp-5); }
+
+  /* Touch targets: 28px icon buttons fail the 44px minimum on touch. */
+  .icon-btn, .btn { min-height: 44px; }
+  .imp-table, .um-table { display: block; overflow-x: auto; }
+}
+
+@media print {
+  .sidenav, .topbar, .btn, .icon-btn { display: none !important; }
+  .app { grid-template-columns: 1fr; }
+  .card { break-inside: avoid; box-shadow: none; border: var(--bw) solid var(--border); }
+}
+
+/* ══ MIGRATION MAP ═══════════════════════════════════════════════════════
+   Find-and-replace guide for the existing rules. Visual shift is sub-pixel
+   except --fs-base, called out above.
+
+   SPACING   1->--bw  2->--sp-1  3,4,5->--sp-2  6->--sp-3  7,8,9->--sp-4
+             10,11,12,13->--sp-5  14,16->--sp-6  20->--sp-7  26->--sp-8
+             40->--sp-10
+
+   TYPE      8,8.5,9,9.5->--fs-xs   10,10.5->--fs-sm   11->--fs-md
+             12,12.5->--fs-lg  15->--fs-xl  17->--fs-2xl  20->--fs-3xl
+
+   RADIUS    2,3->--r-xs  4,5->--r-sm  6,7->--r-md  8->--r-lg
+             10,12->--r-xl  20px,50%->--r-full
+
+   COLOR     #fff->--surface   #F8FAFF->--surface-sunken
+             #FAFBFF,#f0f4ff->--surface-raised
+             #EEF2F7->--canvas-from  #E8EDF5->--canvas-to
+             #B4B2A9->--neutral-bar
+
+   CLASSES   .badge-success/.status-active/.drive-ok
+               -> .pill[data-variant="success"]
+             .badge-error/.flag-err/.status-inactive
+               -> .pill[data-variant="danger"]
+             .badge-warn/.flag-dup      -> .pill[data-variant="warning"]
+             .badge-pending/.drive-pending -> .pill[data-variant="info"]
+             .role-admin -> .pill[data-variant="admin"]
+             .role-b2b/.role-oa -> .pill[data-variant="neutral"]
+   ========================================================================= */
+
+/* ══ DROPDOWN MENU ═══════════════════════════════════════════════════════
+   Supports createDropdown() in dds-controls.js. The .cpill elements were
+   <div>s with a chevron implying a menu that didn't exist; they are upgraded
+   to real <button>s at runtime and need somewhere to render the popup. */
+
+.cpill {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border: var(--bw) solid var(--border); border-radius: var(--r-full);
+  background: var(--surface); color: var(--text-sec);
+  font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  line-height: var(--lh-tight); cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease);
+}
+.cpill:hover { border-color: var(--accent); background: var(--accent-bg); }
+.cpill[aria-expanded="true"] { border-color: var(--accent); background: var(--accent-bg); }
+.cpill svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+/* An active (non-default) filter must be visible at a glance, or users forget
+   they're looking at a subset and misread the numbers. */
+.cpill[data-active="true"] {
+  border-color: var(--accent); background: var(--accent-bg);
+  color: var(--accent); font-weight: var(--fw-semi);
+}
+
+.menu {
+  position: absolute; top: calc(100% + var(--sp-2)); left: 0; z-index: 40;
+  min-width: 180px; padding: var(--sp-2);
+  background: var(--surface);
+  border: var(--bw) solid var(--border); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3);
+}
+.menu-item {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm); color: var(--text); cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+.menu-item:hover { background: var(--surface-sunken); }
+.menu-item[aria-selected="true"] {
+  background: var(--accent-bg); color: var(--accent); font-weight: var(--fw-semi);
+}
+.menu-item[aria-selected="true"]::after { content: " ✓"; }
+
+@media (max-width: 720px) {
+  .menu { position: fixed; inset: auto var(--sp-4) var(--sp-4) var(--sp-4); min-width: 0; }
+  .menu-item { padding: var(--sp-4); }   /* 44px touch target */
+}
+
+/* ══ ANALYTICS KPI SPARKLINE ═════════════════════════════════════════════
+   .spark is the sparkline SVG on the Alerts Per Asset Per Active Day tile
+   (renderAnalyticsKpis, dds-insights.js). The +/-% delta chip that used to
+   live here (.ins-chip) was removed — a colored pill on every tile read as
+   noise, and painted a metric red/green for merely trending against its
+   goodWhen direction rather than reserving red for genuine critical
+   severity. .akpi-* (tile layout) lives in the host page's layout CSS,
+   which has no src/ counterpart — see project memory on dual source
+   copies. */
+
+.spark { display: block; width: 100%; height: 26px; }
+
+.ic-xs { width: 11px; height: 11px; }
+
+/* ══ CHART TOOLTIP ═══════════════════════════════════════════════════════
+   Shared hover layer for the hand-rolled inline-SVG charts (no charting
+   library in this codebase — see dds-charts.js header). One positioned
+   `.chart-tooltip` div per `.chart-body`, shown/hidden and repositioned by
+   the chart's own mousemove/mouseleave handlers (see attachTooltip() in
+   dds-charts.js). Kept intentionally plain: white surface, hairline border,
+   quiet shadow, compact type — matches the rest of the card system rather
+   than inventing a second visual language for hover state. */
+.chart-tooltip {
+  position: absolute; z-index: 5; pointer-events: none;
+  min-width: 120px; max-width: 240px;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface); border: var(--bw) solid var(--border);
+  border-radius: var(--r-md); box-shadow: var(--shadow-2);
+  font-size: var(--fs-xs); line-height: var(--lh-base); color: var(--text);
+  opacity: 0; visibility: hidden;
+  transform: translateY(2px);
+  transition: opacity var(--dur-fast) var(--ease),
+              transform var(--dur-fast) var(--ease);
+}
+.chart-tooltip[data-open="true"] { opacity: 1; visibility: visible; transform: translateY(0); }
+.chart-tooltip-title {
+  font-weight: var(--fw-semi); color: var(--navy);
+  margin-bottom: var(--sp-2); white-space: nowrap;
+}
+.chart-tooltip-row {
+  display: flex; align-items: center; gap: var(--sp-2);
+  justify-content: space-between; white-space: nowrap;
+}
+.chart-tooltip-row + .chart-tooltip-row { margin-top: 2px; }
+.chart-tooltip-key {
+  width: 8px; height: 2px; border-radius: var(--r-full); flex-shrink: 0;
+}
+.chart-tooltip-label { color: var(--text-sec); }
+.chart-tooltip-value {
+  font-weight: var(--fw-semi); color: var(--text);
+  font-variant-numeric: tabular-nums; margin-left: auto;
+}
+.chart-tooltip-note {
+  margin-top: var(--sp-2); padding-top: var(--sp-2);
+  border-top: var(--bw) solid var(--border-light);
+  color: var(--text-muted); font-size: var(--fs-2xs);
+  white-space: normal;
+}

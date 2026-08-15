@@ -1,0 +1,686 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DDS — Analytics Summary</title><style>/* ============================================================================
+   DDS — Design Tokens & State Layer
+   ----------------------------------------------------------------------------
+   Load AFTER the existing <style> block. Replaces the :root block and adds the
+   five token categories that didn't exist, plus the states v2.2 never defined.
+
+   Scales are derived from what the file actually used, not invented:
+     spacing  18 distinct px values -> 10 steps
+     type     12 sizes (incl. 8.5/9.5/10.5/12.5) -> 7 steps, no half-pixels
+     radius   11 values -> 5 steps
+     shadow   6 ad-hoc -> 3 elevations
+     motion   4 ad-hoc -> 2 durations + 1 easing
+   ========================================================================= */
+
+:root {
+  /* ── Color: private hue ramp (unchanged from v2.2) ───────────────────── */
+  --navy: #1B3A6B;  --navy-dark: #0F2A50;
+  --blue: #185FA5;  --blue-50: #E6F1FB;  --blue-200: #85B7EB;
+  --teal: #0F6E56;  --teal-50: #E1F5EE;  --teal-200: #5DCAA5;
+  --red:  #A32D2D;  --red-50:  #FCEBEB;
+  --amber:#BA7517;  --amber-50:#FAEEDA;
+  --purple:#3C3489; --purple-50:#EEEDFE;
+
+  /* Text-on-tint variants. The raw hues above are tuned for chart FILLS,
+     where WCAG's 4.5:1 text rule doesn't apply. As TEXT on their own -50
+     tint, --amber scored 3.24:1 (fail) and --text-muted 3.61:1 on white
+     (fail). These darkened variants clear AA and are used wherever the
+     color carries words. Chart fills keep the original hues. */
+  --amber-text: #965D0D;              /* 4.73:1 on --amber-50 */
+  --text-muted: #767570;              /* 4.62:1 on white (was #888780) */
+
+  --text: #2C2C2A;  --text-sec: #5F5E5A;
+  --border: #D3D1C7; --border-light: #F1EFE8; --divider: #F0F4FB;
+
+  /* Neutrals that were hardcoded 26 times (#fff x19, plus 5 near-whites) */
+  --surface: #FFFFFF;
+  --surface-sunken: #F8FAFF;
+  --surface-raised: #FAFBFF;
+  --canvas-from: #EEF2F7;
+  --canvas-to:   #E8EDF5;
+  --neutral-bar: #B4B2A9;      /* non-actionable series in stacked bars */
+
+  /* ── Color: SEMANTIC layer ───────────────────────────────────────────── */
+  /* Components reference these, never the hue ramp. Rebrand = edit 6 lines. */
+  --primary:   var(--navy);
+  --accent:    var(--blue);
+  --accent-bg: var(--blue-50);
+  --success:   var(--teal);   --success-bg: var(--teal-50);
+  --warning:   var(--amber);  --warning-bg: var(--amber-50);
+  --warning-text: var(--amber-text);   /* use on tint; --warning for fills */
+  --danger:    var(--red);    --danger-bg:  var(--red-50);
+  --info:      var(--purple); --info-bg:    var(--purple-50);
+
+  /* ── Spacing ─────────────────────────────────────────────────────────── */
+  --sp-1:  2px;  --sp-2:  4px;  --sp-3:  6px;  --sp-4:  8px;  --sp-5: 12px;
+  --sp-6: 16px;  --sp-7: 20px;  --sp-8: 24px;  --sp-9: 32px;  --sp-10:40px;
+
+  /* ── Typography ──────────────────────────────────────────────────────── */
+  /* --fs-base was 11px in v2.2 — below the ~12px floor for sustained reading
+     on a control-room monitor. Bumped to 13px. This is the ONE token that
+     visibly changes density; set it back to 11px to restore v2.2 exactly. */
+  --fs-base: 13px;
+
+  --fs-xs:  10px;   /* nav section labels, axis ticks — hard floor */
+  --fs-sm:  11px;   /* secondary text, table cells */
+  --fs-md:  12px;   /* body default */
+  --fs-lg:  var(--fs-base);
+  --fs-xl:  15px;   /* card headings */
+  --fs-2xl: 17px;   /* page title */
+  --fs-3xl: 20px;   /* KPI values */
+
+  --fw-medium: 500; --fw-semi: 600; --fw-bold: 700; --fw-black: 800;
+  --lh-tight: 1.2;  --lh-base: 1.4;  --lh-loose: 1.6;
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;  /* IDs, timestamps */
+
+  /* ── Border & radius ─────────────────────────────────────────────────── */
+  --bw: 1px;  --bw-thick: 3px;
+  --r-xs: 2px;  --r-sm: 4px;  --r-md: 6px;  --r-lg: 8px;
+  --r-xl: 12px; --r-full: 999px;
+
+  /* ── Elevation ───────────────────────────────────────────────────────── */
+  --shadow-1: 0 1px 3px rgba(27,58,107,.06);
+  --shadow-2: 0 2px 10px rgba(27,58,107,.08);
+  --shadow-3: 0 8px 24px rgba(27,58,107,.14);
+  --shadow-focus: 0 0 0 3px var(--accent-bg);
+
+  /* ── Motion ──────────────────────────────────────────────────────────── */
+  --dur-fast: .15s;  --dur-base: .25s;
+  --ease: cubic-bezier(.4, 0, .2, 1);
+
+  /* ── Layout ──────────────────────────────────────────────────────────── */
+  --sidebar-w: 190px;
+  --sidebar-w-collapsed: 56px;
+}
+
+/* ══ ACCESSIBILITY ═══════════════════════════════════════════════════════
+   v2.2 had 0 :focus-visible rules and 19 buttons. Keyboard users had no way
+   to tell where they were. This single rule closes that. */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* Screen-reader-only: pair every chart with a data table so the 58 inline
+   SVGs stop being invisible to assistive tech. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; left: var(--sp-4); top: -100px;
+  background: var(--surface); color: var(--text);
+  padding: var(--sp-3) var(--sp-5); border-radius: var(--r-md);
+  box-shadow: var(--shadow-2); z-index: 100;
+  transition: top var(--dur-fast) var(--ease);
+}
+.skip-link:focus { top: var(--sp-4); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ══ STATE LAYER ═════════════════════════════════════════════════════════
+   v2.2 had 0 :disabled and no loading/empty/error states, because with mock
+   data nothing is ever pending. These bind to body[data-status], which
+   mount() in dds-charts.js already sets. */
+
+/* --- Disabled: applies to every interactive element at once --- */
+button:disabled, [aria-disabled="true"],
+input:disabled, select:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* --- Loading --- */
+@keyframes dds-shimmer { to { background-position: -200% 0; } }
+@keyframes dds-spin    { to { transform: rotate(360deg); } }
+
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--border-light) 25%, var(--surface-sunken) 37%, var(--border-light) 63%);
+  background-size: 200% 100%;
+  animation: dds-shimmer 1.4s linear infinite;
+  border-radius: var(--r-sm);
+  color: transparent !important;
+  user-select: none;
+}
+.skeleton-text { height: 1em; display: block; }
+.skeleton-kpi  { height: 24px; width: 60%; }
+
+body[data-status="loading"] .card { pointer-events: none; }
+body[data-status="loading"] .kpi-val,
+body[data-status="loading"] .ev-row,
+body[data-status="loading"] .chart-body {
+  background: linear-gradient(90deg,
+    var(--border-light) 25%, var(--surface-sunken) 37%, var(--border-light) 63%);
+  background-size: 200% 100%;
+  animation: dds-shimmer 1.4s linear infinite;
+  color: transparent;
+}
+
+.btn[data-loading="true"] { position: relative; color: transparent; }
+.btn[data-loading="true"]::after {
+  content: ""; position: absolute; inset: 0; margin: auto;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  color: var(--surface);
+  animation: dds-spin .6s linear infinite;
+}
+
+/* --- Empty --- */
+.state-empty, .ev-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--sp-3); padding: var(--sp-9) var(--sp-6);
+  color: var(--text-muted); font-size: var(--fs-sm); text-align: center;
+}
+.state-empty-title { font-weight: var(--fw-semi); color: var(--text-sec); }
+
+/* --- Error --- */
+.state-error {
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--sp-4); padding: var(--sp-8) var(--sp-6);
+  background: var(--danger-bg); border: var(--bw) solid var(--danger);
+  border-radius: var(--r-lg); color: var(--danger); font-size: var(--fs-sm);
+}
+body[data-status="error"] .chart-body { display: none; }
+
+/* --- Reconciliation warning (meta.reconciles === false) --- */
+.summary-warn {
+  padding: var(--sp-3) var(--sp-4); margin-top: var(--sp-3);
+  background: var(--warning-bg); border-left: var(--bw-thick) solid var(--warning);
+  border-radius: var(--r-sm); color: var(--text-sec); font-size: var(--fs-sm);
+}
+
+/* ══ CONSOLIDATED PILL ═══════════════════════════════════════════════════
+   Replaces .badge-* (5) + .flag-* (5) + .status-* (3) + .role-* (4) +
+   .drive-* (2) = 19 classes doing one job. Markup:
+       <span class="pill" data-variant="success">Synced</span> */
+
+.pill {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs); font-weight: var(--fw-semi);
+  line-height: var(--lh-tight); white-space: nowrap;
+  background: var(--border-light); color: var(--text-sec);
+}
+.pill::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.pill[data-variant="neutral"]::before { display: none; }
+.pill[data-variant="success"] { background: var(--success-bg); color: var(--success); }
+.pill[data-variant="warning"] { background: var(--warning-bg); color: var(--warning-text); }
+.pill[data-variant="danger"]  { background: var(--danger-bg);  color: var(--danger); }
+.pill[data-variant="info"]    { background: var(--accent-bg);  color: var(--accent); }
+.pill[data-variant="admin"]   { background: var(--info-bg);    color: var(--info); }
+
+/* ══ BUTTON — full state coverage ════════════════════════════════════════
+   v2.2 defined default only, and .btn-sm was byte-identical to .btn. */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-5);
+  border: var(--bw) solid transparent; border-radius: var(--r-md);
+  font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  line-height: var(--lh-tight); cursor: pointer;
+  background: var(--accent); color: var(--surface);
+  transition: background var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease),
+              transform var(--dur-fast) var(--ease);
+}
+.btn:hover  { background: var(--primary); }
+.btn:active { transform: translateY(1px); }
+
+.btn-outline {
+  background: var(--surface); color: var(--text);
+  border-color: var(--border);
+}
+.btn-outline:hover { background: var(--surface-sunken); border-color: var(--accent); }
+
+.btn-ghost { background: none; color: var(--accent); border-color: transparent; }
+.btn-ghost:hover { background: var(--accent-bg); }
+
+.btn-danger { background: var(--danger); }
+.btn-danger:hover { background: #8A2424; }
+
+/* Real size variants — sm now actually differs from md. */
+.btn-sm { padding: var(--sp-2) var(--sp-4); font-size: var(--fs-xs); }
+.btn-lg { padding: var(--sp-4) var(--sp-7); font-size: var(--fs-lg); }
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;                /* 28px min; see touch note below */
+  border: none; background: none; border-radius: var(--r-md);
+  color: var(--text-muted); cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.icon-btn:hover { background: var(--border-light); color: var(--primary); }
+
+/* ══ INPUT — full state coverage ═════════════════════════════════════════ */
+
+.field-input, .sound-select {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--bw) solid var(--border); border-radius: var(--r-md);
+  background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: var(--fs-sm); line-height: var(--lh-base);
+  transition: border-color var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease);
+}
+.field-input:hover { border-color: var(--text-muted); }
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+.field-input[aria-invalid="true"] { border-color: var(--danger); }
+.field-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px var(--danger-bg); }
+.field-input::placeholder { color: var(--text-muted); }
+
+.field-error {
+  display: block; margin-top: var(--sp-2);
+  font-size: var(--fs-xs); color: var(--danger);
+}
+
+/* ══ DROPZONE — full state coverage ══════════════════════════════════════ */
+
+.dz {
+  border: 2px dashed var(--border); border-radius: var(--r-xl);
+  padding: var(--sp-9) var(--sp-6); text-align: center;
+  background: var(--surface-raised);
+  transition: border-color var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease);
+}
+.dz:hover, .dz:focus-within { border-color: var(--accent); background: var(--accent-bg); }
+.dz[data-state="drag"]      { border-color: var(--accent); background: var(--accent-bg); }
+.dz[data-state="uploading"] { border-style: solid; pointer-events: none; opacity: .7; }
+.dz[data-state="error"]     { border-color: var(--danger); background: var(--danger-bg); }
+
+/* ══ RESPONSIVE ══════════════════════════════════════════════════════════
+   v2.2 had a viewport meta tag, 0 media queries, a fixed 190px grid, and
+   overflow:hidden on html/body — so on any short screen, content below the
+   fold was unreachable rather than scrollable. */
+
+html, body { height: 100%; }
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  color: var(--text);
+  background: linear-gradient(135deg, var(--canvas-from) 0%, var(--canvas-to) 100%);
+  background-attachment: fixed;
+}
+
+.app { min-height: 100vh; display: grid; grid-template-columns: var(--sidebar-w) 1fr; }
+.main { overflow-y: auto; }          /* scrolls instead of clipping */
+
+@media (max-width: 1100px) {
+  .app { grid-template-columns: var(--sidebar-w-collapsed) 1fr; }
+  .nav-brand-title, .nav-brand-sub,
+  .nav-item span, .nav-section-label { display: none; }
+  .nav-item { justify-content: center; }
+}
+
+@media (max-width: 720px) {
+  .app { grid-template-columns: 1fr; }
+  .sidenav {
+    position: fixed; inset: 0 auto 0 0; z-index: 50;
+    width: var(--sidebar-w);
+    transform: translateX(-100%);
+    transition: transform var(--dur-base) var(--ease);
+  }
+  .sidenav[data-open="true"] { transform: none; }
+  .kpi-row, .settings-grid { grid-template-columns: 1fr; }
+  .card { padding: var(--sp-5); }
+
+  /* Touch targets: 28px icon buttons fail the 44px minimum on touch. */
+  .icon-btn, .btn { min-height: 44px; }
+  .imp-table, .um-table { display: block; overflow-x: auto; }
+}
+
+@media print {
+  .sidenav, .topbar, .btn, .icon-btn { display: none !important; }
+  .app { grid-template-columns: 1fr; }
+  .card { break-inside: avoid; box-shadow: none; border: var(--bw) solid var(--border); }
+}
+
+/* ══ MIGRATION MAP ═══════════════════════════════════════════════════════
+   Find-and-replace guide for the existing rules. Visual shift is sub-pixel
+   except --fs-base, called out above.
+
+   SPACING   1->--bw  2->--sp-1  3,4,5->--sp-2  6->--sp-3  7,8,9->--sp-4
+             10,11,12,13->--sp-5  14,16->--sp-6  20->--sp-7  26->--sp-8
+             40->--sp-10
+
+   TYPE      8,8.5,9,9.5->--fs-xs   10,10.5->--fs-sm   11->--fs-md
+             12,12.5->--fs-lg  15->--fs-xl  17->--fs-2xl  20->--fs-3xl
+
+   RADIUS    2,3->--r-xs  4,5->--r-sm  6,7->--r-md  8->--r-lg
+             10,12->--r-xl  20px,50%->--r-full
+
+   COLOR     #fff->--surface   #F8FAFF->--surface-sunken
+             #FAFBFF,#f0f4ff->--surface-raised
+             #EEF2F7->--canvas-from  #E8EDF5->--canvas-to
+             #B4B2A9->--neutral-bar
+
+   CLASSES   .badge-success/.status-active/.drive-ok
+               -> .pill[data-variant="success"]
+             .badge-error/.flag-err/.status-inactive
+               -> .pill[data-variant="danger"]
+             .badge-warn/.flag-dup      -> .pill[data-variant="warning"]
+             .badge-pending/.drive-pending -> .pill[data-variant="info"]
+             .role-admin -> .pill[data-variant="admin"]
+             .role-b2b/.role-oa -> .pill[data-variant="neutral"]
+   ========================================================================= */
+
+/* ══ DROPDOWN MENU ═══════════════════════════════════════════════════════
+   Supports createDropdown() in dds-controls.js. The .cpill elements were
+   <div>s with a chevron implying a menu that didn't exist; they are upgraded
+   to real <button>s at runtime and need somewhere to render the popup. */
+
+.cpill {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border: var(--bw) solid var(--border); border-radius: var(--r-full);
+  background: var(--surface); color: var(--text-sec);
+  font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  line-height: var(--lh-tight); cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease);
+}
+.cpill:hover { border-color: var(--accent); background: var(--accent-bg); }
+.cpill[aria-expanded="true"] { border-color: var(--accent); background: var(--accent-bg); }
+.cpill svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+/* An active (non-default) filter must be visible at a glance, or users forget
+   they're looking at a subset and misread the numbers. */
+.cpill[data-active="true"] {
+  border-color: var(--accent); background: var(--accent-bg);
+  color: var(--accent); font-weight: var(--fw-semi);
+}
+
+.menu {
+  position: absolute; top: calc(100% + var(--sp-2)); left: 0; z-index: 40;
+  min-width: 180px; padding: var(--sp-2);
+  background: var(--surface);
+  border: var(--bw) solid var(--border); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3);
+}
+.menu-item {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm); color: var(--text); cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+.menu-item:hover { background: var(--surface-sunken); }
+.menu-item[aria-selected="true"] {
+  background: var(--accent-bg); color: var(--accent); font-weight: var(--fw-semi);
+}
+.menu-item[aria-selected="true"]::after { content: " ✓"; }
+
+@media (max-width: 720px) {
+  .menu { position: fixed; inset: auto var(--sp-4) var(--sp-4) var(--sp-4); min-width: 0; }
+  .menu-item { padding: var(--sp-4); }   /* 44px touch target */
+}
+
+/* ══ ANALYTICS SUMMARY (insight layout) ══════════════════════════════════
+   Hierarchy is the whole point: eyebrow → narrative headline → one hero →
+   quiet strip. Each level steps down in size, weight, and colour so the eye
+   lands on the finding first and the supporting numbers stay supporting. */
+
+.ins { display: flex; flex-direction: column; gap: var(--sp-5); }
+
+/* --- Eyebrow: period context, deliberately small --- */
+.ins-top {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  font-variant-numeric: tabular-nums;
+}
+.ins-eyebrow {
+  font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  color: var(--text-sec); text-transform: uppercase; letter-spacing: .08em;
+}
+.ins-eyebrow-vs { font-size: var(--fs-xs); color: var(--text-muted); }
+
+/* --- Headline: the finding, in prose. Largest text on the panel. --- */
+.ins-headline {
+  margin: 0; max-width: 62ch;
+  font-size: var(--fs-xl); font-weight: var(--fw-semi);
+  line-height: 1.45; letter-spacing: -.01em;
+  color: var(--text);
+  border-left: var(--bw-thick) solid var(--neutral-bar);
+  padding-left: var(--sp-5);
+}
+.ins-headline[data-tone="bad"]  { border-left-color: var(--danger); }
+.ins-headline[data-tone="good"] { border-left-color: var(--success); }
+.ins-headline[data-tone="neutral"] { border-left-color: var(--accent); }
+
+/* --- Hero: one metric, display size, with its own history --- */
+.ins-hero {
+  display: grid; grid-template-columns: 1fr auto; align-items: center;
+  gap: var(--sp-7);
+  padding: var(--sp-6) var(--sp-7);
+  background: var(--surface);
+  border: var(--bw) solid var(--border-light);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-1);
+}
+.ins-hero-label {
+  display: flex; align-items: center; gap: var(--sp-3);
+  font-size: var(--fs-xs); font-weight: var(--fw-semi);
+  color: var(--text-sec); text-transform: uppercase; letter-spacing: .07em;
+}
+.ins-hero-label .ic { color: var(--text-muted); }
+
+.ins-hero-figure {
+  display: flex; align-items: baseline; gap: var(--sp-4);
+  margin: var(--sp-3) 0 var(--sp-2);
+}
+/* Tabular figures: digits align and the value doesn't jitter on refresh. */
+.ins-hero-value {
+  font-size: 42px; font-weight: var(--fw-black); line-height: 1;
+  letter-spacing: -.035em; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.ins-hero-sub {
+  font-size: var(--fs-sm); color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ins-hero-spark { width: 240px; color: var(--neutral-bar); }
+.ins-hero-spark[data-tone="bad"]  { color: var(--danger); }
+.ins-hero-spark[data-tone="good"] { color: var(--success); }
+.ins-hero-spark[data-tone="neutral"] { color: var(--accent); }
+.spark { display: block; width: 100%; height: 44px; }
+.ins-spark-cap {
+  margin-top: var(--sp-2); text-align: right;
+  font-size: var(--fs-xs); color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Delta chip --- */
+.ins-chip {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-full);
+  font-size: var(--fs-sm); font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+  background: var(--border-light); color: var(--text-sec);
+}
+.ins-chip[data-tone="bad"]  { background: var(--danger-bg);  color: var(--danger); }
+.ins-chip[data-tone="good"] { background: var(--success-bg); color: var(--success); }
+
+/* --- Strip: supporting metrics, quiet by design --- */
+.ins-strip {
+  display: grid; gap: var(--sp-5);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  padding-top: var(--sp-5);
+  border-top: var(--bw) solid var(--border-light);
+}
+.ins-stat { display: flex; flex-direction: column; gap: var(--sp-2); }
+.ins-stat-label {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-xs); color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .06em; font-weight: var(--fw-semi);
+}
+.ins-stat-row { display: flex; align-items: baseline; gap: var(--sp-3); }
+.ins-stat-value {
+  font-size: var(--fs-2xl); font-weight: var(--fw-bold);
+  color: var(--text); line-height: 1.1;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+/* No pill in the strip — a chip on every stat would compete with the hero. */
+.ins-stat-delta {
+  display: inline-flex; align-items: center; gap: 1px;
+  font-size: var(--fs-sm); font-weight: var(--fw-semi);
+  color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+.ins-stat-delta[data-tone="bad"]  { color: var(--danger); }
+.ins-stat-delta[data-tone="good"] { color: var(--success); }
+
+/* --- Note --- */
+.ins-note {
+  display: flex; align-items: flex-start; gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-lg);
+  font-size: var(--fs-sm); line-height: var(--lh-loose);
+  background: var(--warning-bg); color: var(--text);
+  border-left: var(--bw-thick) solid var(--warning);
+}
+.ins-note .ic { flex-shrink: 0; margin-top: 2px; color: var(--warning-text); }
+.ins-note b { font-weight: var(--fw-bold); }
+
+.ic-xs { width: 11px; height: 11px; }
+
+@media (max-width: 720px) {
+  .ins-hero { grid-template-columns: 1fr; gap: var(--sp-5); padding: var(--sp-5); }
+  .ins-hero-spark { width: 100%; }
+  .ins-spark-cap { text-align: left; }
+  .ins-hero-value { font-size: 34px; }
+  .ins-headline { font-size: var(--fs-lg); padding-left: var(--sp-4); }
+  .ins-strip { grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+}
+
+body{margin:0;padding:32px 20px;background:linear-gradient(135deg,var(--canvas-from),var(--canvas-to));min-height:100vh}
+.wrap{max-width:860px;margin:0 auto;background:var(--surface);border:1px solid var(--border-light);
+border-radius:var(--r-xl);padding:var(--sp-8);box-shadow:var(--shadow-2)}
+.card-title{margin:0 0 var(--sp-6);font-size:var(--fs-xl);font-weight:var(--fw-bold);color:var(--text)}
+</style></head><body><div class="wrap">
+<h2 class="card-title">Analytics Summary</h2>
+    <div class="ins">
+      <div class="ins-top">
+        <span class="ins-eyebrow">03/01/2025 – 03/28/2025</span>
+        <span class="ins-eyebrow-vs">vs 02/01/2025 – 02/28/2025</span>
+      </div>
+
+      <p class="ins-headline" data-tone="bad">Per-asset risk rose 25% while the reporting fleet grew 25%. Total alerts moved +56% — most of that swing is fleet size, not driver behaviour.</p>
+
+      
+      
+  <div class="ins-hero" data-tone="bad">
+    <div class="ins-hero-main">
+      <div class="ins-hero-label">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg><span>Alerts per asset per active day</span>
+      </div>
+      <div class="ins-hero-figure">
+        <span class="ins-hero-value">1.56</span>
+        <span class="ins-chip" data-tone="bad">
+          <svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 15 6-6 6 6"></path></svg>+24.8%
+        </span>
+      </div>
+      <div class="ins-hero-sub">
+        from 1.25 · 02/01/2025 – 02/28/2025
+      </div>
+    </div>
+    <div class="ins-hero-spark" data-tone="bad">
+      
+  <svg class="spark" viewBox="0 0 240 44" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="spark-bad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="currentColor" stop-opacity=".20"></stop>
+        <stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop>
+      </linearGradient>
+    </defs>
+    <path d="M0.0,40.0 L8.9,40.0 L17.8,40.0 L26.7,40.0 L35.6,40.0 L44.4,40.0 L53.3,40.0 L62.2,40.0 L71.1,40.0 L80.0,40.0 L88.9,40.0 L97.8,40.0 L106.7,40.0 L115.6,40.0 L124.4,40.0 L133.3,40.0 L142.2,40.0 L151.1,40.0 L160.0,40.0 L168.9,40.0 L177.8,40.0 L186.7,40.0 L195.6,40.0 L204.4,40.0 L213.3,40.0 L222.2,40.0 L231.1,40.0 L240.0,40.0 L240,44 L0,44 Z" fill="url(#spark-bad)"></path>
+    <path d="M0.0,40.0 L8.9,40.0 L17.8,40.0 L26.7,40.0 L35.6,40.0 L44.4,40.0 L53.3,40.0 L62.2,40.0 L71.1,40.0 L80.0,40.0 L88.9,40.0 L97.8,40.0 L106.7,40.0 L115.6,40.0 L124.4,40.0 L133.3,40.0 L142.2,40.0 L151.1,40.0 L160.0,40.0 L168.9,40.0 L177.8,40.0 L186.7,40.0 L195.6,40.0 L204.4,40.0 L213.3,40.0 L222.2,40.0 L231.1,40.0 L240.0,40.0" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
+    <circle cx="240.0" cy="40.0" r="2.4" fill="currentColor"></circle>
+  </svg>
+      <div class="ins-spark-cap">Daily · 03/01/2025 – 03/28/2025</div>
+    </div>
+    <span class="sr-only">Alerts per asset per active day: 1.56,
+      +24.8% versus 1.25 in 02/01/2025 – 02/28/2025.</span>
+  </div>
+
+      <div class="ins-strip">
+        
+  <div class="ins-stat">
+    <div class="ins-stat-label"><svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg><span>Total alerts</span></div>
+    <div class="ins-stat-row">
+      <span class="ins-stat-value">1,092</span>
+      <span class="ins-stat-delta" data-tone="bad">
+        <svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 15 6-6 6 6"></path></svg>+56.0%
+      </span>
+    </div>
+    <span class="sr-only">Total alerts: 1,092,
+      +56.0% versus 700 in 02/01/2025 – 02/28/2025.</span>
+  </div>
+  <div class="ins-stat">
+    <div class="ins-stat-label"><svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 17h4V5H2v12h3"></path><path d="M20 17h2v-3.3a4 4 0 0 0-.9-2.5l-1.9-2.3a2 2 0 0 0-1.5-.7H14v8.8h2"></path><circle cx="7.5" cy="17.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg><span>Assets reporting</span></div>
+    <div class="ins-stat-row">
+      <span class="ins-stat-value">25</span>
+      <span class="ins-stat-delta" data-tone="neutral">
+        <svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 15 6-6 6 6"></path></svg>+25.0%
+      </span>
+    </div>
+    <span class="sr-only">Assets reporting: 25,
+      +25.0% versus 20 in 02/01/2025 – 02/28/2025.</span>
+  </div>
+  <div class="ins-stat">
+    <div class="ins-stat-label"><svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>Drivers involved</span></div>
+    <div class="ins-stat-row">
+      <span class="ins-stat-value">13</span>
+      <span class="ins-stat-delta" data-tone="bad">
+        <svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 15 6-6 6 6"></path></svg>+8.3%
+      </span>
+    </div>
+    <span class="sr-only">Drivers involved: 13,
+      +8.3% versus 12 in 02/01/2025 – 02/28/2025.</span>
+  </div>
+  <div class="ins-stat">
+    <div class="ins-stat-label"><svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 3v6h-6"></path></svg><span>Avg sync delay</span></div>
+    <div class="ins-stat-row">
+      <span class="ins-stat-value">30.0 min</span>
+      <span class="ins-stat-delta" data-tone="good">
+        <svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"></path></svg>−14.3%
+      </span>
+    </div>
+    <span class="sr-only">Avg sync delay: 30.0 min,
+      −14.3% versus 35.0 min in 02/01/2025 – 02/28/2025.</span>
+  </div>
+  <div class="ins-stat">
+    <div class="ins-stat-label"><svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="m9 11 3 3L22 4"></path></svg><span>Actionable</span></div>
+    <div class="ins-stat-row">
+      <span class="ins-stat-value">100.0%</span>
+      <span class="ins-stat-delta" data-tone="neutral">
+        <svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14"></path></svg>0.0%
+      </span>
+    </div>
+    <span class="sr-only">Actionable: 100.0%,
+      0.0% versus 100.0% in 02/01/2025 – 02/28/2025.</span>
+  </div>
+      </div>
+    </div></div></body></html>

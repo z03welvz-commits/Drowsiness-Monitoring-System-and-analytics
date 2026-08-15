@@ -1,0 +1,3965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DDS — Drowsiness Detection System</title>
+<style>
+/* ── Original DDS v2.2 layout & component styles ──────────────────── */
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ═══ THEME — shared tokens (identical in both source pages) ═══ */
+:root{
+  --navy:#1B3A6B; --navy-dark:#0F2A50; --blue:#185FA5; --blue-50:#E6F1FB; --blue-200:#85B7EB;
+  --teal:#0F6E56; --teal-50:#E1F5EE; --teal-200:#5DCAA5;
+  --red:#A32D2D; --red-50:#FCEBEB;
+  --amber:#BA7517; --amber-50:#FAEEDA;
+  --purple:#3C3489; --purple-50:#EEEDFE;
+  --text:#2C2C2A; --text-sec:#5F5E5A; --text-muted:#888780;
+  --border:#D3D1C7; --border-light:#F1EFE8; --divider:#F0F4FB;
+}
+
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:system-ui,sans-serif; color:var(--text); font-size:11px; line-height:1.4;
+  background:linear-gradient(135deg,#EEF2F7 0%,#E8EDF5 100%); background-attachment:fixed;
+}
+a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
+
+/* App shell: sidebar never scrolls; each page controls its own .main
+   scroll behavior independently (Overview = locked/fits-viewport,
+   Analytics = scrolls), matching each source file's own rule. */
+.app{height:100vh; overflow:hidden; display:grid; grid-template-columns:190px 1fr}
+
+/* ═══ SIDEBAR ═══ */
+.sidenav{background:linear-gradient(180deg,var(--navy) 0%,var(--navy-dark) 100%); display:flex; flex-direction:column; padding:14px 0; overflow:hidden}
+.nav-brand{padding:0 14px 12px; border-bottom:0.5px solid rgba(255,255,255,.15); margin-bottom:8px}
+.nav-brand-row{display:flex; align-items:center; gap:9px}
+.nav-mark{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-mark svg{width:16px;height:16px;color:#fff}
+.nav-brand-title{font-size:15px;font-weight:800;color:#fff;letter-spacing:.03em;line-height:1.2}
+.nav-brand-sub{font-size:8px;color:rgba(255,255,255,.45);letter-spacing:.04em;margin-top:1px}
+.nav-section-label{font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em;padding:8px 14px 3px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 14px;font-size:11px;color:rgba(255,255,255,.6);border:none;background:none;width:100%;text-align:left;border-left:3px solid transparent;position:relative}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-item.active{color:#fff;background:rgba(255,255,255,.12);border-left-color:var(--teal-200)}
+.nav-item svg{width:14px;height:14px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.nav-item.active::after{content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--teal-200)}
+
+/* ═══ MAIN — Overview: height-locked/no-scroll. Analytics: scrolls. Each
+   page section carries its own rule via [data-page], applied to whichever
+   is currently visible. ═══ */
+.main{height:100vh; padding:12px 16px; display:flex; flex-direction:column; gap:10px}
+.main[data-page="overview"]{overflow:hidden}
+.main[data-page="analytics"]{overflow-y:auto}
+.main[data-page="data-mgmt"]{overflow-y:auto}
+.main[data-page="settings"]{overflow:hidden}
+
+.page{display:flex; flex-direction:column; gap:10px; flex:1; min-height:0}
+.page[hidden]{display:none}
+
+.topbar{background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border:0.5px solid rgba(27,58,107,.08); border-radius:10px; box-shadow:0 1px 8px rgba(27,58,107,.06); padding:9px 14px; display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:700;color:var(--navy)}
+.topbar-sub{font-size:10px;color:var(--text-sec);margin-top:1px}
+.hcontrols{display:flex;align-items:center;gap:6px}
+.cpill{display:flex;align-items:center;gap:4px;background:#fff;border:0.5px solid var(--border);border-radius:6px;padding:5px 9px;font-size:10.5px;font-weight:500;color:var(--text)}
+.cpill svg{width:10px;height:10px;color:var(--text-sec)}
+.btn{border:none;border-radius:6px;padding:6px 13px;font-size:10.5px;font-weight:500;display:inline-flex;align-items:center;gap:5px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));box-shadow:0 2px 8px rgba(24,95,165,.25)}
+.btn svg{width:11px;height:11px}
+
+/* ═══ KPI cards ═══ */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;flex-shrink:0}
+.kpi{background:linear-gradient(135deg,#fff 60%,#f0f4ff 100%);border-radius:12px;padding:10px 13px;box-shadow:0 2px 10px rgba(27,58,107,.08);position:relative;overflow:hidden;height:78px;display:flex;flex-direction:column;justify-content:center}
+.kpi::before{content:'';position:absolute;top:-16px;right:-16px;width:56px;height:56px;border-radius:50%;opacity:.09}
+.kpi-alerts::before{background:var(--amber)}
+.page[data-page-id="overview"] .kpi-units::before{background:var(--teal)}
+.page[data-page-id="overview"] .kpi-sync::before{background:var(--purple)}
+.page[data-page-id="analytics"] .kpi-units::before{background:var(--purple)}
+.page[data-page-id="analytics"] .kpi-sync::before{background:var(--teal)}
+.kpi-ratio::before{background:var(--blue)}
+.kpi-icon{position:absolute;top:9px;right:9px;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.kpi-icon svg{width:11px;height:11px}
+.kpi-label{font-size:8px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.kpi-val{font-size:20px;font-weight:700;color:var(--text);line-height:1.3;margin:3px 0 1px}
+.kpi-chg{font-size:9px;font-weight:500;display:flex;align-items:center;gap:2px}
+.kpi-chg svg{width:8px;height:8px}
+.up{color:var(--teal)}
+
+/* ═══ card shell ═══ */
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(27,58,107,.07);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.card-head{padding:8px 13px;background:linear-gradient(90deg,#F8FAFF,#fff);border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.card-head h2{font-size:11px;font-weight:600;color:var(--navy);display:flex;align-items:center;gap:6px}
+.card-head h2::before{content:'';display:inline-block;width:3px;height:11px;background:linear-gradient(180deg,var(--teal-200),var(--blue));border-radius:2px}
+.legend-block{display:flex;align-items:center;gap:10px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--text-sec);font-weight:500}
+.legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+
+.chart-body{padding:6px 13px 10px;flex:1;min-height:0;display:flex;flex-direction:column}
+.axis{font-size:9px;color:var(--text-muted)}
+
+/* ═══ Overview page rows — fluid ratio, flex-grow height ═══ */
+.row2,.row3,.row4{display:grid;gap:10px;min-height:0}
+.row2,.row3{grid-template-columns:1.7fr 1fr}
+.row4{grid-template-columns:1fr 1fr 1fr}
+.row2{flex:1.35} .row3{flex:1.35} .row4{flex:1.15}
+.table-card{height:100%;min-height:0}
+
+/* ═══ Analytics page rows — literal pixel heights (page scrolls) ═══ */
+.row1{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;min-height:0;height:230px;flex-shrink:0}
+.rowT{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0;height:212px;flex-shrink:0}
+.rowC{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0;height:340px;flex-shrink:0}
+
+.summary-body{padding:10px 13px;flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;justify-content:center}
+.summary-line{font-size:10px;line-height:1.5;color:var(--text-sec)}
+.summary-line b{color:var(--navy)}
+.summary-action{font-size:9.5px;font-weight:600;color:var(--purple);background:var(--purple-50);border-radius:6px;padding:6px 9px;line-height:1.4}
+
+.donut-wrap{display:flex;align-items:center;gap:14px;padding:8px 13px 12px;flex:1;min-height:0}
+.donut-legend{display:flex;flex-direction:column;gap:8px;min-width:0}
+.dl-row{display:flex;align-items:center;gap:6px}
+.dl-pct{font-size:12px;font-weight:700;margin-left:auto;padding-left:8px}
+
+/* ═══ List rows — shared by Top N Asset ID (Overview), Event Code
+   Distribution (Overview), and Top Offenders by Unit/Operator (Analytics) ═══ */
+.ev-list{padding:8px 13px;display:flex;flex-direction:column;justify-content:space-evenly;flex:1;min-height:0}
+.ev-row{display:grid;grid-template-columns:74px 1fr 62px;align-items:center;gap:8px}
+.ev-label{font-size:10px;color:var(--text);font-weight:500}
+.ev-track{height:5px;border-radius:3px;background:var(--border-light);overflow:hidden}
+.ev-fill{height:100%;border-radius:3px;background:var(--purple)}
+.ev-val{font-size:9px;color:var(--text-sec);text-align:right;white-space:nowrap}
+
+/* ═══ Data Management page ═══ */
+.dz{border:1.5px dashed var(--blue-200); border-radius:12px; background:linear-gradient(135deg,#fff 60%,var(--blue-50) 100%); padding:26px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; flex-shrink:0}
+.dz:hover,.dz.dz-drag{border-color:var(--blue); background:linear-gradient(135deg,#fff 40%,var(--blue-50) 100%)}
+.dz-icon{width:38px;height:38px;border-radius:10px;background:var(--blue-50);display:flex;align-items:center;justify-content:center;color:var(--blue)}
+.dz-icon svg{width:19px;height:19px}
+.dz-title{font-size:12px;font-weight:600;color:var(--navy)}
+.dz-sub{font-size:9.5px;color:var(--text-sec)}
+.dz-formats{display:flex;gap:6px;margin-top:2px}
+.dz-chip{font-size:8.5px;font-weight:600;color:var(--teal);background:var(--teal-50);border-radius:4px;padding:2px 7px;letter-spacing:.03em}
+.dz input[type="file"]{display:none}
+
+.imp-toolbar{display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.imp-toolbar-title{font-size:11px;font-weight:600;color:var(--navy);display:flex;align-items:center;gap:6px}
+.imp-toolbar-title::before{content:'';display:inline-block;width:3px;height:11px;background:linear-gradient(180deg,var(--teal-200),var(--blue));border-radius:2px}
+.imp-count{font-size:9.5px;color:var(--text-sec)}
+
+.imp-table-wrap{flex:1; min-height:0; overflow-y:auto}
+.imp-table{width:100%; border-collapse:collapse}
+.imp-table thead th{position:sticky; top:0; background:linear-gradient(90deg,#F8FAFF,#fff); text-align:left; font-size:8.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; padding:8px 13px; border-bottom:1px solid var(--divider); z-index:1}
+.imp-table tbody td{padding:9px 13px; font-size:10.5px; color:var(--text); border-bottom:1px solid var(--border-light); vertical-align:middle}
+.imp-table tbody tr:last-child td{border-bottom:none}
+.imp-table tbody tr:hover{background:#FAFBFF}
+.imp-file{display:flex; align-items:center; gap:8px; min-width:0}
+.imp-file-icon{width:24px;height:24px;border-radius:6px;background:var(--teal-50);color:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.imp-file-icon svg{width:12px;height:12px}
+.imp-file-icon.xlsx{background:var(--teal-50);color:var(--teal)}
+.imp-file-icon.csv{background:var(--blue-50);color:var(--blue)}
+.imp-file-name{font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px}
+.imp-file-rows{font-size:9px;color:var(--text-muted)}
+.imp-size,.imp-date{color:var(--text-sec); white-space:nowrap}
+
+.badge{display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:600; padding:3px 8px; border-radius:20px; white-space:nowrap}
+.badge svg{width:9px;height:9px}
+.badge-success{background:var(--teal-50); color:var(--teal)}
+.badge-error{background:var(--red-50); color:var(--red)}
+.badge-warn{background:var(--amber-50); color:var(--amber)}
+.badge-pending{background:var(--border-light); color:var(--text-sec)}
+
+.flag-row{display:flex; flex-direction:column; gap:3px}
+.flag{display:inline-flex; align-items:center; gap:4px; font-size:8.5px; font-weight:600; padding:2px 7px; border-radius:5px; width:fit-content}
+.flag-dup{background:var(--amber-50); color:var(--amber)}
+.flag-err{background:var(--red-50); color:var(--red)}
+.flag-none{font-size:9px; color:var(--text-muted)}
+
+.imp-drive{display:flex; align-items:center; gap:4px; font-size:9px; color:var(--text-sec)}
+.imp-drive svg{width:10px;height:10px; flex-shrink:0}
+.imp-drive.drive-ok{color:var(--teal)}
+.imp-drive.drive-pending{color:var(--text-muted)}
+
+.imp-empty{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:40px 20px; color:var(--text-muted); flex:1}
+.imp-empty[hidden]{display:none}
+.imp-empty svg{width:28px;height:28px; opacity:.4}
+.imp-empty-text{font-size:10px}
+
+/* ═══ Settings page ═══ */
+.settings-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; flex:1; min-height:0; overflow-y:auto; align-content:start}
+.settings-card{grid-column:span 1}
+.settings-card.wide{grid-column:1 / -1}
+.settings-body{padding:14px; display:flex; flex-direction:column; gap:14px}
+
+.field-group{display:flex; flex-direction:column; gap:5px}
+.field-label{font-size:9.5px; font-weight:600; color:var(--text-sec); text-transform:uppercase; letter-spacing:.04em}
+.field-input{border:1px solid var(--border); border-radius:7px; padding:8px 11px; font-size:11px; font-family:inherit; color:var(--text); background:#fff; width:100%}
+.field-input:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-50)}
+.field-row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.field-hint{font-size:8.5px; color:var(--text-muted)}
+
+.avatar-row{display:flex; align-items:center; gap:12px}
+.avatar-circle{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--navy));display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:700;flex-shrink:0}
+.avatar-meta-name{font-size:12.5px;font-weight:700;color:var(--text)}
+.avatar-meta-role{font-size:9.5px;color:var(--text-sec);margin-top:1px}
+
+.divider-line{height:1px; background:var(--divider); margin:2px 0}
+
+.pwd-toggle-row{display:flex; align-items:center; justify-content:space-between}
+.pwd-toggle-label{font-size:10.5px; font-weight:600; color:var(--navy)}
+.link-btn{border:none; background:none; color:var(--blue); font-size:9.5px; font-weight:600; padding:0}
+
+.save-row{display:flex; justify-content:flex-end; gap:8px}
+.btn-outline{border:1px solid var(--border); border-radius:6px; padding:6px 13px; font-size:10.5px; font-weight:500; background:#fff; color:var(--text-sec)}
+.btn-sm{padding:6px 13px; font-size:10.5px}
+
+.saved-pill{display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:600; color:var(--teal); background:var(--teal-50); border-radius:20px; padding:3px 9px; opacity:0; transition:opacity .2s}
+.saved-pill.show{opacity:1}
+.saved-pill svg{width:9px;height:9px}
+
+/* Notification sound */
+.sound-row{display:flex; align-items:center; justify-content:space-between; padding:9px 0}
+.sound-row + .sound-row{border-top:1px solid var(--border-light)}
+.sound-row-label{font-size:10.5px; font-weight:600; color:var(--text)}
+.sound-row-sub{font-size:9px; color:var(--text-sec); margin-top:1px}
+
+.toggle{position:relative; width:34px; height:19px; flex-shrink:0}
+.toggle input{opacity:0; width:0; height:0; position:absolute}
+.toggle-track{position:absolute; inset:0; background:var(--border); border-radius:20px; cursor:pointer; transition:background .15s}
+.toggle-track::before{content:''; position:absolute; width:15px; height:15px; left:2px; top:2px; background:#fff; border-radius:50%; transition:transform .15s; box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked + .toggle-track{background:var(--teal)}
+.toggle input:checked + .toggle-track::before{transform:translateX(15px)}
+
+.sound-select-row{display:flex; align-items:center; gap:8px}
+.sound-select{border:1px solid var(--border); border-radius:6px; padding:6px 9px; font-size:10px; font-family:inherit; color:var(--text); background:#fff}
+.sound-preview-btn{border:1px solid var(--border); background:#fff; border-radius:6px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--blue); flex-shrink:0}
+.sound-preview-btn svg{width:12px;height:12px}
+.vol-slider{width:100%; accent-color:var(--blue)}
+
+/* User Management */
+.um-toolbar{display:flex; align-items:center; justify-content:space-between}
+.um-table{width:100%; border-collapse:collapse}
+.um-table thead th{text-align:left; font-size:8.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; padding:8px 13px; border-bottom:1px solid var(--divider)}
+.um-table tbody td{padding:9px 13px; font-size:10.5px; color:var(--text); border-bottom:1px solid var(--border-light); vertical-align:middle}
+.um-table tbody tr:last-child td{border-bottom:none}
+.um-table tbody tr:hover{background:#FAFBFF}
+.um-user{display:flex; align-items:center; gap:8px}
+.um-avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue-200),var(--blue));display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;flex-shrink:0}
+.um-name{font-weight:600}
+.um-username{font-size:9px; color:var(--text-muted)}
+.role-badge{display:inline-flex; font-size:9px; font-weight:600; padding:3px 8px; border-radius:20px}
+.role-admin{background:var(--purple-50); color:var(--purple)}
+.role-oa{background:var(--blue-50); color:var(--blue)}
+.role-b2b{background:var(--teal-50); color:var(--teal)}
+.status-dot{display:inline-flex; align-items:center; gap:5px; font-size:9.5px; font-weight:500}
+.status-dot::before{content:''; width:6px; height:6px; border-radius:50%; flex-shrink:0}
+.status-active::before{background:var(--teal)}
+.status-inactive::before{background:var(--text-muted)}
+.um-actions{display:flex; gap:6px}
+.icon-btn{border:none; background:none; color:var(--text-muted); width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:5px}
+.icon-btn:hover{background:var(--border-light); color:var(--navy)}
+.icon-btn svg{width:12px;height:12px}
+
+
+/* ── Token layer, states, a11y, responsive, insight layout ───────────
+   Loaded after the original so it overrides. Migration map at the end. */
+/* ============================================================================
+   DDS — Design Tokens & State Layer
+   ----------------------------------------------------------------------------
+   Load AFTER the existing <style> block. Replaces the :root block and adds the
+   five token categories that didn't exist, plus the states v2.2 never defined.
+
+   Scales are derived from what the file actually used, not invented:
+     spacing  18 distinct px values -> 10 steps
+     type     12 sizes (incl. 8.5/9.5/10.5/12.5) -> 7 steps, no half-pixels
+     radius   11 values -> 5 steps
+     shadow   6 ad-hoc -> 3 elevations
+     motion   4 ad-hoc -> 2 durations + 1 easing
+   ========================================================================= */
+
+:root {
+  /* ── Color: private hue ramp (unchanged from v2.2) ───────────────────── */
+  --navy: #1B3A6B;  --navy-dark: #0F2A50;
+  --blue: #185FA5;  --blue-50: #E6F1FB;  --blue-200: #85B7EB;
+  --teal: #0F6E56;  --teal-50: #E1F5EE;  --teal-200: #5DCAA5;
+  --red:  #A32D2D;  --red-50:  #FCEBEB;
+  --amber:#BA7517;  --amber-50:#FAEEDA;
+  --purple:#3C3489; --purple-50:#EEEDFE;
+
+  /* Text-on-tint variants. The raw hues above are tuned for chart FILLS,
+     where WCAG's 4.5:1 text rule doesn't apply. As TEXT on their own -50
+     tint, --amber scored 3.24:1 (fail) and --text-muted 3.61:1 on white
+     (fail). These darkened variants clear AA and are used wherever the
+     color carries words. Chart fills keep the original hues. */
+  --amber-text: #965D0D;              /* 4.73:1 on --amber-50 */
+  --text-muted: #767570;              /* 4.62:1 on white (was #888780) */
+
+  --text: #2C2C2A;  --text-sec: #5F5E5A;
+  --border: #D3D1C7; --border-light: #F1EFE8; --divider: #F0F4FB;
+
+  /* Neutrals that were hardcoded 26 times (#fff x19, plus 5 near-whites) */
+  --surface: #FFFFFF;
+  --surface-sunken: #F8FAFF;
+  --surface-raised: #FAFBFF;
+  --canvas-from: #EEF2F7;
+  --canvas-to:   #E8EDF5;
+  --neutral-bar: #B4B2A9;      /* non-actionable series in stacked bars */
+
+  /* ── Color: SEMANTIC layer ───────────────────────────────────────────── */
+  /* Components reference these, never the hue ramp. Rebrand = edit 6 lines. */
+  --primary:   var(--navy);
+  --accent:    var(--blue);
+  --accent-bg: var(--blue-50);
+  --success:   var(--teal);   --success-bg: var(--teal-50);
+  --warning:   var(--amber);  --warning-bg: var(--amber-50);
+  --warning-text: var(--amber-text);   /* use on tint; --warning for fills */
+  --danger:    var(--red);    --danger-bg:  var(--red-50);
+  --info:      var(--purple); --info-bg:    var(--purple-50);
+
+  /* ── Spacing ─────────────────────────────────────────────────────────── */
+  --sp-1:  2px;  --sp-2:  4px;  --sp-3:  6px;  --sp-4:  8px;  --sp-5: 12px;
+  --sp-6: 16px;  --sp-7: 20px;  --sp-8: 24px;  --sp-9: 32px;  --sp-10:40px;
+
+  /* ── Typography ──────────────────────────────────────────────────────── */
+  /* --fs-base was 11px in v2.2 — below the ~12px floor for sustained reading
+     on a control-room monitor. Bumped to 13px. This is the ONE token that
+     visibly changes density; set it back to 11px to restore v2.2 exactly. */
+  --fs-base: 13px;
+
+  --fs-xs:  10px;   /* nav section labels, axis ticks — hard floor */
+  --fs-sm:  11px;   /* secondary text, table cells */
+  --fs-md:  12px;   /* body default */
+  --fs-lg:  var(--fs-base);
+  --fs-xl:  15px;   /* card headings */
+  --fs-2xl: 17px;   /* page title */
+  --fs-3xl: 20px;   /* KPI values */
+
+  --fw-medium: 500; --fw-semi: 600; --fw-bold: 700; --fw-black: 800;
+  --lh-tight: 1.2;  --lh-base: 1.4;  --lh-loose: 1.6;
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;  /* IDs, timestamps */
+
+  /* ── Border & radius ─────────────────────────────────────────────────── */
+  --bw: 1px;  --bw-thick: 3px;
+  --r-xs: 2px;  --r-sm: 4px;  --r-md: 6px;  --r-lg: 8px;
+  --r-xl: 12px; --r-full: 999px;
+
+  /* ── Elevation ───────────────────────────────────────────────────────── */
+  --shadow-1: 0 1px 3px rgba(27,58,107,.06);
+  --shadow-2: 0 2px 10px rgba(27,58,107,.08);
+  --shadow-3: 0 8px 24px rgba(27,58,107,.14);
+  --shadow-focus: 0 0 0 3px var(--accent-bg);
+
+  /* ── Motion ──────────────────────────────────────────────────────────── */
+  --dur-fast: .15s;  --dur-base: .25s;
+  --ease: cubic-bezier(.4, 0, .2, 1);
+
+  /* ── Layout ──────────────────────────────────────────────────────────── */
+  --sidebar-w: 190px;
+  --sidebar-w-collapsed: 56px;
+}
+
+/* ══ ACCESSIBILITY ═══════════════════════════════════════════════════════
+   v2.2 had 0 :focus-visible rules and 19 buttons. Keyboard users had no way
+   to tell where they were. This single rule closes that. */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* Screen-reader-only: pair every chart with a data table so the 58 inline
+   SVGs stop being invisible to assistive tech. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; left: var(--sp-4); top: -100px;
+  background: var(--surface); color: var(--text);
+  padding: var(--sp-3) var(--sp-5); border-radius: var(--r-md);
+  box-shadow: var(--shadow-2); z-index: 100;
+  transition: top var(--dur-fast) var(--ease);
+}
+.skip-link:focus { top: var(--sp-4); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ══ STATE LAYER ═════════════════════════════════════════════════════════
+   v2.2 had 0 :disabled and no loading/empty/error states, because with mock
+   data nothing is ever pending. These bind to body[data-status], which
+   mount() in dds-charts.js already sets. */
+
+/* --- Disabled: applies to every interactive element at once --- */
+button:disabled, [aria-disabled="true"],
+input:disabled, select:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* --- Loading --- */
+@keyframes dds-shimmer { to { background-position: -200% 0; } }
+@keyframes dds-spin    { to { transform: rotate(360deg); } }
+
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--border-light) 25%, var(--surface-sunken) 37%, var(--border-light) 63%);
+  background-size: 200% 100%;
+  animation: dds-shimmer 1.4s linear infinite;
+  border-radius: var(--r-sm);
+  color: transparent !important;
+  user-select: none;
+}
+.skeleton-text { height: 1em; display: block; }
+.skeleton-kpi  { height: 24px; width: 60%; }
+
+body[data-status="loading"] .card { pointer-events: none; }
+body[data-status="loading"] .kpi-val,
+body[data-status="loading"] .ev-row,
+body[data-status="loading"] .chart-body {
+  background: linear-gradient(90deg,
+    var(--border-light) 25%, var(--surface-sunken) 37%, var(--border-light) 63%);
+  background-size: 200% 100%;
+  animation: dds-shimmer 1.4s linear infinite;
+  color: transparent;
+}
+
+.btn[data-loading="true"] { position: relative; color: transparent; }
+.btn[data-loading="true"]::after {
+  content: ""; position: absolute; inset: 0; margin: auto;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  color: var(--surface);
+  animation: dds-spin .6s linear infinite;
+}
+
+/* --- Empty --- */
+.state-empty, .ev-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--sp-3); padding: var(--sp-9) var(--sp-6);
+  color: var(--text-muted); font-size: var(--fs-sm); text-align: center;
+}
+.state-empty-title { font-weight: var(--fw-semi); color: var(--text-sec); }
+
+/* --- Error --- */
+.state-error {
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--sp-4); padding: var(--sp-8) var(--sp-6);
+  background: var(--danger-bg); border: var(--bw) solid var(--danger);
+  border-radius: var(--r-lg); color: var(--danger); font-size: var(--fs-sm);
+}
+body[data-status="error"] .chart-body { display: none; }
+
+/* --- Reconciliation warning (meta.reconciles === false) --- */
+.summary-warn {
+  padding: var(--sp-3) var(--sp-4); margin-top: var(--sp-3);
+  background: var(--warning-bg); border-left: var(--bw-thick) solid var(--warning);
+  border-radius: var(--r-sm); color: var(--text-sec); font-size: var(--fs-sm);
+}
+
+/* ══ CONSOLIDATED PILL ═══════════════════════════════════════════════════
+   Replaces .badge-* (5) + .flag-* (5) + .status-* (3) + .role-* (4) +
+   .drive-* (2) = 19 classes doing one job. Markup:
+       <span class="pill" data-variant="success">Synced</span> */
+
+.pill {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs); font-weight: var(--fw-semi);
+  line-height: var(--lh-tight); white-space: nowrap;
+  background: var(--border-light); color: var(--text-sec);
+}
+.pill::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.pill[data-variant="neutral"]::before { display: none; }
+.pill[data-variant="success"] { background: var(--success-bg); color: var(--success); }
+.pill[data-variant="warning"] { background: var(--warning-bg); color: var(--warning-text); }
+.pill[data-variant="danger"]  { background: var(--danger-bg);  color: var(--danger); }
+.pill[data-variant="info"]    { background: var(--accent-bg);  color: var(--accent); }
+.pill[data-variant="admin"]   { background: var(--info-bg);    color: var(--info); }
+
+/* ══ BUTTON — full state coverage ════════════════════════════════════════
+   v2.2 defined default only, and .btn-sm was byte-identical to .btn. */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-5);
+  border: var(--bw) solid transparent; border-radius: var(--r-md);
+  font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  line-height: var(--lh-tight); cursor: pointer;
+  background: var(--accent); color: var(--surface);
+  transition: background var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease),
+              transform var(--dur-fast) var(--ease);
+}
+.btn:hover  { background: var(--primary); }
+.btn:active { transform: translateY(1px); }
+
+.btn-outline {
+  background: var(--surface); color: var(--text);
+  border-color: var(--border);
+}
+.btn-outline:hover { background: var(--surface-sunken); border-color: var(--accent); }
+
+.btn-ghost { background: none; color: var(--accent); border-color: transparent; }
+.btn-ghost:hover { background: var(--accent-bg); }
+
+.btn-danger { background: var(--danger); }
+.btn-danger:hover { background: #8A2424; }
+
+/* Real size variants — sm now actually differs from md. */
+.btn-sm { padding: var(--sp-2) var(--sp-4); font-size: var(--fs-xs); }
+.btn-lg { padding: var(--sp-4) var(--sp-7); font-size: var(--fs-lg); }
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;                /* 28px min; see touch note below */
+  border: none; background: none; border-radius: var(--r-md);
+  color: var(--text-muted); cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.icon-btn:hover { background: var(--border-light); color: var(--primary); }
+
+/* ══ INPUT — full state coverage ═════════════════════════════════════════ */
+
+.field-input, .sound-select {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--bw) solid var(--border); border-radius: var(--r-md);
+  background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: var(--fs-sm); line-height: var(--lh-base);
+  transition: border-color var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease);
+}
+.field-input:hover { border-color: var(--text-muted); }
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+.field-input[aria-invalid="true"] { border-color: var(--danger); }
+.field-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px var(--danger-bg); }
+.field-input::placeholder { color: var(--text-muted); }
+
+.field-error {
+  display: block; margin-top: var(--sp-2);
+  font-size: var(--fs-xs); color: var(--danger);
+}
+
+/* ══ DROPZONE — full state coverage ══════════════════════════════════════ */
+
+.dz {
+  border: 2px dashed var(--border); border-radius: var(--r-xl);
+  padding: var(--sp-9) var(--sp-6); text-align: center;
+  background: var(--surface-raised);
+  transition: border-color var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease);
+}
+.dz:hover, .dz:focus-within { border-color: var(--accent); background: var(--accent-bg); }
+.dz[data-state="drag"]      { border-color: var(--accent); background: var(--accent-bg); }
+.dz[data-state="uploading"] { border-style: solid; pointer-events: none; opacity: .7; }
+.dz[data-state="error"]     { border-color: var(--danger); background: var(--danger-bg); }
+
+/* ══ RESPONSIVE ══════════════════════════════════════════════════════════
+   v2.2 had a viewport meta tag, 0 media queries, a fixed 190px grid, and
+   overflow:hidden on html/body — so on any short screen, content below the
+   fold was unreachable rather than scrollable. */
+
+html, body { height: 100%; }
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  color: var(--text);
+  background: linear-gradient(135deg, var(--canvas-from) 0%, var(--canvas-to) 100%);
+  background-attachment: fixed;
+}
+
+.app { min-height: 100vh; display: grid; grid-template-columns: var(--sidebar-w) 1fr; }
+.main { overflow-y: auto; }          /* scrolls instead of clipping */
+
+@media (max-width: 1100px) {
+  .app { grid-template-columns: var(--sidebar-w-collapsed) 1fr; }
+  .nav-brand-title, .nav-brand-sub,
+  .nav-item span, .nav-section-label { display: none; }
+  .nav-item { justify-content: center; }
+}
+
+@media (max-width: 720px) {
+  .app { grid-template-columns: 1fr; }
+  .sidenav {
+    position: fixed; inset: 0 auto 0 0; z-index: 50;
+    width: var(--sidebar-w);
+    transform: translateX(-100%);
+    transition: transform var(--dur-base) var(--ease);
+  }
+  .sidenav[data-open="true"] { transform: none; }
+  .kpi-row, .settings-grid { grid-template-columns: 1fr; }
+  .card { padding: var(--sp-5); }
+
+  /* Touch targets: 28px icon buttons fail the 44px minimum on touch. */
+  .icon-btn, .btn { min-height: 44px; }
+  .imp-table, .um-table { display: block; overflow-x: auto; }
+}
+
+@media print {
+  .sidenav, .topbar, .btn, .icon-btn { display: none !important; }
+  .app { grid-template-columns: 1fr; }
+  .card { break-inside: avoid; box-shadow: none; border: var(--bw) solid var(--border); }
+}
+
+/* ══ MIGRATION MAP ═══════════════════════════════════════════════════════
+   Find-and-replace guide for the existing rules. Visual shift is sub-pixel
+   except --fs-base, called out above.
+
+   SPACING   1->--bw  2->--sp-1  3,4,5->--sp-2  6->--sp-3  7,8,9->--sp-4
+             10,11,12,13->--sp-5  14,16->--sp-6  20->--sp-7  26->--sp-8
+             40->--sp-10
+
+   TYPE      8,8.5,9,9.5->--fs-xs   10,10.5->--fs-sm   11->--fs-md
+             12,12.5->--fs-lg  15->--fs-xl  17->--fs-2xl  20->--fs-3xl
+
+   RADIUS    2,3->--r-xs  4,5->--r-sm  6,7->--r-md  8->--r-lg
+             10,12->--r-xl  20px,50%->--r-full
+
+   COLOR     #fff->--surface   #F8FAFF->--surface-sunken
+             #FAFBFF,#f0f4ff->--surface-raised
+             #EEF2F7->--canvas-from  #E8EDF5->--canvas-to
+             #B4B2A9->--neutral-bar
+
+   CLASSES   .badge-success/.status-active/.drive-ok
+               -> .pill[data-variant="success"]
+             .badge-error/.flag-err/.status-inactive
+               -> .pill[data-variant="danger"]
+             .badge-warn/.flag-dup      -> .pill[data-variant="warning"]
+             .badge-pending/.drive-pending -> .pill[data-variant="info"]
+             .role-admin -> .pill[data-variant="admin"]
+             .role-b2b/.role-oa -> .pill[data-variant="neutral"]
+   ========================================================================= */
+
+/* ══ DROPDOWN MENU ═══════════════════════════════════════════════════════
+   Supports createDropdown() in dds-controls.js. The .cpill elements were
+   <div>s with a chevron implying a menu that didn't exist; they are upgraded
+   to real <button>s at runtime and need somewhere to render the popup. */
+
+.cpill {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border: var(--bw) solid var(--border); border-radius: var(--r-full);
+  background: var(--surface); color: var(--text-sec);
+  font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  line-height: var(--lh-tight); cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease);
+}
+.cpill:hover { border-color: var(--accent); background: var(--accent-bg); }
+.cpill[aria-expanded="true"] { border-color: var(--accent); background: var(--accent-bg); }
+.cpill svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+/* An active (non-default) filter must be visible at a glance, or users forget
+   they're looking at a subset and misread the numbers. */
+.cpill[data-active="true"] {
+  border-color: var(--accent); background: var(--accent-bg);
+  color: var(--accent); font-weight: var(--fw-semi);
+}
+
+.menu {
+  position: absolute; top: calc(100% + var(--sp-2)); left: 0; z-index: 40;
+  min-width: 180px; padding: var(--sp-2);
+  background: var(--surface);
+  border: var(--bw) solid var(--border); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3);
+}
+.menu-item {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm); color: var(--text); cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+.menu-item:hover { background: var(--surface-sunken); }
+.menu-item[aria-selected="true"] {
+  background: var(--accent-bg); color: var(--accent); font-weight: var(--fw-semi);
+}
+.menu-item[aria-selected="true"]::after { content: " ✓"; }
+
+@media (max-width: 720px) {
+  .menu { position: fixed; inset: auto var(--sp-4) var(--sp-4) var(--sp-4); min-width: 0; }
+  .menu-item { padding: var(--sp-4); }   /* 44px touch target */
+}
+
+/* ══ ANALYTICS SUMMARY (insight layout) ══════════════════════════════════
+   Hierarchy is the whole point: eyebrow → narrative headline → one hero →
+   quiet strip. Each level steps down in size, weight, and colour so the eye
+   lands on the finding first and the supporting numbers stay supporting. */
+
+.ins { display: flex; flex-direction: column; gap: var(--sp-5); }
+
+/* --- Eyebrow: period context, deliberately small --- */
+.ins-top {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  font-variant-numeric: tabular-nums;
+}
+.ins-eyebrow {
+  font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  color: var(--text-sec); text-transform: uppercase; letter-spacing: .08em;
+}
+.ins-eyebrow-vs { font-size: var(--fs-xs); color: var(--text-muted); }
+
+/* --- Headline: the finding, in prose. Largest text on the panel. --- */
+.ins-headline {
+  margin: 0; max-width: 62ch;
+  font-size: var(--fs-xl); font-weight: var(--fw-semi);
+  line-height: 1.45; letter-spacing: -.01em;
+  color: var(--text);
+  border-left: var(--bw-thick) solid var(--neutral-bar);
+  padding-left: var(--sp-5);
+}
+.ins-headline[data-tone="bad"]  { border-left-color: var(--danger); }
+.ins-headline[data-tone="good"] { border-left-color: var(--success); }
+.ins-headline[data-tone="neutral"] { border-left-color: var(--accent); }
+
+/* --- Hero: one metric, display size, with its own history --- */
+.ins-hero {
+  display: grid; grid-template-columns: 1fr auto; align-items: center;
+  gap: var(--sp-7);
+  padding: var(--sp-6) var(--sp-7);
+  background: var(--surface);
+  border: var(--bw) solid var(--border-light);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-1);
+}
+.ins-hero-label {
+  display: flex; align-items: center; gap: var(--sp-3);
+  font-size: var(--fs-xs); font-weight: var(--fw-semi);
+  color: var(--text-sec); text-transform: uppercase; letter-spacing: .07em;
+}
+.ins-hero-label .ic { color: var(--text-muted); }
+
+.ins-hero-figure {
+  display: flex; align-items: baseline; gap: var(--sp-4);
+  margin: var(--sp-3) 0 var(--sp-2);
+}
+/* Tabular figures: digits align and the value doesn't jitter on refresh. */
+.ins-hero-value {
+  font-size: 42px; font-weight: var(--fw-black); line-height: 1;
+  letter-spacing: -.035em; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.ins-hero-sub {
+  font-size: var(--fs-sm); color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ins-hero-spark { width: 240px; color: var(--neutral-bar); }
+.ins-hero-spark[data-tone="bad"]  { color: var(--danger); }
+.ins-hero-spark[data-tone="good"] { color: var(--success); }
+.ins-hero-spark[data-tone="neutral"] { color: var(--accent); }
+.spark { display: block; width: 100%; height: 44px; }
+.ins-spark-cap {
+  margin-top: var(--sp-2); text-align: right;
+  font-size: var(--fs-xs); color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Delta chip --- */
+.ins-chip {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-full);
+  font-size: var(--fs-sm); font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+  background: var(--border-light); color: var(--text-sec);
+}
+.ins-chip[data-tone="bad"]  { background: var(--danger-bg);  color: var(--danger); }
+.ins-chip[data-tone="good"] { background: var(--success-bg); color: var(--success); }
+
+/* --- Strip: supporting metrics, quiet by design --- */
+.ins-strip {
+  display: grid; gap: var(--sp-5);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  padding-top: var(--sp-5);
+  border-top: var(--bw) solid var(--border-light);
+}
+.ins-stat { display: flex; flex-direction: column; gap: var(--sp-2); }
+.ins-stat-label {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-xs); color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .06em; font-weight: var(--fw-semi);
+}
+.ins-stat-row { display: flex; align-items: baseline; gap: var(--sp-3); }
+.ins-stat-value {
+  font-size: var(--fs-2xl); font-weight: var(--fw-bold);
+  color: var(--text); line-height: 1.1;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+/* No pill in the strip — a chip on every stat would compete with the hero. */
+.ins-stat-delta {
+  display: inline-flex; align-items: center; gap: 1px;
+  font-size: var(--fs-sm); font-weight: var(--fw-semi);
+  color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+.ins-stat-delta[data-tone="bad"]  { color: var(--danger); }
+.ins-stat-delta[data-tone="good"] { color: var(--success); }
+
+/* --- Note --- */
+.ins-note {
+  display: flex; align-items: flex-start; gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-lg);
+  font-size: var(--fs-sm); line-height: var(--lh-loose);
+  background: var(--warning-bg); color: var(--text);
+  border-left: var(--bw-thick) solid var(--warning);
+}
+.ins-note .ic { flex-shrink: 0; margin-top: 2px; color: var(--warning-text); }
+.ins-note b { font-weight: var(--fw-bold); }
+
+.ic-xs { width: 11px; height: 11px; }
+
+@media (max-width: 720px) {
+  .ins-hero { grid-template-columns: 1fr; gap: var(--sp-5); padding: var(--sp-5); }
+  .ins-hero-spark { width: 100%; }
+  .ins-spark-cap { text-align: left; }
+  .ins-hero-value { font-size: 34px; }
+  .ins-headline { font-size: var(--fs-lg); padding-left: var(--sp-4); }
+  .ins-strip { grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <nav class="sidenav">
+    <div class="nav-brand">
+      <div class="nav-brand-row">
+        <div class="nav-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></div>
+        <div><div class="nav-brand-title">DDS</div><div class="nav-brand-sub">Drowsiness Detection</div></div>
+      </div>
+    </div>
+    <div class="nav-section-label">Monitoring</div>
+    <button class="nav-item active" data-nav="overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14H10v-3H6v3H2z"/></svg>Overview</button>
+    <button class="nav-item" data-nav="analytics"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="2,12 5,8 8,10 11,5 14,7"/><path d="M2 14h12"/></svg>Analytics</button>
+    <div class="nav-section-label">Management</div>
+    <button class="nav-item" data-nav="data-mgmt"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="8" cy="4" rx="6" ry="2"/><path d="M2 4v4c0 1.1 2.7 2 6 2s6-.9 6-2V4"/><path d="M2 8v4c0 1.1 2.7 2 6 2s6-.9 6-2V8"/></svg>Data Management</button>
+    <button class="nav-item" data-nav="settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>Settings</button>
+  </nav>
+
+  <div class="main" id="main" data-page="overview">
+
+    <!-- ═══════════════════════ OVERVIEW ═══════════════════════ -->
+    <section class="page" id="page-overview" data-page-id="overview">
+
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Overview</div>
+          <div class="topbar-sub">Real-time operational health of the DDS monitoring network</div>
+        </div>
+        <div class="hcontrols">
+          <div class="cpill">Today <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill">All Areas <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+          <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg>Refresh</button>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi kpi-alerts">
+          <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+          <div class="kpi-label">Total Alerts</div>
+          <div class="kpi-val" id="ovKpiAlerts">4,200</div>
+          <div class="kpi-chg up" id="ovKpiAlertsChg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>12.4% vs last week</div>
+        </div>
+        <div class="kpi kpi-units">
+          <div class="kpi-icon" style="background:var(--teal-50);color:var(--teal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+          <div class="kpi-label">Total Units</div>
+          <div class="kpi-val" id="ovKpiUnits">284</div>
+          <div class="kpi-chg up" id="ovKpiUnitsChg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>2 today</div>
+        </div>
+        <div class="kpi kpi-sync">
+          <div class="kpi-icon" style="background:var(--purple-50);color:var(--purple)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg></div>
+          <div class="kpi-label">Avg Sync Time</div>
+          <div class="kpi-val" id="ovKpiSync">4.3 sec</div>
+          <div class="kpi-chg up" id="ovKpiSyncChg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>0.6 sec vs last week</div>
+        </div>
+        <div class="kpi kpi-ratio">
+          <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg></div>
+          <div class="kpi-label">Actionable Ratio</div>
+          <div class="kpi-val" id="ovKpiRatio">72.8%</div>
+          <div class="kpi-chg up" id="ovKpiRatioChg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>5.1% vs last week</div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="card">
+          <div class="card-head"><h2>Trend Over Time</h2></div>
+          <div class="chart-body">
+            <svg id="trendSvg" viewBox="0 0 992 180" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="trend">
+              <line x1="0" y1="8" x2="992" y2="8" stroke="#F1F2F5" stroke-width="1"/><line x1="0" y1="88" x2="992" y2="88" stroke="#F1F2F5" stroke-width="1"/><line x1="0" y1="168" x2="992" y2="168" stroke="#F1F2F5" stroke-width="1"/>
+              <path id="trendFillPath" d="M0,135 142,85 284,97 426,126 568,144 710,119 852,94 992,106 992,180 0,180 Z" fill="var(--blue)" fill-opacity=".08"/>
+              <path id="trendLinePath" d="M0,135 142,85 284,97 426,126 568,144 710,119 852,94 992,106" fill="none" stroke="var(--blue)" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+              <g id="trendDots" fill="var(--navy)"><circle cx="0" cy="135" r="3"/><circle cx="142" cy="85" r="3"/><circle cx="284" cy="97" r="3"/><circle cx="426" cy="126" r="3"/><circle cx="568" cy="144" r="3"/><circle cx="710" cy="119" r="3"/><circle cx="852" cy="94" r="3"/><circle cx="992" cy="106" r="3"/></g>
+              <g id="trendBadge">
+                <rect x="916" y="56" width="72" height="20" rx="10" fill="var(--teal-50)" stroke="var(--teal)" stroke-width="1"/>
+                <path d="M928,61 L932,69 L924,69 Z" fill="var(--teal)"/>
+                <text x="937" y="70" text-anchor="start" font-size="10" font-weight="700" fill="var(--teal)">+12.4%</text>
+              </g>
+            </svg>
+            <div id="trendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0">
+              <span class="axis">Jul 29</span><span class="axis">Jul 30</span><span class="axis">Jul 31</span><span class="axis">Aug 1</span><span class="axis">Aug 2</span><span class="axis">Aug 3</span><span class="axis">Aug 4</span><span class="axis">Aug 5</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Shift Distribution</h2></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:8px 13px 10px;flex:1;min-height:0">
+            <svg viewBox="0 0 160 160" style="width:auto;height:100%;flex-shrink:0;aspect-ratio:1" data-chart="shiftDonut">
+              <circle cx="80" cy="80" r="58" fill="none" stroke="var(--amber)" stroke-width="22"/>
+              <circle id="shiftDonutArc" cx="80" cy="80" r="58" fill="none" stroke="var(--blue)" stroke-width="22" stroke-dasharray="212 364" transform="rotate(-90 80 80)"/>
+              <text id="shiftDonutTotal" x="80" y="76" text-anchor="middle" font-size="22" font-weight="700" fill="var(--text)">4,200</text>
+              <text x="80" y="94" text-anchor="middle" font-size="9" fill="var(--text-sec)">Total Events</text>
+            </svg>
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+              <div style="display:flex;align-items:center;gap:5px">
+                <span style="width:7px;height:7px;border-radius:50%;background:var(--blue);flex-shrink:0"></span>
+                <div><div style="font-size:10px;font-weight:600">Day Shift</div><div style="font-size:8.5px;color:var(--text-sec)" id="shiftDayUnits">2,440 events</div></div>
+                <div style="font-size:12px;font-weight:700;margin-left:auto;padding-left:8px" id="shiftDayPct">58%</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px">
+                <span style="width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0"></span>
+                <div><div style="font-size:10px;font-weight:600">Night Shift</div><div style="font-size:8.5px;color:var(--text-sec)" id="shiftNightUnits">1,760 events</div></div>
+                <div style="font-size:12px;font-weight:700;margin-left:auto;padding-left:8px" id="shiftNightPct">42%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row3">
+        <div class="card">
+          <div class="card-head"><h2>Hourly Trend</h2></div>
+          <div class="chart-body">
+            <svg id="ovHourlySvg" viewBox="0 0 992 130" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="hourly">
+              <line x1="0" y1="128" x2="992" y2="128" stroke="#E6E8EC" stroke-width="1"/>
+              <g id="ovHourlyBars" fill="var(--blue)">
+                <rect x="4" y="120" width="28" height="8" rx="2"/><rect x="46" y="113" width="28" height="15" rx="2"/><rect x="88" y="102" width="28" height="26" rx="2"/><rect x="130" y="85" width="28" height="43" rx="2"/><rect x="172" y="62" width="28" height="66" rx="2"/><rect x="214" y="41" width="28" height="87" rx="2"/><rect x="256" y="24" width="28" height="104" rx="2"/><rect x="298" y="12" width="28" height="116" rx="2"/><rect x="340" y="5" width="28" height="123" rx="2"/><rect x="382" y="9" width="28" height="119" rx="2"/><rect x="424" y="19" width="28" height="109" rx="2"/><rect x="466" y="33" width="28" height="95" rx="2"/><rect x="508" y="50" width="28" height="78" rx="2"/><rect x="550" y="38" width="28" height="90" rx="2"/><rect x="592" y="26" width="28" height="102" rx="2"/><rect x="634" y="16" width="28" height="112" rx="2"/><rect x="676" y="29" width="28" height="99" rx="2"/><rect x="718" y="48" width="28" height="80" rx="2"/><rect x="760" y="67" width="28" height="61" rx="2"/><rect x="802" y="83" width="28" height="45" rx="2"/><rect x="844" y="97" width="28" height="31" rx="2"/><rect x="886" y="109" width="28" height="19" rx="2"/><rect x="928" y="118" width="28" height="10" rx="2"/><rect x="960" y="121" width="28" height="7" rx="2"/>
+              </g>
+            </svg>
+            <div style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0">
+              <span class="axis">00:00</span><span class="axis">04:00</span><span class="axis">08:00</span><span class="axis">12:00</span><span class="axis">16:00</span><span class="axis">20:00</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Event Code Distribution</h2></div>
+          <div class="ev-list" id="ovEventCodeList" data-chart="eventCodes">
+            <div class="ev-row"><div class="ev-label">Drowsiness</div><div class="ev-track"><div class="ev-fill" style="width:38%"></div></div><div class="ev-val">1,600 (38%)</div></div>
+            <div class="ev-row"><div class="ev-label">Inattentive</div><div class="ev-track"><div class="ev-fill" style="width:30%"></div></div><div class="ev-val">1,260 (30%)</div></div>
+            <div class="ev-row"><div class="ev-label">Sleep Alert</div><div class="ev-track"><div class="ev-fill" style="width:20%"></div></div><div class="ev-val">840 (20%)</div></div>
+            <div class="ev-row"><div class="ev-label">Poor Posture</div><div class="ev-track"><div class="ev-fill" style="width:12%"></div></div><div class="ev-val">500 (12%)</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row4">
+        <div class="card">
+          <div class="card-head">
+            <h2>Alert Sync</h2>
+            <div class="legend-block">
+              <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Actionable</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#B4B2A9"></span>Non-Actionable</div>
+            </div>
+          </div>
+          <div class="chart-body">
+            <svg id="ovSyncSvg" viewBox="0 0 992 130" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="syncBuckets">
+              <line x1="0" y1="128" x2="992" y2="128" stroke="#E6E8EC" stroke-width="1"/>
+              <g id="ovSyncBars">
+                <rect x="46"  y="24"  width="130" height="104" fill="var(--blue)" rx="2"/>
+                <rect x="46"  y="10"  width="130" height="14"  fill="#B4B2A9" rx="2"/>
+                <rect x="230" y="75"  width="130" height="53"  fill="var(--blue)" rx="2"/>
+                <rect x="230" y="50"  width="130" height="25"  fill="#B4B2A9" rx="2"/>
+                <rect x="414" y="107" width="130" height="21"  fill="var(--blue)" rx="2"/>
+                <rect x="414" y="78"  width="130" height="29"  fill="#B4B2A9" rx="2"/>
+                <rect x="598" y="121" width="130" height="7"   fill="var(--blue)" rx="2"/>
+                <rect x="598" y="93"  width="130" height="28"  fill="#B4B2A9" rx="2"/>
+                <rect x="782" y="126" width="130" height="2"   fill="var(--blue)" rx="1"/>
+                <rect x="782" y="104" width="130" height="22"  fill="#B4B2A9" rx="2"/>
+              </g>
+            </svg>
+            <div style="display:flex;justify-content:space-around;margin-top:3px;flex-shrink:0">
+              <span class="axis">&lt;3h</span><span class="axis">3-6h</span><span class="axis">7-8h</span><span class="axis">9-10h</span><span class="axis">10h+</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Alert Bucket</h2>
+            <div class="legend-block">
+              <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Actionable</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#B4B2A9"></span>Non-Actionable</div>
+            </div>
+          </div>
+          <div class="chart-body">
+            <svg id="ovBucketSvg" viewBox="0 0 992 130" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="alertBuckets">
+              <line x1="0" y1="128" x2="992" y2="128" stroke="#E6E8EC" stroke-width="1"/>
+              <g id="ovBucketBars">
+                <rect x="46"  y="42"  width="130" height="86" fill="var(--blue)" rx="2"/>
+                <rect x="46"  y="10"  width="130" height="32" fill="#B4B2A9" rx="2"/>
+                <rect x="230" y="66"  width="130" height="62" fill="var(--blue)" rx="2"/>
+                <rect x="230" y="43"  width="130" height="23" fill="#B4B2A9" rx="2"/>
+                <rect x="414" y="88"  width="130" height="40" fill="var(--blue)" rx="2"/>
+                <rect x="414" y="73"  width="130" height="15" fill="#B4B2A9" rx="2"/>
+                <rect x="598" y="101" width="130" height="27" fill="var(--blue)" rx="2"/>
+                <rect x="598" y="90"  width="130" height="11" fill="#B4B2A9" rx="2"/>
+                <rect x="782" y="111" width="130" height="17" fill="var(--blue)" rx="2"/>
+                <rect x="782" y="103" width="130" height="8"  fill="#B4B2A9" rx="2"/>
+              </g>
+            </svg>
+            <div style="display:flex;justify-content:space-around;margin-top:3px;flex-shrink:0">
+              <span class="axis">&lt;5</span><span class="axis">5-10</span><span class="axis">11-15</span><span class="axis">16-20</span><span class="axis">21+</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-head"><h2>Top N Asset ID</h2></div>
+          <div class="ev-list" id="ovTopAssetList" data-chart="topAssets">
+            <div class="ev-row"><div class="ev-label">DT-615</div><div class="ev-track"><div class="ev-fill" style="width:100%"></div></div><div class="ev-val">287 (+14%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-683</div><div class="ev-track"><div class="ev-fill" style="width:92%"></div></div><div class="ev-val">264 (+11%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-657</div><div class="ev-track"><div class="ev-fill" style="width:83%"></div></div><div class="ev-val">238 (+9%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-698</div><div class="ev-track"><div class="ev-fill" style="width:79%"></div></div><div class="ev-val">227 (+8%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-640</div><div class="ev-track"><div class="ev-fill" style="width:70%"></div></div><div class="ev-val">201 (+6%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-675</div><div class="ev-track"><div class="ev-fill" style="width:66%"></div></div><div class="ev-val">188 (+5%)</div></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════ ANALYTICS ═══════════════════════ -->
+    <section class="page" id="page-analytics" data-page-id="analytics" hidden>
+
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Analytics</div>
+          <div class="topbar-sub">Deep-dive into trends, shift patterns, and asset-level performance</div>
+        </div>
+        <div class="hcontrols">
+          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill">All available data <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+          <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Export</button>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi kpi-alerts">
+          <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+          <div class="kpi-label">Total Alerts</div>
+          <div class="kpi-val" id="anKpiAlerts">12,547</div>
+          <div class="kpi-chg up" id="anKpiAlertsChg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>18% vs previous period</div>
+        </div>
+        <div class="kpi kpi-units">
+          <div class="kpi-icon" style="background:var(--purple-50);color:var(--purple)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+          <div class="kpi-label">Total Units (Distinct)</div>
+          <div class="kpi-val" id="anKpiUnits">284</div>
+          <div class="kpi-chg up" id="anKpiUnitsChg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>12 new units</div>
+        </div>
+        <div class="kpi kpi-sync">
+          <div class="kpi-icon" style="background:var(--teal-50);color:var(--teal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg></div>
+          <div class="kpi-label">Avg Sync Time</div>
+          <div class="kpi-val" id="anKpiSync">4.3 sec</div>
+          <div class="kpi-chg up" id="anKpiSyncChg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>0.8 sec vs previous</div>
+        </div>
+        <div class="kpi kpi-ratio">
+          <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg></div>
+          <div class="kpi-label">Actionable Rate</div>
+          <div class="kpi-val" id="anKpiRatio">72.3%</div>
+          <div class="kpi-chg up" id="anKpiRatioChg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>3.2% vs previous</div>
+        </div>
+      </div>
+
+      <div class="row1">
+        <div class="card">
+          <div class="card-head"><h2>Distribution by Shift</h2></div>
+          <div class="donut-wrap">
+            <svg viewBox="0 0 160 160" style="width:auto;height:100%;max-height:110px;flex-shrink:0;aspect-ratio:1" data-chart="shiftDonut">
+              <circle cx="80" cy="80" r="58" fill="none" stroke="var(--amber)" stroke-width="22"/>
+              <circle id="anShiftDonutArc" cx="80" cy="80" r="58" fill="none" stroke="var(--blue)" stroke-width="22" stroke-dasharray="212 364" transform="rotate(-90 80 80)"/>
+              <text id="anShiftDonutTotal" x="80" y="76" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)">12,547</text>
+              <text x="80" y="94" text-anchor="middle" font-size="9" fill="var(--text-sec)">Total Alerts</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="dl-row"><span class="legend-dot" style="background:var(--blue)"></span><div><div style="font-size:10.5px;font-weight:600">Day Shift</div><div style="font-size:9px;color:var(--text-sec)" id="anShiftDayAlerts">7,277 alerts</div></div><div class="dl-pct" id="anShiftDayPct">58%</div></div>
+              <div class="dl-row"><span class="legend-dot" style="background:var(--amber)"></span><div><div style="font-size:10.5px;font-weight:600">Night Shift</div><div style="font-size:9px;color:var(--text-sec)" id="anShiftNightAlerts">5,270 alerts</div></div><div class="dl-pct" id="anShiftNightPct">42%</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Distribution by Event Code</h2></div>
+          <div class="donut-wrap">
+            <svg viewBox="0 0 160 160" style="width:auto;height:100%;max-height:110px;flex-shrink:0;aspect-ratio:1" data-chart="eventCodes">
+              <g id="anEventDonutArcs">
+                <circle cx="80" cy="80" r="58" fill="none" stroke="var(--amber)" stroke-width="22" stroke-dasharray="113 364" stroke-dashoffset="0" transform="rotate(-90 80 80)"/>
+                <circle cx="80" cy="80" r="58" fill="none" stroke="var(--red)" stroke-width="22" stroke-dasharray="98 364" stroke-dashoffset="-113" transform="rotate(-90 80 80)"/>
+                <circle cx="80" cy="80" r="58" fill="none" stroke="var(--purple)" stroke-width="22" stroke-dasharray="88 364" stroke-dashoffset="-211" transform="rotate(-90 80 80)"/>
+                <circle cx="80" cy="80" r="58" fill="none" stroke="var(--teal-200)" stroke-width="22" stroke-dasharray="65 364" stroke-dashoffset="-299" transform="rotate(-90 80 80)"/>
+              </g>
+              <text id="anEventDonutCount" x="80" y="76" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)">4</text>
+              <text x="80" y="94" text-anchor="middle" font-size="9" fill="var(--text-sec)">event codes</text>
+            </svg>
+            <div class="donut-legend" id="anEventDonutLegend">
+              <div class="dl-row"><span class="legend-dot" style="background:var(--amber)"></span><div style="font-size:10.5px;font-weight:600">Drowsiness</div><div class="dl-pct" style="font-size:10px">31%</div></div>
+              <div class="dl-row"><span class="legend-dot" style="background:var(--red)"></span><div style="font-size:10.5px;font-weight:600">Inattentive</div><div class="dl-pct" style="font-size:10px">27%</div></div>
+              <div class="dl-row"><span class="legend-dot" style="background:var(--purple)"></span><div style="font-size:10.5px;font-weight:600">Poor Posture</div><div class="dl-pct" style="font-size:10px">24%</div></div>
+              <div class="dl-row"><span class="legend-dot" style="background:var(--teal-200)"></span><div style="font-size:10.5px;font-weight:600">Sleep Alert</div><div class="dl-pct" style="font-size:10px">18%</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Summary</h2></div>
+          <div class="summary-body" id="anSummaryBody">
+            <div class="summary-line"><b>Units +96%, alerts +199%</b> — growth explains ~66% of the rise; the rest is per-unit intensity, not headcount.</div>
+            <div class="summary-line"><b>Sync delay +176%</b> tracks the trend as a symptom of that growth, not a separate driver.</div>
+            <div class="summary-action">→ Investigate per-unit alert rate and operator coverage ratios directly.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rowT">
+        <div class="card">
+          <div class="card-head">
+            <h2>Alert Trend — Assets vs Total Alerts</h2>
+            <div class="legend-block">
+              <div class="legend-item"><span class="legend-dot" style="background:var(--purple)"></span>Distinct Assets</div>
+              <div class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>Total Alerts</div>
+            </div>
+          </div>
+          <div class="chart-body">
+            <svg id="anTrendSvg" viewBox="0 0 720 220" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="trend">
+              <line x1="0" y1="20" x2="720" y2="20" stroke="#F1F2F5" stroke-width="1"/>
+              <line x1="0" y1="110" x2="720" y2="110" stroke="#F1F2F5" stroke-width="1"/>
+              <line x1="0" y1="200" x2="720" y2="200" stroke="#F1F2F5" stroke-width="1"/>
+              <path id="anTrendFillPath" d="M0,200 103,181 206,155 309,131 411,105 514,79 617,49 720,20 L720,220 L0,220 Z" fill="var(--amber)" fill-opacity=".08"/>
+              <path id="anTrendAlertsPath" d="M0,200 103,181 206,155 309,131 411,105 514,79 617,49 720,20" fill="none" stroke="var(--amber)" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+              <path id="anTrendAssetsPath" d="M0,200 103,174 206,144 309,116 411,87 514,63 617,41 720,20" fill="none" stroke="var(--purple)" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+              <g id="anTrendDots" fill="var(--purple)" stroke="white" stroke-width="1.5"><circle cx="0" cy="200" r="3"/><circle cx="103" cy="174" r="3"/><circle cx="206" cy="144" r="3"/><circle cx="309" cy="116" r="3"/><circle cx="411" cy="87" r="3"/><circle cx="514" cy="63" r="3"/><circle cx="617" cy="41" r="3"/><circle cx="720" cy="20" r="3"/></g>
+            </svg>
+            <div id="anTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0">
+              <span class="axis">Jul 1</span><span class="axis">Jul 10</span><span class="axis">Jul 20</span><span class="axis">Jul 30</span><span class="axis">Aug 5</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Hourly Comparison</h2>
+            <div class="legend-block" id="anHourlyLegend">
+              <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Earlier Period</div>
+              <div class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>Later Period</div>
+            </div>
+          </div>
+          <div class="chart-body">
+            <svg id="anHourlySvg" viewBox="0 0 720 220" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="hourly">
+              <line x1="0" y1="15" x2="720" y2="15" stroke="#F1F2F5" stroke-width="1"/>
+              <line x1="0" y1="112" x2="720" y2="112" stroke="#F1F2F5" stroke-width="1"/>
+              <line x1="0" y1="210" x2="720" y2="210" stroke="#F1F2F5" stroke-width="1"/>
+              <path id="anHourlyEarlyPath" d="M0,210 31,210 63,210 94,209 125,208 157,205 188,200 219,188 250,169 282,143 313,111 344,80 376,56 407,47 438,56 470,80 501,111 532,143 563,169 595,188 626,200 657,205 689,208 720,209" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path id="anHourlyLatePath" d="M0,204 31,204 63,204 94,204 125,202 157,199 188,192 219,179 250,157 282,126 313,90 344,53 376,25 407,15 438,25 470,53 501,90 532,126 563,157 595,179 626,192 657,199 689,202 720,204" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0">
+              <span class="axis">00:00</span><span class="axis">06:00</span><span class="axis">12:00</span><span class="axis">18:00</span><span class="axis">23:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rowC">
+        <div class="card">
+          <div class="card-head"><h2>Top Offenders by Unit</h2></div>
+          <div class="ev-list" id="anTopUnitList" data-chart="topAssets">
+            <div class="ev-row"><div class="ev-label">DT-615</div><div class="ev-track"><div class="ev-fill" style="width:100%"></div></div><div class="ev-val">287 (100%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-683</div><div class="ev-track"><div class="ev-fill" style="width:92%"></div></div><div class="ev-val">264 (92%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-657</div><div class="ev-track"><div class="ev-fill" style="width:83%"></div></div><div class="ev-val">238 (83%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-698</div><div class="ev-track"><div class="ev-fill" style="width:79%"></div></div><div class="ev-val">227 (79%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-640</div><div class="ev-track"><div class="ev-fill" style="width:70%"></div></div><div class="ev-val">201 (70%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-675</div><div class="ev-track"><div class="ev-fill" style="width:66%"></div></div><div class="ev-val">188 (66%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-602</div><div class="ev-track"><div class="ev-fill" style="width:57%"></div></div><div class="ev-val">165 (57%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-691</div><div class="ev-track"><div class="ev-fill" style="width:49%"></div></div><div class="ev-val">142 (49%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-648</div><div class="ev-track"><div class="ev-fill" style="width:45%"></div></div><div class="ev-val">128 (45%)</div></div>
+            <div class="ev-row"><div class="ev-label">DT-667</div><div class="ev-track"><div class="ev-fill" style="width:40%"></div></div><div class="ev-val">115 (40%)</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Top Offenders by Operator</h2></div>
+          <div class="ev-list" id="anTopOperatorList" data-chart="topOperators">
+            <div class="ev-row"><div class="ev-label">OP-2214</div><div class="ev-track"><div class="ev-fill" style="width:100%"></div></div><div class="ev-val">261 (100%)</div></div>
+            <div class="ev-row"><div class="ev-label">OP-2087</div><div class="ev-track"><div class="ev-fill" style="width:93%"></div></div><div class="ev-val">244 (93%)</div></div>
+            <div class="ev-row"><div class="ev-label">OP-2301</div><div class="ev-track"><div class="ev-fill" style="width:84%"></div></div><div class="ev-val">219 (84%)</div></div>
+            <div class="ev-row"><div class="ev-label">OP-2156</div><div class="ev-track"><div class="ev-fill" style="width:76%"></div></div><div class="ev-val">198 (76%)</div></div>
+            <div class="ev-row"><div class="ev-label">OP-2039</div><div class="ev-track"><div class="ev-fill" style="width:67%"></div></div><div class="ev-val">176 (67%)</div></div>
+            <div class="ev-row"><div class="ev-label">OP-2278</div><div class="ev-track"><div class="ev-fill" style="width:59%"></div></div><div class="ev-val">154 (59%)</div></div>
+            <div class="ev-row"><div class="ev-label">OP-2192</div><div class="ev-track"><div class="ev-fill" style="width:51%"></div></div><div class="ev-val">133 (51%)</div></div>
+            <div class="ev-row"><div class="ev-label">OP-2065</div><div class="ev-track"><div class="ev-fill" style="width:46%"></div></div><div class="ev-val">121 (46%)</div></div>
+            <div class="ev-row"><div class="ev-label">OP-2340</div><div class="ev-track"><div class="ev-fill" style="width:41%"></div></div><div class="ev-val">108 (41%)</div></div>
+            <div class="ev-row"><div class="ev-label">OP-2117</div><div class="ev-track"><div class="ev-fill" style="width:36%"></div></div><div class="ev-val">95 (36%)</div></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════ DATA MANAGEMENT ═══════════════════════ -->
+    <section class="page" id="page-data-mgmt" data-page-id="data-mgmt" hidden>
+
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Data Management</div>
+          <div class="topbar-sub">Import alert records from Excel or CSV exports</div>
+        </div>
+        <div class="hcontrols">
+          <div class="cpill" id="importedCountPill">0 files imported</div>
+        </div>
+      </div>
+
+      <div class="dz" id="dropZone">
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple>
+        <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></div>
+        <div class="dz-title">Drag & drop file here, or click to browse</div>
+        <div class="dz-sub">Each file becomes one import record below. Duplicate rows or read errors are flagged automatically.</div>
+        <div class="dz-formats">
+          <span class="dz-chip">.XLSX</span>
+          <span class="dz-chip">.XLS</span>
+          <span class="dz-chip">.CSV</span>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1;min-height:0">
+        <div class="card-head">
+          <div class="imp-toolbar-title">Import History</div>
+          <span class="imp-count" id="importCountLabel">0 records</span>
+        </div>
+        <div class="imp-table-wrap" id="importTableWrap">
+          <div class="imp-empty" id="importEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
+            <div class="imp-empty-text">No files imported yet — drop an Excel or CSV file above to get started.</div>
+          </div>
+          <table class="imp-table" id="importTable" hidden>
+            <thead>
+              <tr>
+                <th>Date Imported</th>
+                <th>File Name</th>
+                <th>Size</th>
+                <th>Status</th>
+                <th>Flag</th>
+                <th>Drive Backup</th>
+              </tr>
+            </thead>
+            <tbody id="importTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════ SETTINGS ═══════════════════════ -->
+    <section class="page" id="page-settings" data-page-id="settings" hidden>
+
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Settings</div>
+          <div class="topbar-sub">Account details, alert sounds, and user access</div>
+        </div>
+        <div class="hcontrols">
+          <span class="saved-pill" id="settingsSavedPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Saved</span>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+
+        <!-- Personal Information -->
+        <div class="card settings-card">
+          <div class="card-head"><h2>Personal Information</h2></div>
+          <div class="settings-body">
+            <div class="avatar-row">
+              <div class="avatar-circle" id="avatarInitials">WE</div>
+              <div>
+                <div class="avatar-meta-name" id="avatarName">WEL</div>
+                <div class="avatar-meta-role">Monitoring Staff · DDS Command Center</div>
+              </div>
+            </div>
+
+            <div class="divider-line"></div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label" for="fldName">Name</label>
+                <input class="field-input" type="text" id="fldName" value="WEL" placeholder="Full name">
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="fldUsername">Username</label>
+                <input class="field-input" type="text" id="fldUsername" value="wel" placeholder="Username">
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="fldEmail">Email</label>
+              <input class="field-input" type="email" id="fldEmail" value="wel@ddsops.local" placeholder="name@company.com">
+            </div>
+
+            <div class="divider-line"></div>
+
+            <div class="pwd-toggle-row">
+              <span class="pwd-toggle-label">Update Password</span>
+              <button class="link-btn" id="togglePwdBtn">Change password</button>
+            </div>
+
+            <div id="pwdFields" hidden style="display:flex;flex-direction:column;gap:10px">
+              <div class="field-group">
+                <label class="field-label" for="fldPwdCurrent">Current Password</label>
+                <input class="field-input" type="password" id="fldPwdCurrent" placeholder="••••••••">
+              </div>
+              <div class="field-row">
+                <div class="field-group">
+                  <label class="field-label" for="fldPwdNew">New Password</label>
+                  <input class="field-input" type="password" id="fldPwdNew" placeholder="••••••••">
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="fldPwdConfirm">Confirm New Password</label>
+                  <input class="field-input" type="password" id="fldPwdConfirm" placeholder="••••••••">
+                </div>
+              </div>
+              <div class="field-hint" id="pwdHint">At least 8 characters.</div>
+            </div>
+
+            <div class="save-row">
+              <button class="btn btn-sm" id="savePersonalBtn">Save Changes</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notification Sound -->
+        <div class="card settings-card">
+          <div class="card-head"><h2>Notification Sound</h2></div>
+          <div class="settings-body">
+
+            <div class="sound-row">
+              <div>
+                <div class="sound-row-label">Enable Sound Alerts</div>
+                <div class="sound-row-sub">Play a sound when a new alert arrives</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="soundEnabled" checked>
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="sound-row">
+              <div style="flex:1">
+                <div class="sound-row-label">Alert Sound</div>
+                <div class="sound-row-sub">Sound played for new drowsiness alerts</div>
+              </div>
+              <div class="sound-select-row">
+                <select class="sound-select" id="soundChoice">
+                  <option value="chime">Chime</option>
+                  <option value="alert-tone">Alert Tone</option>
+                  <option value="soft-bell">Soft Bell</option>
+                  <option value="siren-lite">Siren (Lite)</option>
+                  <option value="none">None</option>
+                </select>
+                <button class="sound-preview-btn" id="previewSoundBtn" title="Preview sound">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="sound-row" style="flex-direction:column;align-items:stretch;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="sound-row-label">Volume</div>
+                <span class="field-hint" id="volLabel">70%</span>
+              </div>
+              <input type="range" class="vol-slider" id="volSlider" min="0" max="100" value="70">
+            </div>
+
+            <div class="sound-row">
+              <div>
+                <div class="sound-row-label">Repeat Until Acknowledged</div>
+                <div class="sound-row-sub">Keep sounding for unread critical alerts</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="soundRepeat">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="save-row">
+              <button class="btn btn-sm" id="saveSoundBtn">Save Changes</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Management -->
+        <div class="card settings-card wide">
+          <div class="card-head">
+            <div class="um-toolbar" style="width:100%">
+              <h2>User Management</h2>
+              <button class="btn btn-sm" id="addUserBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add User</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="um-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Last Active</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="userMgmtBody">
+                <tr>
+                  <td><div class="um-user"><div class="um-avatar">WE</div><div class="um-name">WEL</div></div></td>
+                  <td class="um-username">wel</td>
+                  <td><span class="role-badge role-admin">Admin</span></td>
+                  <td><span class="status-dot status-active">Active</span></td>
+                  <td class="imp-date">Today, 6:20 AM</td>
+                  <td><div class="um-actions"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button><button class="icon-btn" title="Deactivate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9l14.2 14.2"/></svg></button></div></td>
+                </tr>
+                <tr>
+                  <td><div class="um-user"><div class="um-avatar">MR</div><div class="um-name">M. Reyes</div></div></td>
+                  <td class="um-username">mreyes</td>
+                  <td><span class="role-badge role-oa">Office Assistant</span></td>
+                  <td><span class="status-dot status-active">Active</span></td>
+                  <td class="imp-date">Aug 5, 2026 · 9:42 PM</td>
+                  <td><div class="um-actions"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button><button class="icon-btn" title="Deactivate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9l14.2 14.2"/></svg></button></div></td>
+                </tr>
+                <tr>
+                  <td><div class="um-user"><div class="um-avatar">JC</div><div class="um-name">J. Cruz</div></div></td>
+                  <td class="um-username">jcruz</td>
+                  <td><span class="role-badge role-b2b">Area Coordinator</span></td>
+                  <td><span class="status-dot status-inactive">Inactive</span></td>
+                  <td class="imp-date">Jul 28, 2026 · 3:10 PM</td>
+                  <td><div class="um-actions"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button><button class="icon-btn" title="Activate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ════════════════════════════════════════════════════════════════════════
+   DDS v3.0 — single file
+
+   Rebuilt from v2.2. What changed, and why:
+
+   * OverviewCharts + AnalyticsCharts (23.3KB, already diverged) merged into
+     one renderer. The two pages silently disagreed: Shift Distribution and
+     Event Code Distribution counted units on Overview and rows on Analytics,
+     so identical data showed different percentages on different tabs.
+   * DOM-as-state replaced with a real store. `derived` is the single source
+     of truth and doubles as the server API contract (see dds_metrics).
+   * Boundary gap closed. v2.2 left 17:20:00–17:20:59 in no shift window at
+     all, forcing anything landing there to NON_ACTIONABLE. DAY now runs to
+     17:20:59 and NIGHT from 17:21:00 — contiguous, no gap, no overlap.
+   * Rows with unreadable timestamps are rejected at import, so KPI totals
+     always reconcile with the trend chart.
+   * Stored XSS fixed. Asset / operator / event-code values from uploaded
+     files were concatenated into innerHTML in four places, so a spreadsheet
+     cell could execute script for every viewer.
+   * Accessibility: roles, accessible names, focus-visible, a live region,
+     and screen-reader data tables behind every chart. v2.2 had zero aria.
+   * Filter pills, Refresh and Export were inert; all three now work.
+   * Hardcoded placeholder KPIs replaced with a real empty state.
+   * Analytics summary rebuilt as a period-over-period insight panel.
+
+   Order: state → charts → a11y → controls → insights → bridge → v2.2
+   nav/import/settings → glue.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ══ 1. STATE ═══════════════════════════════════════════════════════════ */
+/* ============================================================================
+   DDS — State Model & Derived Metrics
+   ----------------------------------------------------------------------------
+   Single source of truth for the dashboard. Replaces DOM-ID-as-state.
+
+   Contract:
+     - `rows` is the ONLY input. Everything else is derived.
+     - `derive(rows, filters)` is pure: same input -> same output, no DOM.
+     - The shape returned by `derive()` IS the API response shape.
+       When the backend lands, swap `derive()` for `fetch()` and nothing
+       downstream changes.
+
+   TIME SEMANTICS (do not change without changing the backend):
+     All timestamps are parsed and evaluated in UTC. The existing mock is
+     internally consistent about this (parseDateTime -> Date.UTC, all readers
+     use getUTC*). The server MUST return UTC and MUST NOT localize, or shift
+     attribution will silently break for night shifts.
+   ========================================================================= */
+
+/* ── Domain constants ───────────────────────────────────────────────────── */
+
+const EXPECTED_COLUMNS = [
+  'UPDATE_TIME', 'START_TIME', 'END_TIME',
+  'ASSET_ID', 'EVENT_CODE', 'EVENT_COUNT', 'OPERATOR'
+];
+
+const SHIFT = { DAY: 'DAY', NIGHT: 'NIGHT', UNKNOWN: '' };
+
+// Shift classification boundaries (minutes from UTC midnight)
+const DAY_START_MIN = 5 * 60 + 21;   // 05:21
+const DAY_END_MIN   = 17 * 60 + 21;  // 17:21 (exclusive)
+
+// Actionable windows. Contiguous — every second belongs to exactly one shift.
+const DAY_WINDOW   = { start: [5, 21, 0],  end: [17, 20, 59] };
+const NIGHT_WINDOW = { start: [17, 21, 0], end: [5, 20, 59] }; // end is +1 day
+
+/* BOUNDARY — resolved. v2.2 left 17:20:00–17:20:59 in no window at all, so
+   anything landing there was forced NON_ACTIONABLE. DAY now runs through
+   17:20:59 and NIGHT begins 17:21:00: contiguous, no gap, no overlap.
+   Mirrored exactly in supabase/migrations/0001_init.sql — change both or
+   neither, and re-run the parity test. */
+
+const SYNC_BUCKETS  = ['<3h', '3-6h', '6-8h', '8-10h', '10h+'];
+const ALERT_BUCKETS = ['<5', '5-10', '10-15', '15-20', '20+'];
+
+/* ── State ──────────────────────────────────────────────────────────────── */
+
+function createState() {
+  return {
+    // ---- raw ----
+    rows: [],            // annotated rows (see annotate())
+    imports: [],         // [{ id, name, size, uploadedAt, rowCount, problems }]
+
+    // ---- query ----
+    filters: {
+      from: null,        // 'MM/DD/YYYY' | null
+      to: null,
+      shift: null,       // 'DAY' | 'NIGHT' | null (= both)
+      assetIds: [],      // [] = all
+      eventCodes: [],    // [] = all
+      actionableOnly: false
+    },
+
+    // ---- derived (never written by hand; output of derive()) ----
+    derived: null,
+
+    // ---- async / UI ----
+    status: 'idle',      // 'idle' | 'loading' | 'ready' | 'error'
+    error: null          // { code, message } — never a raw stack trace
+  };
+}
+
+/* ── Time helpers (UTC-only) ────────────────────────────────────────────── */
+
+function parseDateTime(str) {
+  if (!str || !String(str).trim()) return null;
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/
+    .exec(String(str).trim());
+  if (!m) return null;
+  const [, mm, dd, yyyy, HH, MM, SS] = m.map(Number);
+  return new Date(Date.UTC(yyyy, mm - 1, dd, HH, MM, SS));
+}
+
+const dateOnly = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+const addDays  = (d, n) => new Date(d.getTime() + n * 86400000);
+const atTime   = (d, [h, m, s]) => new Date(Date.UTC(
+  d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m, s));
+const minutesOf = d => d.getUTCHours() * 60 + d.getUTCMinutes() + d.getUTCSeconds() / 60;
+
+const formatDate = d =>
+  `${String(d.getUTCMonth() + 1).padStart(2, '0')}/` +
+  `${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
+
+/* ── Domain logic ───────────────────────────────────────────────────────── */
+
+function classifyShift(startTime) {
+  const t = minutesOf(startTime);
+  const base = dateOnly(startTime);
+  if (t >= DAY_START_MIN && t < DAY_END_MIN) {
+    return { shift: SHIFT.DAY, shiftDate: base };
+  }
+  // Early-morning tail (00:00–05:20) belongs to the PREVIOUS day's night shift.
+  return {
+    shift: SHIFT.NIGHT,
+    shiftDate: t < DAY_START_MIN ? addDays(base, -1) : base
+  };
+}
+
+function shiftWindow(shift, shiftDate) {
+  return shift === SHIFT.DAY
+    ? { start: atTime(shiftDate, DAY_WINDOW.start), end: atTime(shiftDate, DAY_WINDOW.end) }
+    : { start: atTime(shiftDate, NIGHT_WINDOW.start),
+        end:   atTime(addDays(shiftDate, 1), NIGHT_WINDOW.end) };
+}
+
+const field = (row, col) => {
+  if (row[col] !== undefined) return row[col];
+  const k = Object.keys(row).find(k => k.trim().toUpperCase() === col);
+  return k ? row[k] : undefined;
+};
+const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
+
+/* ── Ingest: raw rows -> annotated rows ─────────────────────────────────── */
+
+/* REJECT AT IMPORT — rows whose timestamps can't be parsed never enter the
+   dataset. They are returned separately so the import UI can report them.
+   Consequence: derived totals always reconcile with the trend chart, because
+   every surviving row has a shift. meta.reconciles is therefore always true
+   for locally-loaded data; it remains in the shape as a server-side guard. */
+function annotate(rawRows) {
+  const problems = [];
+  const rejected = [];
+  const rows = [];
+  rawRows.forEach((row, i) => {
+    const startTime  = parseDateTime(field(row, 'START_TIME'));
+    const updateTime = parseDateTime(field(row, 'UPDATE_TIME'));
+    const endTime    = parseDateTime(field(row, 'END_TIME'));
+
+    if (!startTime || !updateTime) {
+      const reason = !startTime ? 'Unparseable START_TIME' : 'Unparseable UPDATE_TIME';
+      problems.push({ rowIndex: i, reason });
+      rejected.push({ rowIndex: i, reason, row });
+      return;                                   // excluded from the dataset
+    }
+
+    const { shift, shiftDate } = classifyShift(startTime);
+    const win = shiftWindow(shift, shiftDate);
+    const actionable = updateTime >= win.start && updateTime <= win.end;
+
+    // Sync lag: how long after the event ended did it reach the server.
+    const syncSeconds = endTime ? (updateTime - endTime) / 1000 : null;
+
+    rows.push({
+      ...row,
+      SHIFT: shift,
+      SHIFT_DATE: formatDate(shiftDate),
+      ACTIONABLE: actionable ? 'ACTIONABLE' : 'NON_ACTIONABLE',
+      _startHour: startTime.getUTCHours(),
+      _syncSeconds: syncSeconds != null && syncSeconds >= 0 ? syncSeconds : null
+    });
+  });
+  return { rows, problems, rejected };
+}
+
+/* ── Filtering ──────────────────────────────────────────────────────────── */
+
+function applyFilters(rows, f) {
+  if (!f) return rows;
+  return rows.filter(r => {
+    if (f.shift && r.SHIFT !== f.shift) return false;
+    if (f.actionableOnly && r.ACTIONABLE !== 'ACTIONABLE') return false;
+    if (f.from && r.SHIFT_DATE && r.SHIFT_DATE < f.from) return false;
+    if (f.to   && r.SHIFT_DATE && r.SHIFT_DATE > f.to)   return false;
+    if (f.assetIds?.length   && !f.assetIds.includes(field(r, 'ASSET_ID'))) return false;
+    if (f.eventCodes?.length && !f.eventCodes.includes(field(r, 'EVENT_CODE'))) return false;
+    return true;
+  });
+}
+
+/* ── Derive: the API response shape ─────────────────────────────────────── */
+
+function derive(allRows, filters) {
+  const rows = applyFilters(allRows, filters);
+
+  let totalAlerts = 0, actionableAlerts = 0;
+  let syncSum = 0, syncN = 0;
+  let unclassifiedRows = 0, unclassifiedUnits = 0;
+
+  const assets = new Map();      // id -> { total, actionable, nonActionable }
+  const operators = new Map();   // id -> total
+  const eventCodes = new Map();  // code -> { units, events }
+  const byDate = new Map();      // MM/DD/YYYY -> { units, events, assets:Set }
+  const hourly = { DAY: Array(24).fill(0), NIGHT: Array(24).fill(0) };
+  const shiftTotals = { DAY: { units: 0, assets: new Set() },
+                        NIGHT: { units: 0, assets: new Set() } };
+  const syncBuckets  = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
+  const alertBuckets = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
+
+  const bump = (map, key, val) => map.set(key, (map.get(key) || 0) + val);
+
+  for (const r of rows) {
+    const units = num(field(r, 'EVENT_COUNT'));
+    const isAct = r.ACTIONABLE === 'ACTIONABLE';
+    const asset = field(r, 'ASSET_ID');
+    const oper  = field(r, 'OPERATOR');
+    const code  = field(r, 'EVENT_CODE');
+
+    totalAlerts += units;
+    if (isAct) actionableAlerts += units;
+
+    /* ⚠ RECONCILIATION — inherited from v2.2 compute().
+       Rows with an unparseable timestamp have no SHIFT, so they are excluded
+       from trend/shift/hourly but STILL counted in totalAlerts. Result:
+       kpis.totalAlerts can exceed sum(trend.units). Surfaced in meta so the
+       UI can warn instead of silently disagreeing with itself. */
+    if (!r.SHIFT) { unclassifiedRows++; unclassifiedUnits += units; }
+
+    if (asset) {
+      const a = assets.get(asset) || { total: 0, actionable: 0, nonActionable: 0 };
+      a.total += units;
+      isAct ? (a.actionable += units) : (a.nonActionable += units);
+      assets.set(asset, a);
+    }
+    if (oper) bump(operators, oper, units);
+    if (code) {
+      const c = eventCodes.get(code) || { units: 0, events: 0 };
+      c.units += units; c.events += 1;
+      eventCodes.set(code, c);
+    }
+
+    if (r._startHour != null && hourly[r.SHIFT]) hourly[r.SHIFT][r._startHour] += units;
+
+    if (shiftTotals[r.SHIFT]) {
+      shiftTotals[r.SHIFT].units += units;
+      if (asset) shiftTotals[r.SHIFT].assets.add(asset);
+    }
+
+    if (r._syncSeconds != null) {
+      syncSum += r._syncSeconds; syncN++;
+      const h = r._syncSeconds / 3600;
+      const i = h < 3 ? 0 : h < 6 ? 1 : h < 8 ? 2 : h < 10 ? 3 : 4;
+      syncBuckets[isAct ? 'actionable' : 'nonActionable'][i]++;
+    }
+
+    const ai = units < 5 ? 0 : units < 10 ? 1 : units < 15 ? 2 : units < 20 ? 3 : 4;
+    alertBuckets[isAct ? 'actionable' : 'nonActionable'][ai]++;
+
+    if (r.SHIFT_DATE) {
+      const d = byDate.get(r.SHIFT_DATE) || { units: 0, events: 0, assets: new Set() };
+      d.units += units; d.events += 1;
+      if (asset) d.assets.add(asset);
+      byDate.set(r.SHIFT_DATE, d);
+    }
+  }
+
+  /* Ties at the LIMIT boundary must break the same way here and in SQL, or
+     two assets with equal totals swap in and out of the top-10 depending on
+     which engine answered. Secondary sort on id makes it deterministic.
+     Mirrored by `order by total desc, asset_id` in 0002_metrics.sql. */
+  const topN = (map, key = null, n = 10) =>
+    [...map.entries()]
+      .map(([id, v]) => ({ id, ...(key ? v : { total: v }) }))
+      .sort((a, b) => b.total - a.total || String(a.id).localeCompare(String(b.id)))
+      .slice(0, n);
+
+  const dayU = shiftTotals.DAY.units, nightU = shiftTotals.NIGHT.units;
+  const shiftSum = dayU + nightU;
+
+  return {
+    meta: {
+      rowCount: rows.length,
+      unclassifiedRows,          // rows with unparseable timestamps
+      unclassifiedUnits,         // their EVENT_COUNT — the trend/KPI delta
+      reconciles: unclassifiedUnits === 0,
+      filters: filters ?? null,
+      generatedAt: new Date().toISOString()
+    },
+
+    // ---- KPI strip (both Overview and Analytics consume this) ----
+    kpis: {
+      totalAlerts,
+      distinctAssets: assets.size,
+      distinctOperators: operators.size,
+      avgSyncSeconds: syncN ? syncSum / syncN : null,
+      actionableRatio: totalAlerts ? (actionableAlerts / totalAlerts) * 100 : 0
+    },
+
+    // ---- charts ----
+    trend: [...byDate.entries()]
+      .map(([date, v]) => ({ date, units: v.units, events: v.events, assets: v.assets.size }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date)),
+
+    shiftDistribution: {
+      DAY:   { units: dayU,   assets: shiftTotals.DAY.assets.size,
+               pct: shiftSum ? (dayU / shiftSum) * 100 : 0 },
+      NIGHT: { units: nightU, assets: shiftTotals.NIGHT.assets.size,
+               pct: shiftSum ? (nightU / shiftSum) * 100 : 0 }
+    },
+
+    eventCodeDistribution: [...eventCodes.entries()]
+      .map(([code, v]) => ({ code, units: v.units, events: v.events,
+                             pct: totalAlerts ? (v.units / totalAlerts) * 100 : 0 }))
+      .sort((a, b) => b.units - a.units || a.code.localeCompare(b.code)),
+
+    hourly,                              // { DAY: number[24], NIGHT: number[24] }
+    syncBuckets:  { labels: SYNC_BUCKETS,  ...syncBuckets  },
+    alertBuckets: { labels: ALERT_BUCKETS, ...alertBuckets },
+
+    topAssets:    topN(assets, true),    // [{ id, total, actionable, nonActionable }]
+    topOperators: topN(operators)        // [{ id, total }]
+  };
+}
+
+/* ── Period comparison ──────────────────────────────────────────────────────
+   "vs last month" needs a baseline, and the honest baseline is an equal-length
+   window immediately before the selected one — not a calendar month. Imported
+   files are historical and often partial, so a calendar-month baseline
+   silently compares 31 days against 9 and reports a 70% "drop" that is really
+   just missing data.
+
+   RATE vs VOLUME. Raw totals are confounded by fleet size: if alerts rise 50%
+   while active assets rise 25%, per-asset risk only rose 20%. Both are
+   reported so the confound is visible instead of hidden. */
+
+const MS_DAY = 86400000;
+const toDate = mmddyyyy => {
+  const [m, d, y] = String(mmddyyyy).split('/').map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+};
+
+/** Resolve current and baseline windows from the filters and available data. */
+function resolvePeriods(allRows, filters, fallbackDays = 30) {
+  const dates = [...new Set(allRows.map(r => r.SHIFT_DATE).filter(Boolean))]
+    .sort((a, b) => toDate(a) - toDate(b));
+  if (!dates.length) return null;
+
+  let from, to;
+  if (filters?.from && filters?.to) {
+    from = toDate(filters.from); to = toDate(filters.to);
+  } else {
+    // No explicit range: most recent `fallbackDays` of shift dates present.
+    to = toDate(dates.at(-1));
+    from = new Date(Math.max(toDate(dates[0]).getTime(), to.getTime() - (fallbackDays - 1) * MS_DAY));
+  }
+  const spanDays = Math.round((to - from) / MS_DAY) + 1;
+  const prevTo = new Date(from.getTime() - MS_DAY);
+  const prevFrom = new Date(prevTo.getTime() - (spanDays - 1) * MS_DAY);
+
+  const earliest = toDate(dates[0]);
+  return {
+    spanDays,
+    current:  { from, to },
+    previous: { from: prevFrom, to: prevTo },
+    // Baseline is partial when the data does not reach back far enough. A 12%
+    // change measured against 4 days of history is noise, and the UI must be
+    // able to say so rather than presenting it as fact.
+    baselineComplete: prevFrom >= earliest,
+    baselineCoverage: Math.max(0, Math.min(1,
+      (prevTo - Math.max(prevFrom, earliest)) / ((spanDays - 1) * MS_DAY || 1)))
+  };
+}
+
+const inWindow = (row, w) => {
+  if (!row.SHIFT_DATE) return false;
+  const d = toDate(row.SHIFT_DATE);
+  return d >= w.from && d <= w.to;
+};
+
+const fmtRange = w => `${formatDate(w.from)} – ${formatDate(w.to)}`;
+
+/**
+ * Compare the selected period against the equal-length preceding period.
+ * Returns null when there is no usable baseline — the caller shows "no
+ * comparison available" rather than a fabricated 0%.
+ */
+function compare(allRows, filters) {
+  const periods = resolvePeriods(allRows, filters);
+  if (!periods) return null;
+
+  const base = applyFilters(allRows, { ...filters, from: null, to: null });
+  const cur  = base.filter(r => inWindow(r, periods.current));
+  const prev = base.filter(r => inWindow(r, periods.previous));
+  if (!prev.length) {
+    return { available: false, reason: 'No data in the preceding period',
+             periods: { current: fmtRange(periods.current),
+                        previous: fmtRange(periods.previous) } };
+  }
+
+  const a = derive(cur, null), b = derive(prev, null);
+
+  /* Daily per-asset rate across the current window — sparkline source. A lone
+     number says "1.56"; a sparkline says whether it got there by drifting up
+     all month or spiking last Tuesday. Those need different responses. */
+  const dailyRate = a.trend.map(t => ({
+    date: t.date,
+    value: t.assets ? t.units / t.assets : 0
+  }));
+  const activeDays = rows => new Set(rows.map(r => r.SHIFT_DATE)).size || 1;
+
+  /* Per-asset-per-active-day: the volume-independent risk rate. This is the
+     number that actually tells you whether drivers got drowsier. */
+  const rate = (k, rows) =>
+    k.distinctAssets ? k.totalAlerts / k.distinctAssets / activeDays(rows) : 0;
+
+  const metric = (key, label, curVal, prevVal, opts = {}) => {
+    const delta = curVal - prevVal;
+    // Percent change is meaningless against a tiny or zero baseline.
+    const pctUsable = Math.abs(prevVal) >= (opts.minBaseline ?? 1e-9);
+    return {
+      key, label,
+      current: curVal, previous: prevVal, delta,
+      pct: pctUsable ? (delta / Math.abs(prevVal)) * 100 : null,
+      /* Direction is about GOOD/BAD, not up/down. More alerts is bad; faster
+         sync is good. Colouring by arrow direction alone would paint a
+         genuine improvement red. */
+      goodWhen: opts.goodWhen ?? 'down',
+      unit: opts.unit ?? 'count',
+      significant: Math.abs(delta) > (opts.noiseFloor ?? 0)
+    };
+  };
+
+  return {
+    available: true,
+    dailyRate,
+    periods: {
+      current: fmtRange(periods.current),
+      previous: fmtRange(periods.previous),
+      spanDays: periods.spanDays
+    },
+    baselineComplete: periods.baselineComplete,
+    baselineCoverage: periods.baselineCoverage,
+    metrics: [
+      metric('totalAlerts', 'Total alerts', a.kpis.totalAlerts, b.kpis.totalAlerts,
+             { goodWhen: 'down', minBaseline: 1 }),
+      metric('alertRate', 'Alerts per asset per active day',
+             rate(a.kpis, cur), rate(b.kpis, prev),
+             { goodWhen: 'down', unit: 'rate', minBaseline: 0.01 }),
+      metric('distinctAssets', 'Assets reporting',
+             a.kpis.distinctAssets, b.kpis.distinctAssets,
+             { goodWhen: 'flat', minBaseline: 1 }),
+      metric('distinctOperators', 'Drivers involved',
+             a.kpis.distinctOperators, b.kpis.distinctOperators,
+             { goodWhen: 'down', minBaseline: 1 }),
+      metric('avgSyncSeconds', 'Average sync delay',
+             a.kpis.avgSyncSeconds ?? 0, b.kpis.avgSyncSeconds ?? 0,
+             { goodWhen: 'down', unit: 'duration', minBaseline: 1 }),
+      metric('actionableRatio', 'Actionable ratio',
+             a.kpis.actionableRatio, b.kpis.actionableRatio,
+             { goodWhen: 'up', unit: 'percent', minBaseline: 0.5 })
+    ]
+  };
+}
+
+/* ── Store: subscribe / render-from-state ───────────────────────────────── */
+
+function createStore(initial = createState()) {
+  let state = initial;
+  const listeners = new Set();
+  const emit = () => listeners.forEach(fn => fn(state));
+
+  return {
+    get: () => state,
+
+    /* Set already-annotated rows plus a precomputed derived object. Used by
+       the import pipeline, which annotates during validation and must not pay
+       to re-parse every timestamp a second time. */
+    _setRows(rows, derived) {
+      state = { ...state, rows, derived, status: 'ready', error: null };
+      emit();
+    },
+    subscribe(fn) { listeners.add(fn); fn(state); return () => listeners.delete(fn); },
+
+    /** Local path (today): recompute in the browser. */
+    load(rawRows) {
+      const { rows, problems, rejected } = annotate(rawRows);
+      state = { ...state, rows, status: 'ready', error: null };
+      state.derived = derive(rows, state.filters);
+      state.derived.comparison = compare(rows, state.filters);
+      emit();
+      return { problems, rejected, accepted: rows.length };
+    },
+
+    /** Server path (later): the ONLY function that changes. Same shape out. */
+    async fetchMetrics(filters = state.filters) {
+      state = { ...state, status: 'loading', error: null };
+      emit();
+      try {
+        const qs = new URLSearchParams(
+          Object.entries(filters).filter(([, v]) =>
+            v != null && v !== false && !(Array.isArray(v) && !v.length))
+            .map(([k, v]) => [k, Array.isArray(v) ? v.join(',') : v])
+        );
+        const res = await fetch(`/api/metrics?${qs}`, { credentials: 'same-origin' });
+        if (!res.ok) throw new Error(`HTTP_${res.status}`);
+        state = { ...state, derived: await res.json(), filters, status: 'ready' };
+      } catch (e) {
+        // Never surface raw errors to the UI.
+        state = { ...state, status: 'error',
+                  error: { code: 'METRICS_FETCH_FAILED',
+                           message: 'Unable to load metrics. Please retry.' } };
+      }
+      emit();
+    },
+
+    setFilters(patch) {
+      const filters = { ...state.filters, ...patch };
+      const derived = derive(state.rows, filters);
+      derived.comparison = compare(state.rows, filters);
+      state = { ...state, filters, derived };
+      emit();
+    }
+  };
+}
+
+/* ══ 2. CHARTS ══════════════════════════════════════════════════════════ */
+/* ============================================================================
+   DDS — Unified Chart Renderer
+   ----------------------------------------------------------------------------
+   Replaces OverviewCharts (11.2KB) + AnalyticsCharts (12.1KB) with one
+   registry of pure render functions driven by `derived` from dds-state.js.
+
+   Every renderer has the same signature:
+       render(el: Element, derived: Derived, opts: object) -> void
+
+   Pages declare WHICH charts they show and WITH WHAT OPTIONS. They never
+   contain painting logic. Adding a page = adding a config block.
+
+   ⚠ MEASURE — read this before wiring.
+   v2.2's two pages silently disagreed on what two charts meant:
+
+     Chart                     Overview            Analytics
+     ------------------------  ------------------  ------------------
+     Shift Distribution        sum(EVENT_COUNT)    count(rows)
+     Event Code Distribution   sum(EVENT_COUNT)    count(rows)
+
+   Same title, same data, different numbers. Users comparing the two pages
+   would see different percentages and reasonably conclude one is broken.
+   `measure` is now an explicit, required option so the choice is visible in
+   config instead of buried in two diverged functions. Pick one and mean it.
+   ========================================================================= */
+
+
+/* ── Safety ─────────────────────────────────────────────────────────────── */
+
+/* ASSET_ID, OPERATOR and EVENT_CODE come from an uploaded spreadsheet. In
+   v2.2 they were concatenated straight into innerHTML in four places
+   (paintTopAssets, paintTopUnits, paintTopOperators, paintEventCodes), so a
+   cell containing `<img src=x onerror=...>` executes for every user who views
+   the dashboard — stored XSS with a file upload as the delivery mechanism.
+   Everything user-derived goes through esc() or textContent below. */
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ── Shared formatting ──────────────────────────────────────────────────── */
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const fmt = {
+  int: n => Math.round(n).toLocaleString(),
+  pct: (n, d = 0) => `${n.toFixed(d)}%`,
+  /** 'MM/DD/YYYY' -> 'Mar 4' */
+  shortDate(mmddyyyy) {
+    const [mm, dd] = String(mmddyyyy).split('/').map(Number);
+    return `${MONTHS[mm - 1]} ${dd}`;
+  },
+  sync(seconds) {
+    if (seconds == null) return '—';
+    if (seconds < 60)   return `${seconds.toFixed(1)} sec`;
+    if (seconds < 3600) return `${(seconds / 60).toFixed(1)} min`;
+    return `${(seconds / 3600).toFixed(1)} hr`;
+  }
+};
+
+const EVENT_COLORS = [
+  'var(--blue)', 'var(--teal)', 'var(--amber)',
+  'var(--purple)', 'var(--red)', 'var(--navy)'
+];
+
+const CIRCUMFERENCE = 2 * Math.PI * 58;   // r=58, matches existing markup
+const NEUTRAL = '#B4B2A9';
+
+/* ── Primitives ─────────────────────────────────────────────────────────── */
+
+/** Horizontal labelled bar list. Used by event codes, top assets, top operators. */
+function barList(el, items, { max, showPct = true, emptyText = 'No data' } = {}) {
+  if (!items.length) { el.innerHTML = `<div class="ev-empty">${esc(emptyText)}</div>`; return; }
+  const peak = max ?? Math.max(...items.map(i => i.value), 1);
+  el.innerHTML = items.map(({ label, value }) => {
+    const pct = Math.round((value / peak) * 100);
+    return `<div class="ev-row">
+      <div class="ev-label" title="${esc(label)}">${esc(label)}</div>
+      <div class="ev-track"><div class="ev-fill" style="width:${pct}%"></div></div>
+      <div class="ev-val">${fmt.int(value)}${showPct ? ` (${pct}%)` : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+/** Single-segment donut (two-way split). */
+function donutSplit(arcEl, totalEl, primaryValue, total) {
+  const len = total > 0 ? (primaryValue / total) * CIRCUMFERENCE : 0;
+  arcEl.setAttribute('stroke-dasharray', `${len.toFixed(1)} ${CIRCUMFERENCE.toFixed(1)}`);
+  if (totalEl) totalEl.textContent = fmt.int(total);
+}
+
+/** Multi-segment donut (n-way split). */
+function donutSegments(arcsEl, segments) {
+  const total = segments.reduce((s, x) => s + x.value, 0);
+  let offset = 0;
+  arcsEl.innerHTML = segments.map((seg, i) => {
+    const len = total > 0 ? (seg.value / total) * CIRCUMFERENCE : 0;
+    const arc = `<circle cx="80" cy="80" r="58" fill="none"
+      stroke="${EVENT_COLORS[i % EVENT_COLORS.length]}" stroke-width="22"
+      stroke-dasharray="${len.toFixed(1)} ${CIRCUMFERENCE.toFixed(1)}"
+      stroke-dashoffset="-${offset.toFixed(1)}" transform="rotate(-90 80 80)"/>`;
+    offset += len;
+    return arc;
+  }).join('');
+  return total;
+}
+
+/** Map values to an SVG polyline path within a plot box. */
+function linePath(values, { top, bottom, width, min = null, max = null }) {
+  const n = values.length;
+  if (!n) return { d: '', points: [] };
+  const lo = min ?? Math.min(...values);
+  const hi = max ?? Math.max(...values);
+  const range = (hi - lo) || 1;
+  const points = values.map((v, i) => ({
+    x: n === 1 ? width / 2 : (i / (n - 1)) * width,
+    y: bottom - ((v - lo) / range) * (bottom - top)
+  }));
+  const d = points.map((p, i) =>
+    `${i === 0 ? 'M' : ''}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  return { d, points };
+}
+
+/** Vertical stacked bars: actionable (blue) over non-actionable (neutral). */
+function stackedBars(el, labels, actionable, nonActionable, geo) {
+  const { groupW, gap, baseline, top, offsetX } = geo;
+  const peak = Math.max(...actionable.map((v, i) => v + nonActionable[i]), 1);
+  el.innerHTML = labels.map((_, i) => {
+    const a = actionable[i], n = nonActionable[i], sum = a + n;
+    const totalH = (sum / peak) * (baseline - top);
+    const aH = sum > 0 ? totalH * (a / sum) : 0;
+    const nH = totalH - aH;
+    const x = i * gap + offsetX, aY = baseline - aH;
+    return `<rect x="${x}" y="${aY.toFixed(1)}" width="${groupW}"
+              height="${Math.max(aH, 0).toFixed(1)}" fill="var(--blue)" rx="2"/>
+            <rect x="${x}" y="${(aY - nH).toFixed(1)}" width="${groupW}"
+              height="${Math.max(nH, 0).toFixed(1)}" fill="${NEUTRAL}" rx="2"/>`;
+  }).join('');
+}
+
+/* ── Chart registry ─────────────────────────────────────────────────────── */
+
+const charts = {
+
+  /* KPI strip — one definition, both pages. Replaces the paired ov/an IDs. */
+  kpis(el, d, { refs }) {
+    const set = (node, text) => { if (node) node.textContent = text; };
+    set(refs.alerts, fmt.int(d.kpis.totalAlerts));
+    set(refs.assets, fmt.int(d.kpis.distinctAssets));
+    set(refs.sync,   fmt.sync(d.kpis.avgSyncSeconds));
+    set(refs.ratio,  fmt.pct(d.kpis.actionableRatio, 1));
+  },
+
+  /* Shift split donut. `measure` resolves the Overview/Analytics conflict. */
+  shiftDonut(el, d, { refs, measure = 'units' }) {
+    const pick = s => measure === 'units' ? s.units : s.assets;
+    const day = pick(d.shiftDistribution.DAY);
+    const night = pick(d.shiftDistribution.NIGHT);
+    const total = day + night;
+    const unit = measure === 'units' ? 'events' : 'assets';
+
+    donutSplit(refs.arc, refs.total, day, total);
+    if (refs.dayValue)   refs.dayValue.textContent   = `${fmt.int(day)} ${unit}`;
+    if (refs.nightValue) refs.nightValue.textContent = `${fmt.int(night)} ${unit}`;
+    if (refs.dayPct)   refs.dayPct.textContent   = fmt.pct(total ? day / total * 100 : 0);
+    if (refs.nightPct) refs.nightPct.textContent = fmt.pct(total ? night / total * 100 : 0);
+  },
+
+  /* Event codes — bar list (Overview) or donut+legend (Analytics). */
+  eventCodes(el, d, { variant = 'bars', refs, limit = 6, measure = 'units' }) {
+    const val = c => measure === 'units' ? c.units : c.events;
+    const codes = d.eventCodeDistribution.slice(0, limit);
+
+    if (variant === 'bars') {
+      const total = codes.reduce((s, c) => s + val(c), 0);
+      barList(el, codes.map(c => ({ label: c.code, value: val(c) })),
+        { max: total, emptyText: 'No event codes' });
+      return;
+    }
+    const total = donutSegments(refs.arcs, codes.map(c => ({ value: val(c) })));
+    if (refs.count) refs.count.textContent = codes.length;
+    if (refs.legend) refs.legend.innerHTML = codes.map((c, i) => {
+      const pct = total ? Math.round(val(c) / total * 100) : 0;
+      return `<div class="dl-row">
+        <span class="legend-dot" style="background:${EVENT_COLORS[i % EVENT_COLORS.length]}"></span>
+        <div class="dl-name">${esc(c.code)}</div>
+        <div class="dl-pct">${pct}%</div></div>`;
+    }).join('');
+  },
+
+  /* Trend over time. `series` selects which lines to draw. */
+  trend(el, d, { refs, series = ['units'], geo = { top: 8, bottom: 168, width: 992 } }) {
+    const pts = d.trend;
+    if (!pts.length) { if (refs.axis) refs.axis.innerHTML = ''; return; }
+
+    const paths = { units: refs.unitsPath, events: refs.eventsPath, assets: refs.assetsPath };
+    // Shared scale across series so the lines are visually comparable.
+    const all = series.flatMap(k => pts.map(p => p[k]));
+    const min = Math.min(...all), max = Math.max(...all);
+
+    let primary = null;
+    for (const key of series) {
+      const { d: path, points } = linePath(pts.map(p => p[key]), { ...geo, min, max });
+      if (paths[key]) paths[key].setAttribute('d', path);
+      if (!primary) primary = { path, points };
+    }
+    if (refs.fill && primary) {
+      refs.fill.setAttribute('d', `${primary.path} ${geo.width},180 0,180 Z`);
+    }
+    if (refs.dots && primary) {
+      refs.dots.innerHTML = primary.points
+        .map(p => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3"/>`).join('');
+    }
+    if (refs.axis) {
+      refs.axis.innerHTML = pts
+        .map(p => `<span class="axis">${esc(fmt.shortDate(p.date))}</span>`).join('');
+    }
+    /* v2.2 hid the WoW badge because imported files may be non-contiguous.
+       Same rule, made explicit rather than a side effect. */
+    if (refs.badge) refs.badge.style.display = 'none';
+  },
+
+  /* Hourly — single series (Overview bars) or DAY-vs-NIGHT lines (Analytics). */
+  hourly(el, d, { variant = 'bars', refs, geo }) {
+    if (variant === 'bars') {
+      const totals = d.hourly.DAY.map((v, i) => v + d.hourly.NIGHT[i]);
+      const peak = Math.max(...totals, 1);
+      const g = geo ?? { barW: 28, gap: 42, baseline: 128, top: 5, offsetX: 4 };
+      el.innerHTML = totals.map((v, h) => {
+        const height = (v / peak) * (g.baseline - g.top);
+        return `<rect x="${h * g.gap + g.offsetX}" y="${(g.baseline - height).toFixed(1)}"
+                  width="${g.barW}" height="${height.toFixed(1)}" rx="2"/>`;
+      }).join('');
+      return;
+    }
+    /* Lines: DAY vs NIGHT on a shared scale.
+       v2.2 split the date range into arbitrary early/late halves, which
+       produced a different comparison every time a file was imported.
+       DAY vs NIGHT is stable and matches the chart's title. */
+    const g = geo ?? { top: 15, bottom: 210, width: 720 };
+    const max = Math.max(...d.hourly.DAY, ...d.hourly.NIGHT, 1);
+    if (refs.dayPath)   refs.dayPath.setAttribute('d',   linePath(d.hourly.DAY,   { ...g, min: 0, max }).d);
+    if (refs.nightPath) refs.nightPath.setAttribute('d', linePath(d.hourly.NIGHT, { ...g, min: 0, max }).d);
+    if (refs.legend) refs.legend.innerHTML =
+      `<div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Day shift</div>
+       <div class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>Night shift</div>`;
+  },
+
+  syncBuckets(el, d, { geo }) {
+    stackedBars(el, SYNC_BUCKETS, d.syncBuckets.actionable, d.syncBuckets.nonActionable,
+      geo ?? { groupW: 130, gap: 184, baseline: 128, top: 10, offsetX: 46 });
+  },
+
+  alertBuckets(el, d, { geo }) {
+    stackedBars(el, ALERT_BUCKETS, d.alertBuckets.actionable, d.alertBuckets.nonActionable,
+      geo ?? { groupW: 130, gap: 184, baseline: 128, top: 10, offsetX: 46 });
+  },
+
+  topAssets(el, d, { limit = 10, showPct = true }) {
+    barList(el, d.topAssets.slice(0, limit).map(a => ({ label: a.id, value: a.total })),
+      { showPct, emptyText: 'No assets in range' });
+  },
+
+  topOperators(el, d, { limit = 10, showPct = true }) {
+    barList(el, d.topOperators.slice(0, limit).map(o => ({ label: o.id, value: o.total })),
+      { showPct, emptyText: 'No operator data' });
+  },
+
+  summary(el, d) {
+    const topCode  = d.eventCodeDistribution[0]?.code;
+    const topAsset = d.topAssets[0]?.id;
+    const lines = [
+      `<div class="summary-line">Across <b>${fmt.int(d.kpis.totalAlerts)} alerts</b>
+       covering <b>${fmt.int(d.kpis.distinctAssets)} assets</b>,
+       <b>${fmt.pct(d.kpis.actionableRatio, 1)}</b> were actionable.</div>`
+    ];
+    if (topCode) lines.push(`<div class="summary-line">Most common event type is
+      <b>${esc(topCode)}</b>${topAsset ? `, with <b>${esc(topAsset)}</b> generating the most volume` : ''}.</div>`);
+    if (d.kpis.avgSyncSeconds != null) lines.push(`<div class="summary-action">
+      → Average sync delay is ${fmt.sync(d.kpis.avgSyncSeconds)} — investigate the slowest syncs.</div>`);
+    if (!d.meta.reconciles) lines.push(`<div class="summary-warn">
+      ⚠ ${fmt.int(d.meta.unclassifiedUnits)} alerts from ${fmt.int(d.meta.unclassifiedRows)}
+      row(s) with unreadable timestamps are counted in totals but excluded from
+      trend and shift charts.</div>`);
+    el.innerHTML = lines.join('');
+  }
+};
+
+/* ── Page configuration ─────────────────────────────────────────────────── */
+
+const $ = id => document.getElementById(id);
+
+/* Measure choice, made once, applied everywhere. Change `MEASURE` and both
+   pages move together — which was the whole point of the merge. */
+const MEASURE = 'units';
+
+const PAGES = {
+  overview: [
+    { chart: 'kpis', refs: () => ({
+        alerts: $('ovKpiAlerts'), assets: $('ovKpiUnits'),
+        sync: $('ovKpiSync'), ratio: $('ovKpiRatio') }) },
+    { chart: 'shiftDonut', measure: MEASURE, refs: () => ({
+        arc: $('shiftDonutArc'), total: $('shiftDonutTotal'),
+        dayValue: $('shiftDayUnits'), dayPct: $('shiftDayPct'),
+        nightValue: $('shiftNightUnits'), nightPct: $('shiftNightPct') }) },
+    { chart: 'trend', series: ['units'], refs: () => ({
+        unitsPath: $('trendLinePath'), fill: $('trendFillPath'),
+        dots: $('trendDots'), axis: $('trendAxis'), badge: $('trendBadge') }) },
+    { chart: 'hourly',        variant: 'bars', el: () => $('ovHourlyBars') },
+    { chart: 'eventCodes',    variant: 'bars', measure: MEASURE, el: () => $('ovEventCodeList') },
+    { chart: 'syncBuckets',   el: () => $('ovSyncBars') },
+    { chart: 'alertBuckets',  el: () => $('ovBucketBars') },
+    { chart: 'topAssets',     limit: 6, showPct: false, el: () => $('ovTopAssetList') }
+  ],
+
+  analytics: [
+    { chart: 'kpis', refs: () => ({
+        alerts: $('anKpiAlerts'), assets: $('anKpiUnits'),
+        sync: $('anKpiSync'), ratio: $('anKpiRatio') }) },
+    { chart: 'shiftDonut', measure: MEASURE, refs: () => ({
+        arc: $('anShiftDonutArc'), total: $('anShiftDonutTotal'),
+        dayValue: $('anShiftDayAlerts'), dayPct: $('anShiftDayPct'),
+        nightValue: $('anShiftNightAlerts'), nightPct: $('anShiftNightPct') }) },
+    { chart: 'eventCodes', variant: 'donut', measure: MEASURE, refs: () => ({
+        arcs: $('anEventDonutArcs'), count: $('anEventDonutCount'),
+        legend: $('anEventDonutLegend') }) },
+    { chart: 'summary', el: () => $('anSummaryBody') },
+    { chart: 'trend', series: ['units', 'assets'], refs: () => ({
+        unitsPath: $('anTrendAlertsPath'), assetsPath: $('anTrendAssetsPath'),
+        fill: $('anTrendFillPath'), dots: $('anTrendDots'), axis: $('anTrendAxis') }) },
+    { chart: 'hourly', variant: 'lines', refs: () => ({
+        dayPath: $('anHourlyEarlyPath'), nightPath: $('anHourlyLatePath'),
+        legend: $('anHourlyLegend') }) },
+    { chart: 'topAssets',    limit: 10, el: () => $('anTopUnitList') },
+    { chart: 'topOperators', limit: 10, el: () => $('anTopOperatorList') }
+  ]
+};
+
+/* ── Renderer ───────────────────────────────────────────────────────────── */
+
+function renderPage(pageName, derived) {
+  const config = PAGES[pageName];
+  if (!config || !derived) return;
+
+  for (const { chart, el, refs, ...opts } of config) {
+    const fn = charts[chart];
+    if (!fn) { console.warn(`Unknown chart: ${chart}`); continue; }
+
+    const node = el?.() ?? null;
+    const resolved = refs?.() ?? {};
+    // Skip cleanly if this page's markup isn't mounted.
+    if (!node && !Object.values(resolved).some(Boolean)) continue;
+
+    try {
+      fn(node, derived, { ...opts, refs: resolved });
+    } catch (err) {
+      // One broken chart must not blank the whole dashboard.
+      console.error(`Chart "${chart}" failed to render`, err);
+    }
+  }
+}
+
+/** Bind to the store: every state change repaints the active page. */
+function mount(store, getActivePage) {
+  return store.subscribe(state => {
+    const page = getActivePage();
+    if (state.status === 'ready' && state.derived) renderPage(page, state.derived);
+    document.body.dataset.status = state.status;   // hook for loading/error CSS
+  });
+}
+
+/* ══ 3. ACCESSIBILITY ═══════════════════════════════════════════════════ */
+/* ============================================================================
+   DDS — Accessibility Layer
+   ----------------------------------------------------------------------------
+   v2.2 audit: 0 aria-*, 0 role=, 0 tabindex, 0 alt= across 58 inline SVGs and
+   19 buttons. 7 icon-only buttons had no accessible name. 4 of 10 inputs had
+   no associated label. No <main>, no <h1> — headings started at h2.
+
+   Two halves:
+     applyStatic()  — one-time markup fixes (landmarks, labels, icon naming)
+     describeChart()— data-driven titles + sr-only tables, refreshed on render
+
+   The second half is why this is JS and not markup: a chart description that
+   says "Trend over time" is useless. One that says "Alert trend across 14
+   days, peaking at 412 on Mar 18" is the actual content, and it changes every
+   time the data does.
+   ========================================================================= */
+
+
+
+
+/* ── Live region ────────────────────────────────────────────────────────── */
+
+let liveRegion = null;
+
+/** Announce to screen readers without moving focus. */
+function announce(message, { assertive = false } = {}) {
+  if (!liveRegion) return;
+  liveRegion.setAttribute('aria-live', assertive ? 'assertive' : 'polite');
+  // Clear first — identical consecutive text is not re-announced.
+  liveRegion.textContent = '';
+  setTimeout(() => { liveRegion.textContent = message; }, 50);
+}
+
+/* ── Static markup fixes ────────────────────────────────────────────────── */
+
+const ICON_LABELS = {
+  'sound-preview-btn': 'Preview notification sound',
+  'edit':       'Edit user',
+  'deactivate': 'Deactivate user',
+  'activate':   'Activate user'
+};
+
+function applyStatic(root = document) {
+  /* 1. Decorative icons — 16x16 and 24x24 SVGs always sit beside a text
+        label. Announcing them duplicates the label, so hide them. Charts
+        (larger viewBoxes) are handled by describeChart() instead. */
+  root.querySelectorAll('svg').forEach(svg => {
+    const vb = (svg.getAttribute('viewBox') || '').split(/\s+/);
+    const w = parseFloat(vb[2]) || 0;
+    if (svg.dataset.chart) return;                 // meaningful — skip
+    if (w <= 24) {
+      svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('focusable', 'false');      // IE/Edge tab-stop fix
+    }
+  });
+
+  /* 2. Icon-only buttons — 7 of them had no accessible name at all.
+        Prefer an explicit data-label; fall back to the class map. */
+  root.querySelectorAll('button').forEach(btn => {
+    if (btn.getAttribute('aria-label') || btn.textContent.trim()) return;
+    const explicit = btn.dataset.label;
+    const byClass = [...btn.classList].map(c => ICON_LABELS[c]).find(Boolean);
+    const action = btn.dataset.action ? ICON_LABELS[btn.dataset.action] : null;
+    const subject = btn.dataset.subject
+      ? ` ${btn.dataset.subject}`
+      : (btn.closest('tr')?.querySelector('.um-name, td')?.textContent.trim()
+          ? ` ${btn.closest('tr').querySelector('.um-name, td').textContent.trim()}` : '');
+    // title is a weak accessible name; promote it and qualify it with the row.
+    const fromTitle = btn.getAttribute('title');
+    const label = explicit || (action ? action + subject : null)
+                  || (fromTitle ? fromTitle + subject : null) || byClass;
+    if (label) btn.setAttribute('aria-label', label);
+    else console.warn('Icon button with no accessible name', btn);
+  });
+
+  /* 3. Landmarks + document outline. */
+  const shell = root.querySelector('.app');
+  const nav = root.querySelector('.sidenav');
+  const main = root.querySelector('#main');
+  if (nav && !nav.getAttribute('aria-label')) {
+    nav.setAttribute('role', 'navigation');
+    nav.setAttribute('aria-label', 'Sections');
+  }
+  if (main) { main.setAttribute('role', 'main'); main.id = 'main'; main.tabIndex = -1; }
+
+  /* The brand title is the only h1-worthy string; headings jumped straight
+     to h2, which leaves screen-reader users without a document title. */
+  const brand = root.querySelector('.nav-brand-title');
+  if (brand && brand.tagName !== 'H1') {
+    const h1 = document.createElement('h1');
+    h1.className = brand.className;
+    h1.textContent = brand.textContent;
+    brand.replaceWith(h1);
+  }
+
+  /* 4. Skip link — first thing in the tab order. */
+  if (shell && !root.querySelector('.skip-link')) {
+    const skip = document.createElement('a');
+    skip.className = 'skip-link';
+    skip.href = '#main';
+    skip.textContent = 'Skip to main content';
+    shell.parentNode.insertBefore(skip, shell);
+  }
+
+  /* 5. Inputs without a label — 4 of 10 in v2.2. Wire by proximity, and
+        warn loudly for any that can't be resolved. */
+  root.querySelectorAll('input, select').forEach(input => {
+    if (input.type === 'hidden') return;
+    /* The dropzone's file input is visually hidden and triggered by clicking
+       the zone. Keyboard users still reach it, so it needs its own name. */
+    if (input.type === 'file' && input.closest('.dz')) {
+      if (!input.getAttribute('aria-label')) {
+        input.setAttribute('aria-label', 'Choose CSV or Excel files to import');
+      }
+      return;
+    }
+    const hasLabel = input.id && root.querySelector(`label[for="${CSS.escape(input.id)}"]`);
+    if (hasLabel || input.getAttribute('aria-label')) return;
+    const near = input.closest('.field-group, .sound-row, .field-row, .settings-row')
+      ?.querySelector('.field-label, .sound-row-label, .settings-label');
+    if (near) {
+      if (!input.id) input.id = `f-${Math.random().toString(36).slice(2, 8)}`;
+      near.setAttribute('for', input.id);
+      if (near.tagName !== 'LABEL') input.setAttribute('aria-label', near.textContent.trim());
+    } else if (input.getAttribute('title') || input.placeholder) {
+      input.setAttribute('aria-label', input.getAttribute('title') || input.placeholder);
+    } else {
+      console.warn('Input with no accessible name', input);
+    }
+    /* Hint text becomes the description rather than floating unread. */
+    const hint = input.closest('.field-group')?.querySelector('.field-hint');
+    if (hint) {
+      if (!hint.id) hint.id = `${input.id}-hint`;
+      input.setAttribute('aria-describedby', hint.id);
+    }
+  });
+
+  /* 6. Nav as a tab set, so arrow keys work and the current page is announced. */
+  const items = [...root.querySelectorAll('.nav-item')];
+  items.forEach(item => {
+    item.setAttribute('role', 'tab');
+    item.setAttribute('aria-selected', String(item.classList.contains('active')));
+    item.tabIndex = item.classList.contains('active') ? 0 : -1;
+  });
+  const list = items[0]?.parentElement;
+  if (list) list.setAttribute('role', 'tablist');
+
+  list?.addEventListener('keydown', e => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    const i = items.indexOf(document.activeElement);
+    const next = e.key === 'Home' ? 0
+      : e.key === 'End' ? items.length - 1
+      : e.key === 'ArrowDown' ? (i + 1) % items.length
+      : (i - 1 + items.length) % items.length;
+    items[next]?.focus();
+  });
+
+  /* 7. Live region. */
+  if (!liveRegion) {
+    liveRegion = document.createElement('div');
+    liveRegion.className = 'sr-only';
+    liveRegion.setAttribute('aria-live', 'polite');
+    liveRegion.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(liveRegion);
+  }
+
+  /* 8. Pages as tabpanels. */
+  root.querySelectorAll('section[id]').forEach(sec => {
+    sec.setAttribute('role', 'tabpanel');
+    sec.tabIndex = 0;
+    if (!sec.getAttribute('aria-label')) {
+      const title = sec.querySelector('.topbar-title')?.textContent?.trim();
+      if (title) sec.setAttribute('aria-label', title);
+    }
+  });
+}
+
+/** Keep aria-selected in sync with showPage(). */
+function setActivePage(pageId, root = document) {
+  root.querySelectorAll('.nav-item').forEach(item => {
+    const on = item.classList.contains('active');
+    item.setAttribute('aria-selected', String(on));
+    item.tabIndex = on ? 0 : -1;
+  });
+  const label = root.querySelector(`#${CSS.escape(pageId)}`)?.getAttribute('aria-label');
+  if (label) announce(`${label} view`);
+}
+
+/* ── Chart descriptions (data-driven) ───────────────────────────────────── */
+
+const table = (caption, headers, rows) => `
+  <table>
+    <caption>${esc(caption)}</caption>
+    <thead><tr>${headers.map(h => `<th scope="col">${esc(h)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r => `<tr>${r.map((c, i) =>
+      i === 0 ? `<th scope="row">${esc(c)}</th>` : `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}
+    </tbody>
+  </table>`;
+
+/** Returns { title, desc, table } for a chart, computed from live data. */
+const describe = {
+  trend(d) {
+    const pts = d.trend;
+    if (!pts.length) return { title: 'Alert trend', desc: 'No data in range.' };
+    const peak = pts.reduce((a, b) => b.units > a.units ? b : a);
+    const low  = pts.reduce((a, b) => b.units < a.units ? b : a);
+    return {
+      title: 'Alert trend over time',
+      desc: `Alert volume across ${pts.length} shift days, from ` +
+            `${fmt.shortDate(pts[0].date)} to ${fmt.shortDate(pts.at(-1).date)}. ` +
+            `Highest ${fmt.int(peak.units)} on ${fmt.shortDate(peak.date)}; ` +
+            `lowest ${fmt.int(low.units)} on ${fmt.shortDate(low.date)}.`,
+      table: table('Alerts by shift date', ['Date', 'Alerts', 'Events', 'Assets'],
+        pts.map(p => [fmt.shortDate(p.date), fmt.int(p.units), fmt.int(p.events), fmt.int(p.assets)]))
+    };
+  },
+
+  shiftDonut(d) {
+    const { DAY, NIGHT } = d.shiftDistribution;
+    return {
+      title: 'Distribution by shift',
+      desc: `Day shift ${fmt.pct(DAY.pct)} with ${fmt.int(DAY.units)} alerts; ` +
+            `night shift ${fmt.pct(NIGHT.pct)} with ${fmt.int(NIGHT.units)} alerts.`,
+      table: table('Alerts by shift', ['Shift', 'Alerts', 'Assets', 'Share'], [
+        ['Day', fmt.int(DAY.units), fmt.int(DAY.assets), fmt.pct(DAY.pct)],
+        ['Night', fmt.int(NIGHT.units), fmt.int(NIGHT.assets), fmt.pct(NIGHT.pct)]
+      ])
+    };
+  },
+
+  eventCodes(d) {
+    const codes = d.eventCodeDistribution;
+    if (!codes.length) return { title: 'Event code distribution', desc: 'No event codes.' };
+    return {
+      title: 'Distribution by event code',
+      desc: `${codes.length} event types. Most common is ${codes[0].code} at ` +
+            `${fmt.pct(codes[0].pct)} of ${fmt.int(d.kpis.totalAlerts)} alerts.`,
+      table: table('Alerts by event code', ['Code', 'Alerts', 'Events', 'Share'],
+        codes.map(c => [c.code, fmt.int(c.units), fmt.int(c.events), fmt.pct(c.pct)]))
+    };
+  },
+
+  hourly(d) {
+    const totals = d.hourly.DAY.map((v, i) => v + d.hourly.NIGHT[i]);
+    const peakHour = totals.indexOf(Math.max(...totals));
+    const hh = h => `${String(h).padStart(2, '0')}:00`;
+    return {
+      title: 'Hourly alert distribution',
+      desc: `Alerts by hour of day, UTC. Peak at ${hh(peakHour)} with ` +
+            `${fmt.int(totals[peakHour])} alerts.`,
+      table: table('Alerts by hour', ['Hour (UTC)', 'Day shift', 'Night shift', 'Total'],
+        totals.map((t, h) => [hh(h), fmt.int(d.hourly.DAY[h]), fmt.int(d.hourly.NIGHT[h]), fmt.int(t)]))
+    };
+  },
+
+  syncBuckets(d) {
+    const b = d.syncBuckets;
+    return {
+      title: 'Alert sync delay distribution',
+      desc: `Events grouped by delay between event end and server sync, ` +
+            `split by actionable status.`,
+      table: table('Sync delay buckets', ['Delay', 'Actionable', 'Non-actionable'],
+        b.labels.map((l, i) => [l, fmt.int(b.actionable[i]), fmt.int(b.nonActionable[i])]))
+    };
+  },
+
+  alertBuckets(d) {
+    const b = d.alertBuckets;
+    return {
+      title: 'Alert count distribution',
+      desc: `Events grouped by alert count per record, split by actionable status.`,
+      table: table('Alert count buckets', ['Alerts per event', 'Actionable', 'Non-actionable'],
+        b.labels.map((l, i) => [l, fmt.int(b.actionable[i]), fmt.int(b.nonActionable[i])]))
+    };
+  },
+
+  topAssets(d) {
+    const t = d.topAssets;
+    if (!t.length) return { title: 'Top assets', desc: 'No asset data.' };
+    return {
+      title: 'Top offenders by asset',
+      desc: `${t.length} assets ranked by alert volume. Highest is ${t[0].id} ` +
+            `with ${fmt.int(t[0].total)} alerts.`,
+      table: table('Alerts by asset', ['Asset', 'Total', 'Actionable', 'Non-actionable'],
+        t.map(a => [a.id, fmt.int(a.total), fmt.int(a.actionable), fmt.int(a.nonActionable)]))
+    };
+  },
+
+  topOperators(d) {
+    const t = d.topOperators;
+    if (!t.length) return { title: 'Top operators', desc: 'No operator data.' };
+    return {
+      title: 'Top offenders by operator',
+      desc: `${t.length} operators ranked by alert volume. Highest is ${t[0].id} ` +
+            `with ${fmt.int(t[0].total)} alerts.`,
+      table: table('Alerts by operator', ['Operator', 'Total'],
+        t.map(o => [o.id, fmt.int(o.total)]))
+    };
+  },
+
+  kpis(d) {
+    return {
+      title: 'Key metrics',
+      desc: `${fmt.int(d.kpis.totalAlerts)} total alerts across ` +
+            `${fmt.int(d.kpis.distinctAssets)} assets. Average sync ` +
+            `${fmt.sync(d.kpis.avgSyncSeconds)}. Actionable ratio ` +
+            `${fmt.pct(d.kpis.actionableRatio, 1)}.`
+    };
+  }
+};
+
+/* ── Wiring ─────────────────────────────────────────────────────────────── */
+
+/**
+ * Attach descriptions to every chart on a page.
+ * Markup contract: the SVG carries data-chart="<key>"; the sr-only table is
+ * injected as a sibling so it sits in reading order right after the visual.
+ */
+function describePage(pageName, derived, root = document) {
+  if (!derived) return;
+
+  root.querySelectorAll('[data-chart]').forEach(node => {
+    const key = node.dataset.chart;
+    const build = describe[key];
+    if (!build) return;
+
+    let info;
+    try { info = build(derived); }
+    catch (err) { console.error(`Description failed for "${key}"`, err); return; }
+
+    if (node.tagName.toLowerCase() === 'svg') {
+      node.setAttribute('role', 'img');
+      node.removeAttribute('aria-hidden');
+
+      // <title> and <desc> must be the FIRST children to be picked up.
+      let titleEl = node.querySelector(':scope > title');
+      let descEl  = node.querySelector(':scope > desc');
+      if (!titleEl) {
+        titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        node.prepend(titleEl);
+      }
+      if (!descEl) {
+        descEl = document.createElementNS('http://www.w3.org/2000/svg', 'desc');
+        titleEl.after(descEl);
+      }
+      titleEl.textContent = info.title;
+      descEl.textContent = info.desc || '';
+    } else {
+      node.setAttribute('role', 'group');
+      node.setAttribute('aria-label', `${info.title}. ${info.desc || ''}`);
+    }
+
+    /* Screen-reader data table — the numbers behind the picture. Sighted
+       users never see it; it is the only way the chart data is reachable. */
+    if (info.table) {
+      const host = node.closest('.card') || node.parentElement;
+      let tbl = host.querySelector(':scope > .sr-only[data-chart-table]');
+      if (!tbl) {
+        tbl = document.createElement('div');
+        tbl.className = 'sr-only';
+        tbl.setAttribute('data-chart-table', key);
+        host.appendChild(tbl);
+      }
+      tbl.innerHTML = info.table;
+    }
+  });
+}
+
+/** One call to wire everything. Returns the store unsubscribe fn. */
+function initA11y(store, getActivePage) {
+  applyStatic();
+  let lastStatus = null;
+
+  return store.subscribe(state => {
+    if (state.status === 'ready' && state.derived) {
+      describePage(getActivePage(), state.derived);
+      if (lastStatus === 'loading') {
+        const { meta, kpis } = state.derived;
+        announce(`Loaded ${fmt.int(meta.rowCount)} records, ` +
+                 `${fmt.int(kpis.totalAlerts)} alerts.` +
+                 (meta.reconciles ? '' :
+                  ` Warning: ${fmt.int(meta.unclassifiedRows)} rows had unreadable timestamps.`));
+      }
+    }
+    if (state.status === 'loading' && lastStatus !== 'loading') announce('Loading data');
+    if (state.status === 'error') announce(state.error?.message || 'Error loading data',
+                                           { assertive: true });
+    lastStatus = state.status;
+  });
+}
+
+/** Re-apply naming to markup rendered after boot (e.g. the user table). */
+function rescan(root = document) {
+  applyStatic(root);
+}
+
+
+/* ══ 4. CONTROLS ════════════════════════════════════════════════════════ */
+/* ============================================================================
+   DDS — Controls Layer
+   ----------------------------------------------------------------------------
+   Turns the dead UI into working UI.
+
+   v2.2 audit findings this addresses:
+     - 3 filter "controls" (.cpill) were <div>s with a chevron icon implying a
+       dropdown that did not exist. Not focusable, not clickable, no menu.
+     - Refresh had no handler.
+     - Export had no handler.
+     - KPIs were hardcoded in markup (4,200 / 284 / 4.3 sec / 72.8%), so a
+       first-time user saw confident fake numbers before importing anything.
+
+   Everything here drives store.setFilters() — the same path the charts already
+   subscribe to — so filtering is a state change, not a DOM operation.
+   ========================================================================= */
+
+
+
+/* ── CSV export ─────────────────────────────────────────────────────────── */
+
+/* A cell beginning with = + - @ (or tab/CR) is executed as a formula when the
+   CSV is opened in Excel or Sheets. ASSET_ID and OPERATOR come from an
+   uploaded file, so an attacker controls them — prefix to neutralise.
+   Quotes are doubled per RFC 4180. */
+function csvCell(value) {
+  let s = String(value ?? '');
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+const csv = rows => rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+
+function download(filename, text, mime = 'text/csv;charset=utf-8') {
+  // BOM so Excel reads UTF-8 asset/operator names correctly.
+  const blob = new Blob(['\uFEFF' + text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+/** Build a multi-section CSV of everything currently on screen. */
+function exportDerived(derived, filters) {
+  const out = [];
+  const section = (title, headers, rows) => {
+    out.push([title], headers, ...rows, []);
+  };
+
+  out.push(['DDS Export'], ['Generated', derived.meta.generatedAt],
+           ['Rows', derived.meta.rowCount]);
+  if (filters?.from || filters?.to) out.push(['Range', `${filters.from ?? 'start'} to ${filters.to ?? 'end'}`]);
+  if (filters?.shift) out.push(['Shift', filters.shift]);
+  if (!derived.meta.reconciles) {
+    out.push(['WARNING', `${derived.meta.unclassifiedRows} row(s) had unreadable ` +
+      `timestamps; their ${derived.meta.unclassifiedUnits} alerts are in totals ` +
+      `but excluded from trend and shift figures.`]);
+  }
+  out.push([]);
+
+  section('KEY METRICS', ['Metric', 'Value'], [
+    ['Total alerts', derived.kpis.totalAlerts],
+    ['Distinct assets', derived.kpis.distinctAssets],
+    ['Avg sync', fmt.sync(derived.kpis.avgSyncSeconds)],
+    ['Actionable ratio', fmt.pct(derived.kpis.actionableRatio, 1)]
+  ]);
+
+  section('TREND BY SHIFT DATE', ['Date', 'Alerts', 'Events', 'Assets'],
+    derived.trend.map(t => [t.date, t.units, t.events, t.assets]));
+
+  section('BY SHIFT', ['Shift', 'Alerts', 'Assets', 'Share %'], [
+    ['Day', derived.shiftDistribution.DAY.units, derived.shiftDistribution.DAY.assets,
+     derived.shiftDistribution.DAY.pct.toFixed(1)],
+    ['Night', derived.shiftDistribution.NIGHT.units, derived.shiftDistribution.NIGHT.assets,
+     derived.shiftDistribution.NIGHT.pct.toFixed(1)]
+  ]);
+
+  section('BY EVENT CODE', ['Code', 'Alerts', 'Events', 'Share %'],
+    derived.eventCodeDistribution.map(c => [c.code, c.units, c.events, c.pct.toFixed(1)]));
+
+  section('BY HOUR (UTC)', ['Hour', 'Day shift', 'Night shift'],
+    derived.hourly.DAY.map((v, h) => [`${String(h).padStart(2, '0')}:00`, v, derived.hourly.NIGHT[h]]));
+
+  section('TOP ASSETS', ['Asset', 'Total', 'Actionable', 'Non-actionable'],
+    derived.topAssets.map(a => [a.id, a.total, a.actionable, a.nonActionable]));
+
+  section('TOP OPERATORS', ['Operator', 'Total'],
+    derived.topOperators.map(o => [o.id, o.total]));
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  download(`dds-export-${stamp}.csv`, csv(out));
+  return out.length;
+}
+
+/* ── Accessible dropdown ────────────────────────────────────────────────── */
+
+/* The .cpill elements were <div>s — no keyboard access, no role, no menu.
+   This upgrades them in place to the WAI-ARIA listbox pattern: button with
+   aria-haspopup, popup with role=listbox, arrow keys, Home/End, Escape,
+   type-ahead, and click-outside dismissal. */
+
+let openMenu = null;
+
+function closeMenu() {
+  if (!openMenu) return;
+  openMenu.trigger.setAttribute('aria-expanded', 'false');
+  openMenu.list.remove();
+  openMenu = null;
+}
+
+document.addEventListener('click', e => {
+  if (openMenu && !openMenu.list.contains(e.target) && !openMenu.trigger.contains(e.target)) {
+    closeMenu();
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && openMenu) { openMenu.trigger.focus(); closeMenu(); }
+});
+
+/**
+ * @param {Element} el       the existing .cpill node
+ * @param {object}  config   { label, options:[{value,label}], value, onSelect }
+ */
+function createDropdown(el, { label, options, value, onSelect }) {
+  // Swap the <div> for a real <button> so it is focusable and announced.
+  const trigger = document.createElement('button');
+  trigger.className = el.className;
+  trigger.type = 'button';
+  trigger.setAttribute('aria-haspopup', 'listbox');
+  trigger.setAttribute('aria-expanded', 'false');
+  trigger.setAttribute('aria-label', label);
+  el.replaceWith(trigger);
+
+  let current = value;
+
+  const paint = () => {
+    const opt = options.find(o => o.value === current) ?? options[0];
+    trigger.innerHTML = '';
+    trigger.append(opt.label);
+    const chev = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    chev.setAttribute('viewBox', '0 0 24 24');
+    chev.setAttribute('fill', 'none');
+    chev.setAttribute('stroke', 'currentColor');
+    chev.setAttribute('stroke-width', '2.5');
+    chev.setAttribute('aria-hidden', 'true');
+    chev.setAttribute('focusable', 'false');
+    chev.innerHTML = '<path d="M6 9l6 6 6-6"/>';
+    trigger.append(chev);
+    trigger.dataset.active = String(current !== options[0].value);
+  };
+
+  const open = () => {
+    if (openMenu?.trigger === trigger) return closeMenu();
+    closeMenu();
+
+    const list = document.createElement('div');
+    list.className = 'menu';
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-label', label);
+    list.tabIndex = -1;
+
+    options.forEach(o => {
+      const item = document.createElement('div');
+      item.className = 'menu-item';
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', String(o.value === current));
+      item.tabIndex = -1;
+      item.textContent = o.label;
+      item.addEventListener('click', () => {
+        current = o.value;
+        paint();
+        closeMenu();
+        trigger.focus();
+        onSelect(o.value);
+      });
+      list.append(item);
+    });
+
+    trigger.parentElement.style.position ||= 'relative';
+    trigger.insertAdjacentElement('afterend', list);
+    trigger.setAttribute('aria-expanded', 'true');
+    openMenu = { trigger, list };
+
+    const items = [...list.children];
+    (items.find(i => i.getAttribute('aria-selected') === 'true') ?? items[0])?.focus();
+
+    list.addEventListener('keydown', e => {
+      const i = items.indexOf(document.activeElement);
+      const go = n => { e.preventDefault(); items[n]?.focus(); };
+      if (e.key === 'ArrowDown') go((i + 1) % items.length);
+      else if (e.key === 'ArrowUp') go((i - 1 + items.length) % items.length);
+      else if (e.key === 'Home') go(0);
+      else if (e.key === 'End') go(items.length - 1);
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.activeElement.click(); }
+      else if (e.key === 'Tab') closeMenu();
+    });
+  };
+
+  trigger.addEventListener('click', open);
+  trigger.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+  });
+
+  paint();
+  return { setValue(v) { current = v; paint(); }, element: trigger };
+}
+
+/* ── Filter option builders ─────────────────────────────────────────────── */
+
+/* Date ranges are computed from the data actually loaded, not from "today".
+   An imported file is usually historical — a "Last 7 days" filter anchored to
+   the wall clock silently returns nothing, which reads as a broken dashboard. */
+function dateRangeOptions(derived) {
+  const dates = derived?.trend?.map(t => t.date) ?? [];
+  if (!dates.length) return [{ value: 'all', label: 'All available data' }];
+  return [
+    { value: 'all', label: 'All available data' },
+    { value: '7',   label: 'Last 7 shift days' },
+    { value: '14',  label: 'Last 14 shift days' },
+    { value: '30',  label: 'Last 30 shift days' }
+  ];
+}
+
+function resolveRange(token, derived) {
+  if (token === 'all' || !derived?.trend?.length) return { from: null, to: null };
+  const dates = derived.trend.map(t => t.date);
+  const n = Number(token);
+  return { from: dates[Math.max(0, dates.length - n)] ?? null, to: dates.at(-1) };
+}
+
+const SHIFT_OPTIONS = [
+  { value: 'all',   label: 'All shifts' },
+  { value: 'DAY',   label: 'Day shift' },
+  { value: 'NIGHT', label: 'Night shift' }
+];
+
+const STATUS_OPTIONS = [
+  { value: 'all',        label: 'All records' },
+  { value: 'actionable', label: 'Actionable only' }
+];
+
+/* ── Empty state ────────────────────────────────────────────────────────── */
+
+/* The hardcoded KPIs were the single most misleading thing in the mock: a user
+   who had imported nothing still saw "4,200 alerts / 72.8% actionable". */
+function renderEmptyState(root = document) {
+  root.querySelectorAll('.kpi-val').forEach(el => { el.textContent = '—'; });
+  root.querySelectorAll('.kpi-delta').forEach(el => { el.hidden = true; });
+
+  root.querySelectorAll('.chart-body, .ev-list').forEach(el => {
+    if (el.querySelector('.state-empty')) return;
+    el.insertAdjacentHTML('beforeend', `
+      <div class="state-empty">
+        <div class="state-empty-title">No data yet</div>
+        <div>Import a CSV or Excel export to populate this view.</div>
+      </div>`);
+  });
+}
+
+function clearEmptyState(root = document) {
+  root.querySelectorAll('.state-empty').forEach(el => el.remove());
+  root.querySelectorAll('.kpi-delta').forEach(el => { el.hidden = false; });
+}
+
+/* ── Wiring ─────────────────────────────────────────────────────────────── */
+
+/**
+ * @param {object} store          from dds-state.js
+ * @param {object} handlers       { onRefresh?: () => Promise|void }
+ */
+function initControls(store, { onRefresh } = {}) {
+  const state = store.get();
+  let rangeToken = 'all';
+
+  /* Filter pills. Each .cpill is matched by its text so this works against the
+     existing markup without an edit; give them data-filter="range|shift|status"
+     to be explicit. */
+  document.querySelectorAll('.cpill').forEach(el => {
+    if (el.id === 'importedCountPill') return;          // a count, not a control
+    const text = el.textContent.trim().toLowerCase();
+    const kind = el.dataset.filter
+      ?? (text.includes('shift') ? 'shift'
+        : text.includes('area') ? 'area'
+        : text.includes('data') || text.includes('today') ? 'range'
+        : null);
+
+    if (kind === 'range') {
+      createDropdown(el, {
+        label: 'Date range', value: 'all',
+        options: dateRangeOptions(store.get().derived),
+        onSelect: v => {
+          rangeToken = v;
+          store.setFilters(resolveRange(v, store.get().derived));
+          announce(`Date range: ${v === 'all' ? 'all data' : `last ${v} shift days`}`);
+        }
+      });
+    } else if (kind === 'shift') {
+      createDropdown(el, {
+        label: 'Shift', value: 'all', options: SHIFT_OPTIONS,
+        onSelect: v => {
+          store.setFilters({ shift: v === 'all' ? null : v });
+          announce(`Shift filter: ${v === 'all' ? 'all shifts' : v.toLowerCase()}`);
+        }
+      });
+    } else if (kind === 'area') {
+      /* v2.2 showed an "All Areas" filter, but no column in EXPECTED_COLUMNS
+         carries an area/site. Repurposed to a status filter, which the data
+         does support. Restore it as an area filter once the schema has a
+         site column — see the API contract. */
+      createDropdown(el, {
+        label: 'Record status', value: 'all', options: STATUS_OPTIONS,
+        onSelect: v => {
+          store.setFilters({ actionableOnly: v === 'actionable' });
+          announce(v === 'actionable' ? 'Showing actionable only' : 'Showing all records');
+        }
+      });
+    }
+  });
+
+  /* Refresh — was inert. */
+  document.querySelectorAll('button').forEach(btn => {
+    const label = btn.textContent.trim();
+
+    if (label === 'Refresh') {
+      btn.addEventListener('click', async () => {
+        btn.dataset.loading = 'true';
+        btn.disabled = true;
+        try {
+          await (onRefresh?.() ?? store.fetchMetrics?.());
+          announce('Data refreshed');
+        } catch {
+          announce('Refresh failed', { assertive: true });
+        } finally {
+          delete btn.dataset.loading;
+          btn.disabled = false;
+        }
+      });
+    }
+
+    if (label === 'Export') {
+      btn.addEventListener('click', () => {
+        const { derived, filters } = store.get();
+        if (!derived) { announce('Nothing to export yet', { assertive: true }); return; }
+        exportDerived(derived, filters);
+        announce('Export downloaded');
+      });
+      // Nothing to export until data exists.
+      btn.disabled = !store.get().derived;
+    }
+  });
+
+  /* Keep empty state and Export availability in sync with the store. */
+  return store.subscribe(s => {
+    const hasData = s.status === 'ready' && s.derived && s.derived.meta.rowCount > 0;
+    hasData ? clearEmptyState() : renderEmptyState();
+    document.querySelectorAll('button').forEach(b => {
+      if (b.textContent.trim() === 'Export') b.disabled = !hasData;
+    });
+  });
+}
+
+/* ══ 5. INSIGHT SUMMARY ═════════════════════════════════════════════════ */
+/* ============================================================================
+   DDS — Analytics Summary (insight layout)
+   ----------------------------------------------------------------------------
+   DESIGN RATIONALE
+
+   The previous version was six equal cards in a uniform grid. Same size, same
+   weight, same colour treatment on each — so nothing was emphasised and the
+   reader had to do the analysis themselves. That is a wall of numbers, not an
+   insight surface.
+
+   This follows the pattern modern analytics products converged on (Linear's
+   cycle summaries, Stripe's dashboard, Vercel Analytics):
+
+     1. LEAD WITH THE FINDING, in prose. First thing on screen is a sentence
+        saying what changed and what it means — not a metric.
+     2. ONE HERO. A single primary metric at display size with a sparkline, so
+        the number carries its own history. "1.56" says nothing about whether
+        it drifted up all month or spiked on Tuesday; those need different
+        responses.
+     3. EVERYTHING ELSE QUIET. Supporting metrics are a compact strip in small
+        type — context for the hero, not competitors to it.
+     4. COLOUR ONLY WHERE IT CARRIES MEANING. Tone appears on the headline,
+        the hero, and the deltas. Painting all six defeats the point of
+        painting any.
+
+   THE HERO IS THE RATE, NOT THE TOTAL. Total alerts is what people ask for and
+   it is confounded by fleet size and by how many days a file covers. Alerts
+   per asset per active day answers "did drivers actually get drowsier". The
+   total is still shown — demoted to the strip, where it belongs.
+   ========================================================================= */
+
+
+
+
+/* ── Icons ──────────────────────────────────────────────────────────────── */
+
+const ICON = {
+  alert: '<path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
+  rate:  '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
+  truck: '<path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.3a4 4 0 0 0-.9-2.5l-1.9-2.3a2 2 0 0 0-1.5-.7H14v8.8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  user:  '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  sync:  '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>',
+  check: '<path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><path d="m9 11 3 3L22 4"/>',
+  up:    '<path d="m6 15 6-6 6 6"/>',
+  down:  '<path d="m6 9 6 6 6-6"/>',
+  flat:  '<path d="M5 12h14"/>',
+  info:  '<path d="M12 16v-4m0-4h.01"/><circle cx="12" cy="12" r="10"/>'
+};
+
+const svg = (name, cls = 'ic') =>
+  `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+        aria-hidden="true" focusable="false">${ICON[name] ?? ''}</svg>`;
+
+const METRIC_ICON = {
+  totalAlerts: 'alert', alertRate: 'rate', distinctAssets: 'truck',
+  distinctOperators: 'user', avgSyncSeconds: 'sync', actionableRatio: 'check'
+};
+
+/* ── Formatting ─────────────────────────────────────────────────────────── */
+
+/* Zero renders as "0.0%", never "−0.0%" — a stray minus on an unchanged
+   metric reads as a real decrease. */
+const signed = (v, digits, suffix = '') =>
+  `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(digits)}${suffix}`;
+
+function formatValue(v, unit) {
+  if (v == null) return '—';
+  switch (unit) {
+    case 'duration': return fmt.sync(v);
+    case 'percent':  return fmt.pct(v, 1);
+    case 'rate':     return v.toFixed(2);
+    default:         return fmt.int(v);
+  }
+}
+
+function formatDelta(m) {
+  const abs = Math.abs(m.delta);
+  if (abs === 0) return 'no change';
+  const sign = m.delta > 0 ? '+' : '−';
+  switch (m.unit) {
+    case 'duration': {
+      const mins = abs / 60;
+      return `${sign}${mins < 1 ? `${abs.toFixed(0)} sec` : `${mins.toFixed(1)} min`}`;
+    }
+    case 'percent': return `${sign}${abs.toFixed(1)} pts`;
+    case 'rate':    return `${sign}${abs.toFixed(2)}`;
+    default:        return `${sign}${fmt.int(abs)}`;
+  }
+}
+
+/* Tone is good/bad, never up/down — a falling sync delay is an improvement and
+   must not render red for pointing downward. */
+function tone(m) {
+  if (!m?.significant || m.delta === 0 || m.goodWhen === 'flat') return 'neutral';
+  return (m.goodWhen === 'up') === (m.delta > 0) ? 'good' : 'bad';
+}
+
+const arrow = m => m.delta > 0 ? 'up' : m.delta < 0 ? 'down' : 'flat';
+
+/* Percent leads when the baseline supports it; otherwise the absolute delta
+   leads and no percentage appears at all. "+3,900%" off a baseline of 1 is
+   technically true and practically a lie. */
+const headlinePct = m => m.pct === null ? formatDelta(m) : signed(m.pct, 1, '%');
+
+/* ── Sparkline ──────────────────────────────────────────────────────────── */
+
+function sparkline(series, toneName) {
+  if (!series || series.length < 2) return '';
+  const vals = series.map(p => p.value);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = (max - min) || 1;
+  const W = 240, H = 44, pad = 4;
+
+  const pts = vals.map((v, i) => [
+    (i / (vals.length - 1)) * W,
+    pad + (1 - (v - min) / range) * (H - pad * 2)
+  ]);
+  const line = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const [lx, ly] = pts.at(-1);
+  const gid = `spark-${toneName}`;
+
+  return `
+  <svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"
+       aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="currentColor" stop-opacity=".20"/>
+        <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${line} L${W},${H} L0,${H} Z" fill="url(#${gid})"/>
+    <path d="${line}" fill="none" stroke="currentColor" stroke-width="1.75"
+          stroke-linejoin="round" stroke-linecap="round"
+          vector-effect="non-scaling-stroke"/>
+    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.4" fill="currentColor"/>
+  </svg>`;
+}
+
+/* ── Narrative headline ─────────────────────────────────────────────────────
+   The sentence a coordinator would say out loud. Priority order matters: the
+   volume/rate divergence is the most decision-relevant thing on the page, so
+   it wins whenever it is real. */
+
+function headline(c) {
+  const get = k => c.metrics.find(m => m.key === k);
+  const vol = get('totalAlerts'), rate = get('alertRate');
+  const fleet = get('distinctAssets'), sync = get('avgSyncSeconds');
+
+  if (rate && vol && rate.pct !== null && vol.pct !== null) {
+    if (Math.abs(vol.pct - rate.pct) >= 8) {
+      const dir = rate.pct > 0 ? 'rose' : rate.pct < 0 ? 'fell' : 'held steady';
+      const fleetBit = fleet && fleet.pct !== null && Math.abs(fleet.pct) >= 3
+        ? ` while the reporting fleet ${fleet.pct > 0 ? 'grew' : 'shrank'} ${Math.abs(fleet.pct).toFixed(0)}%`
+        : '';
+      return {
+        text: `Per-asset risk ${dir} ${Math.abs(rate.pct).toFixed(0)}%${fleetBit}. ` +
+              `Total alerts moved ${signed(vol.pct, 0, '%')} — most of that swing is fleet size, not driver behaviour.`,
+        tone: tone(rate)
+      };
+    }
+    if (Math.abs(rate.pct) >= 10) {
+      return {
+        text: `Per-asset risk ${rate.pct > 0 ? 'rose' : 'fell'} ${Math.abs(rate.pct).toFixed(0)}% ` +
+              `and total alerts moved with it. This is a real change in driver behaviour, not a fleet-size effect.`,
+        tone: tone(rate)
+      };
+    }
+  }
+  if (sync && sync.pct !== null && Math.abs(sync.pct) >= 10) {
+    return {
+      text: `Alert levels held roughly steady. The notable move is sync delay, ` +
+            `${sync.delta < 0 ? 'down' : 'up'} ${formatDelta(sync).replace(/^[+−]/, '')}.`,
+      tone: tone(sync)
+    };
+  }
+  return {
+    text: 'No material change against the previous period across any tracked metric.',
+    tone: 'neutral'
+  };
+}
+
+/* ── Components ─────────────────────────────────────────────────────────── */
+
+function hero(m, c) {
+  if (!m) return '';
+  const t = tone(m);
+  return `
+  <div class="ins-hero" data-tone="${t}">
+    <div class="ins-hero-main">
+      <div class="ins-hero-label">
+        ${svg(METRIC_ICON[m.key], 'ic')}<span>${esc(m.label)}</span>
+      </div>
+      <div class="ins-hero-figure">
+        <span class="ins-hero-value">${formatValue(m.current, m.unit)}</span>
+        <span class="ins-chip" data-tone="${t}">
+          ${svg(arrow(m), 'ic ic-xs')}${headlinePct(m)}
+        </span>
+      </div>
+      <div class="ins-hero-sub">
+        from ${formatValue(m.previous, m.unit)} · ${esc(c.periods.previous)}
+      </div>
+    </div>
+    <div class="ins-hero-spark" data-tone="${t}">
+      ${sparkline(c.dailyRate, t)}
+      <div class="ins-spark-cap">Daily · ${esc(c.periods.current)}</div>
+    </div>
+    <span class="sr-only">${esc(m.label)}: ${formatValue(m.current, m.unit)},
+      ${headlinePct(m)} versus ${formatValue(m.previous, m.unit)} in ${esc(c.periods.previous)}.</span>
+  </div>`;
+}
+
+function stat(m, previousLabel) {
+  const t = tone(m);
+  return `
+  <div class="ins-stat">
+    <div class="ins-stat-label">${svg(METRIC_ICON[m.key], 'ic ic-xs')}<span>${esc(m.label)}</span></div>
+    <div class="ins-stat-row">
+      <span class="ins-stat-value">${formatValue(m.current, m.unit)}</span>
+      <span class="ins-stat-delta" data-tone="${t}">
+        ${svg(arrow(m), 'ic ic-xs')}${headlinePct(m)}
+      </span>
+    </div>
+    <span class="sr-only">${esc(m.label)}: ${formatValue(m.current, m.unit)},
+      ${headlinePct(m)} versus ${formatValue(m.previous, m.unit)} in ${esc(previousLabel)}.</span>
+  </div>`;
+}
+
+function baselineWarning(c) {
+  if (c.baselineComplete) return '';
+  return `
+  <div class="ins-note" data-kind="warn">
+    ${svg('info', 'ic')}
+    <span><b>Partial baseline.</b> ${esc(c.periods.previous)} is only
+      ${Math.round((c.baselineCoverage ?? 0) * 100)}% covered by imported data —
+      treat these percentages as indicative only.</span>
+  </div>`;
+}
+
+/* ── Entry point ────────────────────────────────────────────────────────── */
+
+/* Short labels for the strip; the hero carries the full phrasing. */
+const SHORT = {
+  totalAlerts: 'Total alerts', distinctAssets: 'Assets reporting',
+  distinctOperators: 'Drivers involved', avgSyncSeconds: 'Avg sync delay',
+  actionableRatio: 'Actionable'
+};
+
+function renderInsights(el, derived) {
+  if (!el) return;
+  const c = derived?.comparison;
+
+  if (!c || c.available === false) {
+    el.innerHTML = `
+      <div class="state-empty">
+        <div class="state-empty-title">No comparison available</div>
+        <div>${esc(c?.reason ?? 'Import at least two periods to see how things are trending.')}
+          ${c?.periods ? `Looked for ${esc(c.periods.previous)}.` : ''}</div>
+      </div>`;
+    return;
+  }
+
+  const h = headline(c);
+  const heroMetric = c.metrics.find(m => m.key === 'alertRate');
+  const rest = c.metrics
+    .filter(m => m.key !== 'alertRate')
+    .map(m => ({ ...m, label: SHORT[m.key] ?? m.label }));
+
+  el.innerHTML = `
+    <div class="ins">
+      <div class="ins-top">
+        <span class="ins-eyebrow">${esc(c.periods.current)}</span>
+        <span class="ins-eyebrow-vs">vs ${esc(c.periods.previous)}</span>
+      </div>
+
+      <p class="ins-headline" data-tone="${h.tone}">${esc(h.text)}</p>
+
+      ${baselineWarning(c)}
+      ${hero(heroMetric, c)}
+
+      <div class="ins-strip">
+        ${rest.map(m => stat(m, c.periods.previous)).join('')}
+      </div>
+    </div>`;
+}
+
+/* ══ 6. APP BRIDGE ══════════════════════════════════════════════════════
+   The v2.2 nav / import / settings code below keeps its original IIFEs — it
+   has locals (`main`, `table`, `imports`) that would collide with the
+   renderer if hoisted. `App` is the only shared surface between the two. */
+
+const App = {
+  imports: [],
+  showPage: () => {},
+
+  /* Re-apply accessible naming after content rendered post-boot. */
+  rescan(){ rescan(); },
+
+  /* Header validation. Columns match case-insensitively and trimmed —
+     exports arrive with stray whitespace and inconsistent casing constantly. */
+  checkHeader(rows){
+    if (!rows || !rows.length) return { ok:false, missing: EXPECTED_COLUMNS.slice() };
+    const present = new Set(Object.keys(rows[0]).map(k => k.trim().toUpperCase()));
+    const missing = EXPECTED_COLUMNS.filter(c => !present.has(c));
+    return { ok: missing.length === 0, missing };
+  },
+
+  /* Rebuild derived state from every successful import. Imports are additive:
+     the dashboard reflects the union of everything loaded. Rows are already
+     annotated by the validation step, so derive() is fed directly rather than
+     re-parsing every timestamp a second time. */
+  refresh(){
+    const all = [];
+    App.imports.forEach(rec => { if (rec.rows) all.push(...rec.rows); });
+    if (!all.length) return;
+    const filters = store.get().filters;
+    const derived = derive(all, filters);
+    derived.comparison = compare(all, filters);
+    store._setRows(all, derived);
+  }
+};
+
+const store = createStore();
+
+/* ══ 7. v2.2 NAVIGATION, IMPORT, SETTINGS (original IIFEs preserved) ════ */
+(function(){
+  var main = document.getElementById('main');
+  var navItems = document.querySelectorAll('.nav-item[data-nav]');
+  var pages = {
+    overview: document.getElementById('page-overview'),
+    analytics: document.getElementById('page-analytics'),
+    'data-mgmt': document.getElementById('page-data-mgmt'),
+    settings: document.getElementById('page-settings')
+  };
+
+  function showPage(name){
+    Object.keys(pages).forEach(function(key){
+      pages[key].hidden = key !== name;
+    });
+    main.setAttribute('data-page', name);
+    main.scrollTop = 0;
+    navItems.forEach(function(btn){
+      btn.classList.toggle('active', btn.getAttribute('data-nav') === name);
+    });
+  }
+
+  navItems.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      // Routed through App so the glue's repaint wrapper is picked up.
+      App.showPage(btn.getAttribute('data-nav'));
+    });
+  });
+
+  App.showPage = showPage;
+})();
+
+(function(){
+  var dropZone   = document.getElementById('dropZone');
+  var fileInput  = document.getElementById('fileInput');
+  var tableWrap  = document.getElementById('importTableWrap');
+  var tableBody  = document.getElementById('importTableBody');
+  var table      = document.getElementById('importTable');
+  var emptyState = document.getElementById('importEmpty');
+  var countLabel = document.getElementById('importCountLabel');
+  var countPill  = document.getElementById('importedCountPill');
+
+  var imports = [];
+  App.imports = imports;          // { id, name, ext, size, importedAt, status, flags:[], rowCount, driveStatus }
+  var seenFingerprints = {}; // fingerprint -> true, used for duplicate detection
+
+  function fmtSize(bytes){
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/(1024*1024)).toFixed(2) + ' MB';
+  }
+
+  function fmtDate(d){
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var h = d.getHours(), ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    var mins = d.getMinutes().toString().padStart(2,'0');
+    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ' · ' + h + ':' + mins + ' ' + ampm;
+  }
+
+  function extOf(name){
+    var m = /.+\.([a-z0-9]+)$/i.exec(name);
+    return m ? m[1].toLowerCase() : '';
+  }
+
+  function fileIconSvg(ext){
+    if (ext === 'csv') {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>';
+    }
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l1.5 3L12 15l1.5 3L15 15"/></svg>';
+  }
+
+  function statusBadge(status){
+    if (status === 'success') return '<span class="badge badge-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Imported</span>';
+    if (status === 'error')   return '<span class="badge badge-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>Failed</span>';
+    if (status === 'warn')    return '<span class="badge badge-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>Imported with issues</span>';
+    return '<span class="badge badge-pending">Processing…</span>';
+  }
+
+  function flagsMarkup(flags){
+    if (!flags.length) return '<span class="flag-none">—</span>';
+    return '<div class="flag-row">' + flags.map(function(f){
+      if (f.type === 'duplicate') return '<span class="flag flag-dup">⟲ Duplicate' + (f.detail ? ' — ' + f.detail : '') + '</span>';
+      return '<span class="flag flag-err">! Error' + (f.detail ? ' — ' + f.detail : '') + '</span>';
+    }).join('') + '</div>';
+  }
+
+  function driveMarkup(rec){
+    if (rec.driveStatus === 'ok') {
+      return '<span class="imp-drive drive-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Backed up</span>';
+    }
+    return '<span class="imp-drive drive-pending"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Pending upload</span>';
+  }
+
+  function render(){
+    if (!imports.length){
+      table.hidden = true;
+      emptyState.hidden = false;
+      countLabel.textContent = '0 records';
+      countPill.textContent = '0 files imported';
+      return;
+    }
+    emptyState.hidden = true;
+    table.hidden = false;
+    countLabel.textContent = imports.length + (imports.length === 1 ? ' record' : ' records');
+    countPill.textContent = imports.length + (imports.length === 1 ? ' file imported' : ' files imported');
+
+    // Most recent first.
+    var rows = imports.slice().reverse();
+    tableBody.innerHTML = rows.map(function(rec){
+      var rowsNote = rec.rowCount != null ? '<div class="imp-file-rows">' + rec.rowCount + ' rows read</div>' : '';
+      return '' +
+        '<tr>' +
+          '<td class="imp-date">' + fmtDate(rec.importedAt) + '</td>' +
+          '<td><div class="imp-file">' +
+            '<div class="imp-file-icon ' + (rec.ext === 'csv' ? 'csv' : 'xlsx') + '">' + fileIconSvg(rec.ext) + '</div>' +
+            '<div><div class="imp-file-name" title="' + rec.name + '">' + rec.name + '</div>' + rowsNote + '</div>' +
+          '</div></td>' +
+          '<td class="imp-size">' + fmtSize(rec.size) + '</td>' +
+          '<td>' + statusBadge(rec.status) + '</td>' +
+          '<td>' + flagsMarkup(rec.flags) + '</td>' +
+          '<td>' + driveMarkup(rec) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  // Builds a lightweight per-row fingerprint so re-imports of the same rows
+  // (e.g. same file re-uploaded, or overlapping date/unit ranges from two
+  // different exports) can be flagged as duplicates rather than silently
+  // double-counted.
+  function fingerprintRow(row){
+    return JSON.stringify(row).toLowerCase().replace(/\s+/g,'');
+  }
+
+  function analyzeRows(rows){
+    var dupCount = 0;
+    rows.forEach(function(row){
+      var fp = fingerprintRow(row);
+      if (seenFingerprints[fp]) dupCount++;
+      else seenFingerprints[fp] = true;
+    });
+    return dupCount;
+  }
+
+  function addRecord(file, outcome){
+    var rec = {
+      id: Date.now() + '-' + Math.random().toString(36).slice(2,8),
+      name: file.name,
+      ext: extOf(file.name),
+      size: file.size,
+      importedAt: new Date(),
+      status: outcome.status,
+      flags: outcome.flags,
+      rowCount: outcome.rowCount,
+      // Annotated rows (with SHIFT_DATE/SHIFT/ACTIONABLE computed) kept on
+      // the record itself — not currently rendered anywhere, but available
+      // for whatever reads import records next (export, Overview/Analytics
+      // wiring, etc.) without having to re-parse the file.
+      rows: outcome.rows || null,
+      // Row data lives in-app immediately on parse; the file itself is
+      // expected to be uploaded to Drive separately (see note in UI),
+      // so backup status starts pending until that upload is confirmed.
+      driveStatus: 'pending'
+    };
+    imports.push(rec);
+    render();
+    App.refresh();
+  }
+
+  function handleParsedRows(file, rows, parseWarnings){
+    if (!rows || !rows.length){
+      addRecord(file, { status:'error', flags:[{type:'error', detail:'No rows found'}], rowCount:0 });
+      return;
+    }
+
+    // Schema check: expected columns must all be present before anything else
+    // runs. A file that fails this never gets duplicate/shift analysis — the
+    // header mismatch is the whole story for that import.
+    var headerCheck = App.checkHeader(rows);
+    if (!headerCheck.ok){
+      addRecord(file, {
+        status: 'error',
+        flags: [{ type:'error', detail: 'Missing column' + (headerCheck.missing.length===1?'':'s') + ': ' + headerCheck.missing.join(', ') }],
+        rowCount: rows.length
+      });
+      return;
+    }
+
+    // Row-level validation: compute SHIFT_DATE / SHIFT / ACTIONABLE for every
+    // row; rows with an unparseable START_TIME or UPDATE_TIME are counted as
+    // read issues (same bucket PapaParse's own row errors already flow into)
+    // rather than failing the whole import.
+    var validated = annotate(rows);
+    var annotatedRows = validated.rows;
+    var validationIssueCount = validated.problems.length;
+
+    var dupCount = analyzeRows(annotatedRows);
+    var flags = [];
+    if (dupCount > 0) flags.push({ type:'duplicate', detail: dupCount + ' row' + (dupCount===1?'':'s') + ' matched existing data' });
+
+    var totalReadIssues = (parseWarnings ? parseWarnings.length : 0) + validationIssueCount;
+    if (totalReadIssues > 0) flags.push({ type:'error', detail: totalReadIssues + ' row' + (totalReadIssues===1?'':'s') + ' had read issues' });
+
+    var status = 'success';
+    if (totalReadIssues > 0) status = 'warn';
+    if (dupCount > 0 && dupCount === annotatedRows.length) status = 'warn';
+
+    addRecord(file, { status: status, flags: flags, rowCount: annotatedRows.length, rows: annotatedRows });
+  }
+
+  function processFile(file){
+    var ext = extOf(file.name);
+
+    if (ext === 'csv'){
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results){
+          var warnings = (results.errors || []).filter(function(e){ return e.code !== 'TooFewFields'; });
+          handleParsedRows(file, results.data, warnings);
+        },
+        error: function(){
+          addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not read file'}], rowCount:null });
+        }
+      });
+      return;
+    }
+
+    if (ext === 'xlsx' || ext === 'xls'){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        try{
+          var wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+          var sheetName = wb.SheetNames[0];
+          var sheet = wb.Sheets[sheetName];
+          var rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
+          handleParsedRows(file, rows, null);
+        }catch(err){
+          addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not parse workbook'}], rowCount:null });
+        }
+      };
+      reader.onerror = function(){
+        addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not read file'}], rowCount:null });
+      };
+      reader.readAsArrayBuffer(file);
+      return;
+    }
+
+    addRecord(file, { status:'error', flags:[{type:'error', detail:'Unsupported file type'}], rowCount:null });
+  }
+
+  function processFileList(fileList){
+    Array.prototype.forEach.call(fileList, processFile);
+  }
+
+  dropZone.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(e){
+    processFileList(e.target.files);
+    fileInput.value = '';
+  });
+
+  ['dragenter','dragover'].forEach(function(evt){
+    dropZone.addEventListener(evt, function(e){
+      e.preventDefault(); e.stopPropagation();
+      dropZone.classList.add('dz-drag');
+    });
+  });
+  ['dragleave','drop'].forEach(function(evt){
+    dropZone.addEventListener(evt, function(e){
+      e.preventDefault(); e.stopPropagation();
+      dropZone.classList.remove('dz-drag');
+    });
+  });
+  dropZone.addEventListener('drop', function(e){
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+      processFileList(e.dataTransfer.files);
+    }
+  });
+
+  render();
+})();
+
+/* ═══════════════════════ SETTINGS PAGE ═══════════════════════
+   Personal info, notification sound, and user management. No backend —
+   state lives in-memory for the session (same pattern as the import
+   pipeline above). "Saved" actions show a transient pill; nothing here
+   persists across a page reload. */
+(function(){
+  var savedPill = document.getElementById('settingsSavedPill');
+  var savedPillTimer = null;
+
+  function flashSaved(){
+    if (savedPillTimer) clearTimeout(savedPillTimer);
+    savedPill.classList.add('show');
+    savedPillTimer = setTimeout(function(){ savedPill.classList.remove('show'); }, 1800);
+  }
+
+  // ─── Personal Information ───
+  var togglePwdBtn = document.getElementById('togglePwdBtn');
+  var pwdFields     = document.getElementById('pwdFields');
+  var savePersonalBtn = document.getElementById('savePersonalBtn');
+  var fldName     = document.getElementById('fldName');
+  var avatarName  = document.getElementById('avatarName');
+  var avatarInitials = document.getElementById('avatarInitials');
+
+  togglePwdBtn.addEventListener('click', function(){
+    var showing = !pwdFields.hidden;
+    pwdFields.hidden = showing;
+    togglePwdBtn.textContent = showing ? 'Change password' : 'Cancel';
+  });
+
+  function initialsOf(name){
+    var parts = name.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '';
+    if (parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+    return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+  }
+
+  savePersonalBtn.addEventListener('click', function(){
+    var name = fldName.value.trim();
+    if (name){
+      avatarName.textContent = name;
+      avatarInitials.textContent = initialsOf(name);
+    }
+    // Password fields, if open, are cleared on save rather than validated —
+    // there's no backend to check "current password" against.
+    if (!pwdFields.hidden){
+      document.getElementById('fldPwdCurrent').value = '';
+      document.getElementById('fldPwdNew').value = '';
+      document.getElementById('fldPwdConfirm').value = '';
+      pwdFields.hidden = true;
+      togglePwdBtn.textContent = 'Change password';
+    }
+    flashSaved();
+  });
+
+  // ─── Notification Sound ───
+  var volSlider = document.getElementById('volSlider');
+  var volLabel  = document.getElementById('volLabel');
+  var previewSoundBtn = document.getElementById('previewSoundBtn');
+  var saveSoundBtn    = document.getElementById('saveSoundBtn');
+  var soundChoice      = document.getElementById('soundChoice');
+
+  volSlider.addEventListener('input', function(){
+    volLabel.textContent = volSlider.value + '%';
+  });
+
+  previewSoundBtn.addEventListener('click', function(){
+    // No audio asset is bundled with this file; preview is a visual
+    // acknowledgement (brief press state) rather than a silent no-op.
+    if (soundChoice.value === 'none') return;
+    previewSoundBtn.style.color = 'var(--teal)';
+    setTimeout(function(){ previewSoundBtn.style.color = ''; }, 220);
+  });
+
+  saveSoundBtn.addEventListener('click', flashSaved);
+
+  // ─── User Management ───
+  var userMgmtBody = document.getElementById('userMgmtBody');
+  var addUserBtn    = document.getElementById('addUserBtn');
+
+  var ROLE_LABEL = { admin:'Admin', oa:'Office Assistant', b2b:'Area Coordinator' };
+
+  // Seeded from the three rows already present in the markup.
+  var users = [
+    { id:'u1', name:'WEL', username:'wel', role:'admin', active:true,  lastActive:'Today, 6:20 AM' },
+    { id:'u2', name:'M. Reyes', username:'mreyes', role:'oa', active:true,  lastActive:'Aug 5, 2026 · 9:42 PM' },
+    { id:'u3', name:'J. Cruz', username:'jcruz', role:'b2b', active:false, lastActive:'Jul 28, 2026 · 3:10 PM' }
+  ];
+  var nextUserSeq = 4;
+
+  var ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>';
+  var ICON_DEACTIVATE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9l14.2 14.2"/></svg>';
+  var ICON_ACTIVATE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  function renderUsers(){
+    userMgmtBody.innerHTML = users.map(function(u){
+      var initials = initialsOf(u.name) || u.name.slice(0,2).toUpperCase();
+      return '' +
+        '<tr data-user-id="' + u.id + '">' +
+          '<td><div class="um-user"><div class="um-avatar">' + initials + '</div><div class="um-name">' + u.name + '</div></div></td>' +
+          '<td class="um-username">' + u.username + '</td>' +
+          '<td><span class="role-badge role-' + u.role + '">' + ROLE_LABEL[u.role] + '</span></td>' +
+          '<td><span class="status-dot ' + (u.active ? 'status-active' : 'status-inactive') + '">' + (u.active ? 'Active' : 'Inactive') + '</span></td>' +
+          '<td class="imp-date">' + u.lastActive + '</td>' +
+          '<td><div class="um-actions">' +
+            '<button class="icon-btn um-edit" title="Edit">' + ICON_EDIT + '</button>' +
+            '<button class="icon-btn um-toggle" title="' + (u.active ? 'Deactivate' : 'Activate') + '">' + (u.active ? ICON_DEACTIVATE : ICON_ACTIVATE) + '</button>' +
+          '</div></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  userMgmtBody.addEventListener('click', function(e){
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var row = btn.closest('tr');
+    var id = row && row.getAttribute('data-user-id');
+    var user = users.filter(function(u){ return u.id === id; })[0];
+    if (!user) return;
+
+    if (btn.classList.contains('um-toggle')){
+      user.active = !user.active;
+      renderUsers();
+      return;
+    }
+    if (btn.classList.contains('um-edit')){
+      var newName = prompt('Edit name for ' + user.username + ':', user.name);
+      if (newName !== null && newName.trim()){
+        user.name = newName.trim();
+        renderUsers();
+      }
+    }
+  });
+
+  addUserBtn.addEventListener('click', function(){
+    var name = prompt('Full name for the new user:');
+    if (name === null || !name.trim()) return;
+    var username = prompt('Username:', name.trim().toLowerCase().replace(/\s+/g,''));
+    if (username === null || !username.trim()) return;
+    users.push({
+      id: 'u' + (nextUserSeq++),
+      name: name.trim(),
+      username: username.trim(),
+      role: 'oa',
+      active: true,
+      lastActive: 'Just now'
+    });
+    renderUsers();
+    App.rescan();
+  });
+
+  renderUsers();
+  App.rescan();
+})();
+
+
+/* ══ 8. GLUE ════════════════════════════════════════════════════════════ */
+
+let currentPage = 'overview';
+
+function paint(page, derived){
+  renderPage(page, derived);
+  describePage(page, derived);
+  if (page === 'analytics'){
+    renderInsights(document.getElementById('anSummaryBody'), derived);
+  }
+}
+
+/* One subscription drives every page — render-from-state, not DOM mutation
+   scattered across handlers. */
+let lastStatus = null;
+store.subscribe(state => {
+  document.body.dataset.status = state.status;
+  if (state.status === 'ready' && state.derived) {
+    paint(currentPage, state.derived);
+    if (lastStatus !== 'ready') {
+      const { meta, kpis } = state.derived;
+      announce(`Loaded ${fmt.int(meta.rowCount)} records, ` +
+               `${fmt.int(kpis.totalAlerts)} alerts across ` +
+               `${fmt.int(kpis.distinctAssets)} assets.`);
+    }
+  }
+  lastStatus = state.status;
+});
+
+/* Wrap the v2.2 navigation so switching pages repaints from current state. */
+const _showPage = App.showPage;
+App.showPage = function(name){
+  currentPage = name;
+  _showPage(name);
+  setActivePage(name);
+  const s = store.get();
+  if (s.status === 'ready' && s.derived) paint(name, s.derived);
+};
+
+applyStatic();
+initControls(store, { onRefresh: App.refresh });
+renderEmptyState();
+document.body.dataset.status = 'idle';
+
+})();
+</script>
+</body>
+</html>

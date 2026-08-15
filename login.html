@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In · DDS - Drowsiness Detection System</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --navy:#1B3A6B; --navy-dark:#0F2A50; --blue:#185FA5; --blue-50:#E6F1FB; --blue-200:#85B7EB;
+  --teal:#0F6E56; --teal-50:#E1F5EE;
+  --red:#A32D2D;
+  --text-muted:#9AA7BE;
+  --r-md:8px; --r-lg:12px; --r-xl:18px; --r-full:999px;
+  --shadow-card: 0 30px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.06) inset;
+  --dur-fast:.15s; --dur-base:.25s; --ease:cubic-bezier(.4,0,.2,1);
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html,body{height:100%}
+body{
+  font-family:var(--font-sans);
+  color:#fff;
+  background:#0a1526;
+  min-height:100vh;
+  position:relative;
+  overflow-x:hidden;
+}
+a{color:inherit}
+button{font-family:inherit;cursor:pointer}
+
+:focus-visible{ outline:2px solid var(--blue-200); outline-offset:2px; border-radius:var(--r-md); }
+:focus:not(:focus-visible){ outline:none; }
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
+}
+
+/* ══════════════════════════ FULL-BLEED SCENE ══════════════════════════
+   Background photo: Komatsu haul truck on a dusk mine road. The card sits
+   on the right, over open sky in the source photo, so the scrim only needs
+   to darken toward the LEFT (where the truck + copy live) just enough for
+   white text contrast, and gently shade the right so the glass card still
+   reads as "floating" over sky rather than pasted on top of it. */
+.scene{ position:fixed; inset:0; z-index:0; overflow:hidden; }
+.scene img{
+  width:100%; height:100%; object-fit:cover; object-position:38% 50%;
+  display:block;
+  filter:saturate(1.12) contrast(1.08) brightness(1.02);
+}
+.scene-scrim{
+  position:fixed; inset:0; z-index:1;
+  background:linear-gradient(100deg, rgba(6,13,26,.65) 0%, rgba(6,13,26,.42) 30%, rgba(6,13,26,.12) 52%, rgba(6,13,26,.38) 100%);
+}
+.scene-vignette{
+  position:fixed; inset:0; z-index:1;
+  background:
+    radial-gradient(ellipse at 78% 50%, rgba(4,9,18,0) 30%, rgba(4,9,18,.42) 100%),
+    linear-gradient(0deg, rgba(4,9,18,.55) 0%, rgba(4,9,18,0) 22%, rgba(4,9,18,0) 78%, rgba(4,9,18,.4) 100%);
+}
+
+/* ══════════════════════════ TOP BRAND ══════════════════════════ */
+.brand{
+  position:relative; z-index:2;
+  display:flex; align-items:center; gap:14px;
+  padding:40px 0 0 48px;
+}
+.brand-mark{
+  width:52px; height:52px; flex-shrink:0;
+  border:1.5px solid rgba(255,255,255,.55);
+  border-radius:var(--r-md);
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.brand-mark::before, .brand-mark::after{
+  content:''; position:absolute; width:9px; height:9px;
+  border:1.5px solid rgba(255,255,255,.55);
+}
+.brand-mark svg{ width:26px; height:26px; color:#fff; }
+.brand-divider{ width:1.5px; height:34px; background:linear-gradient(180deg,#3E7BD6,#1B3A6B); }
+.brand-title{ font-size:22px; font-weight:800; color:#fff; letter-spacing:.06em; line-height:1.15; }
+.brand-sub{ font-size:11px; color:rgba(255,255,255,.55); letter-spacing:.18em; margin-top:2px; }
+
+/* ══════════════════════════ BOTTOM-LEFT COPY ══════════════════════════ */
+.pitch{
+  position:relative; z-index:2;
+  padding:0 0 44px 48px;
+  max-width:560px;
+  margin-top:auto;
+}
+.pitch h1{
+  font-size:38px; font-weight:800; color:#fff; line-height:1.22; letter-spacing:-.01em;
+  text-shadow:0 2px 24px rgba(0,0,0,.5);
+  margin-bottom:14px;
+}
+.pitch h1 .accent{ color:#5B9BF2; }
+.pitch p{
+  font-size:15px; color:rgba(255,255,255,.72); line-height:1.6; max-width:460px;
+  margin-bottom:28px;
+}
+
+.feature-row{ display:flex; gap:36px; flex-wrap:wrap; }
+.feature{ display:flex; gap:11px; align-items:flex-start; max-width:170px; }
+.feature-icon{
+  width:34px; height:34px; flex-shrink:0;
+  border:1.5px solid rgba(91,155,242,.55);
+  border-radius:var(--r-md);
+  display:flex; align-items:center; justify-content:center;
+  color:#8FBBFA;
+}
+.feature-icon svg{ width:17px; height:17px; }
+.feature-title{ font-size:13px; font-weight:700; color:#fff; line-height:1.3; }
+.feature-desc{ font-size:11.5px; color:rgba(255,255,255,.58); line-height:1.4; margin-top:2px; }
+
+/* ══════════════════════════ PAGE GRID ══════════════════════════ */
+.page{
+  position:relative; z-index:2;
+  min-height:100vh;
+  display:flex; flex-direction:column;
+}
+.stage{
+  flex:1;
+  display:grid;
+  grid-template-columns:1fr minmax(360px,460px);
+  align-items:center;
+  gap:24px;
+  padding:20px 48px;
+}
+.stage-left{ min-width:0; }
+
+/* ══════════════════════════ GLASS CARD ══════════════════════════ */
+.card{
+  background:rgba(16,26,46,.72);
+  backdrop-filter:blur(18px) saturate(140%);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:var(--r-xl);
+  box-shadow:var(--shadow-card);
+  padding:38px 36px 32px;
+}
+
+.card-badge{
+  width:76px; height:76px; margin:0 auto 18px;
+  border-radius:50%;
+  border:1.5px solid rgba(91,155,242,.5);
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.card-badge::before, .card-badge::after{
+  content:''; position:absolute; width:11px; height:11px;
+  border:1.5px solid rgba(91,155,242,.7);
+}
+.card-badge::before{ top:-1.5px; left:-1.5px; border-right:none; border-bottom:none; border-radius:4px 0 0 0; }
+.card-badge::after{ bottom:-1.5px; right:-1.5px; border-left:none; border-top:none; border-radius:0 0 4px 0; }
+.card-badge svg{ width:36px; height:36px; color:#5B9BF2; }
+
+.card-head{ text-align:center; margin-bottom:26px; }
+.card-head h2{ font-size:26px; font-weight:800; color:#fff; letter-spacing:-.01em; }
+.card-head p{ font-size:13px; color:rgba(255,255,255,.55); margin-top:6px; }
+
+.field{ margin-bottom:14px; }
+.field-shell{ position:relative; }
+.field-shell svg.field-icon{
+  position:absolute; left:16px; top:50%; transform:translateY(-50%);
+  width:17px; height:17px; color:rgba(255,255,255,.4); pointer-events:none;
+}
+.field-input{
+  width:100%;
+  padding:14px 16px 14px 44px;
+  border:1px solid rgba(255,255,255,.14); border-radius:var(--r-full);
+  background:rgba(255,255,255,.05); color:#fff;
+  font-family:inherit; font-size:13.5px; line-height:1.5;
+  transition:border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.field-input:hover{ border-color:rgba(255,255,255,.26); }
+.field-input:focus{ outline:none; border-color:#5B9BF2; background:rgba(255,255,255,.08); box-shadow:0 0 0 3px rgba(91,155,242,.18); }
+.field-input::placeholder{ color:rgba(255,255,255,.38); }
+
+/* Suppress browser-native password reveal/clear icons (Edge, Chrome) so
+   they don't stack behind our own .toggle-vis eye button. */
+.field-input::-ms-reveal, .field-input::-ms-clear{ display:none; }
+.field-input::-webkit-credentials-auto-fill-button,
+.field-input::-webkit-strong-password-auto-fill-button{
+  visibility:hidden; pointer-events:none; position:absolute; right:0;
+}
+
+.toggle-vis{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+  border:none; background:none; border-radius:50%; color:rgba(255,255,255,.45);
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.toggle-vis:hover{ background:rgba(255,255,255,.08); color:#fff; }
+.toggle-vis svg{ width:16px; height:16px; }
+
+.field-row{
+  display:flex; align-items:center; justify-content:space-between;
+  margin:10px 4px 22px;
+  font-size:12.5px;
+}
+.field-row[hidden]{ display:none; }
+.remember{ display:flex; align-items:center; gap:7px; color:rgba(255,255,255,.62); }
+.remember input{ width:14px; height:14px; accent-color:#5B9BF2; }
+.link-forgot{ background:none; border:none; padding:0; color:#5B9BF2; font-weight:600; text-decoration:none; font-family:inherit; font-size:inherit; }
+.link-forgot:hover{ text-decoration:underline; }
+.back-link{ display:block; margin:14px auto 0; text-align:center; }
+.back-link[hidden]{ display:none; }
+
+.form-alert, .form-success{
+  display:flex; align-items:flex-start; gap:8px;
+  margin:2px 4px 16px;
+  padding:10px 12px;
+  border-radius:var(--r-md);
+  font-size:12.5px; line-height:1.5;
+}
+.form-alert[hidden], .form-success[hidden]{ display:none; }
+.form-alert{ background:rgba(163,45,45,.14); border:1px solid rgba(230,120,110,.35); color:#FFC9C2; }
+.form-success{ background:rgba(15,110,86,.16); border:1px solid rgba(110,220,180,.35); color:#B9F2E0; }
+.form-alert svg, .form-success svg{ width:15px; height:15px; flex-shrink:0; margin-top:1px; }
+
+.btn-submit{
+  width:100%;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:14px; border:none; border-radius:var(--r-full);
+  background:linear-gradient(90deg,#2F6FE0,#5B9BF2);
+  color:#fff;
+  font-family:inherit; font-size:14.5px; font-weight:700; letter-spacing:.02em;
+  transition:filter var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  box-shadow:0 8px 24px rgba(47,111,224,.35);
+}
+.btn-submit:hover{ filter:brightness(1.08); box-shadow:0 10px 30px rgba(47,111,224,.5); }
+.btn-submit:active{ transform:translateY(1px); }
+.btn-submit:disabled{ opacity:.7; cursor:not-allowed; filter:none; }
+.btn-submit .spinner{
+  width:15px; height:15px; border-radius:50%;
+  border:2px solid rgba(255,255,255,.5); border-top-color:#fff;
+  animation:btn-spin .6s linear infinite;
+}
+@keyframes btn-spin{ to{ transform:rotate(360deg); } }
+
+.card-foot{
+  text-align:center; margin-top:22px; font-size:11.5px; color:rgba(255,255,255,.4);
+}
+.card-foot a{ color:#5B9BF2; font-weight:600; text-decoration:none; }
+.card-foot a:hover{ text-decoration:underline; }
+
+/* ══════════════════════════ RESPONSIVE ══════════════════════════ */
+@media (max-width: 1000px){
+  .stage{ grid-template-columns:1fr; padding:16px 24px 24px; }
+  .stage-left{ display:none; }
+  .brand{ padding:28px 0 0 24px; }
+  .pitch{ display:none; }
+  .card{ margin:0 auto; max-width:420px; }
+}
+@media (max-width: 480px){
+  .card{ padding:30px 22px 26px; }
+}
+</style>
+</head>
+<body>
+
+<div class="scene" aria-hidden="true"><img src="assets/img/logIN.png" alt=""></div>
+<div class="scene-scrim" aria-hidden="true"></div>
+<div class="scene-vignette" aria-hidden="true"></div>
+
+<div class="page">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M8 21a4 4 0 0 1 8 0"/><path d="m3 3 2 2M21 3l-2 2"/><path d="M9 12h1M14 12h1"/></svg>
+    </div>
+    <div class="brand-divider"></div>
+    <div>
+      <div class="brand-title">DROWSINESS</div>
+      <div class="brand-sub">DETECTION SYSTEM</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-left">
+      <div class="pitch">
+        <h1>Smarter Monitoring.<br><span class="accent">Safer</span> Operations.</h1>
+        <p>Real-time monitoring and insights to detect drowsiness, reduce risks, and protect lives.</p>
+
+        <div class="feature-row">
+          <div class="feature">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
+            <div>
+              <div class="feature-title">Real-time Alerts</div>
+              <div class="feature-desc">Instant notification of drowsiness events</div>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
+            </div>
+            <div>
+              <div class="feature-title">Data-Driven Insights</div>
+              <div class="feature-desc">Actionable analytics for better decisions</div>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 11 2 2 4-4"/></svg>
+            </div>
+            <div>
+              <div class="feature-title">Safer Workplace</div>
+              <div class="feature-desc">Promoting alertness and operational safety</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage-right">
+      <div class="card">
+        <div class="card-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M8 21a4 4 0 0 1 8 0"/><path d="M2 12a10 10 0 0 1 3-7M22 12a10 10 0 0 0-3-7"/><path d="M16 6.5 18 8M8 6.5 6 8"/></svg>
+        </div>
+        <div class="card-head">
+          <h2 id="card-title">Welcome Back</h2>
+          <p id="card-sub">Sign in to continue to your dashboard</p>
+        </div>
+
+        <form id="login-form" novalidate>
+          <div class="field">
+            <div class="field-shell">
+              <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <input class="field-input" type="text" id="username" name="username" placeholder="Username" autocomplete="username" required>
+            </div>
+          </div>
+
+          <div class="field" id="password-field">
+            <div class="field-shell">
+              <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              <input class="field-input" type="password" id="password" name="password" placeholder="Password" autocomplete="current-password" required style="padding-right:48px">
+              <button type="button" class="toggle-vis" id="toggle-pw" aria-label="Show password" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="field-row" id="remember-row">
+            <label class="remember"><input type="checkbox" id="remember" name="remember" checked> Remember me</label>
+            <button type="button" class="link-forgot" id="forgot-link">Forgot password?</button>
+          </div>
+
+          <div class="form-alert" id="form-alert" role="alert" hidden></div>
+          <div class="form-success" id="form-success" role="status" hidden></div>
+
+          <button type="submit" class="btn-submit" id="submit-btn">Sign In</button>
+          <button type="button" class="link-forgot back-link" id="back-to-signin" hidden>Back to sign in</button>
+        </form>
+
+        <p class="card-foot">© 2026 Drowsiness Detection System. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var pwInput = document.getElementById('password');
+  var toggleBtn = document.getElementById('toggle-pw');
+  var eyeOpen = '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/>';
+  var eyeOff = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.4 21.4 0 0 1 5.06-5.94M9.9 4.24A10.4 10.4 0 0 1 12 5c7 0 11 7 11 7a21.5 21.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+
+  toggleBtn.addEventListener('click', function(){
+    var isPw = pwInput.type === 'password';
+    pwInput.type = isPw ? 'text' : 'password';
+    toggleBtn.setAttribute('aria-pressed', String(isPw));
+    toggleBtn.setAttribute('aria-label', isPw ? 'Hide password' : 'Show password');
+    toggleBtn.querySelector('svg').innerHTML = isPw ? eyeOff : eyeOpen;
+  });
+
+  /* Same project + same publishable key as index.html's Cloud object
+     (SUPABASE_URL/SUPABASE_KEY there) — this page authenticates against the
+     identical Supabase Auth + profiles/username_to_email() setup, it just
+     isn't the in-page panel. Publishable key is meant to be public; RLS is
+     the real boundary (see index.html's Cloud comment). */
+  var SUPABASE_URL = 'https://rispydfovrnvnwvfwrnw.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_1Yulb6qb-xKI5i8QfuEv0Q_EkOhs-yG';
+
+  /* persistSession is a construction-time option (Supabase JS v2 has no
+     per-call toggle), and "Remember me" isn't known until the user submits
+     — so a single client is created up front, persisted (the common case,
+     and needed for the getSession() check below to find a session at all),
+     and only rebuilt on submit if the box has been unchecked. Unchecking
+     keeps the session in memory for this tab only (nothing written to
+     localStorage), so it doesn't survive a reload/new tab. */
+  function makeClient(persist){
+    if (typeof supabase === 'undefined') return null;
+    return supabase.createClient(SUPABASE_URL, SUPABASE_KEY,
+      { auth: { persistSession: persist } });
+  }
+  var client = makeClient(true);
+
+  var form = document.getElementById('login-form');
+  var alertBox = document.getElementById('form-alert');
+  var successBox = document.getElementById('form-success');
+  var submitBtn = document.getElementById('submit-btn');
+  var usernameInput = document.getElementById('username');
+  var passwordField = document.getElementById('password-field');
+  var rememberRow = document.getElementById('remember-row');
+  var forgotLink = document.getElementById('forgot-link');
+  var backLink = document.getElementById('back-to-signin');
+  var cardTitle = document.getElementById('card-title');
+  var cardSub = document.getElementById('card-sub');
+  var alertIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+  var successIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>';
+
+  function showAlert(msg){
+    successBox.hidden = true;
+    alertBox.innerHTML = alertIcon + '<span>' + msg + '</span>';
+    alertBox.hidden = false;
+  }
+  function showSuccess(msg){
+    alertBox.hidden = true;
+    successBox.innerHTML = successIcon + '<span>' + msg + '</span>';
+    successBox.hidden = false;
+  }
+  function hideMessages(){ alertBox.hidden = true; successBox.hidden = true; }
+  function setLoading(loading, label){
+    submitBtn.disabled = loading;
+    submitBtn.innerHTML = loading ? '<span class="spinner"></span> ' + label + '…' : label;
+  }
+
+  // Already-signed-in visitors land straight on the dashboard; everyone
+  // else starts with focus on the username field.
+  if (client) {
+    client.auth.getSession().then(function(res){
+      if (res.data && res.data.session) window.location.replace('index.html');
+      else usernameInput.focus();
+    });
+  } else {
+    usernameInput.focus();
+  }
+
+  /* Resolve username -> email via username_to_email() (0004_auth_profiles.sql,
+     anon-callable), then sign in with the resolved email. Mirrors
+     Cloud.signInWithUsername() in index.html exactly, including never
+     calling signInWithPassword for a username that didn't resolve — there's
+     nothing to enumerate via password-check timing if an unknown username
+     never reaches the password check at all. */
+  async function signInWithUsername(activeClient, username, password){
+    var rpc = await activeClient.rpc('username_to_email', { p_username: username });
+    if (rpc.error) throw rpc.error;
+    if (!rpc.data) throw new Error('SIGNIN_FAILED');
+    var res = await activeClient.auth.signInWithPassword({ email: rpc.data, password: password });
+    if (res.error) throw res.error;
+    return res.data.session;
+  }
+
+  /* Same anti-enumeration shape as Cloud.forgotPassword()/doForgotPassword()
+     in index.html: resolve username -> email, silently no-op for an unknown
+     username, and show the identical success message regardless of whether
+     an email actually went out.
+
+     redirectTo points at reset-password.html on THIS origin — computed at
+     runtime (not hardcoded) so it works both on GitHub Pages' /repo-name/
+     subpath and any other host. Must also be added to the project's
+     Authentication -> URL Configuration -> Redirect URLs allow-list in the
+     Supabase dashboard, or Supabase rejects the redirect and falls back to
+     the default Site URL instead. */
+  async function forgotPassword(username){
+    var rpc = await client.rpc('username_to_email', { p_username: username });
+    if (rpc.error) throw rpc.error;
+    if (!rpc.data) return;
+    var redirectTo = window.location.origin +
+      window.location.pathname.replace(/[^/]*$/, '') + 'reset-password.html';
+    var res = await client.auth.resetPasswordForEmail(rpc.data, { redirectTo: redirectTo });
+    if (res.error) throw res.error;
+  }
+
+  var mode = 'signin'; // 'signin' | 'forgot'
+
+  function setMode(next){
+    mode = next;
+    hideMessages();
+    if (mode === 'forgot') {
+      cardTitle.textContent = 'Reset password';
+      cardSub.textContent = 'Enter your username and we’ll email reset instructions';
+      passwordField.hidden = true;
+      document.getElementById('password').required = false;
+      rememberRow.hidden = true;
+      backLink.hidden = false;
+      submitBtn.textContent = 'Send reset link';
+    } else {
+      cardTitle.textContent = 'Welcome Back';
+      cardSub.textContent = 'Sign in to continue to your dashboard';
+      passwordField.hidden = false;
+      document.getElementById('password').required = true;
+      rememberRow.hidden = false;
+      backLink.hidden = true;
+      submitBtn.textContent = 'Sign In';
+    }
+  }
+
+  forgotLink.addEventListener('click', function(){
+    setMode('forgot');
+    usernameInput.focus();
+  });
+  backLink.addEventListener('click', function(){
+    setMode('signin');
+    usernameInput.focus();
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    hideMessages();
+
+    var password = document.getElementById('password');
+    var username = usernameInput.value.trim();
+
+    if (!client) {
+      showAlert('Sign-in is unavailable right now. Please try again shortly.');
+      return;
+    }
+
+    if (mode === 'forgot') {
+      if (!username) { showAlert('Enter your username.'); usernameInput.focus(); return; }
+      setLoading(true, 'Sending');
+      forgotPassword(username)
+        .catch(function(){ /* swallowed — see forgotPassword()'s comment */ })
+        .then(function(){
+          setLoading(false, 'Send reset link');
+          showSuccess('If that account has a recovery email on file, check your inbox for reset instructions.');
+        });
+      return;
+    }
+
+    if (!username || !password.value) {
+      showAlert('Enter your username and password.');
+      if (!username) usernameInput.focus(); else password.focus();
+      return;
+    }
+
+    // Rebuild the client only when "Remember me" is off — the default
+    // (persisted) client made at load time already covers the checked case,
+    // and recreating it every submit would just add an extra client swap
+    // for no reason.
+    var remember = document.getElementById('remember').checked;
+    var activeClient = remember ? client : (makeClient(false) || client);
+
+    setLoading(true, 'Sign In');
+    signInWithUsername(activeClient, username, password.value)
+      .then(function(){
+        window.location.replace('index.html');
+      })
+      .catch(function(){
+        // Same generic message regardless of cause (unknown username,
+        // pending approval, or wrong password) — matches doSignIn()'s
+        // account-enumeration protection in index.html.
+        showAlert('Sign-in failed. Check your username and password.');
+        setLoading(false, 'Sign In');
+      });
+  });
+})();
+</script>
+
+</body>
+</html>
