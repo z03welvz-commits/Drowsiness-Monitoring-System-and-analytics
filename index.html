@@ -7426,8 +7426,40 @@ function buildServerComparisonMetrics(cur, prev){
 
 function comparisonFromDerived(cur, prev, curLabel, prevLabel, spanDays){
   if (!prev || !prev.meta.rowCount) {
-    return { available: false, reason: 'No data in the preceding period',
-             periods: { current: curLabel, previous: prevLabel } };
+    /* No baseline is NOT the same as no data. A first import — or any
+       dataset whose history does not reach back a full period — has real
+       current values that the KPI cards must still show; it simply has
+       nothing to compare them against.
+
+       Returning `available:false` here used to blank the entire Overview
+       KPI row (renderOverviewKpis replaces it with a single "No comparison
+       available" panel), which is why a 5-day import rendered five empty
+       cards while the charts below them were full of data. The comparison
+       is the missing part, so only the comparison should be missing.
+
+       `metrics` is built against a ZERO previous period: current values are
+       real, deltas equal the current value, and pct is null because
+       buildServerComparisonMetrics()'s PCT_MIN_BASELINE floor rejects a
+       zero baseline — exactly the "show the number, not a fabricated
+       percentage" behaviour the floor exists for. baselineComplete:false
+       tells kpiTile() to render the tile without comparison lines. */
+    const zero = {
+      meta: { rowCount: 0 },
+      kpis: { totalAlerts: 0, distinctAssets: 0, distinctOperators: 0,
+              avgSyncSeconds: 0, actionableRatio: 0 },
+      trend: [],
+      eventCodeDistribution: []
+    };
+    return {
+      available: true,
+      hasBaseline: false,
+      reason: 'No data in the preceding period',
+      periods: { current: curLabel, previous: prevLabel, spanDays, baselineDays: spanDays },
+      baselineComplete: false,
+      baselineCoverage: 0,
+      prevTrend: null,
+      metrics: buildServerComparisonMetrics(cur, zero)
+    };
   }
 
   return {
