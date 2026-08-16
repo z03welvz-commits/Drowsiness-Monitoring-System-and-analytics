@@ -5,6 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DDS - Drowsiness Detection System</title>
 <style>
+/* ═══ SIGN-IN GATE ═══
+   The session check (Cloud.restore()) is async, so without this the whole
+   dashboard paints for a frame or two before the redirect to login.html
+   fires — a visible flash of the very screen the gate exists to hide.
+   body starts with .auth-pending, and the boot code removes it only once a
+   session is confirmed. A signed-out visitor is redirected and never sees
+   the class removed, so the dashboard never becomes visible to them.
+
+   visibility (not display:none) so layout still computes underneath and
+   nothing reflows when the class is dropped.
+
+   The <noscript> rule below matters: with JavaScript off, the boot code
+   never runs, so .auth-pending would never be removed and the page would
+   stay permanently blank. Revealing it instead is the honest outcome — see
+   the boot comment on why this gate is presentation, not security. The
+   fleet data still cannot be fetched without a session either way. */
+body.auth-pending{visibility:hidden}
+
 /* -- Original DDS v2.2 layout & component styles -- */
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1282,8 +1300,9 @@ body {
 .detail-actions { display: flex; justify-content: flex-end; gap: var(--sp-3); margin-top: 0; }
 
 </style>
+<noscript><style>body.auth-pending{visibility:visible}</style></noscript>
 </head>
-<body>
+<body class="auth-pending">
 <div class="app">
 
   <nav class="sidenav">
@@ -10138,8 +10157,68 @@ Auth.mount();
 // sign out (the topbar button is gone while disabled). Sign out manually
 // (or clear site storage) if a session exists from earlier testing, then
 // flip Auth.DISABLED back to false once ready to re-enable.
+/* ── Sign-in gate ──────────────────────────────────────────────────────────
+   Send a signed-out visitor to login.html instead of showing them the
+   dashboard shell.
+
+   WHAT THIS IS AND IS NOT. This is a UX/presentation control, NOT a security
+   boundary. index.html is a static file on GitHub Pages: anyone can still
+   fetch it with curl, or disable JavaScript, and read the markup. Nothing
+   client-side can prevent that, and no amount of redirecting changes it.
+
+   What actually protects the fleet data is unchanged and does not depend on
+   this block at all:
+     - App.loadFromServer() is the only thing that fetches rows, and it is
+       only ever called with a live session (below, and from
+       onAuthStateChange).
+     - dds_metrics() raises UNAUTHENTICATED when auth.uid() is null.
+     - RLS blocks every table read for an anonymous caller.
+   So a signed-out visitor never receives fleet data whether this redirect
+   fires or not. This exists so they do not see an operational-looking empty
+   dashboard, which is confusing and looks broken.
+
+   The redirect is deliberately NOT applied when Auth.DISABLED is set — that
+   flag exists to run the app in local-import mode with no sign-in at all,
+   and gating it behind a login would make that mode unreachable. */
 if (!Auth.DISABLED) {
-  Cloud.restore().then(s => { Auth.paint(); if (s) App.loadFromServer(); });
+  /* Only gate when the Supabase client actually initialised. Cloud.restore()
+     returns null both for "signed out" AND for "the SDK never loaded" (CDN
+     blocked, offline, script error — see Cloud.init()'s early return). Those
+     two cases must not be treated alike: login.html needs the SAME SDK to
+     sign anyone in, so redirecting on an SDK failure sends the user to a
+     page that cannot possibly work, and returning here bounces them again.
+     That is an unescapable loop caused by the gate itself, not by anything
+     the user did. When the client is unavailable we reveal the page instead
+     and let the app fall back to local-import mode, which is exactly what it
+     did before this gate existed. */
+  if (!Cloud.available()) {
+    console.warn('Supabase unavailable — sign-in gate skipped, local import mode.');
+    document.body.classList.remove('auth-pending');
+  } else {
+    Cloud.restore().then(s => {
+      if (!s) {
+        /* replace(), not href: the signed-out dashboard must not become a
+           back-button destination. Otherwise "Back" from login.html returns
+           here, finds no session, and redirects again — the user cannot get
+           back to their history without editing the URL. */
+        window.location.replace('login.html');
+        return;
+      }
+      document.body.classList.remove('auth-pending');
+      Auth.paint();
+      App.loadFromServer();
+    }).catch(err => {
+      /* A thrown restore() (network failure mid-call) must not leave the
+         page permanently invisible with no error and no way forward. Reveal
+         and let the app run signed-out rather than stranding the user on a
+         blank screen. */
+      console.warn('Session restore failed — showing app signed out.', err);
+      document.body.classList.remove('auth-pending');
+    });
+  }
+} else {
+  // Local-import mode: no session expected, so reveal immediately.
+  document.body.classList.remove('auth-pending');
 }
 
 /* Refresh follows the active source: server when signed in, re-derive from
