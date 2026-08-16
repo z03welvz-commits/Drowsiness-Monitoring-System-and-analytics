@@ -132,7 +132,9 @@ export function normalizeDateTimeStr(s) {
     .replace(fullWidthSlashRe, '/');
 }
 
-export function parseDateTime(str, { dayFirst = false } = {}) {
+export function parseDateTime(str, opts) {
+  opts = opts || {};
+  var dayFirst = !!opts.dayFirst;
   // XLSX cellDates:true hands back real Date objects for date-formatted
   // cells instead of a string — pass them through rather than stringifying
   // and failing the regex.
@@ -169,7 +171,8 @@ export function parseDateTime(str, { dayFirst = false } = {}) {
   const SS = m[6] ? Number(m[6]) : 0;
   const ampm = m[7];
 
-  const [month, dd] = dayFirst ? [b, a] : [a, b];
+  const month = dayFirst ? b : a;
+  const dd    = dayFirst ? a : b;
   if (month < 1 || month > 12 || dd < 1 || dd > 31) return null;
 
   if (ampm) {
@@ -309,7 +312,7 @@ export function derive(allRows, filters) {
   let unclassifiedRows = 0, unclassifiedUnits = 0;
 
   const assets = new Map();      // id -> { total, actionable, nonActionable, days:Set }
-  const operators = new Map();   // id -> { total, actionable, nonActionable, days:Set }
+  const operators = new Map();   // id -> { total, codeCounts:{code:count}, lastTime:Date }
   const eventCodes = new Map();  // code -> { units, events }
   const byDate = new Map();      // MM/DD/YYYY -> { units, events, assets:Set, syncSum, syncN }
   const hourly = { DAY: Array(24).fill(0), NIGHT: Array(24).fill(0) };
@@ -349,10 +352,12 @@ export function derive(allRows, filters) {
       assets.set(asset, a);
     }
     {
-      const o = operators.get(oper) || { total: 0, actionable: 0, nonActionable: 0, dayTotals: new Map() };
+      const o = operators.get(oper) || { total: 0, actionable: 0, nonActionable: 0, dayTotals: new Map(), codeCounts: {}, lastTime: null };
       o.total += units;
       isAct ? (o.actionable += units) : (o.nonActionable += units);
       if (r.SHIFT_DATE) o.dayTotals.set(r.SHIFT_DATE, (o.dayTotals.get(r.SHIFT_DATE) || 0) + units);
+      if (code) o.codeCounts[code] = (o.codeCounts[code] || 0) + 1;
+      if (!o.lastTime || r._startTime > o.lastTime) o.lastTime = r._startTime;
       operators.set(oper, o);
     }
     if (code) {
@@ -525,7 +530,24 @@ export function derive(allRows, filters) {
     alertBuckets: { labels: ALERT_BUCKETS, ...alertBuckets },
 
     topAssets:    topN(assets),          // [{ id, total, actionable, nonActionable, activeDays }]
-    topOperators: topN(operators),       // [{ id, total, actionable, nonActionable, activeDays }]
+
+    // [{ id, total, actionable, nonActionable, activeDays, primaryEventCode,
+    //    lastAlertTime }] — primaryEventCode is whichever code appears most
+    // often for that operator (ties broken by code string so it's
+    // deterministic); codeCounts itself isn't exposed, it's an internal
+    // tally only used to pick the winner here.
+    topOperators: topN(operators).map(o => {
+      const raw = operators.get(o.id);
+      const codes = Object.entries(raw.codeCounts);
+      const primaryEventCode = codes.length
+        ? codes.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0]
+        : null;
+      return {
+        ...o,
+        primaryEventCode,
+        lastAlertTime: raw.lastTime ? raw.lastTime.toISOString() : null
+      };
+    }),
 
     // Full (uncapped) per-entity breakdown, sorted flagged-first — feeds the
     // Driver & Asset Monitoring page. See withConsistency() above for the
@@ -663,6 +685,136 @@ const fmtRange = w => `${formatDate(w.from)} – ${formatDate(w.to)}`;
    back null and callers fall back to the plain delta instead. */
 const PCT_MIN_BASELINE = 10;
 
+/* Severity classification for the sleepAlerts/drowsinessAlerts comparison
+   metrics below. index.html calls severityForCode() from the CHARTS section
+   for this, but that function also resolves CSS color tokens and falls back
+   to colorForCode()'s hash — presentation concerns this module deliberately
+   has no dependency on. Only the `key` matters here, so the matching rules
+   (and ONLY the rules) are mirrored: keep these regexes identical to
+   SEVERITY_RULES in dds-charts.js, or the two will classify the same
+   EVENT_CODE differently. */
+const SEVERITY_KEY_RULES = [
+  { test: /sleep/i,               key: 'critical' },
+  { test: /drowsi/i,              key: 'elevated' },
+  { test: /inattent/i,            key: 'caution'  },
+  { test: /posture|poor driver/i, key: 'notice'   }
+];
+
+const severityKeyForCode = code => {
+  const rule = SEVERITY_KEY_RULES.find(r => r.test.test(String(code ?? '')));
+  return rule ? rule.key : 'unknown';
+};
+
+/* Sum of EVENT_COUNT (units) across event codes matching one severity key
+   ('critical' = Sleep Alert, 'elevated' = Drowsiness Alert). Used by
+   buildComparisonMetrics() to give Overview's Sleep/Drowsiness KPI tiles a
+   period-over-period delta. */
+function severityCount(eventCodeDistribution, severityKey) {
+  return eventCodeDistribution
+    .filter(c => severityKeyForCode(c.code) === severityKey)
+    .reduce((sum, c) => sum + c.units, 0);
+}
+
+/**
+ * Builds the shared `metrics` array (totalAlerts/alertRate/distinctAssets/
+ * distinctOperators/avgSyncSeconds/actionableRatio/sleepAlerts/
+ * drowsinessAlerts) from two already-derive()'d period results — hoisted out
+ * of compare() so compare() and the fixed-window comparisons in index.html
+ * (computeKpiDeltas7d/computeMonthOverMonthDelta) share one implementation
+ * instead of three copies of the same PCT_MIN_BASELINE-guarded percent-change
+ * math. `a`/`b` are derive() results for the current/previous window;
+ * `curRows`/`prevRows` are the raw row sets each was built from (needed for
+ * activeDays(), which counts distinct SHIFT_DATE values directly rather than
+ * reading it off derive()'s output).
+ */
+export function buildComparisonMetrics(a, b, curRows, prevRows) {
+  const activeDays = rows => new Set(rows.map(r => r.SHIFT_DATE)).size || 1;
+
+  /* Per-asset-per-active-day: the volume-independent risk rate. This is the
+     number that actually tells you whether drivers got drowsier. */
+  const rate = (k, rows) =>
+    k.distinctAssets ? k.totalAlerts / k.distinctAssets / activeDays(rows) : 0;
+
+  /* Plain per-asset rate (no active-days divisor) for the KPI tile
+     comparison line — "how many alerts per vehicle" rather than the
+     alertRate metric's "per vehicle per active day" risk rate. Passed to
+     metric() as opts.perAsset so kpiTile() can show the avg-alerts-per-
+     asset rate for both periods instead of raw current/previous totals for
+     alert-COUNT metrics specifically (totalAlerts, sleepAlerts,
+     drowsinessAlerts) — normalizing by fleet size the other metrics (asset
+     count itself, driver count, sync delay, actionable ratio) don't share,
+     since "assets per asset" isn't a meaningful rate. */
+  const perAssetRate = (count, assetCount) => assetCount ? count / assetCount : null;
+  const perAsset = (curCount, prevCount) => ({
+    current: perAssetRate(curCount, a.kpis.distinctAssets),
+    previous: perAssetRate(prevCount, b.kpis.distinctAssets)
+  });
+
+  const metric = (key, label, curVal, prevVal, opts = {}) => {
+    const delta = curVal - prevVal;
+    /* Percent change is meaningless against a tiny baseline — not just a zero
+       one. A baseline of 1 going to 5 is technically "+400%" but reads as an
+       alarming lie next to what actually happened (one more event). Require
+       the baseline to clear both the metric's own floor AND an absolute
+       PCT_MIN_BASELINE, so small-count metrics fall back to the plain delta
+       instead of a headline percentage. */
+    const pctUsable = Math.abs(prevVal) >= Math.max(opts.minBaseline ?? 1e-9, PCT_MIN_BASELINE);
+    return {
+      key, label,
+      current: curVal, previous: prevVal, delta,
+      pct: pctUsable ? (delta / Math.abs(prevVal)) * 100 : null,
+      /* Direction is about GOOD/BAD, not up/down. More alerts is bad; faster
+         sync is good. Colouring by arrow direction alone would paint a
+         genuine improvement red. */
+      goodWhen: opts.goodWhen ?? 'down',
+      unit: opts.unit ?? 'count',
+      significant: Math.abs(delta) > (opts.noiseFloor ?? 0),
+      // Alert-count metrics only (see perAsset arg below): current/previous
+      // each divided by that window's own distinct-asset count, so a bigger
+      // fleet reporting more raw alerts doesn't read as drivers getting
+      // worse — the fleet just grew. curAssets/prevAssets can each be 0
+      // (an empty window), which the tile guards against before dividing.
+      perAsset: opts.perAsset
+    };
+  };
+
+  return [
+    metric('totalAlerts', 'Total alerts', a.kpis.totalAlerts, b.kpis.totalAlerts,
+           { goodWhen: 'down', minBaseline: 1,
+             perAsset: perAsset(a.kpis.totalAlerts, b.kpis.totalAlerts) }),
+    metric('alertRate', 'Alerts per asset per active day',
+           rate(a.kpis, curRows), rate(b.kpis, prevRows),
+           { goodWhen: 'down', unit: 'rate', minBaseline: 0.01 }),
+    metric('distinctAssets', 'Assets reporting',
+           a.kpis.distinctAssets, b.kpis.distinctAssets,
+           { goodWhen: 'flat', minBaseline: 1 }),
+    metric('distinctOperators', 'Drivers involved',
+           a.kpis.distinctOperators, b.kpis.distinctOperators,
+           { goodWhen: 'down', minBaseline: 1 }),
+    metric('avgSyncSeconds', 'Average sync delay',
+           a.kpis.avgSyncSeconds ?? 0, b.kpis.avgSyncSeconds ?? 0,
+           { goodWhen: 'down', unit: 'duration', minBaseline: 1 }),
+    metric('actionableRatio', 'Actionable ratio',
+           a.kpis.actionableRatio, b.kpis.actionableRatio,
+           { goodWhen: 'up', unit: 'percent', minBaseline: 0.5 }),
+    // Overview KPI row only (Sleep Alerts / Drowsiness Alerts tiles) —
+    // Analytics' KPI_ORDER doesn't include these keys, so adding them
+    // here doesn't change what Analytics renders.
+    metric('sleepAlerts', 'Sleep alerts',
+           severityCount(a.eventCodeDistribution, 'critical'),
+           severityCount(b.eventCodeDistribution, 'critical'),
+           { goodWhen: 'down', minBaseline: 1,
+             perAsset: perAsset(severityCount(a.eventCodeDistribution, 'critical'),
+                                 severityCount(b.eventCodeDistribution, 'critical')) }),
+    metric('drowsinessAlerts', 'Drowsiness alerts',
+           severityCount(a.eventCodeDistribution, 'elevated'),
+           severityCount(b.eventCodeDistribution, 'elevated'),
+           { goodWhen: 'down', minBaseline: 1,
+             perAsset: perAsset(severityCount(a.eventCodeDistribution, 'elevated'),
+                                 severityCount(b.eventCodeDistribution, 'elevated')) })
+  ];
+}
+
 /**
  * Compare the selected period against the equal-length preceding period.
  * Returns null when there is no usable baseline — the caller shows "no
@@ -683,47 +835,13 @@ export function compare(allRows, filters) {
 
   const a = derive(cur, null), b = derive(prev, null);
 
-  const activeDays = rows => new Set(rows.map(r => r.SHIFT_DATE)).size || 1;
-
-  /* Per-asset-per-active-day: the volume-independent risk rate. This is the
-     number that actually tells you whether drivers got drowsier. */
-  const rate = (k, rows) =>
-    k.distinctAssets ? k.totalAlerts / k.distinctAssets / activeDays(rows) : 0;
-
-  /* Plain per-asset rate (no active-days divisor) for the KPI tile
-     comparison line — "how many alerts per vehicle" rather than the
-     alertRate metric's "per vehicle per active day" risk rate. Passed to
-     metric() as opts.perAsset so kpiTile() can show the avg-alerts-per-
-     asset rate for both periods instead of a raw previous-period total for
-     alert-COUNT metrics specifically — normalizing by fleet size the other
-     metrics (asset count itself, driver count, sync delay, actionable
-     ratio) don't share, since "assets per asset" isn't a meaningful rate. */
-  const perAssetRate = (count, assetCount) => assetCount ? count / assetCount : null;
-  const perAsset = (curCount, prevCount) => ({
-    current: perAssetRate(curCount, a.kpis.distinctAssets),
-    previous: perAssetRate(prevCount, b.kpis.distinctAssets)
-  });
-
-  const metric = (key, label, curVal, prevVal, opts = {}) => {
-    const delta = curVal - prevVal;
-    // Percent change is meaningless against a tiny baseline, not just a zero one.
-    const pctUsable = Math.abs(prevVal) >= Math.max(opts.minBaseline ?? 1e-9, PCT_MIN_BASELINE);
-    return {
-      key, label,
-      current: curVal, previous: prevVal, delta,
-      pct: pctUsable ? (delta / Math.abs(prevVal)) * 100 : null,
-      /* Direction is about GOOD/BAD, not up/down. More alerts is bad; faster
-         sync is good. Colouring by arrow direction alone would paint a
-         genuine improvement red. */
-      goodWhen: opts.goodWhen ?? 'down',
-      unit: opts.unit ?? 'count',
-      significant: Math.abs(delta) > (opts.noiseFloor ?? 0),
-      perAsset: opts.perAsset
-    };
-  };
-
   return {
     available: true,
+    // Previous period's own day-by-day units, aligned by INDEX (day 1 of
+    // this period vs day 1 of the previous one) not calendar date — the two
+    // windows don't share dates. Source for Overview's trend-chart overlay
+    // (charts.trend's `prev` option); Analytics doesn't use this field.
+    prevTrend: b.trend,
     periods: {
       current: fmtRange(periods.current),
       previous: fmtRange(periods.previous),
@@ -738,26 +856,7 @@ export function compare(allRows, filters) {
     },
     baselineComplete: periods.baselineComplete,
     baselineCoverage: periods.baselineCoverage,
-    metrics: [
-      metric('totalAlerts', 'Total alerts', a.kpis.totalAlerts, b.kpis.totalAlerts,
-             { goodWhen: 'down', minBaseline: 1,
-               perAsset: perAsset(a.kpis.totalAlerts, b.kpis.totalAlerts) }),
-      metric('alertRate', 'Alerts per asset per active day',
-             rate(a.kpis, cur), rate(b.kpis, prev),
-             { goodWhen: 'down', unit: 'rate', minBaseline: 0.01 }),
-      metric('distinctAssets', 'Assets reporting',
-             a.kpis.distinctAssets, b.kpis.distinctAssets,
-             { goodWhen: 'flat', minBaseline: 1 }),
-      metric('distinctOperators', 'Drivers involved',
-             a.kpis.distinctOperators, b.kpis.distinctOperators,
-             { goodWhen: 'down', minBaseline: 1 }),
-      metric('avgSyncSeconds', 'Average sync delay',
-             a.kpis.avgSyncSeconds ?? 0, b.kpis.avgSyncSeconds ?? 0,
-             { goodWhen: 'down', unit: 'duration', minBaseline: 1 }),
-      metric('actionableRatio', 'Actionable ratio',
-             a.kpis.actionableRatio, b.kpis.actionableRatio,
-             { goodWhen: 'up', unit: 'percent', minBaseline: 0.5 })
-    ]
+    metrics: buildComparisonMetrics(a, b, cur, prev)
   };
 }
 
@@ -770,6 +869,30 @@ export function createStore(initial = createState()) {
 
   return {
     get: () => state,
+
+    /* Set already-annotated rows plus a precomputed derived object. Used by
+       the import pipeline, which annotates during validation and must not pay
+       to re-parse every timestamp a second time. */
+    _setRows(rows, derived) {
+      state = { ...state, rows, derived, status: 'ready', error: null };
+      emit();
+    },
+
+    _setStatus(status) { state = { ...state, status }; emit(); },
+
+    _setError(message) {
+      state = { ...state, status: 'error',
+                error: { code: 'METRICS_FETCH_FAILED', message } };
+      emit();
+    },
+
+    /* Back to the pristine createState() shape — used by "Clear data"
+       (Data Management topbar). Distinct from _setRows([], ...): that still
+       requires a real derived object and leaves status 'ready', which would
+       render empty charts rather than the actual "nothing imported yet"
+       screen. Filters reset too — a leftover date/shift filter has nothing
+       left to apply to once every row is gone. */
+    _reset() { state = createState(); emit(); },
     subscribe(fn) { listeners.add(fn); fn(state); return () => listeners.delete(fn); },
 
     /** Local path (today): recompute in the browser. */
@@ -804,35 +927,20 @@ export function createStore(initial = createState()) {
       emit();
     },
 
+    /* ── Cloud path (Supabase) — used by App.loadFromServer() in index.html.
+       dds_metrics() already returns the derive()-shaped object server-side,
+       so there's nothing to compute here; _setRows/_setStatus/_setError
+       (declared at the top of this object) just move state in and out of
+       "loading" around that call. Kept separate from fetchMetrics() above
+       (the earlier /api/metrics REST design) rather than merged into it,
+       since the caller owns the Cloud client and the comparison-period
+       fetch logic that produces `derived`. */
+
     setFilters(patch) {
       const filters = { ...state.filters, ...patch };
       const derived = derive(state.rows, filters);
       derived.comparison = compare(state.rows, filters);
       state = { ...state, filters, derived };
-      emit();
-    },
-
-    /* ── Cloud path (Supabase) — used by App.loadFromServer() in index.html.
-       dds_metrics() already returns the derive()-shaped object server-side,
-       so there's nothing to compute here; these three just move state in
-       and out of "loading" around that call. Kept separate from
-       fetchMetrics() above (the earlier /api/metrics REST design) rather
-       than merged into it, since the caller owns the Cloud client and the
-       comparison-period fetch logic that produces `derived`. */
-
-    /** Set already-annotated rows plus a precomputed derived object. Used by
-        the import pipeline, which annotates during validation and must not pay
-        to re-parse every timestamp a second time. */
-    _setRows(rows, derived) {
-      state = { ...state, rows, derived, status: 'ready', error: null };
-      emit();
-    },
-
-    _setStatus(status) { state = { ...state, status }; emit(); },
-
-    _setError(message) {
-      state = { ...state, status: 'error',
-                error: { code: 'METRICS_FETCH_FAILED', message } };
       emit();
     }
   };
