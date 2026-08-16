@@ -6957,10 +6957,25 @@ const Cloud = {
      malformed row) — caller is responsible for catching and mapping to a
      safe on-screen message, same convention as store._setError(). */
   async ingest(name, rawRows){
+    /* uploaded_by is REQUIRED, not optional. The imports_insert RLS policy
+       is `auth.uid() is not null AND uploaded_by = auth.uid()` (0001_init),
+       and the column has no default — so omitting it inserts NULL, the
+       check evaluates NULL = uid → false, and Postgres rejects the row with
+       "new row violates row-level security policy". Every import then showed
+       "Sync failed" in the Database column while importing perfectly fine
+       locally, because syncToCloud() catches the throw and only marks the
+       record, leaving the dashboard's local data intact.
+
+       Read from the live session rather than a client-side variable so it
+       cannot drift from whatever auth.uid() actually resolves to server-side;
+       those two disagreeing is precisely what the policy exists to catch. */
+    const uid = this.session?.user?.id;
+    if (!uid) throw new Error('NOT_SIGNED_IN');
+
     const { data: imp, error: impErr } = await this.client
       .from('imports')
       .insert({ original_name: name, storage_key: `local/${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
-                 status: 'processing', row_count: 0 })
+                 status: 'processing', row_count: 0, uploaded_by: uid })
       .select('id')
       .single();
     if (impErr) throw impErr;
