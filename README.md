@@ -132,14 +132,35 @@ pipeline currently writes to browser-local state only — connecting the
 dropzone to actually upload via `dds_ingest()` is the next real piece of
 work, not yet done.
 
-**3. Run `test/parity.sh` once, now, to confirm your local environment can
-run it — you'll need to before your next SQL or shift-logic change.**
+**3. Run a parity check before your next SQL or shift-logic change.**
+
+There are two, and they answer the same question with different setup costs.
+
+`test/parity.sh` is the full end-to-end test — it builds a scratch database,
+replays every migration, ingests the fixture through `dds_ingest()`, and diffs
+the result against `derive()`. It is the stronger test, and the one to run in
+CI.
 ```bash
 ./test/parity.sh
 ```
-Requires a local Postgres (or point it at a scratch Supabase branch). It's
-the only thing standing between "JS and SQL agree" and "JS and SQL silently
-disagree in a way that shows up as wrong numbers, not an error."
+It needs `psql` **and** a real `python3`. On a stock Windows machine it cannot
+run at all: `psql` is absent unless you install Postgres, and the `python3` on
+PATH is the Microsoft Store stub, which prints an install advert and exits
+non-zero.
+
+`test/compare-derived.mjs` needs only Node, which you already have. It does not
+build a database; you give it the SQL side's output as a file (from the
+Supabase SQL editor, `psql`, or any REST/MCP call) and it diffs that against
+the JS side using the same normalisation rules `parity.sh` applies.
+```bash
+node test/compare-derived.mjs sql.json     # diff against a saved SQL result
+node test/compare-derived.mjs --emit-js    # just print the JS side
+```
+Exit code is 0 on match and 1 on any difference, so either works in CI.
+
+Whichever you run, this is the only thing standing between "JS and SQL agree"
+and "JS and SQL silently disagree in a way that shows up as wrong numbers, not
+an error."
 
 ## Known open items
 
