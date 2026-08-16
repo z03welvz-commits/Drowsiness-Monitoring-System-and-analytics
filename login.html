@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign In · DDS - Drowsiness Detection System</title>
+<!-- Start fetching the hero before the parser reaches the <img> in <body>.
+     Declared BEFORE the Supabase <script> deliberately: that script is
+     render-blocking and comes off a third-party CDN, so leaving the image
+     to be discovered afterwards stalls it behind an unrelated network
+     round-trip. -->
+<link rel="preload" as="image" href="assets/img/logIN.jpg" fetchpriority="high">
+<!-- NOT deferred: the page's own inline <script> calls makeClient() at top
+     level on load, and a deferred external script runs AFTER inline ones —
+     `supabase` would be undefined, makeClient() would return null, and
+     sign-in would fail silently. The preload above is what stops this
+     script from delaying the image; the load order itself must stay. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -44,11 +55,41 @@ button{font-family:inherit;cursor:pointer}
    to darken toward the LEFT (where the truck + copy live) just enough for
    white text contrast, and gently shade the right so the glass card still
    reads as "floating" over sky rather than pasted on top of it. */
-.scene{ position:fixed; inset:0; z-index:0; overflow:hidden; }
+/* The hero is a 1672x941 photo. It was a 2.5 MB PNG — a lossless format
+   carrying no transparency, which is the worst possible choice for a
+   photograph and the entire reason it appeared late. Re-encoded as JPEG
+   q82 it is ~318 KB: an 87% cut with no visible difference (checked at
+   full size against the original, including the sky gradient and rock
+   detail, where JPEG banding would show first if it were going to).
+
+   Two things hide the remaining load time:
+   1. A 32px-wide version of the same image, inlined below as a data URI.
+      It costs no extra request, so it paints on the first frame and the
+      area reads as the photo — right colours, right composition — instead
+      of flashing empty. Blown up and blurred, 32px is plenty.
+   2. The real image fades in over it once decoded, so the swap is a soft
+      cross-fade rather than a visible pop. */
+.scene{
+  position:fixed; inset:0; z-index:0; overflow:hidden;
+  background-image:url("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDABQODxIPDRQSERIXFhQYHzMhHxwcHz8tLyUzSkFOTUlBSEZSXHZkUldvWEZIZoxob3p9hIWET2ORm4+AmnaBhH//2wBDARYXFx8bHzwhITx/VEhUf39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f3//wAARCAASACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDnUgUAO5J9Co5NPW7UHYsbOB/CV6VFJIyxcEAmo45CitI2CfUYyako1LSSGVts0OF4yO49/pWvFpUBmUR2jyg4IJcgD8cc1giZx5crbX3DaQV4AJ46delaK3N5p3KzFQw+VC39O1T7w1Y56T/VkVDknAycelFFaEG1p5J08gk8E4qpktHIxJJ6ZNFFSij/2Q==");
+  background-size:cover;
+  background-position:38% 50%;
+}
 .scene img{
   width:100%; height:100%; object-fit:cover; object-position:38% 50%;
   display:block;
   filter:saturate(1.12) contrast(1.08) brightness(1.02);
+  /* Starts transparent and is revealed by the img's own onload. If the
+     image somehow never fires load, the blurred placeholder stays visible
+     rather than the area going blank. */
+  opacity:0; transition:opacity .45s ease;
+}
+.scene img.is-loaded{ opacity:1; }
+/* A cached image can decode before the stylesheet applies, firing onload
+   so early that the transition never runs — harmless, since the end state
+   is identical. Honour reduced-motion by skipping the fade outright. */
+@media (prefers-reduced-motion: reduce){
+  .scene img{ transition:none; }
 }
 .scene-scrim{
   position:fixed; inset:0; z-index:1;
@@ -261,7 +302,13 @@ button{font-family:inherit;cursor:pointer}
 </head>
 <body>
 
-<div class="scene" aria-hidden="true"><img src="assets/img/logIN.png" alt=""></div>
+<!-- The blurred 32px placeholder is a background on .scene itself (inlined
+     as a data URI, so it costs no request and paints on the first frame).
+     The real photo fades in over it once decoded — see .scene CSS. -->
+<div class="scene" aria-hidden="true">
+  <img src="assets/img/logIN.jpg" alt="" width="1672" height="941"
+       fetchpriority="high" decoding="async" onload="this.classList.add('is-loaded')">
+</div>
 <div class="scene-scrim" aria-hidden="true"></div>
 <div class="scene-vignette" aria-hidden="true"></div>
 
