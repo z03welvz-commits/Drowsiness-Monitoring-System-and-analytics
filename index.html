@@ -7009,24 +7009,116 @@ const Cloud = {
        nothing`), so a chunk that fails mid-import leaves earlier chunks
        safely committed, and re-running the whole import re-sends everything
        without double-counting. That is what makes the Retry button safe. */
+    /* ── Why chunks retry ────────────────────────────────────────────────
+       Diagnosed from the edge logs of a real failed import, not guessed:
+
+         13:25:26  dds_ingest  368,311 bytes  -> 200   (chunk 1)
+         13:25:28  dds_ingest  368,229 bytes  -> 401   (chunk 2)
+
+       Identical size, 2 seconds apart, and the server needed only 60ms to
+       insert 2,000 rows — so this was never about payload size, statement
+       timeout, or database speed. Chunk 1 carried a valid JWT
+       (exp 1786886733 = 13:25:33). Chunk 2 carried NO auth header at all.
+
+       The token was 5 seconds from expiry, so supabase-js had begun its
+       background refresh and the queued request raced it, going out
+       unauthenticated. A long import is unusually exposed to this: it is
+       one of the few flows issuing many sequential requests, so it is
+       likely to still be running when the hourly refresh lands.
+
+       Two defences, because either alone leaves a hole:
+         1. Refresh proactively BEFORE each chunk when the token is close to
+            expiring, so the race is normally never entered.
+         2. Retry a failed chunk after forcing a session refresh, so losing
+            the race costs one retry instead of the whole import.
+
+       dds_ingest() is idempotent (`on conflict do nothing`), so re-sending a
+       chunk that partly landed cannot double-count. That is what makes
+       retrying safe rather than merely hopeful. */
     const CHUNK = 2000;
+    const REFRESH_MARGIN_MS = 120000;   // refresh if under 2 minutes remain
+    const MAX_ATTEMPTS = 3;
+
+    const freshenIfNeeded = async () => {
+      const { data } = await this.client.auth.getSession();
+      const s = data?.session;
+      if (!s) return;
+      // expires_at is epoch SECONDS.
+      const msLeft = (s.expires_at * 1000) - Date.now();
+      if (msLeft < REFRESH_MARGIN_MS) {
+        const { data: r } = await this.client.auth.refreshSession();
+        if (r?.session) this.session = r.session;
+      }
+    };
+
     let inserted = 0;
     for (let i = 0; i < payload.length; i += CHUNK) {
       const slice = payload.slice(i, i + CHUNK);
-      const { data, error: ingestErr } = await this.client.rpc('dds_ingest', {
-        p_import_id: imp.id, p_rows: slice
-      });
-      if (ingestErr) {
+
+      let lastErr = null;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        await freshenIfNeeded();
+
+        const { data, error: ingestErr } = await this.client.rpc('dds_ingest', {
+          p_import_id: imp.id, p_rows: slice
+        });
+
+        if (!ingestErr) { inserted += (data || 0); lastErr = null; break; }
+        lastErr = ingestErr;
+
+        /* Only auth failures and transient network blips are worth retrying.
+           A malformed-row or constraint error will fail identically every
+           time, and retrying it just delays an error the user needs to see. */
+        const status = ingestErr.status ?? ingestErr.code;
+        const retryable = status === 401 || status === 403 ||
+                          status === 408 || status === 429 ||
+                          (typeof status === 'number' && status >= 500) ||
+                          ingestErr.message === 'Failed to fetch';
+        if (!retryable || attempt === MAX_ATTEMPTS) break;
+
+        // Force a refresh before retrying an auth failure — the whole point
+        // is that the previous attempt's credential was the problem.
+        try {
+          const { data: r } = await this.client.auth.refreshSession();
+          if (r?.session) this.session = r.session;
+        } catch (_) { /* fall through to the retry regardless */ }
+
+        // Brief backoff so a transient blip has a moment to clear.
+        await new Promise(res => setTimeout(res, 400 * attempt));
+      }
+
+      if (lastErr) {
+        /* Mark the import failed server-side before giving up, so the
+           imports table reflects reality. dds_ingest() no longer sets
+           'complete' per chunk (0015_ingest_chunk_status.sql) — without this
+           call a dead import would sit on 'processing' forever. Best-effort:
+           if this fails too (e.g. the session is genuinely gone) the original
+           error is still what the user needs to see, so it is not allowed to
+           mask it. */
+        try {
+          await this.client.rpc('dds_fail_import', {
+            p_import_id: imp.id, p_error: 'Sync interrupted'
+          });
+        } catch (_) { /* keep the original error */ }
+
         // Report how far it got — a failure at row 8,000 of 50,000 is a very
         // different situation from one that inserted nothing, and the caller
         // (and the user) should not have to guess which happened.
-        ingestErr.ddsInserted = inserted;
-        ingestErr.ddsTotal = payload.length;
-        throw ingestErr;
+        lastErr.ddsInserted = inserted;
+        lastErr.ddsTotal = payload.length;
+        throw lastErr;
       }
-      inserted += (data || 0);
+
       if (onProgress) onProgress(Math.min(i + CHUNK, payload.length), payload.length);
     }
+
+    /* Only now is the import genuinely finished. dds_ingest() deliberately
+       cannot assert this — it sees one chunk at a time and has no idea which
+       is last; this loop is the only party that knows every chunk landed. */
+    const { error: completeErr } = await this.client.rpc('dds_complete_import', {
+      p_import_id: imp.id
+    });
+    if (completeErr) throw completeErr;
 
     return { importId: imp.id, inserted };
   },
