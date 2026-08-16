@@ -825,15 +825,42 @@ input:disabled, select:disabled {
 .skeleton-kpi  { height: 24px; width: 60%; }
 
 body[data-status="loading"] .card { pointer-events: none; }
-body[data-status="loading"] .kpi-val,
-body[data-status="loading"] .kpi-trend-value,
-body[data-status="loading"] .ev-row,
-body[data-status="loading"] .chart-body {
+
+/* Skeletons are for a FIRST load, when there is genuinely nothing on screen
+   yet. Applying them to every load meant a refresh over already-rendered
+   charts painted shimmer + `color:transparent` straight over real numbers —
+   the charts visibly blanked mid-fetch and came back when it finished.
+
+   That is most obvious on a signed-in boot, where the IndexedDB restore
+   paints from local disk almost immediately and App.loadFromServer() then
+   flips status to 'loading' for up to six sequential dds_metrics()
+   round-trips. The user watches a complete dashboard dissolve into grey bars
+   for the length of six network calls, for no reason: the old data was still
+   perfectly valid and about to be replaced by newer data anyway.
+
+   `body:not(.has-painted)` scopes the skeleton to the first load only. The
+   class is added the first time paint() runs with real data and never
+   removed, so subsequent refreshes keep showing the previous values until the
+   new ones land — stale-while-revalidate, which reads as instant rather than
+   as a page that keeps emptying itself. */
+body:not(.has-painted)[data-status="loading"] .kpi-val,
+body:not(.has-painted)[data-status="loading"] .kpi-trend-value,
+body:not(.has-painted)[data-status="loading"] .ev-row,
+body:not(.has-painted)[data-status="loading"] .chart-body {
   background: linear-gradient(90deg,
     var(--border-light) 25%, var(--surface-sunken) 37%, var(--border-light) 63%);
   background-size: 200% 100%;
   animation: dds-shimmer 1.4s linear infinite;
   color: transparent;
+}
+
+/* A refresh over existing content gets a restrained cue instead of a wipe:
+   the cards dim very slightly and stop accepting input (the rule above
+   already handles pointer-events), so it is clear something is happening
+   without hiding what is on screen. */
+body.has-painted[data-status="loading"] .card {
+  opacity: .72;
+  transition: opacity .18s ease;
 }
 
 .btn[data-loading="true"] { position: relative; color: transparent; }
@@ -5956,12 +5983,41 @@ function initControls(store, { onRefresh } = {}) {
     }
   });
 
-  /* Keep empty state and Export availability in sync with the store. */
+  /* Keep empty state and Export availability in sync with the store.
+
+     'loading' is deliberately NOT treated as "no data". Two sources populate
+     the dashboard on a signed-in boot and they finish at different times: the
+     IndexedDB restore calls App.refresh() off local disk (fast), while
+     App.loadFromServer() sets status:'loading' and then makes up to six
+     sequential dds_metrics() round-trips (slow). Testing `status === 'ready'`
+     alone meant the sequence was:
+
+         IndexedDB done   -> ready, rows > 0 -> charts paint
+         server load runs -> loading         -> renderEmptyState() WIPES them
+         server responds  -> ready           -> charts paint again
+
+     — a visible flash of fully-rendered charts collapsing to "No data yet"
+     and back. The data was never gone; only this line's verdict changed.
+
+     A fetch in progress says nothing about whether data exists, so while
+     loading we hold whatever the last settled answer was (`hadData`) instead
+     of asserting emptiness. The empty state is only rendered once a load has
+     actually SETTLED — ready with no rows, or an error. */
+  let hadData = false;
   return store.subscribe(s => {
+    const settled = s.status !== 'loading';
     const hasData = s.status === 'ready' && s.derived && s.derived.meta.rowCount > 0;
-    hasData ? clearEmptyState() : renderEmptyState();
+
+    // Only a settled state may change the verdict; 'loading' reuses the last.
+    if (settled) hadData = hasData;
+    const showData = settled ? hasData : hadData;
+
+    showData ? clearEmptyState() : renderEmptyState();
     document.querySelectorAll('button').forEach(b => {
-      if (b.textContent.trim() === 'Export') b.disabled = !hasData;
+      // Export reads store.derived directly, so it must follow the same
+      // hold-during-loading rule — otherwise the button flickers disabled
+      // mid-fetch while perfectly good data is still on screen.
+      if (b.textContent.trim() === 'Export') b.disabled = !showData;
     });
   });
 }
@@ -10129,6 +10185,14 @@ store.subscribe(state => {
   document.body.dataset.status = state.status;
   if (state.status === 'ready' && state.derived) {
     paint(currentPage, state.derived);
+    /* Marks that real content has been on screen at least once, which
+       switches the loading treatment from "skeleton placeholders" to "dim
+       the existing content slightly" (see body.has-painted in the STATE
+       LAYER css). Set after paint(), not before, so the very first load
+       still shows skeletons while it is genuinely empty. Never removed:
+       once the user has seen real numbers, later refreshes should keep
+       showing them rather than reverting to grey bars. */
+    document.body.classList.add('has-painted');
     if (lastStatus !== 'ready') {
       const { meta, kpis } = state.derived;
       announce(`Loaded ${fmt.int(meta.rowCount)} records, ` +
