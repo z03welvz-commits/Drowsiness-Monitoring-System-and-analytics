@@ -172,7 +172,11 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .page[data-page-id="overview"] .dl-row .dl-name{font-size:var(--fs-xs)}
 .page[data-page-id="overview"] .dl-row .dl-pct{font-size:var(--fs-xs);padding-left:4px}
 
-.ov-row1{display:grid;grid-template-columns:1.6fr 1fr;gap:var(--sp-5);min-height:0;height:280px;flex-shrink:0}
+/* Trend / Shift / Key Insights. Trend keeps the largest share because it is
+   the only card whose readability depends on width — a long date range needs
+   horizontal room. Taller than the old 280px since Key Insights now stacks
+   its tiles vertically in here rather than spanning its own full-width row. */
+.ov-row1{display:grid;grid-template-columns:1.75fr 1.05fr 1fr;gap:var(--sp-5);min-height:0;height:320px;flex-shrink:0}
 .ov-row2{display:grid;grid-template-columns:2fr 1.5fr 1.5fr;gap:var(--sp-5);min-height:0;height:260px;flex-shrink:0}
 
 /* ═══ Analytics page rows — literal pixel heights (page scrolls) ═══
@@ -251,6 +255,11 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    This strip is intrinsically sized — one short row of tiles — so it should
    never absorb the page's leftover space or give any of its own away. The
    charts below it are the elements that should flex. */
+/* ── Key Insights: BASE (horizontal strip) ──────────────────────────────
+   This is Analytics' layout and remains the default. Overview overrides it
+   to a vertical column below — scoped by page, NOT redefined here, so the
+   two pages cannot silently override each other. Anything added to the base
+   must stay valid for Analytics. */
 .card-insights{flex-shrink:0}
 .ins-strip{display:flex;align-items:stretch;padding:var(--sp-5) 0;min-height:0}
 .ins-tile{
@@ -264,6 +273,10 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
   display:flex; align-items:center; justify-content:center;
 }
 .ins-tile-icon svg{width:17px;height:17px}
+/* Analytics' base strip stacks icon over text, so the wrapper introduced for
+   Overview's [icon | text] row must not change anything here: it inherits the
+   parent's centring and adds no spacing of its own. */
+.ins-tile-body{display:flex;flex-direction:column;align-items:inherit;gap:2px;min-width:0}
 .ins-tile-val{font-size:var(--fs-3xl);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
 .ins-tile-label{font-size:var(--fs-sm);font-weight:600;color:var(--text)}
 .ins-tile-sub{font-size:var(--fs-xs);color:var(--text-sec)}
@@ -271,6 +284,45 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 @media (max-width:960px){
   .ins-strip{flex-wrap:wrap;gap:var(--sp-4) 0}
   .ins-tile{flex:1 1 33%;border-left:none}
+}
+
+/* ── Key Insights: OVERVIEW override (vertical column) ──────────────────
+   On Overview the card sits as a narrow third column beside the shift
+   donut, so the tiles stack: icon left, value and captions right. The base
+   layout centres a 24px number over a two-line caption in a very wide cell,
+   which at 4-5 tiles reads as a banner rather than a summary.
+
+   Every selector below is prefixed with the Overview page scope so
+   Analytics keeps the base strip untouched.
+
+   Type is a step smaller than the KPI cards above it: those are the page's
+   headline figures, these are supporting detail, and both at --fs-3xl made
+   the page read as two competing headlines. */
+.page[data-page-id="overview"] .card-insights{flex-shrink:1;min-height:0}
+.page[data-page-id="overview"] .ins-strip{
+  flex-direction:column; justify-content:space-evenly; align-items:stretch;
+  flex:1; min-height:0; padding:var(--sp-3) var(--sp-4); gap:var(--sp-2);
+  overflow:hidden;
+}
+.page[data-page-id="overview"] .ins-tile{
+  flex:0 1 auto; flex-direction:row; align-items:center;
+  gap:var(--sp-4); padding:0; text-align:left; border-left:none;
+}
+.page[data-page-id="overview"] .ins-tile-icon{width:30px;height:30px}
+.page[data-page-id="overview"] .ins-tile-icon svg{width:15px;height:15px}
+/* min-width:0 on the text column is what lets the ellipsis actually engage —
+   without it a long value ("18:00-19:00") forces the flex item wider than
+   the card instead of truncating. */
+.page[data-page-id="overview"] .ins-tile-body{min-width:0;display:flex;flex-direction:column;gap:1px}
+.page[data-page-id="overview"] .ins-tile-val{
+  font-size:var(--fs-lg); line-height:1.15;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.page[data-page-id="overview"] .ins-tile-label{
+  font-size:var(--fs-xs); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.page[data-page-id="overview"] .ins-tile-sub{
+  font-size:var(--fs-2xs); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
 .donut-wrap{display:flex;align-items:center;gap:16px;padding:10px 16px 14px;flex:1;min-height:0}
@@ -1465,11 +1517,14 @@ body {
            same .kpi-icon tint vocabulary as the KPI row above. Own row
            instead of sharing one with two other charts so 3-5 tiles have
            room to read at a glance without wrapping. -->
-      <div class="card card-insights">
-        <div class="ins-strip" id="ovInsights" data-chart="insights"></div>
-      </div>
-
-      <!-- ROW 1 — Trend (55%) / Alerts by Shift (45%). -->
+      <!-- ROW 1 — Trend / Alerts by Shift / Key Insights.
+           Key Insights used to be its own full-width row above this one.
+           Moved in beside the shift donut as a third column: as a full-width
+           strip its 4-5 tiles were stretched across the whole page with big
+           gaps, which read as a banner rather than a summary. In a narrow
+           column they stack vertically and scan as a compact list, and the
+           row above is freed up so Trend gets the full height it needs to
+           show a long date range. -->
       <div class="ov-row1">
         <!-- Trend card — one combined chart, 3 series (Alert Volume / Asset /
              Sync), each independently scaled to its own min/max (see
@@ -1518,6 +1573,14 @@ body {
               <div class="dl-row"><span class="legend-dot" style="background:var(--blue)"></span><div><div style="font-size:var(--fs-sm);font-weight:600">Night Shift</div><div style="font-size:var(--fs-xs);color:var(--text-sec)" id="ovShiftNightUnits">—</div></div><div class="dl-pct" id="ovShiftNightPct">—</div></div>
             </div>
           </div>
+        </div>
+        <!-- Key Insights — third column, stacked tiles. Same #ovInsights id
+             and .ins-strip markup the full-width version used, so
+             charts.insightsOverview() and the PAGES entry are unchanged;
+             only the CSS layout differs (see .card-insights). -->
+        <div class="card card-insights">
+          <div class="card-head"><h2>Key Insights</h2></div>
+          <div class="ins-strip" id="ovInsights" data-chart="insights"></div>
         </div>
       </div>
 
@@ -4301,12 +4364,19 @@ const insightBullets = {
    two-line label). */
 function renderInsightTiles(el, tiles) {
   if (!el) return;
+  /* .ins-tile-body wraps the three text nodes so Overview can lay the tile
+     out as [icon | text] on one row (see the Overview override in the Key
+     Insights CSS). It is layout-neutral for Analytics' base strip, which
+     stacks everything in a column either way — one markup, two layouts,
+     no per-page branching in JS. */
   el.innerHTML = tiles.length
     ? tiles.map(t => `<div class="ins-tile">
         <div class="ins-tile-icon" style="background:${t.tint};color:${t.fg}">${svg(t.icon)}</div>
-        <div class="ins-tile-val" style="color:${t.valColor ?? t.fg}">${t.val}</div>
-        <div class="ins-tile-label">${t.label}</div>
-        <div class="ins-tile-sub">${t.sub}</div>
+        <div class="ins-tile-body">
+          <div class="ins-tile-val" style="color:${t.valColor ?? t.fg}">${t.val}</div>
+          <div class="ins-tile-label">${t.label}</div>
+          <div class="ins-tile-sub">${t.sub}</div>
+        </div>
       </div>`).join('')
     : `<div class="ins-strip-empty">Not enough data yet to compute insights.</div>`;
 }
@@ -4683,9 +4753,19 @@ const charts = {
 
     const g = geo ?? { top: 15, bottom: 210, width: 720 };
     const max = Math.max(...months.flatMap(m => m.hours), 1);
+    /* Month name only ("Jan"), not "Jan 26". With 8+ months in view the
+       legend is the widest thing in the card, and the year is noise: every
+       line already sits inside one dataset the user just filtered.
+       The year is NOT dropped blindly, though — a dataset spanning the same
+       month in two different years ("Jan" twice) would be genuinely
+       ambiguous, so the year is appended only for the months that actually
+       need it to stay distinct. */
+    const monthNums = months.map(m => Number(m.month.split('-')[1]));
+    const dupMonths = new Set(monthNums.filter((n, i) => monthNums.indexOf(n) !== i));
     const monthLabel = mKey => {
       const [y, mo] = mKey.split('-');
-      return `${MONTHS[Number(mo) - 1]} ${y.slice(2)}`;
+      const name = MONTHS[Number(mo) - 1];
+      return dupMonths.has(Number(mo)) ? `${name} ${y.slice(2)}` : name;
     };
     const colorOf = i => EVENT_COLORS[i % EVENT_COLORS.length];
 
