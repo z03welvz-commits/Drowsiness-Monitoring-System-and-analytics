@@ -128,6 +128,29 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .legend-item{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--text-sec);font-weight:500}
 .legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
 
+/* Month legend on its own row beneath the card title. With 8+ months it is
+   wider than the heading, so keeping it inside .card-head squeezed the title
+   and eventually forced the two to collide. Wraps to a second line rather
+   than overflowing. */
+.legend-row{
+  flex-wrap:wrap; gap:var(--sp-2) var(--sp-4);
+  padding:var(--sp-3) var(--sp-5) 0;
+  flex-shrink:0;
+}
+/* Toggle buttons: reset the <button> chrome so they read as legend labels,
+   not form controls, while staying real buttons for keyboard and a11y. */
+.legend-item-toggle{
+  border:none; background:none; padding:2px 0; margin:0;
+  font-family:inherit; cursor:pointer;
+  transition:opacity .12s, color .12s;
+}
+.legend-item-toggle:hover{color:var(--text)}
+.legend-item-toggle:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+/* Off state: dimmed with the swatch hollowed out, so "hidden" is legible
+   from the dot alone rather than relying on the text colour shift. */
+.legend-item-toggle[aria-pressed="false"]{opacity:.4; text-decoration:line-through}
+.legend-item-toggle[aria-pressed="false"] .legend-dot{background:transparent !important; box-shadow:inset 0 0 0 1.5px currentColor}
+
 .chart-body{padding:8px 16px 12px;flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
 .axis{font-size:var(--fs-xs);color:var(--text-muted)}
 /* One-line, data-derived insight under a chart (e.g. computed peak day) —
@@ -172,11 +195,15 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .page[data-page-id="overview"] .dl-row .dl-name{font-size:var(--fs-xs)}
 .page[data-page-id="overview"] .dl-row .dl-pct{font-size:var(--fs-xs);padding-left:4px}
 
-/* Trend / Shift / Key Insights. Trend keeps the largest share because it is
-   the only card whose readability depends on width — a long date range needs
-   horizontal room. Taller than the old 280px since Key Insights now stacks
-   its tiles vertically in here rather than spanning its own full-width row. */
-.ov-row1{display:grid;grid-template-columns:1.75fr 1.05fr 1fr;gap:var(--sp-5);min-height:0;height:320px;flex-shrink:0}
+/* Trend / Shift / Key Insights.
+   Key Insights gets a genuinely wide column (1.35fr) rather than the narrow
+   slot it had: at 1fr the tiles were cramped enough that every value needed
+   an ellipsis, which defeats the point of a summary. The shift donut is the
+   one card here with a fixed intrinsic size (a circle plus a two-row
+   legend), so it gives up the width instead — it gains nothing from extra
+   horizontal space. Trend still keeps the largest share; it is the only
+   card whose readability genuinely scales with width. */
+.ov-row1{display:grid;grid-template-columns:1.7fr 0.95fr 1.35fr;gap:var(--sp-5);min-height:0;height:320px;flex-shrink:0}
 .ov-row2{display:grid;grid-template-columns:2fr 1.5fr 1.5fr;gap:var(--sp-5);min-height:0;height:260px;flex-shrink:0}
 
 /* ═══ Analytics page rows — literal pixel heights (page scrolls) ═══
@@ -276,8 +303,13 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 /* Analytics' base strip stacks icon over text, so the wrapper introduced for
    Overview's [icon | text] row must not change anything here: it inherits the
    parent's centring and adds no spacing of its own. */
-.ins-tile-body{display:flex;flex-direction:column;align-items:inherit;gap:2px;min-width:0}
-.ins-tile-val{font-size:var(--fs-3xl);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.ins-tile-body{display:flex;flex-direction:column;align-items:inherit;gap:2px;min-width:0;order:2}
+/* order:1 keeps the value ABOVE the label on Analytics' stacked strip. The
+   markup puts it last (Overview needs it as a right-hand sibling — see
+   renderInsightTiles), so without this the base layout would silently flip
+   to label-then-value. Visual order is restored with `order`, not by
+   changing the markup, so neither page has to branch. */
+.ins-tile-val{font-size:var(--fs-3xl);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1;order:1}
 .ins-tile-label{font-size:var(--fs-sm);font-weight:600;color:var(--text)}
 .ins-tile-sub{font-size:var(--fs-xs);color:var(--text-sec)}
 .ins-strip-empty{font-size:var(--fs-sm);color:var(--text-muted);padding:var(--sp-2) var(--sp-5)}
@@ -300,29 +332,48 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    the page read as two competing headlines. */
 .page[data-page-id="overview"] .card-insights{flex-shrink:1;min-height:0}
 .page[data-page-id="overview"] .ins-strip{
-  flex-direction:column; justify-content:space-evenly; align-items:stretch;
-  flex:1; min-height:0; padding:var(--sp-3) var(--sp-4); gap:var(--sp-2);
+  flex-direction:column; align-items:stretch;
+  flex:1; min-height:0; padding:var(--sp-2) 0; gap:0;
   overflow:hidden;
 }
+/* Each insight is a full-width row separated by a hairline rule rather than
+   a floating block: with 4-5 of them the rules give the eye a consistent
+   left edge to scan down, and the card reads as one list instead of five
+   loose fragments.
+   The VALUE sits on the right, right-aligned, so the numbers form their own
+   column — the thing you actually compare when scanning. Label on the left,
+   value on the right is the same shape as the shift-donut legend beside it,
+   so the two cards rhyme. */
 .page[data-page-id="overview"] .ins-tile{
-  flex:0 1 auto; flex-direction:row; align-items:center;
-  gap:var(--sp-4); padding:0; text-align:left; border-left:none;
+  flex:1 1 0; min-height:0;
+  flex-direction:row; align-items:center; justify-content:flex-start;
+  gap:var(--sp-3); padding:0 var(--sp-5); text-align:left;
+  border-left:none; border-top:1px solid var(--divider);
 }
-.page[data-page-id="overview"] .ins-tile-icon{width:30px;height:30px}
-.page[data-page-id="overview"] .ins-tile-icon svg{width:15px;height:15px}
-/* min-width:0 on the text column is what lets the ellipsis actually engage —
-   without it a long value ("18:00-19:00") forces the flex item wider than
-   the card instead of truncating. */
-.page[data-page-id="overview"] .ins-tile-body{min-width:0;display:flex;flex-direction:column;gap:1px}
-.page[data-page-id="overview"] .ins-tile-val{
-  font-size:var(--fs-lg); line-height:1.15;
+.page[data-page-id="overview"] .ins-tile:first-child{border-top:none}
+.page[data-page-id="overview"] .ins-tile-icon{width:28px;height:28px;border-radius:var(--r-md)}
+.page[data-page-id="overview"] .ins-tile-icon svg{width:14px;height:14px}
+/* min-width:0 is what lets the ellipsis engage — without it a long label
+   forces the flex item wider than the card instead of truncating. */
+.page[data-page-id="overview"] .ins-tile-body{
+  min-width:0; flex:1; display:flex; flex-direction:column; gap:0;
+}
+/* Label first, sub beneath it; the value moves out of this block entirely
+   (order:2 on the wrapper puts the value after it in the row). */
+.page[data-page-id="overview"] .ins-tile-label{
+  order:1; font-size:var(--fs-sm); font-weight:600; line-height:1.25;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.page[data-page-id="overview"] .ins-tile-label{
-  font-size:var(--fs-xs); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
 .page[data-page-id="overview"] .ins-tile-sub{
-  font-size:var(--fs-2xs); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  order:2; font-size:var(--fs-2xs); line-height:1.2;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* Pulled out of .ins-tile-body's column and placed at the row's end.
+   tabular-nums keeps the digits aligned down the column. */
+.page[data-page-id="overview"] .ins-tile-val{
+  order:3; margin-left:auto; padding-left:var(--sp-3);
+  font-size:var(--fs-xl); font-weight:700; line-height:1.1;
+  white-space:nowrap; flex-shrink:0;
 }
 
 .donut-wrap{display:flex;align-items:center;gap:16px;padding:10px 16px 14px;flex:1;min-height:0}
@@ -1631,12 +1682,16 @@ body {
              charts.hourlyMonthly(), CHARTS section), not Day/Night shift.
              #ovHourlyLegend is populated by the chart function itself
              (line count varies with how many months are in the data), so
-             it starts empty rather than with static Day/Night markup. -->
+             it starts empty rather than with static Day/Night markup.
+
+             The legend sits BELOW the title on its own row, not inside
+             .card-head beside it: with 8+ months it is far wider than a
+             normal legend and was squeezing the heading. Each entry is a
+             real <button> that toggles its month's line — see
+             charts.hourlyMonthly() and initMonthLegendToggle(). -->
         <div class="card">
-          <div class="card-head">
-            <h2>Alert Activity by Hour</h2>
-            <div class="legend-block" id="ovHourlyLegend"></div>
-          </div>
+          <div class="card-head"><h2>Alert Activity by Hour</h2></div>
+          <div class="legend-row legend-block" id="ovHourlyLegend" role="group" aria-label="Toggle months"></div>
           <div class="chart-body">
             <svg id="ovHourlySvg" viewBox="0 0 720 220" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="hourlyMonthly">
               <line x1="0" y1="15" x2="720" y2="15" stroke="#F1F2F5" stroke-width="1"/>
@@ -1819,16 +1874,14 @@ body {
       <!-- ROW 2 — Alert Activity by Hour (40%) / Sync Interval Distribution
            (30%) / Distribution by Shift (30%). -->
       <div class="an-row2">
-        <!-- Alert Activity by Hour — one line per calendar month (see
-             charts.hourlyMonthly(), CHARTS section), not Day/Night shift.
-             #anHourlyLegend is populated by the chart function itself
-             (line count varies with how many months are in the data), so
-             it starts empty rather than with static Day/Night markup. -->
+        <!-- Alert Activity by Hour — identical treatment to Overview's copy
+             (same charts.hourlyMonthly() renderer, same clickable
+             month-legend below the title). The two charts keep INDEPENDENT
+             hidden-month sets, since the set lives on the legend element —
+             toggling a month here does not change Overview's view. -->
         <div class="card">
-          <div class="card-head">
-            <h2>Alert Activity by Hour</h2>
-            <div class="legend-block" id="anHourlyLegend"></div>
-          </div>
+          <div class="card-head"><h2>Alert Activity by Hour</h2></div>
+          <div class="legend-row legend-block" id="anHourlyLegend" role="group" aria-label="Toggle months"></div>
           <div class="chart-body">
             <svg id="anHourlySvg" viewBox="0 0 720 220" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="hourlyMonthly">
               <line x1="0" y1="15" x2="720" y2="15" stroke="#F1F2F5" stroke-width="1"/>
@@ -4518,14 +4571,19 @@ function renderInsightTiles(el, tiles) {
      Insights CSS). It is layout-neutral for Analytics' base strip, which
      stacks everything in a column either way — one markup, two layouts,
      no per-page branching in JS. */
+  /* The value is a SIBLING of .ins-tile-body, not a child of it. Overview
+     lays the tile out as [icon | label+sub | value] on one row, pushing the
+     value to the far right with margin-left:auto — which only works if the
+     value is a direct flex child of .ins-tile. Analytics' base strip stacks
+     all three in a column regardless, so one markup serves both. */
   el.innerHTML = tiles.length
     ? tiles.map(t => `<div class="ins-tile">
         <div class="ins-tile-icon" style="background:${t.tint};color:${t.fg}">${svg(t.icon)}</div>
         <div class="ins-tile-body">
-          <div class="ins-tile-val" style="color:${t.valColor ?? t.fg}">${t.val}</div>
           <div class="ins-tile-label">${t.label}</div>
           <div class="ins-tile-sub">${t.sub}</div>
         </div>
+        <div class="ins-tile-val" style="color:${t.valColor ?? t.fg}">${t.val}</div>
       </div>`).join('')
     : `<div class="ins-strip-empty">Not enough data yet to compute insights.</div>`;
 }
@@ -4901,7 +4959,24 @@ const charts = {
     }
 
     const g = geo ?? { top: 15, bottom: 210, width: 720 };
-    const max = Math.max(...months.flatMap(m => m.hours), 1);
+
+    /* Months the user has toggled off, keyed per legend element so Overview
+       and Analytics keep independent selections. Stored on the DOM node
+       rather than a module variable because this renderer is called fresh
+       on every repaint and must not lose the user's choice — but also must
+       not leak one chart's hidden set into the other's. */
+    const hidden = (refs.legend && refs.legend._ddsHidden) || new Set();
+    if (refs.legend) refs.legend._ddsHidden = hidden;
+
+    const visible = months.filter(m => !hidden.has(m.month));
+
+    /* Scale to the VISIBLE months only. Keeping a hidden month's peak in the
+       max would leave the remaining lines squashed against the floor with
+       dead space above them — the whole point of hiding a dominant month is
+       to see the others. Falls back to all months when everything is hidden,
+       so the axis does not collapse to zero. */
+    const scaleSet = visible.length ? visible : months;
+    const max = Math.max(...scaleSet.flatMap(m => m.hours), 1);
     /* Month name only ("Jan"), not "Jan 26". With 8+ months in view the
        legend is the widest thing in the card, and the year is noise: every
        line already sits inside one dataset the user just filtered.
@@ -4923,15 +4998,21 @@ const charts = {
       return { month: m.month, label: monthLabel(m.month), color: colorOf(i), hours: m.hours, points, path };
     });
 
+    /* Only visible months are drawn, but colours stay keyed to each month's
+       ORIGINAL index — colorOf(i) above — so hiding February does not
+       recolour March. A legend swatch that changes colour when an unrelated
+       month is toggled makes the chart impossible to read. */
     if (el) {
-      el.innerHTML = lines.map(l =>
+      el.innerHTML = lines.filter(l => !hidden.has(l.month)).map(l =>
         `<path fill="none" stroke="${l.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="${l.path}"/>`
       ).join('');
     }
 
-    if (refs.legend) refs.legend.innerHTML = lines.map(l =>
-      `<div class="legend-item"><span class="legend-dot" style="background:${l.color}"></span>${esc(l.label)}</div>`
-    ).join('');
+    if (refs.legend) refs.legend.innerHTML = lines.map(l => {
+      const on = !hidden.has(l.month);
+      return `<button type="button" class="legend-item legend-item-toggle" data-month="${esc(l.month)}" aria-pressed="${on}">` +
+        `<span class="legend-dot" style="background:${l.color}"></span>${esc(l.label)}</button>`;
+    }).join('');
 
     // Hover — shared crosshair across every month's line at once, same
     // "one tooltip, every series" convention as the Trend chart above.
@@ -4953,7 +5034,10 @@ const charts = {
             crosshair.setAttribute('x1', xs[h].toFixed(1));
             crosshair.setAttribute('x2', xs[h].toFixed(1));
             crosshair.setAttribute('opacity', '1');
-            const rows = lines.map(l => ({ label: l.label, value: fmt.int(l.hours[h]), color: l.color }));
+            // Hidden months are excluded here too — a tooltip listing a
+            // month whose line is not on the chart is just confusing.
+            const rows = lines.filter(l => !hidden.has(l.month))
+              .map(l => ({ label: l.label, value: fmt.int(l.hours[h]), color: l.color }));
             return tooltipHTML(`${String(h).padStart(2, '0')}:00 UTC`, rows);
           }
         });
@@ -11087,6 +11171,39 @@ var NotificationSound = (function(){
 
 let currentPage = 'overview';
 
+/* Month-legend toggles for the hourly charts. Delegated off the legend
+   container because charts.hourlyMonthly() rewrites its innerHTML on every
+   repaint — per-button listeners would be dropped each time.
+
+   The hidden set lives on the container element (._ddsHidden, written by the
+   renderer), so Overview and Analytics keep separate selections and a
+   repaint preserves whatever the user toggled.
+
+   Repaints via App.refreshCharts() rather than calling the chart function
+   directly: the tooltip, hover crosshair and axis all have to be rebuilt
+   together, and refreshCharts() is the one path that does the whole card. */
+function initMonthLegendToggle(legendId){
+  const legend = document.getElementById(legendId);
+  if (!legend) return;
+  legend.addEventListener('click', e => {
+    const btn = e.target.closest('[data-month]');
+    if (!btn) return;
+    const month = btn.getAttribute('data-month');
+    const hidden = legend._ddsHidden || (legend._ddsHidden = new Set());
+
+    // Never let the user hide every month — an empty chart with a full
+    // legend reads as broken rather than as a deliberate filter.
+    const total = legend.querySelectorAll('[data-month]').length;
+    if (!hidden.has(month) && hidden.size >= total - 1) {
+      announce('At least one month must stay visible');
+      return;
+    }
+
+    if (hidden.has(month)) hidden.delete(month); else hidden.add(month);
+    App.refreshCharts();
+  });
+}
+
 function paint(page, derived){
   renderPage(page, derived);
   describePage(page, derived);
@@ -11237,6 +11354,12 @@ if (!Auth.DISABLED) {
 initControls(store, {
   onRefresh: () => Cloud.session ? App.loadFromServer() : App.refresh()
 });
+
+/* Both hourly charts get the same clickable month legend. Bound once here —
+   the containers are static markup; only their contents are re-rendered by
+   charts.hourlyMonthly(), which is why the handler is delegated. */
+initMonthLegendToggle('ovHourlyLegend');
+initMonthLegendToggle('anHourlyLegend');
 
 })();
 </script>
