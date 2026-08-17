@@ -548,6 +548,25 @@ th[data-sort]:hover::after{color:var(--text-muted)}
 th[data-sort][aria-sort="ascending"]::after{content:'\2191'; color:var(--accent)}
 th[data-sort][aria-sort="descending"]::after{content:'\2193'; color:var(--accent)}
 th[data-sort][aria-sort]{color:var(--accent)}
+
+/* ═══ Summary group-details modal ═══ */
+.sm-bulk{
+  border:1px solid var(--border-light); border-radius:var(--r-lg);
+  background:var(--surface-sunken); padding:var(--sp-4); flex-shrink:0;
+}
+.sm-bulk-title{font-size:var(--fs-xs); font-weight:700; color:var(--navy); margin-bottom:var(--sp-3)}
+/* auto-1fr pairs so the three label/control rows line up on one grid; wraps
+   to stacked rows on a narrow viewport rather than squeezing the inputs. */
+.sm-bulk-fields{display:grid; grid-template-columns:auto 1fr auto 1fr auto 1fr; gap:var(--sp-2) var(--sp-3); align-items:center}
+.sm-bulk-actions{display:flex; align-items:center; gap:var(--sp-3); margin-top:var(--sp-3)}
+.sm-bulk-msg{font-size:var(--fs-xs); color:var(--text-sec)}
+.field-input-sm{padding:3px 6px; font-size:var(--fs-xs)}
+/* The row list scrolls, the bulk bar above it does not — a 500-row group
+   must not push the controls off-screen. */
+.sm-detail-scroll{flex:1; min-height:0; overflow-y:auto; border:1px solid var(--border-light); border-radius:var(--r-lg)}
+@media (max-width:720px){
+  .sm-bulk-fields{grid-template-columns:auto 1fr}
+}
 #alTable tbody td{padding:4px 12px}
 .imp-table tbody tr{box-shadow:inset 2px 0 0 transparent; transition:background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease)}
 .imp-table tbody tr:hover{background:var(--surface-sunken); box-shadow:inset 2px 0 0 var(--accent)}
@@ -2363,17 +2382,89 @@ body {
           </div>
           <table class="imp-table" id="smTable" hidden>
             <thead>
+              <!-- Sorted client-side over the current page only (see
+                   smSortedRows) — dds_alert_summary() paginates server-side
+                   and has no sort params, so this reorders the 100 rows on
+                   screen, and the header label says so. -->
               <tr>
-                <th>Shift Date</th>
-                <th>Shift</th>
-                <th>Unit</th>
-                <th>Event Code</th>
-                <th>Total</th>
-                <th>Action Status</th>
+                <th data-sort="shiftDate" aria-sort="descending">Shift Date</th>
+                <th data-sort="shift">Shift</th>
+                <th data-sort="assetId">Unit</th>
+                <th data-sort="eventCode">Event Code</th>
+                <th data-sort="total">Total</th>
+                <th data-sort="actionStatus">Action Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="smTableBody"></tbody>
           </table>
+        </div>
+
+        <!-- Group details — every individual alert behind one Summary row,
+             fetched by dds_alert_group_details() (0016). The Summary shows
+             only a total per (date, shift, unit, event code), so without
+             this a row like "8/18/26 DAY DT-111 Sleep Alert - 25" is a dead
+             end: no way to see which 25 alerts, when they fired, or which
+             already have a case.
+
+             Bulk edit at the top applies to EVERY alert in the group; the
+             per-row Action/Status selects below override individual alerts.
+             The bulk form deliberately starts blank and only writes fields
+             the user actually filled in (see smApplyBulk), so applying a
+             status does not wipe driver names set on individual rows. -->
+        <div class="detail-modal" id="smDetailModal" hidden>
+          <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="smDetailTitle" style="max-width:860px">
+            <div class="detail-head">
+              <div>
+                <h2 id="smDetailTitle" class="detail-title">—</h2>
+                <p class="detail-sub" id="smDetailSub"></p>
+              </div>
+              <button type="button" class="detail-close" id="smDetailClose" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div class="detail-body" style="padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-4);min-height:0">
+              <div class="sm-bulk" id="smBulkBar">
+                <div class="sm-bulk-title">Apply to all <span id="smBulkCount">0</span> alerts in this group</div>
+                <div class="sm-bulk-fields">
+                  <label class="field-label" for="smBulkDriver">Driver</label>
+                  <input type="text" id="smBulkDriver" class="field-input" placeholder="Leave blank to keep existing" autocomplete="off">
+                  <label class="field-label" for="smBulkAction">Action</label>
+                  <select id="smBulkAction" class="field-input">
+                    <option value="">Leave unchanged</option>
+                    <option>Replace driver</option>
+                    <option>Disciplinary action</option>
+                    <option>Noted</option>
+                  </select>
+                  <label class="field-label" for="smBulkStatus">Status</label>
+                  <select id="smBulkStatus" class="field-input">
+                    <option value="">Leave unchanged</option>
+                    <option>Ongoing</option>
+                    <option>Completed</option>
+                  </select>
+                </div>
+                <div class="sm-bulk-actions">
+                  <button type="button" class="btn btn-primary btn-sm" id="smBulkApply">Apply to group</button>
+                  <span class="sm-bulk-msg" id="smBulkMsg" hidden></span>
+                </div>
+              </div>
+              <div class="sm-detail-scroll">
+                <table class="imp-table detail-table" id="smDetailTable">
+                  <thead>
+                    <tr>
+                      <th>Start Time</th>
+                      <th>Alerts</th>
+                      <th>Driver</th>
+                      <th>Action</th>
+                      <th>Status</th>
+                      <th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="smDetailBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="imp-pagination" id="smPagination" hidden>
@@ -10199,7 +10290,265 @@ var NotificationSound = (function(){
     return '<span class="pill" data-variant="' + variant + '">' + esc(status) + '</span>';
   }
 
-  function rowHtml(r){
+  /* Sorted COPY of the current page, same reasoning as dmSortedItems():
+     the See-details button carries an index into the rendered array, so the
+     renderer and the click handler must resolve against the same object. */
+  var smSort = { key: null, dir: 'desc' };
+
+  function smSortedRows(rows){
+    if (!smSort.key) return rows;
+    var mul = smSort.dir === 'asc' ? 1 : -1;
+    var val = function(r){
+      switch (smSort.key) {
+        case 'total': return r.total ?? 0;
+        // MM/DD/YYYY sorts wrong as a string ("02/01" before "1/15"), so
+        // compare as a real date.
+        case 'shiftDate': return smDateKey(r.shiftDate);
+        default: return String(r[smSort.key] ?? '');
+      }
+    };
+    return rows.slice().sort(function(a, b){
+      var av = val(a), bv = val(b);
+      var cmp = (typeof av === 'number' && typeof bv === 'number')
+        ? av - bv : String(av).localeCompare(String(bv));
+      // Tie-break on the full group identity so equal values stay stable.
+      return (cmp * mul) ||
+        (a.assetId + a.eventCode).localeCompare(b.assetId + b.eventCode);
+    });
+  }
+
+  function smDateKey(mmddyyyy){
+    var p = String(mmddyyyy || '').split('/');
+    return p.length === 3 ? Number(p[2] + p[0].padStart(2,'0') + p[1].padStart(2,'0')) : 0;
+  }
+
+  /* ── Group details modal ───────────────────────────────────────────────
+     Opens every individual alert behind one Summary row. Two edit paths:
+     a bulk form that writes to the whole group, and per-row selects that
+     override single alerts. */
+  var smDetailModal = document.getElementById('smDetailModal');
+  var smDetailBody  = document.getElementById('smDetailBody');
+  var smDetailGroup = null;   // { shiftDate, shift, assetId, eventCode }
+  var smDetailRows  = [];
+
+  // dds_alert_group_details() takes a DATE, but the Summary row carries the
+  // display string MM/DD/YYYY. Converting here (not in SQL) keeps the RPC
+  // signature honest about what it wants.
+  function smToIsoDate(mmddyyyy){
+    var p = String(mmddyyyy || '').split('/');
+    if (p.length !== 3) return null;
+    return p[2] + '-' + p[0].padStart(2, '0') + '-' + p[1].padStart(2, '0');
+  }
+
+  function smDetailRowHtml(r){
+    var t = r.startTime ? String(r.startTime).slice(11, 16) : '—';
+    var sel = function(name, value, opts){
+      return '<select class="field-input field-input-sm" data-sm-field="' + name +
+        '" data-sm-id="' + esc(r.id) + '">' +
+        opts.map(function(o){
+          return '<option value="' + esc(o) + '"' + ((value || '') === o ? ' selected' : '') + '>' +
+                 esc(o || '—') + '</option>';
+        }).join('') + '</select>';
+    };
+    return '<tr>' +
+      '<td>' + esc(t) + '</td>' +
+      '<td>' + fmt.int(r.eventCount) + '</td>' +
+      '<td>' + esc(r.driver || '—') + '</td>' +
+      '<td>' + sel('actionType', r.actionType, ['', 'Replace driver', 'Disciplinary action', 'Noted']) + '</td>' +
+      '<td>' + sel('statusValue', r.statusValue, ['', 'Ongoing', 'Completed']) + '</td>' +
+      '<td>' + esc(r.remarks || '—') + '</td>' +
+      '</tr>';
+  }
+
+  function openSmDetail(row){
+    if (!smDetailModal) return;
+    smDetailGroup = {
+      shiftDate: smToIsoDate(row.shiftDate), shift: row.shift,
+      assetId: row.assetId, eventCode: row.eventCode
+    };
+    document.getElementById('smDetailTitle').textContent =
+      row.assetId + ' · ' + row.eventCode;
+    document.getElementById('smDetailSub').textContent =
+      row.shiftDate + ' · ' + (row.shift || '—') + ' shift · loading…';
+    smDetailBody.innerHTML = '';
+    smDetailModal.hidden = false;
+
+    Cloud.fetchAlertGroupDetails(smDetailGroup).then(function(res){
+      smDetailRows = res.rows || [];
+      document.getElementById('smDetailSub').textContent =
+        row.shiftDate + ' · ' + (row.shift || '—') + ' shift · ' +
+        fmt.int(res.rowCount) + ' alert' + (res.rowCount === 1 ? '' : 's') +
+        ' · ' + fmt.int(res.total) + ' total';
+      document.getElementById('smBulkCount').textContent = fmt.int(res.rowCount);
+      smDetailBody.innerHTML = smDetailRows.map(smDetailRowHtml).join('');
+    }).catch(function(err){
+      console.error('Group details failed', err);
+      document.getElementById('smDetailSub').textContent = 'Could not load details.';
+    });
+  }
+
+  function closeSmDetail(){
+    if (smDetailModal) smDetailModal.hidden = true;
+    smDetailGroup = null;
+    smDetailRows = [];
+    var msg = document.getElementById('smBulkMsg');
+    if (msg) msg.hidden = true;
+    ['smBulkDriver','smBulkAction','smBulkStatus'].forEach(function(id){
+      var el = document.getElementById(id); if (el) el.value = '';
+    });
+  }
+
+  /* Writes one alert_cases row per event. upsertAlertCases() conflicts on
+     event_id, so this creates a case where none exists and updates it where
+     one does. */
+  function smSaveCases(rows){
+    return Cloud.upsertAlertCases(rows);
+  }
+
+  /* BULK: apply only the fields the user actually filled in.
+     A blank field means "leave unchanged", NOT "clear it" — otherwise
+     setting a status on the group would blank every driver name and remark
+     someone had already entered per-alert. Each row's existing values are
+     the base, and only non-empty bulk fields overwrite them. This is what
+     makes bulk and per-row editing coexist safely. */
+  function smApplyBulk(){
+    if (!smDetailGroup || !smDetailRows.length) return;
+    var driver = document.getElementById('smBulkDriver').value.trim();
+    var action = document.getElementById('smBulkAction').value;
+    var status = document.getElementById('smBulkStatus').value;
+    var msg = document.getElementById('smBulkMsg');
+
+    if (!driver && !action && !status) {
+      msg.textContent = 'Fill at least one field to apply.';
+      msg.hidden = false;
+      return;
+    }
+
+    var payload = smDetailRows.map(function(r){
+      return {
+        eventId: r.id,
+        driverName:  driver || r.driver || '',
+        actionType:  action || r.actionType || '',
+        statusValue: status || r.statusValue || '',
+        remarks:     r.remarks || '',
+        actionIsOther: false, statusIsOther: false
+      };
+    });
+
+    var btn = document.getElementById('smBulkApply');
+    btn.disabled = true;
+    msg.hidden = true;
+    smSaveCases(payload).then(function(){
+      // Reflect the change locally so the table updates without a refetch.
+      smDetailRows = smDetailRows.map(function(r, i){
+        return Object.assign({}, r, {
+          driver: payload[i].driverName, actionType: payload[i].actionType,
+          statusValue: payload[i].statusValue
+        });
+      });
+      smDetailBody.innerHTML = smDetailRows.map(smDetailRowHtml).join('');
+      msg.textContent = 'Applied to ' + payload.length + ' alert' + (payload.length === 1 ? '' : 's') + '.';
+      msg.hidden = false;
+      announce('Applied to ' + payload.length + ' alerts');
+      reload();   // Action Status on the Summary row is derived from cases
+    }).catch(function(err){
+      console.error('Bulk apply failed', err);
+      msg.textContent = 'Could not apply. Try again.';
+      msg.hidden = false;
+    }).finally(function(){
+      btn.disabled = false;
+    });
+  }
+
+  /* PER-ROW: a single select change writes just that alert. Sends the row's
+     other current values alongside, since upsert replaces the whole row. */
+  function smSaveOne(eventId, fieldName, value){
+    var row = smDetailRows.find(function(r){ return String(r.id) === String(eventId); });
+    if (!row) return;
+    var next = Object.assign({}, row);
+    next[fieldName] = value;
+    smSaveCases([{
+      eventId: row.id,
+      driverName:  next.driver || '',
+      actionType:  next.actionType || '',
+      statusValue: next.statusValue || '',
+      remarks:     next.remarks || '',
+      actionIsOther: false, statusIsOther: false
+    }]).then(function(){
+      Object.assign(row, next);
+      announce('Alert updated');
+      reload();
+    }).catch(function(err){
+      console.error('Row save failed', err);
+      announce('Could not save that change', { assertive: true });
+    });
+  }
+
+  if (smDetailModal) {
+    document.getElementById('smDetailClose').addEventListener('click', closeSmDetail);
+    // Click the backdrop (not the panel) to dismiss, same as the other modals.
+    smDetailModal.addEventListener('click', function(e){
+      if (e.target === smDetailModal) closeSmDetail();
+    });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape' && !smDetailModal.hidden) closeSmDetail();
+    });
+    document.getElementById('smBulkApply').addEventListener('click', smApplyBulk);
+    // Delegated: the tbody is rewritten on every render, so per-select
+    // listeners would be lost each time.
+    smDetailBody.addEventListener('change', function(e){
+      var sel = e.target.closest('[data-sm-field]');
+      if (!sel) return;
+      smSaveOne(sel.getAttribute('data-sm-id'), sel.getAttribute('data-sm-field'), sel.value);
+    });
+  }
+
+  // See-details buttons — index resolves against the SORTED array, the same
+  // one render() drew from (see dmSortedItems for the identical trap).
+  tableBody.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-sm-detail]');
+    if (!btn) return;
+    var rows = smSortedRows(state.rows);
+    var row = rows[Number(btn.getAttribute('data-sm-detail'))];
+    if (row) openSmDetail(row);
+  });
+
+  // Sortable headers.
+  (function initSmSort(){
+    var thead = table.querySelector('thead');
+    if (!thead) return;
+    var apply = function(){
+      var ths = thead.querySelectorAll('th[data-sort]');
+      for (var i = 0; i < ths.length; i++){
+        var k = ths[i].getAttribute('data-sort');
+        if (k === smSort.key) ths[i].setAttribute('aria-sort', smSort.dir === 'asc' ? 'ascending' : 'descending');
+        else ths[i].removeAttribute('aria-sort');
+      }
+    };
+    thead.addEventListener('click', function(e){
+      var th = e.target.closest('th[data-sort]');
+      if (!th) return;
+      var key = th.getAttribute('data-sort');
+      if (smSort.key === key) smSort.dir = smSort.dir === 'asc' ? 'desc' : 'asc';
+      else { smSort.key = key; smSort.dir = (key === 'total' || key === 'shiftDate') ? 'desc' : 'asc'; }
+      apply();
+      render();
+    });
+    thead.addEventListener('keydown', function(e){
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var th = e.target.closest('th[data-sort]');
+      if (!th) return;
+      e.preventDefault();
+      th.click();
+    });
+    var ths = thead.querySelectorAll('th[data-sort]');
+    for (var i = 0; i < ths.length; i++){
+      ths[i].setAttribute('tabindex', '0');
+      ths[i].setAttribute('role', 'columnheader');
+    }
+  })();
+
+  function rowHtml(r, i){
     return '<tr>' +
       '<td>' + esc(r.shiftDate) + '</td>' +
       '<td>' + esc(r.shift || '—') + '</td>' +
@@ -10207,6 +10556,7 @@ var NotificationSound = (function(){
       '<td>' + esc(r.eventCode) + '</td>' +
       '<td>' + fmt.int(r.total) + '</td>' +
       '<td>' + statusPillHtml(r.actionStatus) + '</td>' +
+      '<td><button type="button" class="link-btn" data-sm-detail="' + i + '">See details</button></td>' +
       '</tr>';
   }
 
@@ -10234,7 +10584,7 @@ var NotificationSound = (function(){
 
     emptyEl.hidden = true;
     table.hidden = false;
-    tableBody.innerHTML = state.rows.map(rowHtml).join('');
+    tableBody.innerHTML = smSortedRows(state.rows).map(rowHtml).join('');
     countLabel.textContent = fmt.int(state.total) + ' record' + (state.total === 1 ? '' : 's');
 
     pagination.hidden = false;
