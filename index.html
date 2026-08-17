@@ -527,6 +527,27 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    the last column plus a little breathing room is what sets the row's
    actual minimum height now, not arbitrary whitespace. */
 #alTable thead th{padding:6px 12px}
+
+/* ═══ Sortable table headers ═══
+   Generic, keyed off data-sort, so every table (Alert Logs, Driver & Asset
+   Monitoring, Summary) gets the same affordance from one rule set rather
+   than three near-copies.
+
+   The arrow is a ::after glyph rather than an inline SVG so it costs no
+   markup and cannot be lost when a renderer rewrites innerHTML. It is
+   reserved at all times (transparent when inactive) so the header text does
+   not shift sideways the moment a column becomes sorted. */
+th[data-sort]{cursor:pointer; user-select:none; white-space:nowrap; position:relative}
+th[data-sort]:hover{color:var(--text)}
+th[data-sort]:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+th[data-sort]::after{
+  content:'\2195';           /* up-down arrow: sortable but not active */
+  margin-left:5px; font-size:.9em; color:transparent; transition:color .12s;
+}
+th[data-sort]:hover::after{color:var(--text-muted)}
+th[data-sort][aria-sort="ascending"]::after{content:'\2191'; color:var(--accent)}
+th[data-sort][aria-sort="descending"]::after{content:'\2193'; color:var(--accent)}
+th[data-sort][aria-sort]{color:var(--accent)}
 #alTable tbody td{padding:4px 12px}
 .imp-table tbody tr{box-shadow:inset 2px 0 0 transparent; transition:background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease)}
 .imp-table tbody tr:hover{background:var(--surface-sunken); box-shadow:inset 2px 0 0 var(--accent)}
@@ -2197,13 +2218,18 @@ body {
           </div>
           <table class="imp-table" id="dmTable" hidden>
             <thead>
+              <!-- data-sort keys map to fields on the consistency rows
+                   (derived.operatorConsistency / .assetConsistency), sorted
+                   client-side — unlike Alert Logs, this table is already
+                   fully in memory (one row per driver/unit, not per alert),
+                   so there is nothing to fetch. -->
               <tr>
-                <th id="dmColId">Driver</th>
-                <th>Alerts</th>
-                <th>Active Days</th>
-                <th>Alerts / Active Day</th>
-                <th>Status</th>
-                <th>Last Action</th>
+                <th id="dmColId" data-sort="id">Driver</th>
+                <th data-sort="total" aria-sort="descending">Alerts</th>
+                <th data-sort="activeDays">Active Days</th>
+                <th data-sort="consistencyRate">Alerts / Active Day</th>
+                <th data-sort="flagged">Status</th>
+                <th data-sort="lastAction">Last Action</th>
                 <th></th>
               </tr>
             </thead>
@@ -6439,9 +6465,46 @@ let dmDriverRows = [], dmUnitRows = [];
 let dmView = 'driver';                        // 'driver' | 'asset' — active tab
 let dmLatestActions = { driver: {}, asset: {} };  // entityId -> latest action, per type (see fetchLatestEntityActions)
 
+/* Sort state for the monitoring table. Default matches derive()'s own
+   flagged-first ordering (see withConsistency()), so an unsorted table looks
+   exactly as it did before sorting existed. */
+let dmSort = { key: null, dir: 'desc' };
+
+/* Sorted COPY, never an in-place sort of dmDriverRows/dmUnitRows: the
+   "See details" buttons carry an index into whatever array was rendered, so
+   the rendered order and the array the index resolves against must be the
+   same object. Returning a new array and rendering from it keeps that true
+   without mutating the source rows derive() handed us. */
+function dmSortedItems(items) {
+  if (!dmSort.key) return items;
+  const mul = dmSort.dir === 'asc' ? 1 : -1;
+  const val = it => {
+    switch (dmSort.key) {
+      case 'id':              return it.id ?? '';
+      case 'total':           return it.total ?? 0;
+      case 'activeDays':      return it.activeDays ?? 0;
+      case 'consistencyRate': return it.consistencyRate ?? 0;
+      // Sort by the flag itself, not the rendered label: "High" vs "Normal"
+      // happens to sort correctly alphabetically, but that is a coincidence
+      // of the current wording and would break the day someone renames it.
+      case 'flagged':         return it.flagged ? 1 : 0;
+      case 'lastAction':      return dmActionLabel((dmLatestActions[dmView] || {})[it.id]);
+      default:                return 0;
+    }
+  };
+  return items.slice().sort((a, b) => {
+    const av = val(a), bv = val(b);
+    const cmp = (typeof av === 'number' && typeof bv === 'number')
+      ? av - bv
+      : String(av).localeCompare(String(bv));
+    // Tie-break on id so equal values keep a stable, repeatable order.
+    return (cmp * mul) || String(a.id).localeCompare(String(b.id));
+  });
+}
+
 function dmRenderTable() {
   const noun = dmView === 'driver' ? 'driver' : 'unit';
-  const items = dmView === 'driver' ? dmDriverRows : dmUnitRows;
+  const items = dmSortedItems(dmView === 'driver' ? dmDriverRows : dmUnitRows);
   const latest = dmLatestActions[dmView] || {};
 
   const countEl = $('dmActiveCount'), tableEl = $('dmTable'),
@@ -6618,11 +6681,52 @@ Promise.resolve().then(() => {
   }
   function closeDmDetail() { modal.hidden = true; openItem = null; }
 
+  /* Sortable headers. Numeric columns open DESCENDING (biggest offender
+     first is the question this page exists to answer); text columns open
+     ascending. Clicking the active column flips it. */
+  (function initDmSort(){
+    const thead = document.querySelector('#dmTable thead');
+    if (!thead) return;
+    const TEXT_COLS = new Set(['id', 'lastAction']);
+    const apply = () => {
+      thead.querySelectorAll('th[data-sort]').forEach(th => {
+        const k = th.getAttribute('data-sort');
+        if (k === dmSort.key) th.setAttribute('aria-sort', dmSort.dir === 'asc' ? 'ascending' : 'descending');
+        else th.removeAttribute('aria-sort');
+      });
+    };
+    thead.addEventListener('click', e => {
+      const th = e.target.closest('th[data-sort]');
+      if (!th) return;
+      const key = th.getAttribute('data-sort');
+      if (dmSort.key === key) dmSort.dir = dmSort.dir === 'asc' ? 'desc' : 'asc';
+      else { dmSort.key = key; dmSort.dir = TEXT_COLS.has(key) ? 'asc' : 'desc'; }
+      apply();
+      dmRenderTable();
+    });
+    thead.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const th = e.target.closest('th[data-sort]');
+      if (!th) return;
+      e.preventDefault();
+      th.click();
+    });
+    thead.querySelectorAll('th[data-sort]').forEach(th => {
+      th.setAttribute('tabindex', '0');
+      th.setAttribute('role', 'columnheader');
+    });
+  })();
+
   document.getElementById('page-driver-monitoring')?.addEventListener('click', e => {
     const btn = e.target.closest('[data-dm-detail]');
     if (!btn) return;
     const idx = Number(btn.dataset.dmDetail);
-    const items = dmView === 'driver' ? dmDriverRows : dmUnitRows;
+    /* Must resolve against the SORTED array — the same one dmRenderTable()
+       rendered from. Reading the raw dmDriverRows/dmUnitRows here would open
+       whichever row happened to sit at that index BEFORE sorting, so every
+       "See details" click after a sort would show the wrong driver/unit
+       while looking entirely correct. */
+    const items = dmSortedItems(dmView === 'driver' ? dmDriverRows : dmUnitRows);
     const item = items[idx];
     if (item) openDmDetail(dmView, item);
   });
@@ -7261,14 +7365,33 @@ const Cloud = {
      rows to the client, same rule dds_metrics() already follows). Upsert is
      a plain client call (no RPC) since alert_cases has no generated columns
      to keep in sync, same as ingestFactor above. */
-  async fetchAlertLogs({ from, to, shift, status, search, limit = 75, offset = 0 } = {}){
+  async fetchAlertLogs({ from, to, shift, status, search, limit = 75, offset = 0,
+                         sort = 'start_time', dir = 'desc' } = {}){
+    /* sort/dir go to the server, never applied client-side: this table holds
+       84,401 rows and the client only ever has one 75-row page. Sorting that
+       page would reorder 75 arbitrary rows while looking like it sorted the
+       table — see 0016's header. The server whitelists the column name. */
     const { data, error } = await this.client.rpc('dds_alert_logs', {
       p_from: from ?? null, p_to: to ?? null, p_shift: shift ?? null,
       p_status: status ?? null, p_search: search || null,
-      p_limit: limit, p_offset: offset
+      p_limit: limit, p_offset: offset,
+      p_sort: sort, p_dir: dir
     });
     if (error) throw error;
     return data; // { total, rows: [...] }
+  },
+
+  /* Every individual alert behind one Summary group — see
+     dds_alert_group_details() in 0016. The Summary shows one row per
+     (shift_date, shift, asset_id, event_code) with only a total; this is
+     what the "See details" action opens. */
+  async fetchAlertGroupDetails({ shiftDate, shift, assetId, eventCode }){
+    const { data, error } = await this.client.rpc('dds_alert_group_details', {
+      p_shift_date: shiftDate, p_shift: shift,
+      p_asset_id: assetId, p_event_code: eventCode
+    });
+    if (error) throw error;
+    return data;
   },
 
   /* Summary page — one row per (shift_date, shift, asset_id, event_code),
@@ -8982,6 +9105,9 @@ var NotificationSound = (function(){
   var state = {
     offset: 0, total: 0, rows: [],
     from: null, to: null, search: '',
+    // Sort is server-side (see Cloud.fetchAlertLogs). Defaults match
+    // dds_alert_logs()'s own defaults so the first load and a reset agree.
+    sort: 'start_time', dir: 'desc',
     loaded: false
   };
   var drivers = [];   // [{id, name, employee_id}]
@@ -9159,7 +9285,32 @@ var NotificationSound = (function(){
       var q = state.search.toLowerCase();
       rows = rows.filter(function(r){ return searchHaystack(r).indexOf(q) !== -1; });
     }
-    rows.sort(function(a, b){ return (b.startTime || '').localeCompare(a.startTime || ''); });
+    /* Mirrors the server's ORDER BY (0016) so the same header click sorts
+       identically whether signed in or working from a local import. The
+       key map matches the whitelist dds_alert_logs() accepts; `driver`
+       reads driverOf() rather than driverName, because that is the value
+       the merged column actually shows. Ties break on id for the same
+       reason the server does it — a stable order across re-renders. */
+    var SORT_VALUE = {
+      start_time: function(r){ return r.startTime || ''; },
+      asset_id:   function(r){ return r.assetId || ''; },
+      event_code: function(r){ return r.eventCode || ''; },
+      shift:      function(r){ return r.shift || ''; },
+      driver:     function(r){ return driverOf(r); },
+      status:     function(r){ return r.statusValue || ''; },
+      action:     function(r){ return r.actionType || ''; }
+    };
+    var pick = SORT_VALUE[state.sort] || SORT_VALUE.start_time;
+    var mul = state.dir === 'asc' ? 1 : -1;
+    rows.sort(function(a, b){
+      var av = pick(a), bv = pick(b);
+      // Blanks always sort last regardless of direction, matching the
+      // server's `nulls last` — otherwise ascending would open with a wall
+      // of empty cells.
+      if (av === '' && bv !== '') return 1;
+      if (bv === '' && av !== '') return -1;
+      return (av.localeCompare(bv) * mul) || String(a.id).localeCompare(String(b.id));
+    });
 
     // Paginated client-side, same PAGE_SIZE/offset the server path uses —
     // a fleet-scale import (thousands of rows) rendered in one innerHTML
@@ -9248,7 +9399,8 @@ var NotificationSound = (function(){
     // p_search the same way it already does for asset/operator/event/driver.
     Cloud.fetchAlertLogs({
       from: state.from, to: state.to,
-      search: state.search, limit: PAGE_SIZE, offset: state.offset
+      search: state.search, limit: PAGE_SIZE, offset: state.offset,
+      sort: state.sort, dir: state.dir
     }).then(function(result){
       state.total = result.total || 0;
       state.rows = result.rows || [];
@@ -9267,6 +9419,58 @@ var NotificationSound = (function(){
   function reload(){
     state.offset = 0;
     if (localMode()) loadLocal(); else loadPage();
+  }
+
+  /* ── Sorting ─────────────────────────────────────────────────────────────
+     Delegated off the <thead> rather than bound per-<th>: the header markup
+     is static, but binding once here means adding a data-sort column later
+     needs no JS change.
+
+     Clicking a new column starts it descending for time (newest first is
+     what anyone wants from a timestamp) and ascending for text (A-Z).
+     Clicking the active column flips direction. Sorting always returns to
+     page 1 — staying on page 40 of a freshly reordered table shows rows
+     with no relationship to what was on screen a moment ago. */
+  function applySortIndicators(){
+    var ths = table.querySelectorAll('thead th[data-sort]');
+    for (var i = 0; i < ths.length; i++){
+      var key = ths[i].getAttribute('data-sort');
+      if (key === state.sort) ths[i].setAttribute('aria-sort', state.dir === 'asc' ? 'ascending' : 'descending');
+      else ths[i].removeAttribute('aria-sort');
+    }
+  }
+
+  function initAlertSort(){
+    var thead = table.querySelector('thead');
+    if (!thead) return;
+    thead.addEventListener('click', function(e){
+      var th = e.target.closest('th[data-sort]');
+      if (!th) return;
+      var key = th.getAttribute('data-sort');
+      if (state.sort === key) {
+        state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.sort = key;
+        state.dir = key === 'start_time' ? 'desc' : 'asc';
+      }
+      state.offset = 0;
+      applySortIndicators();
+      if (localMode()) loadLocal(); else loadPage();
+    });
+    // Keyboard parity: a sortable header must be operable without a mouse.
+    thead.addEventListener('keydown', function(e){
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var th = e.target.closest('th[data-sort]');
+      if (!th) return;
+      e.preventDefault();
+      th.click();
+    });
+    var ths = thead.querySelectorAll('th[data-sort]');
+    for (var i = 0; i < ths.length; i++){
+      ths[i].setAttribute('tabindex', '0');
+      ths[i].setAttribute('role', 'columnheader');
+    }
+    applySortIndicators();
   }
 
   /* ── Filters ─────────────────────────────────────────────────────────── */
@@ -9952,6 +10156,10 @@ var NotificationSound = (function(){
   emptyEl.hidden = true;
   table.hidden = true;
   pagination.hidden = true;
+
+  // Header markup is static, so this binds once at script load — unlike the
+  // data-dependent renders above, it has nothing to wait for.
+  initAlertSort();
 })();
 
 /* ═══════════════════════ SUMMARY ═══════════════════════
