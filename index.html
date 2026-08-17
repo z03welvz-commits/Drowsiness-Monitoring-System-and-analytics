@@ -1932,14 +1932,22 @@ body {
           </div>
           <table class="imp-table" id="alTable" hidden>
             <thead>
+              <!-- Operator and Driver were two columns for the same person:
+                   OPERATOR came from the imported file, Driver was the
+                   reviewer's entry on the alert case. They are merged into
+                   one Driver column here (reviewer's entry wins — see
+                   driverOf()), because two columns that are usually
+                   identical and occasionally disagree is a reporting trap,
+                   not extra information.
+                   data-sort marks a column as sortable; the key is the field
+                   name dds_alert_logs() orders by (see initAlertSort()). -->
               <tr>
                 <th style="width:32px"><input type="checkbox" id="alSelectAll" aria-label="Select all rows on this page"></th>
-                <th>Start Time</th>
-                <th>Asset</th>
-                <th>Event Code</th>
-                <th>Operator</th>
-                <th>Shift</th>
-                <th>Driver</th>
+                <th data-sort="start_time" aria-sort="descending">Start Time</th>
+                <th data-sort="asset_id">Asset</th>
+                <th data-sort="event_code">Event Code</th>
+                <th data-sort="shift">Shift</th>
+                <th data-sort="driver">Driver</th>
                 <th>Action</th>
                 <th>Status</th>
                 <th>Remarks</th>
@@ -3131,9 +3139,33 @@ function shiftWindow(shift, shiftDate) {
         end:   atTime(addDays(shiftDate, 1), NIGHT_WINDOW.end) };
 }
 
+/* Column aliases. Real exports label the person behind the wheel
+   inconsistently — OPERATOR, DRIVER, "Driver Name" — and all of them mean
+   the same field here. Matching only the canonical name silently dropped
+   the column, which is how an import can look successful while every
+   Operator/Driver cell reads "—".
+
+   Keys are the canonical name used everywhere else in the code; values are
+   the accepted spellings, compared upper-cased and whitespace-trimmed (so
+   "driver name" and " Driver_Name " both match). Underscores and spaces are
+   normalised to a single space before comparison. */
+const COLUMN_ALIASES = {
+  OPERATOR: ['OPERATOR', 'DRIVER', 'DRIVER NAME', 'DRIVERNAME', 'OPERATOR NAME']
+};
+
+const normalizeHeader = k => String(k).trim().toUpperCase().replace(/[_\s]+/g, ' ');
+
 const field = (row, col) => {
   if (row[col] !== undefined) return row[col];
-  const k = Object.keys(row).find(k => k.trim().toUpperCase() === col);
+  const accepted = COLUMN_ALIASES[col];
+  const keys = Object.keys(row);
+  if (accepted) {
+    for (const k of keys) {
+      if (accepted.includes(normalizeHeader(k))) return row[k];
+    }
+    return undefined;
+  }
+  const k = keys.find(k => normalizeHeader(k) === col);
   return k ? row[k] : undefined;
 };
 const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
@@ -7768,8 +7800,17 @@ const App = {
   checkHeader(rows){
     const required = EXPECTED_COLUMNS.filter(c => !OPTIONAL_COLUMNS.includes(c));
     if (!rows || !rows.length) return { ok:false, missing: required.slice() };
-    const present = new Set(Object.keys(rows[0]).map(k => k.trim().toUpperCase()));
-    const missing = required.filter(c => !present.has(c));
+    /* Uses the SAME normaliser and alias table as field() above. These two
+       must agree: if checkHeader accepts a header spelling that field()
+       cannot resolve, the import passes validation and then reads undefined
+       for every row of that column — a silent all-blank column rather than
+       an error. Sharing normalizeHeader()/COLUMN_ALIASES is what keeps that
+       impossible. */
+    const present = new Set(Object.keys(rows[0]).map(normalizeHeader));
+    const missing = required.filter(col => {
+      const accepted = COLUMN_ALIASES[col] ?? [col];
+      return !accepted.some(a => present.has(a));
+    });
     return { ok: missing.length === 0, missing };
   },
 
@@ -8980,6 +9021,26 @@ var NotificationSound = (function(){
     return s.length > n ? s.slice(0, n - 1) + '…' : s;
   }
 
+  /* THE ONE PLACE the Operator/Driver merge rule lives.
+     Two fields describe the same person: `operator` arrives with the
+     imported file, `driverName` is typed by a reviewer onto the alert case.
+     They used to occupy separate columns, which meant a row could show two
+     different names for one seat with nothing explaining which was right.
+
+     Reviewer's entry WINS. A human looked at this alert and corrected the
+     name; a later re-import of the same file must never silently undo that.
+     The imported operator is the fallback for the (common) case where
+     nobody has reviewed the row yet.
+
+     Every consumer — the table, search, export, the edit modal — must go
+     through this, or the merge rule forks and the columns disagree again. */
+  function driverOf(row){
+    var reviewed = row.driverName && String(row.driverName).trim();
+    if (reviewed) return reviewed;
+    var imported = row.operator && String(row.operator).trim();
+    return imported || '';
+  }
+
   function rowHtml(row){
     // row.id is server-numeric normally, but a synthetic ASSET_ID|EVENT_CODE|
     // timestamp string in local mode (see syntheticId()) — ASSET_ID/EVENT_CODE
@@ -8993,9 +9054,8 @@ var NotificationSound = (function(){
       '<td>' + esc(fmtTime(row.startTime)) + '</td>' +
       '<td>' + esc(row.assetId) + '</td>' +
       '<td>' + esc(row.eventCode) + '</td>' +
-      '<td>' + esc(row.operator || '—') + '</td>' +
       '<td>' + esc(row.shift || '—') + '</td>' +
-      '<td>' + esc(row.driverName || '—') + '</td>' +
+      '<td>' + esc(driverOf(row) || '—') + '</td>' +
       '<td>' + esc(row.actionType || '—') + '</td>' +
       '<td>' + statusPill(row) + '</td>' +
       '<td title="' + esc(row.remarks || '') + '">' + esc(truncate(row.remarks, 40) || '—') + '</td>' +
@@ -9842,12 +9902,15 @@ var NotificationSound = (function(){
   }
   exportBtn.addEventListener('click', function(){
     if (!state.rows.length){ announce('Nothing to export', { assertive: true }); return; }
-    var header = ['Start Time', 'Asset', 'Event Code', 'Operator', 'Shift', 'Driver', 'Action', 'Status', 'Remarks'];
+    /* One Driver column, matching what the table shows (driverOf()'s merge
+       rule). Exporting Operator and Driver separately would hand out a file
+       whose columns disagree with the screen it was exported from. */
+    var header = ['Start Time', 'Asset', 'Event Code', 'Shift', 'Driver', 'Action', 'Status', 'Remarks'];
     var lines = [header.map(csvCellLocal).join(',')];
     state.rows.forEach(function(r){
       lines.push([
-        fmtTime(r.startTime), r.assetId, r.eventCode, r.operator || '', r.shift || '',
-        r.driverName || '', r.actionType || '', r.statusValue || '', r.remarks || ''
+        fmtTime(r.startTime), r.assetId, r.eventCode, r.shift || '',
+        driverOf(r), r.actionType || '', r.statusValue || '', r.remarks || ''
       ].map(csvCellLocal).join(','));
     });
     var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
