@@ -712,10 +712,15 @@ th[data-sort][aria-sort]{color:var(--accent)}
    full-page scroll a strong stripe reads as noise once dozens of rows are on
    screen at once.
 
-   ORDER MATTERS. These sit BEFORE :hover and the selected-row rule so both
-   still win at equal specificity — a striped row must still highlight on
-   hover, and a checked row must stay visibly checked regardless of whether
-   it landed on an odd or even index. */
+   WHAT KEEPS HOVER AND SELECTION ON TOP. Two different mechanisms, worth
+   being precise about since they fail differently:
+     - :hover — same specificity (0,2,2) as this rule, so it wins purely on
+       SOURCE ORDER. Moving the stripe below it would silently kill the
+       hover highlight on every even row.
+     - selected — `#alTable tbody tr[data-selected="true"]` carries an id
+       (1,1,2) and so outranks this regardless of order.
+   Both verified in-browser: an even row still highlights on hover, and a
+   checked row keeps its accent background. */
 .imp-table tbody tr:nth-child(even){background:rgba(27,58,107,.022)}
 
 .imp-table tbody tr:hover{background:var(--surface-sunken); box-shadow:inset 2px 0 0 var(--accent)}
