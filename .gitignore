@@ -7,3 +7,4 @@ node_modules/
 # Local tooling artifacts — not part of the app, shouldn't ship to Pages.
 .claude/
 .playwright-mcp/
+__*.html
