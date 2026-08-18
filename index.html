@@ -361,6 +361,46 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .dm-action-meta{font-size:var(--fs-xs); color:var(--text-muted)}
 .dm-action-remarks{margin-top:var(--sp-1); font-size:var(--fs-xs); color:var(--text-sec); line-height:var(--lh-loose)}
 .dm-action-empty{font-size:var(--fs-sm); color:var(--text-muted); padding:var(--sp-2) 0}
+
+/* ═══ High-Alert Days column ═══
+   The ratio the High flag is actually computed from. It was already in
+   derived (highDayRatio) but never rendered, so the Status pill asserted
+   "High" with nothing on screen to justify it. Showing the percentage AND
+   the raw counts matters: "62%" alone is unfalsifiable, "62% · 93/150" can
+   be checked against the day list in the modal. */
+.dm-hdr-cell{display:flex;flex-direction:column;gap:1px;line-height:1.25}
+.dm-hdr-pct{font-weight:650;font-variant-numeric:tabular-nums;color:var(--text-sec)}
+/* Over half its active days breached -- the condition for the flag itself,
+   so the number carries the same warning colour as the pill it explains. */
+.dm-hdr-pct[data-high="true"]{color:var(--warning-text)}
+.dm-hdr-sub{font-size:var(--fs-2xs);color:var(--text-muted);font-variant-numeric:tabular-nums}
+
+/* ═══ Daily alert history (detail modal) ═══
+   A scannable list of every active day, with the over-threshold ones marked.
+   Bars are scaled to the entity's OWN worst day, not a fleet maximum -- a
+   low-volume unit's pattern is the point, and a shared scale would flatten
+   it into unreadable slivers. */
+.dm-day-wrap{display:flex;flex-direction:column;gap:2px;max-height:260px;overflow-y:auto;
+             border:1px solid var(--border-light);border-radius:var(--r-md);padding:var(--sp-2)}
+.dm-day{display:grid;grid-template-columns:74px 1fr 46px 38px;align-items:center;gap:var(--sp-2);
+        padding:3px var(--sp-2);border-radius:var(--r-sm);
+        transition:background var(--dur-fast) var(--ease)}
+.dm-day:hover{background:var(--surface-sunken)}
+/* Three simultaneous cues on a breaching day (tint, filled bar, tag) so the
+   pattern reads by scanning rather than by comparing numbers. */
+.dm-day[data-high="true"]{background:var(--warning-bg)}
+.dm-day[data-high="true"]:hover{background:var(--warning-bg);filter:brightness(.97)}
+.dm-day-date{font-size:var(--fs-2xs);color:var(--text-sec);font-variant-numeric:tabular-nums}
+.dm-day-bar{height:6px;background:var(--border-light);border-radius:100px;overflow:hidden}
+.dm-day-bar i{display:block;height:100%;background:var(--text-muted);border-radius:100px}
+.dm-day[data-high="true"] .dm-day-bar i{background:var(--warning-text)}
+.dm-day-units{font-size:var(--fs-xs);font-weight:650;text-align:right;font-variant-numeric:tabular-nums}
+.dm-day-tag{font-size:var(--fs-2xs);font-weight:650;color:var(--warning-text);text-align:right}
+
+.dm-day-legend{display:flex;gap:var(--sp-3);font-weight:400}
+.dm-day-key{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-2xs);color:var(--text-muted)}
+.dm-day-swatch{width:8px;height:8px;border-radius:2px;background:var(--border);display:inline-block}
+.dm-day-swatch[data-high="true"]{background:var(--warning-text)}
 /* #dmActionSubmit is a .btn (display:inline-flex) living outside <form
    id="dmActionForm"> (it references it via the form="" attribute instead,
    so it can sit in .detail-actions alongside Close) — its own [hidden]
@@ -2451,6 +2491,7 @@ body {
                 <th data-sort="total" aria-sort="descending">Alerts</th>
                 <th data-sort="activeDays">Active Days</th>
                 <th data-sort="consistencyRate">Alerts / Active Day</th>
+                <th data-sort="highDayRatio">High-Alert Days</th>
                 <th data-sort="flagged">Status</th>
                 <th data-sort="lastAction">Last Action</th>
                 <th></th>
@@ -2485,6 +2526,23 @@ body {
           <!-- Only present for flagged rows — see renderDmDetail(); a
                Normal-status driver/unit has nothing to explain. -->
           <p id="dmDetailExplain" style="margin:0;font-size:var(--fs-sm);color:var(--text);line-height:var(--lh-loose)" hidden></p>
+
+          <!-- Daily alert breakdown — the days the High flag is actually
+               computed from. The flag asserts "33 of 37 active days were over
+               threshold"; without this the reviewer has to take that on
+               faith. Days over threshold are highlighted, so the pattern
+               (clustered vs scattered) is visible at a glance rather than
+               inferred from a percentage. Filled by renderDayBreakdown(). -->
+          <div>
+            <div class="field-label" style="margin-bottom:var(--sp-2);display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)">
+              <span>Daily alert history</span>
+              <span id="dmDayLegend" class="dm-day-legend" hidden>
+                <span class="dm-day-key"><i class="dm-day-swatch" data-high="true"></i>Over threshold</span>
+                <span class="dm-day-key"><i class="dm-day-swatch"></i>Normal</span>
+              </span>
+            </div>
+            <div id="dmDayBreakdown" class="dm-day-wrap"></div>
+          </div>
 
           <!-- Action history — newest first, both Monitoring-added actions
                and ones mirrored automatically from an Alert Logs case save
@@ -6843,6 +6901,7 @@ function dmSortedItems(items) {
       case 'total':           return it.total ?? 0;
       case 'activeDays':      return it.activeDays ?? 0;
       case 'consistencyRate': return it.consistencyRate ?? 0;
+      case 'highDayRatio':    return it.highDayRatio ?? 0;
       // Sort by the flag itself, not the rendered label: "High" vs "Normal"
       // happens to sort correctly alphabetically, but that is a coincidence
       // of the current wording and would break the day someone renames it.
@@ -6892,6 +6951,7 @@ function dmRenderTable() {
       <td>${fmt.int(it.total)}</td>
       <td>${fmt.int(it.activeDays)}</td>
       <td>${it.consistencyRate.toFixed(2)}</td>
+      <td class="dm-hdr-cell"><span class="dm-hdr-pct" data-high="${it.highDayRatio > 50}">${Math.round(it.highDayRatio)}%</span><span class="dm-hdr-sub">${fmt.int(it.highDays)}/${fmt.int(it.activeDays)}</span></td>
       <td><span class="pill" data-variant="${status.variant}">${status.label}</span></td>
       <td>${esc(dmActionLabel(action))}</td>
       <td>
@@ -6997,6 +7057,42 @@ Promise.resolve().then(() => {
     }).join('');
   }
 
+  /* Renders the day-by-day alert history for the open driver/unit.
+     Days over HIGH_DAY_THRESHOLD are marked three ways at once — a filled
+     bar, a warm tint and a "High" tag — because the point of this list is
+     that the flagged days should be findable by scanning, not by reading
+     every number. The bar is scaled to the entity's own worst day rather
+     than a fleet-wide max, so a low-volume unit's pattern is still legible.
+
+     Read-only: this explains an existing verdict, it does not edit one. */
+  function renderDayBreakdown(data) {
+    const host = document.getElementById('dmDayBreakdown');
+    const legend = document.getElementById('dmDayLegend');
+    if (!host) return;
+
+    const days = (data && data.days) || [];
+    if (!days.length) {
+      if (legend) legend.hidden = true;
+      host.innerHTML = '<div class="dm-action-empty">No alert days in the current range.</div>';
+      return;
+    }
+    if (legend) legend.hidden = false;
+
+    // Scale bars to this entity's worst day; a shared fleet max would flatten
+    // every low-volume unit into an unreadable sliver.
+    const worst = Math.max(data.worstDay || 0, 1);
+
+    host.innerHTML = days.map(d => {
+      const pct = Math.max(2, Math.round((d.units / worst) * 100));
+      return '<div class="dm-day" data-high="' + (d.high ? 'true' : 'false') + '">' +
+        '<span class="dm-day-date">' + esc(d.date) + '</span>' +
+        '<span class="dm-day-bar"><i style="width:' + pct + '%"></i></span>' +
+        '<span class="dm-day-units">' + fmt.int(d.units) + '</span>' +
+        (d.high ? '<span class="dm-day-tag">High</span>' : '<span class="dm-day-tag" aria-hidden="true"></span>') +
+        '</div>';
+    }).join('');
+  }
+
   async function openDmDetail(noun, item) {
     openItem = { noun, item };
     titleEl.textContent = item.id;
@@ -7020,8 +7116,36 @@ Promise.resolve().then(() => {
     remarksInput.value = ''; errorEl.hidden = true;
 
     historyEl.innerHTML = `<div class="dm-action-empty">Loading…</div>`;
+
+    /* Day breakdown loads alongside the action history. Signed-out users see
+       a reason rather than an empty box: this reads public.events, which RLS
+       blocks without a session, so it genuinely cannot render. */
+    const dayHost = document.getElementById('dmDayBreakdown');
+    const dayLegend = document.getElementById('dmDayLegend');
+    if (dayHost) {
+      dayHost.innerHTML = (typeof Cloud !== 'undefined' && Cloud.session)
+        ? '<div class="dm-action-empty">Loading…</div>'
+        : '<div class="dm-action-empty">Sign in to view the daily alert history.</div>';
+      if (dayLegend) dayLegend.hidden = true;
+    }
     modal.hidden = false;
     closeBtn.focus();
+
+    if (typeof Cloud !== 'undefined' && Cloud.session) {
+      const entityTypeForDays = noun === 'driver' ? 'driver' : 'asset';
+      Cloud.fetchEntityDayBreakdown(entityTypeForDays, item.id, HIGH_DAY_THRESHOLD)
+        .then(function(data){
+          // Guard against a stale response landing after the user moved on
+          // to another row - same check the action history uses.
+          if (openItem && openItem.item === item) renderDayBreakdown(data);
+        })
+        .catch(function(err){
+          console.error('Day breakdown failed', err);
+          if (openItem && openItem.item === item && dayHost) {
+            dayHost.innerHTML = '<div class="dm-action-empty">Could not load daily history.</div>';
+          }
+        });
+    }
 
     if (typeof Cloud !== 'undefined' && Cloud.session) {
       try {
@@ -7744,6 +7868,18 @@ const Cloud = {
      dds_alert_group_details() in 0016. The Summary shows one row per
      (shift_date, shift, asset_id, event_code) with only a total; this is
      what the "See details" action opens. */
+  /* Per-day alert totals for one driver/unit — the days behind the High
+     flag. See dds_entity_day_breakdown() in 0017. The threshold is passed
+     from the client constant rather than relying on the SQL default, so the
+     modal and the table row can never disagree about which days are "high". */
+  async fetchEntityDayBreakdown(entityType, entityId, threshold){
+    const { data, error } = await this.client.rpc('dds_entity_day_breakdown', {
+      p_entity_type: entityType, p_entity_id: entityId, p_threshold: threshold
+    });
+    if (error) throw error;
+    return data;
+  },
+
   async fetchAlertGroupDetails({ shiftDate, shift, assetId, eventCode }){
     const { data, error } = await this.client.rpc('dds_alert_group_details', {
       p_shift_date: shiftDate, p_shift: shift,
