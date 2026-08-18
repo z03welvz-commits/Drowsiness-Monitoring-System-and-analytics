@@ -1962,7 +1962,7 @@ body {
 
     <!-- ═══════════════════════ ALERT LOGS ═══════════════════════
          Reads public.events left-joined with public.alert_cases via the
-         dds_alert_logs() RPC (0005_alert_cases.sql) — server-imported rows
+         dds_alert_logs() RPC (alert_cases: live-only, no migration file) — server-imported rows
          only, paginated server-side (see DDS_SCALING_PLAN.md; no client-side
          row cap exists elsewhere in this app, so this page owns its own).
          Requires sign-in; no local-only fallback (case data lives only in
@@ -5905,6 +5905,20 @@ function describePage(pageName, derived, root = document) {
 }
 
 /** One call to wire everything. Returns the store unsubscribe fn. */
+/* DEAD IN index.html — never called. Kept only because src/dds-a11y.js
+   still exports it as that module's public entry point, and deleting it
+   here would make the inlined copy diverge from its source file.
+
+   It is superseded, not missing a wire-up: boot calls applyStatic()
+   directly, and the main store.subscribe() in the BOOT section already does
+   everything the subscriber below does — paint() calls describePage(), and
+   the "Loaded N records" announce is duplicated there. Calling this as well
+   would double-announce every load to screen readers.
+
+   The one behaviour here with no equivalent is the unreadable-timestamp
+   warning and the loading/error announcements. If those are wanted, fold
+   them into the main subscriber rather than reviving this function, or the
+   duplicate announcements come back with them. */
 function initA11y(store, getActivePage) {
   applyStatic();
   let lastStatus = null;
@@ -6226,10 +6240,29 @@ function initControls(store, { onRefresh } = {}) {
      as Alert Logs' #alDateFrom/#alDateTo. Replaced the old preset dropdown
      (Today/Last 7/14/30 shift days) so any single day or custom range is
      directly pickable instead of only four canned windows. */
+  /* SCOPED to the pages whose data actually comes from this store.
+     .al-date-range is shared markup used by five pages, but they split into
+     two groups:
+
+       STORE-DRIVEN — Overview, Analytics and Driver & Asset Monitoring all
+       render from `derived`, so their date pickers belong here.
+
+       SELF-FETCHING — Alert Logs and Summary each hold their own
+       state.from/state.to and call their own reload(), fetching a page of
+       rows server-side.
+
+     Binding this generic handler to the self-fetching pages double-fired
+     every change: the page's own handler ran AND this one called
+     store.setFilters(), which re-derives the dashboard and repaints every
+     Overview/Analytics chart from a date the user picked on an unrelated
+     page. The dashboard silently changed date range because someone
+     filtered the Alert Logs table. */
+  const STORE_DATE_INPUTS = ['ovDateFrom', 'anDateFrom', 'dmDateFrom'];
   document.querySelectorAll('.al-date-range').forEach(range => {
     const fromInput = range.querySelector('input[id$="DateFrom"]');
     const toInput = range.querySelector('input[id$="DateTo"]');
     if (!fromInput || !toInput) return;
+    if (!STORE_DATE_INPUTS.includes(fromInput.id)) return;
 
     fromInput.addEventListener('change', () => {
       store.setFilters({ from: dateInputToFilter(fromInput.value) });
@@ -7535,7 +7568,7 @@ const Cloud = {
     return data.id;
   },
 
-  /* Alert Logs — see 0005_alert_cases.sql. dds_alert_logs() left-joins
+  /* Alert Logs — see alert_cases: live-only, no migration file. dds_alert_logs() left-joins
      events to alert_cases and paginates server-side (never send unbounded
      rows to the client, same rule dds_metrics() already follows). Upsert is
      a plain client call (no RPC) since alert_cases has no generated columns
@@ -9247,7 +9280,7 @@ var NotificationSound = (function(){
 })();
 
 /* ═══════════════════════ ALERT LOGS ═══════════════════════
-   Server-only (no local/offline mode — see 0005_alert_cases.sql): reads
+   Server-only (no local/offline mode — see alert_cases: live-only, no migration file): reads
    public.events left-joined with public.alert_cases via the dds_alert_logs()
    RPC, paginated server-side. Nothing here touches annotate()/derive()/the
    charts; this is a row-level case-management view, same "outside the

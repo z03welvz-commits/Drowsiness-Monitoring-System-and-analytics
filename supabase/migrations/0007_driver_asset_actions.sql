@@ -4,7 +4,7 @@
 -- Action HISTORY for the Driver & Asset Monitoring page, keyed by driver name
 -- or asset/unit ID rather than by a single alert row — a driver/unit flagged
 -- High there is an aggregate across many alerts, so there is no one event_id
--- to attach an action to the way alert_cases (0005_alert_cases.sql) does.
+-- to attach an action to the way alert_cases (applied live; not checked in) does.
 --
 -- APPEND-ONLY, unlike alert_cases: alert_cases is "current state, overwrite
 -- on edit" (see its own comment in index.html). This table is the opposite —
