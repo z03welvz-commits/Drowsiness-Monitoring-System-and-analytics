@@ -4259,37 +4259,10 @@ function createStore(initial = createState()) {
 
     setFilters(patch) {
       const filters = { ...state.filters, ...patch };
-
-      /* SIGNED-IN MODE HAS NO LOCAL ROWS. loadFromServer() stores the derived
-         object with an EMPTY row array (store._setRows([], cur)) because the
-         aggregation happened in Postgres -- the browser never receives rows.
-         Re-deriving from state.rows therefore produced rowCount 0 and blanked
-         the whole dashboard the moment any filter changed: picking a date
-         range showed "No data yet" even when the range was full of data.
-
-         The filters must still be recorded (loadFromServer reads
-         state.filters to build its query), but the derived object is left
-         alone and the SERVER re-queried instead. In local-import mode there
-         is no binding and re-deriving from rows is exactly right. */
-      if (this._isServerMode && this._isServerMode()) {
-        state = { ...state, filters };
-        emit();
-        if (this._onFilterChange) this._onFilterChange(filters);
-        return;
-      }
-
       const derived = derive(state.rows, filters);
       derived.comparison = compare(state.rows, filters);
       state = { ...state, filters, derived };
       emit();
-    },
-
-    /* Wired at boot so the store can distinguish the two data paths without
-       importing Cloud -- that would couple this module to auth and break
-       parity.sh, which imports dds-state.js standalone. */
-    _bindServerMode(isServer, onFilterChange) {
-      this._isServerMode = isServer;
-      this._onFilterChange = onFilterChange;
     }
   };
 }
@@ -7160,10 +7133,7 @@ Promise.resolve().then(() => {
 
     if (typeof Cloud !== 'undefined' && Cloud.session) {
       const entityTypeForDays = noun === 'driver' ? 'driver' : 'asset';
-      (function(){ const af = store.get().filters || {};
-        // Same date range the row was computed under -- an unfiltered day
-        // list beside a filtered row would show days the row never counted.
-        return Cloud.fetchEntityDayBreakdown(entityTypeForDays, item.id, HIGH_DAY_THRESHOLD, af.from, af.to); })()
+      Cloud.fetchEntityDayBreakdown(entityTypeForDays, item.id, HIGH_DAY_THRESHOLD)
         .then(function(data){
           // Guard against a stale response landing after the user moved on
           // to another row - same check the action history uses.
@@ -7902,10 +7872,9 @@ const Cloud = {
      flag. See dds_entity_day_breakdown() in 0017. The threshold is passed
      from the client constant rather than relying on the SQL default, so the
      modal and the table row can never disagree about which days are "high". */
-  async fetchEntityDayBreakdown(entityType, entityId, threshold, from, to){
+  async fetchEntityDayBreakdown(entityType, entityId, threshold){
     const { data, error } = await this.client.rpc('dds_entity_day_breakdown', {
-      p_entity_type: entityType, p_entity_id: entityId, p_threshold: threshold,
-      p_from: from ?? null, p_to: to ?? null
+      p_entity_type: entityType, p_entity_id: entityId, p_threshold: threshold
     });
     if (error) throw error;
     return data;
@@ -8278,7 +8247,7 @@ const Auth = {
   // Logs case edits and Contributing Factors save to Supabase (via
   // Cloud.session) instead of the in-memory local-mode fallback. Set back
   // to true only to pull the topbar button during a future sign-in rework.
-  DISABLED: false,
+  DISABLED: true,
 
   mount(){
     if (this.DISABLED) return;
@@ -11730,25 +11699,6 @@ if (!Auth.DISABLED) {
 initControls(store, {
   onRefresh: () => Cloud.session ? App.loadFromServer() : App.refresh()
 });
-
-/* Tell the store which data path is live, so setFilters() knows whether it
-   can re-derive locally or must re-query the server.
-
-   Debounced: the two date inputs fire a change each, so a from/to pair
-   picked in quick succession would otherwise launch two full server loads
-   (up to six dds_metrics round-trips apiece), the first immediately
-   obsolete. 250ms is below the point a filter feels laggy but comfortably
-   groups a from+to pair. */
-(function bindStoreMode(){
-  var t = null;
-  store._bindServerMode(
-    function(){ return !!(typeof Cloud !== 'undefined' && Cloud.session); },
-    function(){
-      clearTimeout(t);
-      t = setTimeout(function(){ App.loadFromServer(); }, 250);
-    }
-  );
-})();
 
 /* Both hourly charts get the same clickable month legend. Bound once here —
    the containers are static markup; only their contents are re-rendered by
