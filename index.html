@@ -84,6 +84,78 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .main[data-page="data-mgmt"]{overflow-y:auto}
 .main[data-page="settings"]{overflow:hidden}
 
+/* ═══ ONE SCROLL on table pages ═══
+   These pages used a NESTED scroll: .main was locked at 100vh/overflow:hidden
+   and .imp-table-wrap scrolled inside it. That produced two scrollbars and
+   the usual confusion that comes with them — the wheel scrolls the inner box
+   until it bottoms out, then nothing moves, and the page's own header and
+   pagination sat outside the scrolling region so the table felt boxed in.
+
+   Now the PAGE scrolls and the table participates in it: one scrollbar, the
+   whole page moves together, and the sticky <thead> pins to the viewport
+   instead of to an inner container. .imp-table-wrap keeps overflow-x for wide
+   tables but gives up its vertical scroll (see the override below).
+
+   Note this is one scroll per PAGE of rows, not over all 84,401 — Alert Logs
+   still paginates at 75. Rendering every row in one scroll means ~84,000 <tr>
+   (roughly 3-5 GB of DOM), the exact failure DDS_SCALING_PLAN.md warns about;
+   that needs virtualization, not a CSS change. */
+.main[data-page="alert-logs"],
+.main[data-page="driver-monitoring"],
+.main[data-page="summary"]{overflow-y:auto}
+
+/* The page section must size to its content rather than being squeezed to
+   the viewport, or the table is clipped instead of extending the page. */
+.main[data-page="alert-logs"] .page,
+.main[data-page="driver-monitoring"] .page,
+.main[data-page="summary"] .page{flex:0 0 auto; min-height:0}
+
+/* .card is display:flex/min-height:0 and would otherwise compress the table;
+   on these pages it grows with its rows instead. */
+.main[data-page="alert-logs"] .page > .card,
+.main[data-page="driver-monitoring"] .page > .card,
+.main[data-page="summary"] .page > .card{flex:0 0 auto; overflow:visible}
+
+/* Vertical scrolling handed back to the page.
+
+   overflow MUST be `visible` on BOTH axes here, not `overflow-x:auto`. CSS
+   forces a computed value of `auto` on the other axis the moment one axis is
+   set to auto/scroll — `overflow-x:auto; overflow-y:visible` computes to
+   `auto/auto`. That leaves this div a scroll container, which then captures
+   position:sticky: the <thead> pins to THIS box instead of the viewport and
+   scrolls out of sight with the page. Verified in-browser — the header sat
+   at -164px while the page scrolled.
+
+   Losing horizontal scroll here is acceptable: these tables size to the
+   viewport, and on a narrow screen the page's own horizontal scroll takes
+   over. A table that genuinely needs its own x-scroll would need a wrapper
+   that is not also the sticky ancestor. */
+.main[data-page="alert-logs"] .imp-table-wrap,
+.main[data-page="driver-monitoring"] .imp-table-wrap,
+.main[data-page="summary"] .imp-table-wrap{
+  flex:0 0 auto; overflow:visible; min-height:0;
+}
+
+/* The sticky header now pins against the PAGE scroll. Without a raised
+   z-index it is painted under the rows it is supposed to cover, and without
+   an opaque background (the base rule uses a gradient, which is fine, but it
+   must not be transparent) the rows show through as they pass beneath it.
+
+   top:-12px cancels .main's 12px padding. With top:0 the header pins 12px
+   BELOW the scroll container's edge, leaving a 12px band where rows scroll
+   past in full view above it — caught in a screenshot after the numbers
+   alone said the header was "stuck" at 12px. The negative offset pulls it
+   flush so nothing passes above it.
+
+   The ::after strip covers the same 12px of padding, which is outside the
+   <th> box and so cannot be painted by its own background. */
+.main[data-page="alert-logs"] .imp-table thead th,
+.main[data-page="driver-monitoring"] .imp-table thead th,
+.main[data-page="summary"] .imp-table thead th{
+  top:-12px; z-index:3; background:#F8FAFF;
+  box-shadow:0 -12px 0 #F8FAFF, 0 1px 0 var(--border);
+}
+
 .page{display:flex; flex-direction:column; gap:10px; flex:1; min-height:0}
 .page[hidden]{display:none}
 
@@ -620,6 +692,24 @@ th[data-sort][aria-sort]{color:var(--accent)}
 }
 #alTable tbody td{padding:4px 12px}
 .imp-table tbody tr{box-shadow:inset 2px 0 0 transparent; transition:background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease)}
+
+/* ═══ Zebra striping ═══
+   Ten narrow columns of short values (times, unit IDs, one-word statuses)
+   make it easy to slip a row while tracking left to right. A banded
+   background gives the eye a rail to follow without adding rules between
+   every column, which would fight the existing row borders.
+
+   Deliberately very low contrast: this is a background hint, not a visible
+   grid. It must not compete with the status pills or the accent bar, and at
+   full-page scroll a strong stripe reads as noise once dozens of rows are on
+   screen at once.
+
+   ORDER MATTERS. These sit BEFORE :hover and the selected-row rule so both
+   still win at equal specificity — a striped row must still highlight on
+   hover, and a checked row must stay visibly checked regardless of whether
+   it landed on an odd or even index. */
+.imp-table tbody tr:nth-child(even){background:rgba(27,58,107,.022)}
+
 .imp-table tbody tr:hover{background:var(--surface-sunken); box-shadow:inset 2px 0 0 var(--accent)}
 .imp-file{display:flex; align-items:center; gap:9px; min-width:0}
 .imp-file-icon{width:26px;height:26px;border-radius:var(--r-md);background:var(--decor-1-bg);color:var(--decor-1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
