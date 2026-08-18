@@ -167,13 +167,19 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .page{display:flex; flex-direction:column; gap:10px; flex:1; min-height:0}
 .page[hidden]{display:none}
 
-.topbar{background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border:0.5px solid rgba(27,58,107,.08); border-radius:var(--r-xl); box-shadow:0 1px 8px rgba(27,58,107,.06); padding:10px 16px; display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0; position:relative; z-index:10}
+.topbar{background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border:0.5px solid rgba(27,58,107,.08); border-radius:var(--r-xl); box-shadow:var(--shadow-1); padding:10px 16px; display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0; position:relative; z-index:10}
 .topbar-title{font-size:var(--fs-2xl);font-weight:700;color:var(--navy);letter-spacing:-.01em}
 .topbar-sub{font-size:var(--fs-xs);color:var(--text-sec);margin-top:2px}
 .hcontrols{display:flex;align-items:center;gap:8px}
 .cpill{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px;font-size:var(--fs-xs);font-weight:500;color:var(--text)}
 .cpill svg{width:10px;height:10px;color:var(--text-sec)}
-.btn{border:none;border-radius:var(--r-md);padding:7px 14px;font-size:var(--fs-xs);font-weight:500;display:inline-flex;align-items:center;gap:6px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));box-shadow:0 2px 8px rgba(24,95,165,.25)}
+.btn{border:none;border-radius:var(--r-md);padding:7px 14px;font-size:var(--fs-xs);font-weight:500;display:inline-flex;align-items:center;gap:6px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));box-shadow:var(--shadow-1);cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease)}
+/* Interactivity: a primary action should acknowledge the cursor and the
+   click. Lift on hover, settle on press -- the press state is what most
+   dashboards forget, and its absence is why buttons feel dead. */
+.btn:hover{box-shadow:var(--shadow-2);filter:brightness(1.06)}
+.btn:active{transform:translateY(1px);box-shadow:var(--shadow-1);filter:brightness(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:none;box-shadow:none}
 .btn svg{width:11px;height:11px}
 
 /* ═══ KPI cards ═══
@@ -182,8 +188,29 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    as considered restraint, not extra color on every tile. Status/identity
    per card comes from the icon chip and the thin left accent bar alone. */
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex-shrink:0}
-.kpi{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--r-2xl);padding:14px 16px;box-shadow:0 1px 2px rgba(27,58,107,.05);position:relative;overflow:hidden;height:80px;display:flex;flex-direction:column;justify-content:center;transition:box-shadow var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
-.kpi:hover{box-shadow:0 4px 16px rgba(27,58,107,.09);border-color:var(--border)}
+.kpi{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--r-2xl);padding:14px 16px;box-shadow:var(--shadow-1);position:relative;overflow:hidden;height:80px;display:flex;flex-direction:column;justify-content:center;transition:box-shadow var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease)}
+.kpi:hover{box-shadow:var(--shadow-2);border-color:var(--border);transform:translateY(-1px)}
+
+/* ═══ Interactivity polish ═══
+   Three gaps this closes, all of them things you feel rather than see:
+
+   1. CHART CARDS had no hover state at all, so a card containing a
+      clickable legend looked identical to a static one. A hairline border
+      shift is enough to say 'this responds' without competing with the KPI
+      row above it.
+   2. LIST ROWS (top units, event codes) are the densest thing on Overview
+      and had no cursor affordance.
+   3. The KPI's new 1px rise must be suppressed under prefers-reduced-motion
+      -- a transform is exactly the kind of movement that rule exists for.
+      Colour and shadow still change, so the state is never lost, only the
+      motion. */
+
+
+@media (prefers-reduced-motion:reduce){
+  .kpi:hover{transform:none}
+  .btn:active{transform:none}
+}
+
 .kpi::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;opacity:.85}
 .kpi-alerts::before{background:var(--amber)}
 .page[data-page-id="overview"] .kpi-units::before{background:var(--teal)}
@@ -194,13 +221,17 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .kpi-icon{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center}
 .kpi-icon svg{width:12px;height:12px}
 .kpi-label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-label);font-weight:600}
-.kpi-val{font-size:var(--fs-3xl);font-weight:700;color:var(--text);line-height:1.25;margin:4px 0 1px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.kpi-val{font-size:var(--fs-3xl);font-weight:700;color:var(--text);line-height:1.15;margin:4px 0 1px;letter-spacing:-.025em;font-variant-numeric:tabular-nums;font-feature-settings:"ss01","cv01"}
 
 /* ═══ card shell ═══ */
 /* Border added alongside the shadow: with the page background now flat
    white (was a gray gradient), a shadow alone was too faint to separate a
    white card from a white page — the border is what actually reads now. */
-.card{background:#fff;border:1px solid var(--border-light);border-radius:var(--r-2xl);box-shadow:0 2px 10px rgba(27,58,107,.07);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.card{background:#fff;border:1px solid var(--border-light);border-radius:var(--r-2xl);box-shadow:var(--shadow-2);overflow:hidden;display:flex;flex-direction:column;min-height:0;transition:border-color var(--dur-fast) var(--ease)}
+/* Chart cards had no hover state, so a card holding a clickable legend
+   looked identical to a static one. A hairline border shift says "this
+   responds" without competing with the KPI row above. */
+.card:hover{border-color:var(--border)}
 .card-head{padding:10px 16px;background:linear-gradient(90deg,#F8FAFF,#fff);border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .card-head h2{font-size:var(--fs-md);font-weight:600;color:var(--navy);display:flex;align-items:center;gap:7px}
 .card-head h2::before{content:'';display:inline-block;width:3px;height:12px;background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px}
@@ -222,7 +253,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .legend-item-toggle{
   border:none; background:none; padding:2px 0; margin:0;
   font-family:inherit; cursor:pointer;
-  transition:opacity .12s, color .12s;
+  transition:opacity var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 .legend-item-toggle:hover{color:var(--text)}
 .legend-item-toggle:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
@@ -469,7 +500,9 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    tooltip node can't live inside .ev-list or it would be wiped out on the
    next repaint, so it sits beside it in this relative-positioned wrapper. */
 .ev-list-wrap{position:relative;display:flex;flex-direction:column;flex:1;min-height:0}
-.ev-row{display:grid;grid-template-columns:76px 1fr 64px;align-items:center;gap:9px}
+.ev-row{display:grid;grid-template-columns:76px 1fr 64px;align-items:center;gap:9px;border-radius:var(--r-sm);transition:background var(--dur-fast) var(--ease)}
+/* Densest rows on Overview and previously inert to the cursor. */
+.ev-row:hover{background:var(--surface-sunken)}
 .ev-label{font-size:var(--fs-sm);color:var(--text);font-weight:500}
 .ev-track{height:5px;border-radius:3px;background:var(--border-light);overflow:hidden}
 .ev-fill{height:100%;border-radius:3px;background:var(--accent)}
@@ -539,7 +572,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .akpi-note .ic-xs{flex-shrink:0;color:var(--warning-text);margin-top:1px}
 
 /* ═══ Data Management page ═══ */
-.dz{border:1.5px dashed var(--blue-200); border-radius:var(--r-2xl); background:linear-gradient(135deg,#fff 60%,var(--blue-50) 100%); padding:32px 24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; flex-shrink:0}
+.dz{border:1.5px dashed var(--blue-200); border-radius:var(--r-2xl); background:linear-gradient(135deg,#fff 60%,var(--blue-50) 100%); padding:32px 24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; cursor:pointer; transition:border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); flex-shrink:0}
 .dz:hover,.dz.dz-drag{border-color:var(--blue); background:linear-gradient(135deg,#fff 40%,var(--blue-50) 100%)}
 .dz-icon{width:40px;height:40px;border-radius:var(--r-lg);background:var(--blue-50);display:flex;align-items:center;justify-content:center;color:var(--blue)}
 .dz-icon svg{width:19px;height:19px}
@@ -560,7 +593,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    already reads from. Counts recompute on every render(), so a tab can never
    disagree with the row count beneath it. */
 .imp-tabs{display:flex; align-items:center; gap:4px; padding:10px 16px; border-bottom:1px solid var(--divider); flex-shrink:0; flex-wrap:wrap}
-.imp-tab{display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:none; background:none; border-radius:var(--r-lg); font-size:var(--fs-xs); font-weight:600; color:var(--text-sec); cursor:pointer; white-space:nowrap; transition:background .12s,color .12s}
+.imp-tab{display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:none; background:none; border-radius:var(--r-lg); font-size:var(--fs-xs); font-weight:600; color:var(--text-sec); cursor:pointer; white-space:nowrap; transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
 .imp-tab:hover{background:var(--surface-sunken); color:var(--text)}
 .imp-tab[aria-selected="true"]{background:var(--accent-bg); color:var(--accent)}
 .imp-tab-count{display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:8px; background:var(--border-light); color:var(--text-sec); font-size:var(--fs-2xs); font-weight:700; font-variant-numeric:tabular-nums}
@@ -573,7 +606,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    next to genuine problems — fade it back to neutral regardless of tone. */
 .imp-tab-count[data-zero="true"]{background:var(--border-light) !important; color:var(--text-muted) !important}
 
-.imp-search{margin-left:auto; display:flex; align-items:center; gap:6px; padding:7px 11px; border:1px solid var(--border); border-radius:var(--r-lg); background:var(--surface); min-width:180px; transition:border-color .12s}
+.imp-search{margin-left:auto; display:flex; align-items:center; gap:6px; padding:7px 11px; border:1px solid var(--border); border-radius:var(--r-lg); background:var(--surface); min-width:180px; transition:border-color var(--dur-fast) var(--ease)}
 .imp-search:focus-within{border-color:var(--accent); box-shadow:var(--shadow-focus)}
 .imp-search svg{width:13px; height:13px; color:var(--text-muted); flex-shrink:0}
 .imp-search input{border:none; outline:none; background:none; font-size:var(--fs-sm); font-family:inherit; color:var(--text); width:100%}
@@ -673,7 +706,7 @@ th[data-sort]:hover{color:var(--text)}
 th[data-sort]:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
 th[data-sort]::after{
   content:'\2195';           /* up-down arrow: sortable but not active */
-  margin-left:5px; font-size:.9em; color:transparent; transition:color .12s;
+  margin-left:5px; font-size:.9em; color:transparent; transition:color var(--dur-fast) var(--ease);
 }
 th[data-sort]:hover::after{color:var(--text-muted)}
 th[data-sort][aria-sort="ascending"]::after{content:'\2191'; color:var(--accent)}
@@ -811,7 +844,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .btn-outline{border:1px solid var(--border); border-radius:var(--r-md); padding:7px 14px; font-size:var(--fs-xs); font-weight:500; background:#fff; color:var(--text-sec)}
 .btn-sm{padding:7px 14px; font-size:var(--fs-xs)}
 
-.saved-pill{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:600; color:var(--success); background:var(--success-bg); border-radius:var(--r-full); padding:3px 10px; opacity:0; transition:opacity .2s}
+.saved-pill{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:600; color:var(--success); background:var(--success-bg); border-radius:var(--r-full); padding:3px 10px; opacity:0; transition:opacity var(--dur-base) var(--ease)}
 .saved-pill.show{opacity:1}
 .saved-pill svg{width:9px;height:9px}
 
@@ -823,8 +856,8 @@ th[data-sort][aria-sort]{color:var(--accent)}
 
 .toggle{position:relative; width:34px; height:19px; flex-shrink:0}
 .toggle input{opacity:0; width:0; height:0; position:absolute}
-.toggle-track{position:absolute; inset:0; background:var(--border); border-radius:var(--r-full); cursor:pointer; transition:background .15s}
-.toggle-track::before{content:''; position:absolute; width:15px; height:15px; left:2px; top:2px; background:#fff; border-radius:50%; transition:transform .15s; box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-track{position:absolute; inset:0; background:var(--border); border-radius:var(--r-full); cursor:pointer; transition:background var(--dur-fast) var(--ease)}
+.toggle-track::before{content:''; position:absolute; width:15px; height:15px; left:2px; top:2px; background:#fff; border-radius:50%; transition:transform var(--dur-fast) var(--ease); box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .toggle input:checked + .toggle-track{background:var(--success)}
 .toggle input:checked + .toggle-track::before{transform:translateX(15px)}
 
@@ -1117,7 +1150,7 @@ body:not(.has-painted)[data-status="loading"] .chart-body {
    without hiding what is on screen. */
 body.has-painted[data-status="loading"] .card {
   opacity: .72;
-  transition: opacity .18s ease;
+  transition: opacity var(--dur-base) var(--ease);
 }
 
 .btn[data-loading="true"] { position: relative; color: transparent; }
@@ -1644,7 +1677,7 @@ body {
               <input type="date" id="ovDateTo" aria-label="To date">
             </label>
           </div>
-          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
           <!-- "All Assets" pill removed: no asset/site column exists in
                EXPECTED_COLUMNS to filter by, so it never had a real dropdown
                behind it (initControls()'s .cpill text-matcher has no 'asset'
@@ -1664,7 +1697,7 @@ body {
       <div class="kpi-row" id="ovKpiRow">
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
+            <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
             <div class="kpi-label">Total Alerts</div>
           </div>
           <span class="kpi-val">—</span>
@@ -1675,7 +1708,7 @@ body {
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--ov-sev-sleep-bg);color:var(--ov-sev-sleep)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg></div>
+            <div class="kpi-icon" style="background:var(--ov-sev-sleep-bg);color:var(--ov-sev-sleep)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg></div>
             <div class="kpi-label">Sleep Alerts</div>
           </div>
           <span class="kpi-val">—</span>
@@ -1686,7 +1719,7 @@ body {
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--ov-sev-drowsy-bg);color:var(--ov-sev-drowsy)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></div>
+            <div class="kpi-icon" style="background:var(--ov-sev-drowsy-bg);color:var(--ov-sev-drowsy)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></div>
             <div class="kpi-label">Drowsiness Alerts</div>
           </div>
           <span class="kpi-val">—</span>
@@ -1697,7 +1730,7 @@ body {
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+            <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
             <div class="kpi-label">Drivers Involved</div>
           </div>
           <span class="kpi-val">—</span>
@@ -1708,7 +1741,7 @@ body {
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--teal-50);color:var(--teal)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.3a4 4 0 0 0-.9-2.5l-1.9-2.3a2 2 0 0 0-1.5-.7H14v8.8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
+            <div class="kpi-icon" style="background:var(--teal-50);color:var(--teal)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.3a4 4 0 0 0-.9-2.5l-1.9-2.3a2 2 0 0 0-1.5-.7H14v8.8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
             <div class="kpi-label">Assets Reporting</div>
           </div>
           <span class="kpi-val">—</span>
@@ -1867,7 +1900,7 @@ body {
               <input type="date" id="anDateTo" aria-label="To date">
             </label>
           </div>
-          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
           <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Export</button>
         </div>
       </div>
@@ -1883,7 +1916,7 @@ body {
       <div class="kpi-row" id="anKpiRow">
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
+            <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
             <div class="kpi-label">Total Alerts</div>
           </div>
           <span class="kpi-val">—</span>
@@ -1894,7 +1927,7 @@ body {
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--teal-50);color:var(--teal)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.3a4 4 0 0 0-.9-2.5l-1.9-2.3a2 2 0 0 0-1.5-.7H14v8.8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
+            <div class="kpi-icon" style="background:var(--teal-50);color:var(--teal)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.3a4 4 0 0 0-.9-2.5l-1.9-2.3a2 2 0 0 0-1.5-.7H14v8.8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
             <div class="kpi-label">Equipment</div>
           </div>
           <span class="kpi-val">—</span>
@@ -1905,7 +1938,7 @@ body {
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+            <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
             <div class="kpi-label">Drivers Involved</div>
           </div>
           <span class="kpi-val">—</span>
@@ -1916,7 +1949,7 @@ body {
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></div>
+            <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></div>
             <div class="kpi-label">Avg Sync Delay</div>
           </div>
           <span class="kpi-val">—</span>
@@ -1927,7 +1960,7 @@ body {
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--purple-50);color:var(--purple)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><path d="m9 11 3 3L22 4"/></svg></div>
+            <div class="kpi-icon" style="background:var(--purple-50);color:var(--purple)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><path d="m9 11 3 3L22 4"/></svg></div>
             <div class="kpi-label">Actionable Alerts</div>
           </div>
           <span class="kpi-val">—</span>
@@ -2134,11 +2167,11 @@ body {
 
         <div class="imp-table-wrap" id="alTableWrap">
           <div class="imp-empty" id="alSignedOutEmpty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="9" r="4"/><path d="M8 21a4 4 0 0 1 8 0"/><path d="M2 12a10 10 0 0 1 3-7M22 12a10 10 0 0 0-3-7"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="4"/><path d="M8 21a4 4 0 0 1 8 0"/><path d="M2 12a10 10 0 0 1 3-7M22 12a10 10 0 0 0-3-7"/></svg>
             <div class="imp-empty-text">Sign in to view Alert Logs — case data (driver, action, status, remarks) is stored centrally and only visible when signed in.</div>
           </div>
           <div class="imp-empty" id="alEmpty" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
             <div class="imp-empty-text" id="alEmptyText">No alerts match the current filters.</div>
           </div>
           <table class="imp-table" id="alTable" hidden>
@@ -2188,7 +2221,7 @@ body {
               <p class="detail-sub" id="alertCaseSub"></p>
             </div>
             <button type="button" class="detail-close" id="alertCaseClose" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <form id="alertCaseForm" style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;padding-right:2px">
@@ -2248,7 +2281,7 @@ body {
               <p class="detail-sub" id="alertBulkCaseSub"></p>
             </div>
             <button type="button" class="detail-close" id="alertBulkCaseClose" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <div class="field-hint" style="margin:-4px 0 4px">Only fields you change here are applied — anything left as "Don't change" keeps each alert's own value.</div>
@@ -2300,7 +2333,7 @@ body {
               <p class="detail-sub">Replaces the current driver list. Expects a "Name" column and an optional "Employee ID" column.</p>
             </div>
             <button type="button" class="detail-close" id="rosterUploadClose" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <div class="dz" id="rosterDropZone" style="margin:0">
@@ -2352,7 +2385,7 @@ body {
               <input type="date" id="dmDateTo" aria-label="To date">
             </label>
           </div>
-          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
         </div>
       </div>
 
@@ -2361,22 +2394,22 @@ body {
            overwrites the four .kpi-val nodes wholesale on first real render. -->
       <div class="kpi-row" id="dmKpiRow">
         <div class="kpi">
-          <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
           <div class="kpi-label">Drivers Tracked</div>
           <span class="kpi-val" id="dmKpiDrivers">—</span>
         </div>
         <div class="kpi">
-          <div class="kpi-icon" style="background:var(--teal-50);color:var(--teal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.3a4 4 0 0 0-.9-2.5l-1.9-2.3a2 2 0 0 0-1.5-.7H14v8.8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
+          <div class="kpi-icon" style="background:var(--teal-50);color:var(--teal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.3a4 4 0 0 0-.9-2.5l-1.9-2.3a2 2 0 0 0-1.5-.7H14v8.8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
           <div class="kpi-label">Units Tracked</div>
           <span class="kpi-val" id="dmKpiUnits">—</span>
         </div>
         <div class="kpi">
-          <div class="kpi-icon" style="background:var(--danger-bg);color:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
+          <div class="kpi-icon" style="background:var(--danger-bg);color:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
           <div class="kpi-label">Need Attention</div>
           <span class="kpi-val" id="dmKpiFlagged">—</span>
         </div>
         <div class="kpi">
-          <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></div>
+          <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></div>
           <div class="kpi-label">Avg Alerts / Active Day</div>
           <span class="kpi-val" id="dmKpiAvgRate">—</span>
         </div>
@@ -2403,7 +2436,7 @@ body {
         </div>
         <div class="imp-table-wrap">
           <div class="imp-empty" id="dmEmpty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
             <div class="imp-empty-text" id="dmEmptyText">No driver data in range — OPERATOR wasn't captured on these rows, or nothing is imported yet.</div>
           </div>
           <table class="imp-table" id="dmTable" hidden>
@@ -2445,7 +2478,7 @@ body {
             <p class="detail-sub" id="dmDetailSub"></p>
           </div>
           <button type="button" class="detail-close" id="dmDetailClose" aria-label="Close">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
         <div class="detail-body" style="padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-4)">
@@ -2530,10 +2563,10 @@ body {
                matcher's text-sniffing entirely, so a label like "Unit"
                can never be misread as "shift"/"area" and get silently
                claimed by the wrong handler. -->
-          <div class="cpill" id="smShiftPill" data-filter="summary-shift">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
-          <div class="cpill" id="smUnitPill" data-filter="summary-unit">All Units <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
-          <div class="cpill" id="smEventCodePill" data-filter="summary-event-code">All Event Codes <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
-          <div class="cpill" id="smStatusPill" data-filter="summary-status">All Statuses <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill" id="smShiftPill" data-filter="summary-shift">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill" id="smUnitPill" data-filter="summary-unit">All Units <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill" id="smEventCodePill" data-filter="summary-event-code">All Event Codes <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill" id="smStatusPill" data-filter="summary-status">All Statuses <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
         </div>
       </div>
 
@@ -2544,11 +2577,11 @@ body {
         </div>
         <div class="imp-table-wrap">
           <div class="imp-empty" id="smSignedOutEmpty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="9" r="4"/><path d="M8 21a4 4 0 0 1 8 0"/><path d="M2 12a10 10 0 0 1 3-7M22 12a10 10 0 0 0-3-7"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="4"/><path d="M8 21a4 4 0 0 1 8 0"/><path d="M2 12a10 10 0 0 1 3-7M22 12a10 10 0 0 0-3-7"/></svg>
             <div class="imp-empty-text">Sign in to view the Summary — this table is computed from centrally-stored alert cases and only available when signed in.</div>
           </div>
           <div class="imp-empty" id="smEmpty" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
             <div class="imp-empty-text" id="smEmptyText">No alerts match the current filters.</div>
           </div>
           <table class="imp-table" id="smTable" hidden>
@@ -2591,7 +2624,7 @@ body {
                 <p class="detail-sub" id="smDetailSub"></p>
               </div>
               <button type="button" class="detail-close" id="smDetailClose" aria-label="Close">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
             <div class="detail-body" style="padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-4);min-height:0">
@@ -2724,11 +2757,11 @@ body {
 
         <div class="imp-table-wrap" id="importTableWrap">
           <div class="imp-empty" id="importEmpty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
             <div class="imp-empty-text">No files imported yet — drop an Excel or CSV file above to get started.</div>
           </div>
           <div class="imp-empty" id="importViewEmpty" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
             <div class="imp-empty-text" id="importViewEmptyText">Nothing in this view.</div>
           </div>
           <table class="imp-table" id="importTable" hidden>
@@ -2764,7 +2797,7 @@ body {
         </div>
         <div class="imp-table-wrap" id="factorTableWrap">
           <div class="imp-empty" id="factorEmpty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
             <div class="imp-empty-text">No contributing factors logged yet — record power interruptions, weather conditions, or other context that might explain alert activity.</div>
           </div>
           <table class="imp-table" id="factorTable" hidden>
@@ -2793,7 +2826,7 @@ body {
               <p class="detail-sub">Record a condition or context that may explain alert activity. Times are UTC.</p>
             </div>
             <button type="button" class="detail-close" id="factorClose" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <form id="factorForm" style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;padding-right:2px">
@@ -2844,7 +2877,7 @@ body {
               <p class="detail-sub" id="rejectsSub"></p>
             </div>
             <button type="button" class="detail-close" id="rejectsClose" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <div class="detail-body">
@@ -2882,7 +2915,7 @@ body {
               <p class="detail-sub">Enter a single alert event by hand. All times are UTC.</p>
             </div>
             <button type="button" class="detail-close" id="manualClose" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <form id="manualForm" style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;padding-right:2px">
@@ -2941,7 +2974,7 @@ body {
               <p class="detail-sub" id="clearDataSub">This removes every imported file and manually added record from this browser. Overview, Analytics, and Alert Logs will show no data until you import again.</p>
             </div>
             <button type="button" class="detail-close" id="clearDataClose" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
           <div class="detail-actions">
@@ -2962,7 +2995,7 @@ body {
           <div class="topbar-sub">Account details, alert sounds, and user access</div>
         </div>
         <div class="hcontrols">
-          <span class="saved-pill" id="settingsSavedPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Saved</span>
+          <span class="saved-pill" id="settingsSavedPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Saved</span>
         </div>
       </div>
 
@@ -6546,7 +6579,7 @@ const ICON = {
 
 const svg = (name, cls = 'ic') =>
   `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
         aria-hidden="true" focusable="false">${ICON[name] ?? ''}</svg>`;
 
 const METRIC_ICON = {
@@ -8417,9 +8450,9 @@ var NotificationSound = (function(){
   }
 
   function statusBadge(status){
-    if (status === 'success') return '<span class="badge badge-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Imported</span>';
-    if (status === 'error')   return '<span class="badge badge-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>Failed</span>';
-    if (status === 'warn')    return '<span class="badge badge-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>Imported with issues</span>';
+    if (status === 'success') return '<span class="badge badge-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Imported</span>';
+    if (status === 'error')   return '<span class="badge badge-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>Failed</span>';
+    if (status === 'warn')    return '<span class="badge badge-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>Imported with issues</span>';
     return '<span class="badge badge-pending">Processing…</span>';
   }
 
@@ -8443,7 +8476,7 @@ var NotificationSound = (function(){
 
   function driveMarkup(rec){
     if (rec.driveStatus === 'ok') {
-      return '<span class="imp-drive drive-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Backed up</span>';
+      return '<span class="imp-drive drive-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Backed up</span>';
     }
     return '<span class="imp-drive drive-pending"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Pending upload</span>';
   }
@@ -8454,7 +8487,7 @@ var NotificationSound = (function(){
   // signed out is correct behavior, not a failure state.
   function dbMarkup(rec){
     if (rec.dbStatus === 'ok') {
-      return '<span class="imp-db db-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Synced</span>';
+      return '<span class="imp-db db-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Synced</span>';
     }
     if (rec.dbStatus === 'syncing') {
       // Real percentage once the chunked upload reports one (see
@@ -8465,7 +8498,7 @@ var NotificationSound = (function(){
       return '<span class="imp-db db-syncing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>' + pctLabel + '</span>';
     }
     if (rec.dbStatus === 'error') {
-      return '<span class="imp-db db-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>' + esc(rec.dbError || 'Sync failed') +
+      return '<span class="imp-db db-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' + esc(rec.dbError || 'Sync failed') +
         ' <button type="button" class="imp-db-retry" data-retry-sync="' + esc(rec.id) + '">Retry</button></span>';
     }
     return '<span class="imp-db db-pending">Local only</span>';
@@ -9201,13 +9234,13 @@ var NotificationSound = (function(){
 
   function dbMarkup(rec){
     if (rec.dbStatus === 'ok') {
-      return '<span class="imp-db db-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Synced</span>';
+      return '<span class="imp-db db-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Synced</span>';
     }
     if (rec.dbStatus === 'syncing') {
       return '<span class="imp-db db-syncing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Syncing…</span>';
     }
     if (rec.dbStatus === 'error') {
-      return '<span class="imp-db db-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>' + esc(rec.dbError || 'Sync failed') +
+      return '<span class="imp-db db-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' + esc(rec.dbError || 'Sync failed') +
         ' <button type="button" class="imp-db-retry" data-retry-factor="' + esc(rec.id) + '">Retry</button></span>';
     }
     return '<span class="imp-db db-pending">Local only</span>';
