@@ -147,11 +147,19 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    alone said the header was "stuck" at 12px. The negative offset pulls it
    flush so nothing passes above it.
 
-   The ::after strip covers the same 12px of padding, which is outside the
-   <th> box and so cannot be painted by its own background. */
-.main[data-page="alert-logs"] .imp-table thead th,
-.main[data-page="driver-monitoring"] .imp-table thead th,
-.main[data-page="summary"] .imp-table thead th{
+   The box-shadow strip covers that same 12px of padding, which lies outside
+   the <th> box and so cannot be painted by its own background.
+
+   SCOPED TO .imp-table-wrap, not to any .imp-table on the page. The Summary
+   detail modal's table also carries .imp-table (class="imp-table
+   detail-table"), so a bare `.main[data-page="summary"] .imp-table thead th`
+   matched it too, outranking .detail-table's own styling. Inside the modal
+   there is no 12px page padding to cancel, so top:-12px clipped the header
+   and rows scrolled through the gap. The wrap ancestor is what distinguishes
+   a page table from a modal one. */
+.main[data-page="alert-logs"] .imp-table-wrap .imp-table thead th,
+.main[data-page="driver-monitoring"] .imp-table-wrap .imp-table thead th,
+.main[data-page="summary"] .imp-table-wrap .imp-table thead th{
   top:-12px; z-index:3; background:#F8FAFF;
   box-shadow:0 -12px 0 #F8FAFF, 0 1px 0 var(--border);
 }
@@ -1291,6 +1299,21 @@ body {
   /* Touch targets: 28px icon buttons fail the 44px minimum on touch. */
   .icon-btn, .btn { min-height: 44px; }
   .imp-table, .um-table { display: block; overflow-x: auto; }
+
+  /* ...but NOT on the pages converted to a single page scroll. `display:block
+     + overflow-x:auto` makes the table its own scroll container, and CSS then
+     forces overflow-y to compute as auto too — the same axis-coupling that
+     broke the header on desktop. That container captures position:sticky, so
+     the thead pins to the table instead of the viewport and scrolls fully off
+     (measured at y=-312), losing sticky headers on exactly the small screens
+     where a scrolled-away header hurts most.
+
+     These tables keep display:table and let the PAGE scroll horizontally when
+     they overflow. One page scroll on both axes is also less fiddly on touch
+     than a nested horizontal swipe inside a vertically scrolling page. */
+  .main[data-page="alert-logs"] .imp-table,
+  .main[data-page="driver-monitoring"] .imp-table,
+  .main[data-page="summary"] .imp-table { display: table; overflow-x: visible; }
 }
 
 /* ── Overview page — responsive reflow ────────────────────────────────────
@@ -9799,13 +9822,28 @@ var NotificationSound = (function(){
     }, 300);
   });
 
+  /* Paging returns you to the top of the table.
+
+     With the page (not an inner box) scrolling, the pagination bar sits below
+     all 75 rows — roughly 2,560px down on a 900px viewport. Without this you
+     click Next at the bottom, the new page renders above you, and you are
+     left staring at its last rows having to scroll back up to read it from
+     the start. Scrolling the container is what makes paging usable now that
+     the controls are no longer pinned in view. */
+  function scrollTableToTop(){
+    var main = document.querySelector('.main');
+    if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   prevBtn.addEventListener('click', function(){
     state.offset = Math.max(0, state.offset - PAGE_SIZE);
     loadPage();
+    scrollTableToTop();
   });
   nextBtn.addEventListener('click', function(){
     state.offset += PAGE_SIZE;
     loadPage();
+    scrollTableToTop();
   });
 
   /* ── Case edit modal ─────────────────────────────────────────────────── */
@@ -10921,13 +10959,23 @@ var NotificationSound = (function(){
   fromInput.addEventListener('change', reload);
   toInput.addEventListener('change', reload);
 
+  /* Same reasoning as Alert Logs' pager — the controls now sit below 100
+     rows rather than being pinned in an inner scroll box, so paging without
+     returning to the top leaves the user at the END of the new page. */
+  function scrollTableToTop(){
+    var main = document.querySelector('.main');
+    if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   prevBtn.addEventListener('click', function(){
     state.offset = Math.max(0, state.offset - PAGE_SIZE);
     loadPage();
+    scrollTableToTop();
   });
   nextBtn.addEventListener('click', function(){
     state.offset += PAGE_SIZE;
     loadPage();
+    scrollTableToTop();
   });
 
   document.querySelectorAll('.nav-item[data-nav="summary"]').forEach(function(btn){
