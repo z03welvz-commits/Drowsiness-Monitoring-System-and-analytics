@@ -2839,6 +2839,139 @@ body {
         </div>
       </div>
 
+      <!-- Driver names needing review — the queue from 0019's
+           import_name_review. These are NOT failed imports: every alert row
+           loaded and every total is whole. What is missing is only WHICH
+           DRIVER those rows belong to, which is why this is a separate card
+           with its own count rather than a "needs attention" flag on the
+           import row above — an import can be perfectly clean and still
+           carry names nobody has matched yet.
+
+           Hidden entirely when signed out or when the queue is empty: an
+           empty review card on every page load would train people to ignore
+           it, and it is precisely the thing that must not be ignored. -->
+      <!-- flex:0 0 auto, NOT the flex:1;min-height:0 that Import History and
+           Contributing Factors use. Those two are designed to share the
+           column's leftover height and scroll internally; a third flexible
+           sibling makes all three fight for the same space, and this card
+           lost — its table was allocated ~21px of a 132px need, so the header
+           rendered and every row was clipped. This queue is short by nature
+           (one row per distinct unmatched name), so it sizes to its content
+           and lets the page scroll instead. -->
+      <div class="card" id="nameReviewCard" style="flex:0 0 auto" hidden>
+        <div class="card-head">
+          <div class="imp-toolbar-title">Driver names needing review</div>
+          <div class="hcontrols">
+            <span class="imp-count" id="nameReviewCount">0 names</span>
+            <button class="btn btn-outline btn-sm" id="nameReviewRefresh" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="imp-tabs" role="tablist" aria-label="Review states" id="nameReviewTabs">
+          <button class="imp-tab" role="tab" data-state="open" aria-selected="true" tabindex="0">
+            Open
+            <span class="imp-tab-count" data-tone="danger" id="nrCountOpen">0</span>
+          </button>
+          <button class="imp-tab" role="tab" data-state="resolved" aria-selected="false" tabindex="-1">
+            Resolved
+            <span class="imp-tab-count" data-tone="success" id="nrCountResolved">0</span>
+          </button>
+          <!-- Ignored stays visible under its own tab rather than being
+               deleted, so an over-eager ignore can be found and undone. -->
+          <button class="imp-tab" role="tab" data-state="ignored" aria-selected="false" tabindex="-1">
+            Not a driver
+            <span class="imp-tab-count" id="nrCountIgnored">0</span>
+          </button>
+        </div>
+
+        <div class="imp-table-wrap" id="nameReviewWrap">
+          <div class="imp-empty" id="nameReviewEmpty" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <div class="imp-empty-text" id="nameReviewEmptyText">Every driver name in your imports matched the masterlist.</div>
+          </div>
+          <table class="imp-table" id="nameReviewTable" hidden>
+            <thead>
+              <tr>
+                <th>Name in file</th>
+                <th>Why unmatched</th>
+                <th>Alerts waiting</th>
+                <th>Best guess</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="nameReviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Resolve modal. Carries all five fix routes from the plan: pick a
+           ranked candidate, search the masterlist by name OR number, add a
+           driver the conso has not caught up with, or mark the string as not
+           a person at all. Bulk-apply is on the table rows themselves, since
+           it acts on a group rather than one name. -->
+      <div class="detail-modal" id="nameResolveModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="nameResolveTitle" style="max-width:560px">
+          <div class="detail-head">
+            <div>
+              <h2 id="nameResolveTitle" class="detail-title">Match driver name</h2>
+              <p class="detail-sub" id="nameResolveSub">Assign this spelling to an employee.</p>
+            </div>
+            <button type="button" class="detail-close" id="nameResolveClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding-right:2px">
+            <div style="background:var(--surface-2,rgba(127,127,127,.08));border-radius:8px;padding:12px 14px">
+              <div style="font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Name as it appeared in the file</div>
+              <div id="nrRawName" style="font-size:var(--fs-md);font-weight:600;margin-top:4px;word-break:break-word"></div>
+              <div id="nrRowCount" style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:6px"></div>
+            </div>
+
+            <!-- Route 1: ranked candidates the resolver already found. -->
+            <div id="nrCandidateBlock" hidden>
+              <div class="field-label" style="margin-bottom:6px">Suggested matches</div>
+              <div id="nrCandidates" style="display:flex;flex-direction:column;gap:6px"></div>
+            </div>
+
+            <!-- Route 2: search the whole masterlist, by name or by number. -->
+            <div class="field-group" style="position:relative">
+              <label class="field-label" for="nrSearch">Or search the masterlist</label>
+              <input class="field-input" id="nrSearch" type="text" autocomplete="off"
+                     placeholder="Type a name or employee number…" style="width:100%">
+              <div class="menu" id="nrSearchSuggest" hidden
+                   style="position:absolute;top:100%;left:0;right:0;z-index:20;max-height:220px;overflow-y:auto"></div>
+            </div>
+
+            <!-- Route 3: a real new hire the conso has not caught up with. -->
+            <details id="nrAddDriverWrap">
+              <summary style="cursor:pointer;font-size:var(--fs-sm);color:var(--text-sec)">Not on the masterlist? Add them</summary>
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <input class="field-input" id="nrNewEmpNo" type="text" placeholder="Employee no." style="flex:0 0 40%">
+                <input class="field-input" id="nrNewName" type="text" placeholder="Full name" style="flex:1">
+              </div>
+              <button class="btn btn-outline btn-sm" id="nrAddDriverBtn" type="button" style="margin-top:8px">Add and match</button>
+            </details>
+
+            <div class="field-error" id="nameResolveError" hidden></div>
+
+            <div class="detail-actions" style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+              <!-- Route 4: not a person at all (TEST, N/A, a plate number in
+                   the wrong column). Writes no alias — an ignore says the
+                   string is not a driver, not that it maps to one. -->
+              <button type="button" class="btn btn-outline btn-sm" id="nrIgnoreBtn">Not a driver</button>
+              <div style="display:flex;gap:8px">
+                <button type="button" class="btn btn-outline btn-sm" id="nrCancelBtn">Cancel</button>
+                <button type="button" class="btn btn-sm" id="nrConfirmBtn" disabled>Match</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Contributing Factors — a standalone context log ("heavy rain
            08/10 22:00–06:00", "S-031 on reduced roster"), deliberately not
            tied to any specific alert row and not fed into annotate()/
@@ -7986,6 +8119,85 @@ const Cloud = {
     return data;
   },
 
+  /* ── Driver name review (0019_events_emp_no) ──────────────────────────
+     The queue of raw OPERATOR spellings the resolver could not attribute to
+     an employee number. Rows here are NOT failed imports: the alert rows
+     loaded fine and every total is whole — what is missing is only which
+     driver they belong to. See dds_ingest()'s comment on that invariant. */
+
+  /* Open items first and biggest first, because row_count is how many alert
+     rows are waiting on the decision — working the queue in impact order is
+     the difference between a queue people clear and one they abandon. */
+  async fetchNameReview(state = 'open'){
+    let q = this.client
+      .from('import_name_review')
+      .select('id, import_id, raw_name, norm_name, tier, distance, candidates, row_count, state, resolved_at')
+      .order('row_count', { ascending: false })
+      .limit(500);
+    if (state !== 'all') q = q.eq('state', state);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+
+  /* The masterlist itself, for the "search by name or number" fix path.
+     Separate from fetchDrivers() above, which reads the older name-keyed
+     driver_master roster that still backs the alert-case picker. */
+  async fetchMasterlist(){
+    const { data, error } = await this.client
+      .from('drivers')
+      .select('emp_no, full_name, status')
+      .order('full_name');
+    if (error) throw error;
+    return data || [];
+  },
+
+  /* Each of these re-attributes the affected events and refreshes
+     imports.unresolved_count server-side — that is why they are RPCs rather
+     than table writes. A direct update to import_name_review would change
+     the queue's state while leaving the events it describes untouched. */
+  async resolveNameReview(reviewId, empNo){
+    const { data, error } = await this.client.rpc('dds_resolve_review', {
+      p_review_id: reviewId, p_emp_no: empNo
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  async ignoreNameReview(reviewId){
+    const { error } = await this.client.rpc('dds_ignore_review', { p_review_id: reviewId });
+    if (error) throw error;
+  },
+
+  /* p_clear_alias defaults true server-side: reopening drops the learned
+     alias AND un-attributes the events, so the queue and the data cannot
+     disagree about who a name belongs to. */
+  async reopenNameReview(reviewId){
+    const { error } = await this.client.rpc('dds_reopen_review', {
+      p_review_id: reviewId, p_clear_alias: true
+    });
+    if (error) throw error;
+  },
+
+  /* Adds a driver the conso has not caught up with yet. Upsert semantics with
+     p_deactivate false: this is a single-person addition, not a roster
+     replacement, and passing true here would retire everyone else. */
+  async addDriver(empNo, fullName){
+    const { data, error } = await this.client.rpc('dds_upsert_drivers', {
+      p_rows: [{ emp_no: empNo, name: fullName }], p_deactivate: false
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  async resolutionStats(importId = null){
+    const { data, error } = await this.client.rpc('dds_resolution_stats', {
+      p_import_id: importId
+    });
+    if (error) throw error;
+    return data;
+  },
+
   /* One row per event_id (upsert on conflict) — current case state, not a
      history log. action/status "Other" resolve to the typed text before
      reaching here; action_is_other/status_is_other only exist so the edit
@@ -8544,6 +8756,15 @@ const store = createStore();
     navItems.forEach(function(btn){
       btn.classList.toggle('active', btn.getAttribute('data-nav') === name);
     });
+
+    /* The driver-name review queue lives on Data Management and is loaded on
+       arrival rather than at startup: it is a network round trip that most
+       page visits do not need, and its contents change whenever an import
+       runs — so "already loaded" would go stale silently. Guarded because the
+       handler is registered later in the file than this navigation code. */
+    if (name === 'data-mgmt' && typeof App.loadNameReview === 'function'){
+      App.loadNameReview();
+    }
   }
 
   navItems.forEach(function(btn){
@@ -8941,6 +9162,11 @@ var NotificationSound = (function(){
       rec.dbProgress = null;
       render();
       LocalDB.put('imports', rec);
+      /* An import is exactly when new unmatched driver names appear, so the
+         review queue is refreshed here rather than waiting for a manual
+         Refresh — a queue that only updates when someone thinks to look is
+         one that silently accumulates. */
+      if (typeof App.loadNameReview === 'function') App.loadNameReview();
     }).catch(function(err){
       console.error('Cloud sync failed for import ' + rec.id, err);
       rec.dbStatus = 'error';
@@ -10736,6 +10962,392 @@ var NotificationSound = (function(){
   // data-dependent renders above, it has nothing to wait for.
   initAlertSort();
 })();
+
+/* ═══════════════════════ DRIVER NAME REVIEW ═══════════════════════
+   UI over import_name_review (0019_events_emp_no). Its own IIFE rather than
+   part of Alert Logs: this is a Data Management feature, and scoping it to a
+   page it does not belong to would mean an early return there silently
+   disabling the queue. Server-only, like Alert Logs — the review queue is a
+   database table, so there is nothing to show in local/offline mode. */
+(function(){
+  var nameReviewCard    = document.getElementById('nameReviewCard');
+  if (!nameReviewCard) return;
+
+  /* ── Driver name review queue ─────────────────────────────────────────
+     UI over import_name_review (0019). The rows here are names the resolver
+     could not attribute to an employee number — NOT failed imports. Every
+     alert row loaded and every total is whole; only the driver attribution
+     is missing. That distinction drives the wording throughout: "alerts
+     waiting", never "rows rejected".
+
+     Resolving is deliberately a per-name decision, not per-row: one
+     misspelling covering 400 alerts is one click, and the table is sorted by
+     how many alerts hang on each decision so the queue is worked in impact
+     order. */
+
+  var nameReviewTable   = document.getElementById('nameReviewTable');
+  var nameReviewBody    = document.getElementById('nameReviewBody');
+  var nameReviewEmpty   = document.getElementById('nameReviewEmpty');
+  var nameReviewEmptyTx = document.getElementById('nameReviewEmptyText');
+  var nameReviewCountEl = document.getElementById('nameReviewCount');
+  var nameReviewTabs    = document.getElementById('nameReviewTabs');
+  var nrRefreshBtn      = document.getElementById('nameReviewRefresh');
+
+  var nrModal      = document.getElementById('nameResolveModal');
+  var nrRawNameEl  = document.getElementById('nrRawName');
+  var nrRowCountEl = document.getElementById('nrRowCount');
+  var nrCandBlock  = document.getElementById('nrCandidateBlock');
+  var nrCandsEl    = document.getElementById('nrCandidates');
+  var nrSearch     = document.getElementById('nrSearch');
+  var nrSuggest    = document.getElementById('nrSearchSuggest');
+  var nrError      = document.getElementById('nameResolveError');
+  var nrConfirmBtn = document.getElementById('nrConfirmBtn');
+  var nrIgnoreBtn  = document.getElementById('nrIgnoreBtn');
+  var nrCancelBtn  = document.getElementById('nrCancelBtn');
+  var nrCloseBtn   = document.getElementById('nameResolveClose');
+  var nrNewEmpNo   = document.getElementById('nrNewEmpNo');
+  var nrNewName    = document.getElementById('nrNewName');
+  var nrAddBtn     = document.getElementById('nrAddDriverBtn');
+
+  var reviewRows    = [];     // current tab's rows
+  var reviewCounts  = { open: 0, resolved: 0, ignored: 0 };
+  var reviewState   = 'open';
+  var masterlist    = [];     // [{emp_no, full_name, status}]
+  var nrEditing     = null;   // the review row open in the modal
+  var nrSelectedEmp = null;   // employee chosen for it
+
+  /* Plain-language reason. The tier names are the resolver's vocabulary
+     ('fuzzy_review', 'ambiguous_exact'), not something a coordinator should
+     have to learn — and the two cases need DIFFERENT actions, so collapsing
+     them into one "no match" label would hide which is which. */
+  function reviewReason(r){
+    if (r.tier === 'fuzzy_review'){
+      var n = (r.candidates || []).length;
+      return n > 1 ? 'Close to ' + n + ' different drivers' : 'Close, but not close enough';
+    }
+    if (r.tier === 'ambiguous_exact') return 'Two people share this name';
+    return 'No one on the masterlist matches';
+  }
+
+  function renderNameReview(){
+    nameReviewCountEl.textContent = reviewRows.length +
+      (reviewRows.length === 1 ? ' name' : ' names');
+
+    document.getElementById('nrCountOpen').textContent     = reviewCounts.open;
+    document.getElementById('nrCountResolved').textContent = reviewCounts.resolved;
+    document.getElementById('nrCountIgnored').textContent  = reviewCounts.ignored;
+
+    /* The whole card hides when there is nothing open AND nothing ever
+       resolved — a permanently empty panel teaches people to skip past it. */
+    var everAny = reviewCounts.open + reviewCounts.resolved + reviewCounts.ignored;
+    nameReviewCard.hidden = !everAny;
+    if (!everAny) return;
+
+    if (!reviewRows.length){
+      nameReviewTable.hidden = true;
+      nameReviewEmpty.hidden = false;
+      nameReviewEmptyTx.textContent = reviewState === 'open'
+        ? 'Every driver name in your imports matched the masterlist.'
+        : 'Nothing in this view.';
+      return;
+    }
+
+    nameReviewEmpty.hidden = true;
+    nameReviewTable.hidden = false;
+
+    nameReviewBody.innerHTML = reviewRows.map(function(r){
+      var cands = r.candidates || [];
+      var best  = cands.length ? cands[0] : null;
+      var bestTxt = best
+        ? esc(best.name) + ' <span style="color:var(--text-muted)">(' + esc(best.emp_no) + ')</span>'
+        : '<span style="color:var(--text-muted)">—</span>';
+
+      var action = r.state === 'open'
+        ? '<button class="btn btn-outline btn-sm" data-nr-open="' + r.id + '">Match</button>'
+        : '<button class="btn btn-outline btn-sm" data-nr-reopen="' + r.id + '">Undo</button>';
+
+      return '<tr>' +
+        '<td style="font-weight:600;word-break:break-word">' + esc(r.raw_name || r.norm_name) + '</td>' +
+        '<td style="color:var(--text-sec)">' + esc(reviewReason(r)) + '</td>' +
+        '<td>' + Number(r.row_count || 0).toLocaleString() + '</td>' +
+        '<td>' + bestTxt + '</td>' +
+        '<td style="text-align:right">' + action + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function loadNameReview(){
+    if (!Cloud.available() || !Cloud.session){ nameReviewCard.hidden = true; return; }
+
+    /* Fetch every state, not just the active tab: the tab COUNTS have to be
+       right even for tabs nobody has opened, and the queue is small enough
+       (capped at 500 server-side) that one round trip beats three. */
+    Cloud.fetchNameReview('all').then(function(all){
+      reviewCounts = { open: 0, resolved: 0, ignored: 0 };
+      all.forEach(function(r){
+        if (reviewCounts[r.state] != null) reviewCounts[r.state]++;
+      });
+      reviewRows = all.filter(function(r){ return r.state === reviewState; });
+      renderNameReview();
+    }).catch(function(err){
+      /* A missing table means 0019 has not been applied to this project yet.
+         That is a deployment state, not an error the user can act on, so the
+         card simply stays hidden rather than showing a broken panel. */
+      console.warn('Name review unavailable', err);
+      nameReviewCard.hidden = true;
+    });
+
+    if (!masterlist.length){
+      Cloud.fetchMasterlist().then(function(list){ masterlist = list || []; }).catch(function(){});
+    }
+  }
+
+  if (nameReviewTabs){
+    nameReviewTabs.addEventListener('click', function(e){
+      var tab = e.target.closest('[data-state]');
+      if (!tab) return;
+      reviewState = tab.getAttribute('data-state');
+      Array.prototype.forEach.call(nameReviewTabs.querySelectorAll('[data-state]'), function(t){
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+      });
+      loadNameReview();
+    });
+  }
+
+  if (nrRefreshBtn) nrRefreshBtn.addEventListener('click', loadNameReview);
+
+  /* Published so the page router (showPage) and the import flow can refresh
+     the queue without reaching into this closure. An import is exactly when
+     new names appear, so leaving the card stale until a manual Refresh would
+     hide the thing it exists to surface. */
+  App.loadNameReview = loadNameReview;
+
+  Cloud.onSignIn(function(){ loadNameReview(); });
+
+  /* ── Resolve modal ── */
+
+  function openResolveModal(row){
+    nrEditing = row;
+    nrSelectedEmp = null;
+    nrError.hidden = true;
+    nrSearch.value = '';
+    nrSuggest.hidden = true;
+    nrNewEmpNo.value = '';
+    nrNewName.value = row.raw_name || '';
+    nrConfirmBtn.disabled = true;
+
+    nrRawNameEl.textContent = row.raw_name || row.norm_name;
+    nrRowCountEl.textContent = Number(row.row_count || 0).toLocaleString() +
+      (row.row_count === 1 ? ' alert is' : ' alerts are') +
+      ' waiting on this — they are already imported and counted, just not' +
+      ' attributed to a driver yet.';
+
+    var cands = row.candidates || [];
+    if (cands.length){
+      nrCandBlock.hidden = false;
+      nrCandsEl.innerHTML = cands.map(function(c){
+        var dist = (c.distance != null)
+          ? '<span style="color:var(--text-muted);font-size:var(--fs-xs)"> · ' +
+            (c.distance === 0 ? 'exact' : c.distance + ' character' + (c.distance === 1 ? '' : 's') + ' different') +
+            '</span>'
+          : '';
+        /* data-nr-name carries the clean employee name so the confirm button
+           can say "Match to <person>" without scraping this element's text,
+           which also contains the distance annotation. */
+        return '<button type="button" class="btn btn-outline btn-sm" data-nr-pick="' + esc(c.emp_no) + '" ' +
+               'data-nr-name="' + esc(c.name) + '" ' +
+               'style="justify-content:flex-start;text-align:left;width:100%">' +
+               esc(c.name) + ' <span style="color:var(--text-muted)">(' + esc(c.emp_no) + ')</span>' + dist +
+               '</button>';
+      }).join('');
+    } else {
+      nrCandBlock.hidden = true;
+      nrCandsEl.innerHTML = '';
+    }
+
+    nrModal.hidden = false;
+    nrSearch.focus();
+  }
+
+  function closeResolveModal(){
+    nrModal.hidden = true;
+    nrEditing = null;
+    nrSelectedEmp = null;
+  }
+
+  /* The button names WHO the match will go to, so the confirming click is
+     never ambiguous between two near-identical candidates — the exact case
+     this queue exists for. Callers pass the employee's NAME only: passing the
+     candidate button's full text would drag "· 1 character different" onto
+     the button, which describes the guess rather than the decision. */
+  function selectEmployee(empNo, name){
+    nrSelectedEmp = empNo;
+    nrConfirmBtn.disabled = false;
+    nrConfirmBtn.textContent = name ? 'Match to ' + name : 'Match';
+    nrConfirmBtn.title = name ? 'Match to ' + name + ' (' + empNo + ')' : '';
+    nrError.hidden = true;
+  }
+
+  nameReviewBody.addEventListener('click', function(e){
+    var openBtn = e.target.closest('[data-nr-open]');
+    if (openBtn){
+      var id = Number(openBtn.getAttribute('data-nr-open'));
+      var row = reviewRows.filter(function(r){ return r.id === id; })[0];
+      if (row) openResolveModal(row);
+      return;
+    }
+    var undoBtn = e.target.closest('[data-nr-reopen]');
+    if (undoBtn){
+      var rid = Number(undoBtn.getAttribute('data-nr-reopen'));
+      undoBtn.disabled = true;
+      Cloud.reopenNameReview(rid).then(function(){
+        announce('Match undone — the name is back in the queue');
+        loadNameReview();
+        refreshAfterAttribution();
+      }).catch(function(err){
+        console.error('Reopen failed', err);
+        announce('Could not undo that match', { assertive: true });
+        undoBtn.disabled = false;
+      });
+    }
+  });
+
+  nrCandsEl.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-nr-pick]');
+    if (!btn) return;
+    Array.prototype.forEach.call(nrCandsEl.querySelectorAll('[data-nr-pick]'), function(b){
+      b.removeAttribute('data-selected');
+    });
+    btn.setAttribute('data-selected', 'true');
+    selectEmployee(btn.getAttribute('data-nr-pick'), btn.getAttribute('data-nr-name'));
+  });
+
+  /* Search matches on the employee NUMBER as well as the name: the reviewer
+     often knows the badge and not the spelling, which is the entire premise
+     of keying on the number in the first place. */
+  nrSearch.addEventListener('input', function(){
+    var q = nrSearch.value.trim().toLowerCase();
+    if (!q){ nrSuggest.hidden = true; nrSuggest.innerHTML = ''; return; }
+    var matches = masterlist.filter(function(d){
+      return (d.full_name || '').toLowerCase().indexOf(q) !== -1 ||
+             (d.emp_no || '').toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 20);
+    if (!matches.length){ nrSuggest.hidden = true; nrSuggest.innerHTML = ''; return; }
+    nrSuggest.innerHTML = matches.map(function(d){
+      var inactive = d.status === 'inactive'
+        ? ' <span style="color:var(--text-muted);font-size:var(--fs-xs)">· inactive</span>' : '';
+      return '<div class="menu-item" data-nr-emp="' + esc(d.emp_no) + '" ' +
+        'data-nr-name="' + esc(d.full_name) + '">' +
+        esc(d.full_name) + ' <span style="color:var(--text-muted);font-size:var(--fs-xs)">(' +
+        esc(d.emp_no) + ')</span>' + inactive + '</div>';
+    }).join('');
+    nrSuggest.hidden = false;
+  });
+
+  nrSuggest.addEventListener('click', function(e){
+    var item = e.target.closest('[data-nr-emp]');
+    if (!item) return;
+    var pickedName = item.getAttribute('data-nr-name');
+    /* The input shows the plain name, not the row's full text — otherwise
+       "· inactive" ends up typed into the search box and the next keystroke
+       filters against a string no driver matches. */
+    nrSearch.value = pickedName;
+    nrSuggest.hidden = true;
+    selectEmployee(item.getAttribute('data-nr-emp'), pickedName);
+  });
+
+  /* Add a driver the conso has not caught up with. The reviewer is often the
+     first person to know about a new hire, before the next roster refresh. */
+  nrAddBtn.addEventListener('click', function(){
+    var empNo = nrNewEmpNo.value.trim();
+    var name  = nrNewName.value.trim();
+    if (!empNo || !name){
+      nrError.textContent = 'Both an employee number and a full name are needed.';
+      nrError.hidden = false;
+      return;
+    }
+    nrAddBtn.disabled = true;
+    Cloud.addDriver(empNo, name).then(function(){
+      masterlist = [];                       // force a refetch next open
+      return Cloud.fetchMasterlist();
+    }).then(function(list){
+      masterlist = list || [];
+      selectEmployee(empNo, name);
+      announce('Driver added to the masterlist');
+    }).catch(function(err){
+      console.error('Add driver failed', err);
+      nrError.textContent = 'Could not add that driver. Check the employee number is not already in use.';
+      nrError.hidden = false;
+    }).finally(function(){
+      nrAddBtn.disabled = false;
+    });
+  });
+
+  nrConfirmBtn.addEventListener('click', function(){
+    if (!nrEditing || !nrSelectedEmp) return;
+    nrConfirmBtn.disabled = true;
+    Cloud.resolveNameReview(nrEditing.id, nrSelectedEmp).then(function(res){
+      var n = res && res.rowsUpdated != null ? res.rowsUpdated : 0;
+      announce('Matched — ' + Number(n).toLocaleString() +
+               (n === 1 ? ' alert now attributed' : ' alerts now attributed'));
+      closeResolveModal();
+      loadNameReview();
+      refreshAfterAttribution();
+    }).catch(function(err){
+      console.error('Resolve failed', err);
+      nrError.textContent = 'Could not save that match. Try again.';
+      nrError.hidden = false;
+      nrConfirmBtn.disabled = false;
+    });
+  });
+
+  nrIgnoreBtn.addEventListener('click', function(){
+    if (!nrEditing) return;
+    nrIgnoreBtn.disabled = true;
+    Cloud.ignoreNameReview(nrEditing.id).then(function(){
+      announce('Marked as not a driver');
+      closeResolveModal();
+      loadNameReview();
+    }).catch(function(err){
+      console.error('Ignore failed', err);
+      nrError.textContent = 'Could not save that. Try again.';
+      nrError.hidden = false;
+    }).finally(function(){
+      nrIgnoreBtn.disabled = false;
+    });
+  });
+
+  /* Re-attribution changes which driver an alert belongs to, so the local
+     copy of the masterlist is refetched — a driver added mid-review must
+     appear in the next search without a page reload.
+
+     Deliberately does NOT reach into the Alert Logs closure's loadDrivers():
+     that reads the older name-keyed driver_master roster, which this feature
+     does not write to, and calling across IIFE scopes is what made an earlier
+     version of this function throw. Phase 4 is where re-attribution starts
+     mattering to the charts; there is nothing else to invalidate today. */
+  function refreshAfterAttribution(){
+    Cloud.fetchMasterlist()
+      .then(function(list){ masterlist = list || []; })
+      .catch(function(){});
+  }
+
+  nrCancelBtn.addEventListener('click', closeResolveModal);
+  nrCloseBtn.addEventListener('click', closeResolveModal);
+  nrModal.addEventListener('click', function(e){ if (e.target === nrModal) closeResolveModal(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && !nrModal.hidden) closeResolveModal();
+  });
+  document.addEventListener('click', function(e){
+    if (!nrSuggest.hidden && !nrSuggest.contains(e.target) && e.target !== nrSearch){
+      nrSuggest.hidden = true;
+    }
+  });
+
+})();
+
 
 /* ═══════════════════════ SUMMARY ═══════════════════════
    Server-only (no local mode — same reasoning as Alert Logs: the
