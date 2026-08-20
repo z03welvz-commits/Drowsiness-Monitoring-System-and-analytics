@@ -2839,6 +2839,96 @@ body {
         </div>
       </div>
 
+      <!-- Employee masterlist (conso) — the identity spine, held IN the app.
+           Deliberately its own visible card rather than a background lookup
+           table: every alert import is scanned against it, so how many people
+           it holds and when it was last updated are things the user needs to
+           see. An empty masterlist silently means every driver name in every
+           import goes unmatched, and that failure has to be legible here
+           rather than only showing up as a full review queue.
+
+           Sits ABOVE the review queue because the order is causal: load the
+           conso first, then the scan has something to compare against. -->
+      <div class="card" id="masterlistCard" style="flex:0 0 auto">
+        <div class="card-head">
+          <div class="imp-toolbar-title">Employee Masterlist</div>
+          <div class="hcontrols">
+            <span class="imp-count" id="masterlistCount">Not loaded</span>
+            <label class="imp-search" id="masterlistSearchWrap" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="masterlistSearch" placeholder="Name or employee no.…" aria-label="Search the employee masterlist">
+            </label>
+            <button class="btn btn-outline btn-sm" id="consoUploadBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg>
+              Upload conso
+            </button>
+          </div>
+        </div>
+
+        <!-- Capped height with internal scroll. Without this the masterlist is
+             the longest thing on the page and pushes Import History and the
+             review queue below the fold — but this card is a confirmation
+             that the right roster is loaded, not the main event. It yields
+             the page to the things people came here to do. -->
+        <div class="imp-table-wrap" id="masterlistWrap" style="max-height:320px;overflow-y:auto">
+          <div class="imp-empty" id="masterlistEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            <div class="imp-empty-text" id="masterlistEmptyText">
+              No employee masterlist loaded. Upload the conso to give every driver an employee number —
+              alert imports are scanned against it automatically.
+            </div>
+          </div>
+          <table class="imp-table" id="masterlistTable" hidden>
+            <thead>
+              <tr>
+                <th>Employee No.</th>
+                <th>Name</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="masterlistBody"></tbody>
+          </table>
+        </div>
+        <!-- Capped render: the conso can run to thousands of rows and this is
+             a confirmation that the right list is loaded, not a browsing tool.
+             Search narrows it when someone needs a specific person. -->
+        <div id="masterlistMore" style="font-size:var(--fs-xs);color:var(--text-muted);padding:8px 0 0" hidden></div>
+      </div>
+
+      <!-- Conso upload modal. Separate from the older "driver roster" modal on
+           Alert Logs, which writes the name-keyed driver_master table that
+           still backs the alert-case name picker. This one writes `drivers`,
+           the employee-number masterlist the import scan actually reads. -->
+      <div class="detail-modal" id="consoUploadModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="consoUploadTitle" style="max-width:520px">
+          <div class="detail-head">
+            <div>
+              <h2 id="consoUploadTitle" class="detail-title">Upload employee masterlist</h2>
+              <p class="detail-sub">Needs an employee number column and a name column. Existing people are updated, new ones added.</p>
+            </div>
+            <button type="button" class="detail-close" id="consoUploadClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="dz" id="consoDropZone" style="margin:0">
+            <input type="file" id="consoFileInput" accept=".xlsx,.xls,.csv">
+            <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></div>
+            <div class="dz-title">Drag & drop the conso file, or click to browse</div>
+            <div class="dz-formats">
+              <span class="dz-chip">.XLSX</span>
+              <span class="dz-chip">.XLS</span>
+              <span class="dz-chip">.CSV</span>
+            </div>
+          </div>
+          <div class="field-error" id="consoUploadError" hidden></div>
+          <div id="consoUploadConfirm" hidden style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:12px"></div>
+          <div class="detail-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="consoUploadCancel">Cancel</button>
+            <button type="button" class="btn btn-sm" id="consoUploadConfirmBtn" disabled>Update masterlist</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Driver names needing review — the queue from 0019's
            import_name_review. These are NOT failed imports: every alert row
            loaded and every total is whole. What is missing is only WHICH
@@ -8179,9 +8269,27 @@ const Cloud = {
     if (error) throw error;
   },
 
-  /* Adds a driver the conso has not caught up with yet. Upsert semantics with
-     p_deactivate false: this is a single-person addition, not a roster
-     replacement, and passing true here would retire everyone else. */
+  /* Loads the conso. p_deactivate TRUE: the uploaded file is the authoritative
+     statement of who is on staff, so anyone absent from it is marked inactive.
+     Marked, not deleted — dds_upsert_drivers() never removes a row, because
+     deleting would cascade away the learned aliases (0018's driver_aliases)
+     and strand the historical alerts of anyone who has since left.
+
+     p_rows: [{ emp_no, name }]. Returns
+     { inserted, updated, deactivated, skipped, aliasesSeeded, total }. */
+  async upsertMasterlist(rows){
+    const { data, error } = await this.client.rpc('dds_upsert_drivers', {
+      p_rows: rows, p_deactivate: true
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  /* Adds one driver the conso has not caught up with yet — the reviewer is
+     often the first to know about a new hire. p_deactivate FALSE here, unlike
+     upsertMasterlist() above: this is a single-person addition, and passing
+     true would retire every other employee for being absent from a
+     one-row "roster". */
   async addDriver(empNo, fullName){
     const { data, error } = await this.client.rpc('dds_upsert_drivers', {
       p_rows: [{ emp_no: empNo, name: fullName }], p_deactivate: false
@@ -8762,8 +8870,9 @@ const store = createStore();
        page visits do not need, and its contents change whenever an import
        runs — so "already loaded" would go stale silently. Guarded because the
        handler is registered later in the file than this navigation code. */
-    if (name === 'data-mgmt' && typeof App.loadNameReview === 'function'){
-      App.loadNameReview();
+    if (name === 'data-mgmt'){
+      if (typeof App.loadMasterlist === 'function') App.loadMasterlist();
+      if (typeof App.loadNameReview === 'function') App.loadNameReview();
     }
   }
 
@@ -9167,6 +9276,37 @@ var NotificationSound = (function(){
          Refresh — a queue that only updates when someone thinks to look is
          one that silently accumulates. */
       if (typeof App.loadNameReview === 'function') App.loadNameReview();
+
+      /* Report the auto-scan. Every upload is compared against the employee
+         masterlist to attach employee numbers, and that has to be VISIBLE:
+         a scan that matched nothing (an empty masterlist, or an export with
+         no driver-name column at all) otherwise looks identical to a clean
+         import, and the user would have no reason to suspect their alerts
+         are unattributed until they wonder why a driver has no data. */
+      if (Cloud.available() && Cloud.session){
+        Cloud.resolutionStats().then(function(stats){
+          if (!stats || !stats.rows) return;
+          var total      = stats.rows.total || 0;
+          var resolved   = stats.rows.resolved || 0;
+          var unresolved = stats.rows.unresolved || 0;
+          var noOperator = stats.rows.noOperator || 0;
+
+          if (noOperator === total && total > 0){
+            /* Not a matching failure — the file simply carried no driver
+               names, so there was nothing for the scan to compare. Saying
+               "0 matched" here would blame the masterlist for the wrong
+               thing and send someone to re-upload a conso that is fine. */
+            announce('Imported — this file carried no driver names, so no employee numbers were attached');
+          } else if (unresolved > 0){
+            announce('Imported — ' + resolved.toLocaleString() + ' of ' +
+                     (resolved + unresolved).toLocaleString() +
+                     ' alerts matched to an employee number; ' +
+                     unresolved.toLocaleString() + ' need review');
+          } else if (resolved > 0){
+            announce('Imported — every driver name matched the masterlist');
+          }
+        }).catch(function(){ /* stats are informational; never block an import */ });
+      }
     }).catch(function(err){
       console.error('Cloud sync failed for import ' + rec.id, err);
       rec.dbStatus = 'error';
@@ -10961,6 +11101,295 @@ var NotificationSound = (function(){
   // Header markup is static, so this binds once at script load — unlike the
   // data-dependent renders above, it has nothing to wait for.
   initAlertSort();
+})();
+
+/* ═══════════════════════ EMPLOYEE MASTERLIST (CONSO) ═══════════════════════
+   The identity spine, held in the app rather than only in the database.
+
+   The working principle this implements: the conso is uploaded once and kept,
+   and every subsequent alert-roster upload is scanned against it automatically
+   to attach employee numbers — with tolerance absorbing the spelling errors
+   and mismatches that are normal in a hand-typed driver-name column.
+
+   UPSERT, NOT REPLACE. A fresh conso updates the people it names and adds the
+   ones it introduces; anyone absent is marked inactive rather than deleted.
+   Deleting would cascade away every alias the resolver has learned (see
+   driver_aliases in 0018) — the accumulated knowledge that makes each import
+   match better than the last — and would strand historical alerts that
+   resolved to a driver who has since left. */
+(function(){
+  var card = document.getElementById('masterlistCard');
+  if (!card) return;
+
+  var countEl     = document.getElementById('masterlistCount');
+  var searchWrap  = document.getElementById('masterlistSearchWrap');
+  var searchInput = document.getElementById('masterlistSearch');
+  var table       = document.getElementById('masterlistTable');
+  var tbody       = document.getElementById('masterlistBody');
+  var emptyEl     = document.getElementById('masterlistEmpty');
+  var emptyText   = document.getElementById('masterlistEmptyText');
+  var moreEl      = document.getElementById('masterlistMore');
+
+  var uploadBtn   = document.getElementById('consoUploadBtn');
+  var modal       = document.getElementById('consoUploadModal');
+  var dropZone    = document.getElementById('consoDropZone');
+  var fileInput   = document.getElementById('consoFileInput');
+  var errorEl     = document.getElementById('consoUploadError');
+  var confirmBox  = document.getElementById('consoUploadConfirm');
+  var confirmBtn  = document.getElementById('consoUploadConfirmBtn');
+  var cancelBtn   = document.getElementById('consoUploadCancel');
+  var closeBtn    = document.getElementById('consoUploadClose');
+
+  var roster  = [];     // [{emp_no, full_name, status}]
+  var pending = null;   // parsed rows awaiting confirmation
+
+  var RENDER_CAP = 50;
+
+  function render(){
+    var q = (searchInput.value || '').trim().toLowerCase();
+    var shown = q
+      ? roster.filter(function(d){
+          return (d.full_name || '').toLowerCase().indexOf(q) !== -1 ||
+                 (d.emp_no || '').toLowerCase().indexOf(q) !== -1;
+        })
+      : roster;
+
+    /* The count reports the WHOLE masterlist, not the filtered view — it is a
+       statement about what the scan will compare against, and a search box
+       should not appear to shrink the roster. */
+    var active = roster.filter(function(d){ return d.status !== 'inactive'; }).length;
+    countEl.textContent = roster.length
+      ? roster.length.toLocaleString() + ' employee' + (roster.length === 1 ? '' : 's') +
+        (active !== roster.length ? ' · ' + active.toLocaleString() + ' active' : '')
+      : 'Not loaded';
+
+    searchWrap.hidden = roster.length <= RENDER_CAP;
+
+    if (!shown.length){
+      table.hidden = true;
+      moreEl.hidden = true;
+      emptyEl.hidden = false;
+      emptyText.textContent = roster.length
+        ? 'No one in the masterlist matches that search.'
+        : 'No employee masterlist loaded. Upload the conso to give every driver an employee number — alert imports are scanned against it automatically.';
+      return;
+    }
+
+    emptyEl.hidden = true;
+    table.hidden = false;
+
+    tbody.innerHTML = shown.slice(0, RENDER_CAP).map(function(d){
+      var inactive = d.status === 'inactive';
+      return '<tr>' +
+        '<td style="font-weight:600">' + esc(d.emp_no) + '</td>' +
+        '<td>' + esc(d.full_name) + '</td>' +
+        '<td>' + (inactive
+          ? '<span style="color:var(--text-muted)">Inactive</span>'
+          : '<span style="color:var(--teal)">Active</span>') + '</td>' +
+      '</tr>';
+    }).join('');
+
+    var hidden = shown.length - RENDER_CAP;
+    moreEl.hidden = hidden <= 0;
+    if (hidden > 0){
+      moreEl.textContent = '+ ' + hidden.toLocaleString() + ' more — search to narrow the list.';
+    }
+  }
+
+  function load(){
+    if (!Cloud.available() || !Cloud.session) return;
+    Cloud.fetchMasterlist().then(function(list){
+      roster = list || [];
+      render();
+    }).catch(function(err){
+      /* A missing `drivers` table means 0018 has not been applied yet. That is
+         a deployment state rather than something the user can act on, so the
+         card reports "not loaded" instead of showing a broken panel. */
+      console.warn('Masterlist unavailable', err);
+      roster = [];
+      render();
+    });
+  }
+
+  searchInput.addEventListener('input', render);
+
+  /* ── Upload ── */
+
+  function openModal(){
+    pending = null;
+    errorEl.hidden = true;
+    confirmBox.hidden = true;
+    confirmBtn.disabled = true;
+    modal.hidden = false;
+  }
+  function closeModal(){ modal.hidden = true; fileInput.value = ''; }
+
+  uploadBtn.addEventListener('click', function(){
+    if (!Cloud.available() || !Cloud.session){
+      announce('Sign in to upload the employee masterlist', { assertive: true });
+      return;
+    }
+    openModal();
+  });
+  cancelBtn.addEventListener('click', closeModal);
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && !modal.hidden) closeModal();
+  });
+
+  function findCol(row, candidates){
+    var keys = Object.keys(row);
+    for (var i = 0; i < candidates.length; i++){
+      var wanted = candidates[i].toLowerCase();
+      for (var j = 0; j < keys.length; j++){
+        if (keys[j].trim().toLowerCase() === wanted) return keys[j];
+      }
+    }
+    return null;
+  }
+
+  /* The employee number is REQUIRED here, unlike the older roster upload where
+     it was optional. That is the whole point: a conso row without a number
+     cannot serve as an identity, so it is skipped and counted rather than
+     loaded as a nameless-but-present employee. */
+  function parseConso(rows){
+    if (!rows.length) throw new Error('EMPTY');
+    var idKey = findCol(rows[0], [
+      'employee_id', 'employee id', 'employee no', 'employee no.', 'emp_no',
+      'emp no', 'emp id', 'badge', 'id number', 'id'
+    ]);
+    var nameKey = findCol(rows[0], [
+      'name', 'employee name', 'full name', 'driver name', 'driver_name'
+    ]);
+    if (!idKey)   throw new Error('NO_ID_COLUMN');
+    if (!nameKey) throw new Error('NO_NAME_COLUMN');
+
+    var mapped = rows.map(function(r){
+      return {
+        emp_no: String(r[idKey] == null ? '' : r[idKey]).trim(),
+        name:   String(r[nameKey] == null ? '' : r[nameKey]).trim()
+      };
+    });
+    var list = mapped.filter(function(r){ return r.emp_no && r.name; });
+    return { list: list, skipped: mapped.length - list.length };
+  }
+
+  var MAX_ROWS = 20000;
+
+  function handleFile(file){
+    errorEl.hidden = true;
+
+    function onParsed(rows){
+      try {
+        if (rows.length > MAX_ROWS) throw new Error('TOO_MANY_ROWS');
+        var parsed = parseConso(rows);
+        if (!parsed.list.length) throw new Error('EMPTY');
+        pending = parsed.list;
+
+        /* Say what will happen in terms of the CURRENT masterlist, so an
+           upload of the wrong file is obvious before it is applied — "3
+           employees" against an existing 480 is a visible mistake. */
+        var incoming = parsed.list.length;
+        var known = {};
+        roster.forEach(function(d){ known[d.emp_no] = true; });
+        var isNew = parsed.list.filter(function(r){ return !known[r.emp_no]; }).length;
+        var updating = incoming - isNew;
+
+        var msg = roster.length
+          ? 'This file holds ' + incoming.toLocaleString() + ' employee' + (incoming === 1 ? '' : 's') +
+            ' — ' + isNew.toLocaleString() + ' new, ' + updating.toLocaleString() + ' already in the masterlist.'
+          : 'Load ' + incoming.toLocaleString() + ' employee' + (incoming === 1 ? '' : 's') + ' into the masterlist?';
+
+        if (roster.length){
+          var missing = roster.filter(function(d){
+            return d.status !== 'inactive' &&
+                   !parsed.list.some(function(r){ return r.emp_no === d.emp_no; });
+          }).length;
+          if (missing > 0){
+            msg += ' ' + missing.toLocaleString() + ' currently-active employee' +
+                   (missing === 1 ? '' : 's') + ' absent from this file will be marked inactive (not deleted).';
+          }
+        }
+        if (parsed.skipped > 0){
+          msg += ' (' + parsed.skipped.toLocaleString() + ' row' + (parsed.skipped === 1 ? '' : 's') +
+                 ' skipped — missing an employee number or a name.)';
+        }
+
+        confirmBox.textContent = msg;
+        confirmBox.hidden = false;
+        confirmBtn.disabled = false;
+      } catch (err){
+        errorEl.textContent =
+          err.message === 'NO_ID_COLUMN'   ? 'Could not find an employee number column. Expected a header like "Employee ID" or "Emp No".' :
+          err.message === 'NO_NAME_COLUMN' ? 'Could not find a name column in this file.' :
+          err.message === 'TOO_MANY_ROWS'  ? 'This file has more than ' + MAX_ROWS.toLocaleString() + ' rows — check it is the conso, not an alert export.' :
+          'No usable employee rows found in this file.';
+        errorEl.hidden = false;
+      }
+    }
+
+    var ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (ext === 'csv'){
+      Papa.parse(file, { header: true, skipEmptyLines: true, complete: function(res){ onParsed(res.data); } });
+    } else if (ext === 'xlsx' || ext === 'xls'){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        try {
+          var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+          onParsed(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }));
+        } catch (err){
+          errorEl.textContent = 'Could not read that workbook.';
+          errorEl.hidden = false;
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      errorEl.textContent = 'Unsupported file type.';
+      errorEl.hidden = false;
+    }
+  }
+
+  dropZone.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(){
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+  dropZone.addEventListener('dragover', function(e){ e.preventDefault(); dropZone.dataset.state = 'drag'; });
+  dropZone.addEventListener('dragleave', function(){ delete dropZone.dataset.state; });
+  dropZone.addEventListener('drop', function(e){
+    e.preventDefault();
+    delete dropZone.dataset.state;
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  confirmBtn.addEventListener('click', function(){
+    if (!pending) return;
+    confirmBtn.dataset.loading = 'true';
+    confirmBtn.disabled = true;
+    Cloud.upsertMasterlist(pending).then(function(res){
+      var added   = (res && res.inserted) || 0;
+      var updated = (res && res.updated) || 0;
+      var retired = (res && res.deactivated) || 0;
+      announce('Masterlist updated — ' + added + ' added, ' + updated + ' updated' +
+               (retired ? ', ' + retired + ' marked inactive' : ''));
+      closeModal();
+      load();
+      /* Names already sitting in the review queue may now resolve against the
+         people this upload introduced, so the queue is refreshed rather than
+         left showing decisions that no longer need a human. */
+      if (typeof App.loadNameReview === 'function') App.loadNameReview();
+    }).catch(function(err){
+      console.error('Conso upload failed', err);
+      errorEl.textContent = 'Could not save the masterlist. Try again.';
+      errorEl.hidden = false;
+    }).finally(function(){
+      delete confirmBtn.dataset.loading;
+      confirmBtn.disabled = false;
+    });
+  });
+
+  App.loadMasterlist = load;
+  Cloud.onSignIn(function(){ load(); });
 })();
 
 /* ═══════════════════════ DRIVER NAME REVIEW ═══════════════════════
