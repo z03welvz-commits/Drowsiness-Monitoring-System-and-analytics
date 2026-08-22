@@ -340,13 +340,15 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    .card) with a Drivers/Units tab switcher above it instead of two
    side-by-side tables — more room per table, one context at a time.
 
-   #dmTable trims vertical padding below .imp-table's default (this table
-   is scanned for a status/flag, not read cell-by-cell — shorter rows means
-   more of the ranked list is visible without scrolling) while widening
-   horizontal padding beyond it (more columns of short values benefit from
-   clearer column separation more than they benefit from tall rows). */
-#dmTable thead th{padding:8px 20px}
-#dmTable tbody td{padding:7px 20px}
+   #dmTable uses the same --row-compact tokens as #alTable (defined with
+   the rest of the shared .imp-table rules) — this table is scanned for a
+   status/flag, not read cell-by-cell, the same reasoning that table uses,
+   so the two now share one row height instead of each having its own
+   slightly-different padding. Horizontal padding stays wider than
+   .imp-table's default: more columns of short values here benefit from
+   clearer column separation more than they benefit from tall rows. */
+#dmTable thead th{padding-left:20px; padding-right:20px}
+#dmTable tbody td{padding:var(--row-compact-cell); padding-left:20px; padding-right:20px; line-height:1.2}
 
 /* Action history entries inside #dmDetailModal — one per row, oldest
    actions never removed (see 0007_driver_asset_actions.sql's append-only
@@ -374,6 +376,12 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    so the number carries the same warning colour as the pill it explains. */
 .dm-hdr-pct[data-high="true"]{color:var(--warning-text)}
 .dm-hdr-sub{font-size:var(--fs-2xs);color:var(--text-muted);font-variant-numeric:tabular-nums}
+/* The 'Unspecified' aggregate row's id — italic, muted, same visual
+   language as Alert Logs' .al-unassigned, since both name the same
+   underlying gap (a blank driverOf()) at different grain. Distinguishes it
+   from a real driver/unit name at a glance, without needing the "Assign
+   driver" action cell to carry that distinction alone. */
+.dm-unspecified{color:var(--text-muted); font-style:italic}
 
 /* ═══ Daily alert history (detail modal) ═══
    A scannable list of every active day, with the over-threshold ones marked.
@@ -709,6 +717,15 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 }
 .al-bulk-bar #alBulkCount{font-variant-numeric:tabular-nums}
 #alTable thead th:first-child, #alTable tbody td:first-child{width:32px; padding-right:0}
+/* The 24px shared .icon-btn (used app-wide, including Contributing Factors
+   and Settings' User Management — see the other class="icon-btn" call
+   sites) was the actual floor under #alTable's row height: at
+   --row-compact-cell's 4px padding, a 24px button plus its own padding
+   still pushed rows past the compact target. Scoped smaller here rather
+   than shrinking .icon-btn globally, which would also shrink touch targets
+   on tables that were never too tall to begin with. */
+#alTable .icon-btn{width:20px; height:20px}
+#alTable .icon-btn svg{width:11px; height:11px}
 #alTable tbody tr[data-selected="true"]{background:var(--accent-bg)}
 
 /* Table language shared by .imp-table (Data Management / Alert Logs) and
@@ -720,17 +737,19 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    background swap. font-variant-numeric keeps any column of digits
    (counts, durations, IDs) aligned in a column rather than jittering. */
 .imp-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
-.imp-table thead th{position:sticky; top:0; background:linear-gradient(90deg,#F8FAFF,#fff); text-align:left; font-size:var(--fs-xs); font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:10px 16px; border-bottom:2px solid var(--border); z-index:1}
-.imp-table tbody td{padding:12px 16px; font-size:var(--fs-sm); color:var(--text); border-bottom:1px solid var(--border-light); vertical-align:middle}
+.imp-table thead th{position:sticky; top:0; background:linear-gradient(90deg,#F8FAFF,#fff); text-align:left; font-size:var(--fs-xs); font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:var(--row-default-head); border-bottom:2px solid var(--border); z-index:1}
+.imp-table tbody td{padding:var(--row-default-cell); font-size:var(--fs-sm); color:var(--text); border-bottom:1px solid var(--border-light); vertical-align:middle; line-height:1.2}
 .imp-table tbody tr:last-child td{border-bottom:none}
-/* Alert Log specifically runs denser than Data Management's import table —
-   10 columns of mostly short values (times, IDs, single-word statuses), so
-   the extra vertical air read as wasted rather than airy. Scoped to
-   #alTable only, not the shared .imp-table class both tables use. Cell
-   padding is trimmed to the practical floor: the 24px edit-icon button in
-   the last column plus a little breathing room is what sets the row's
-   actual minimum height now, not arbitrary whitespace. */
-#alTable thead th{padding:6px 12px}
+/* Alert Log and Driver & Asset Monitoring both run denser than Data
+   Management's import table — many columns of short values (times, IDs,
+   single-word statuses, percentages), scanned for a status/flag rather
+   than read cell-by-cell, so the extra vertical air of --row-default read
+   as wasted rather than airy. Both now share the same --row-compact
+   tokens (see the token block above) instead of two near-identical but
+   distinct paddings that happened to produce different row heights
+   (37.2px vs 42.9px, measured) for the same kind of table. */
+#alTable thead th{padding:var(--row-compact-head)}
+#dmTable thead th{padding:var(--row-compact-head)}
 
 /* ═══ Sortable table headers ═══
    Generic, keyed off data-sort, so every table (Alert Logs, Driver & Asset
@@ -771,7 +790,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
 @media (max-width:720px){
   .sm-bulk-fields{grid-template-columns:auto 1fr}
 }
-#alTable tbody td{padding:4px 12px}
+#alTable tbody td{padding:var(--row-compact-cell)}
 .imp-table tbody tr{box-shadow:inset 2px 0 0 transparent; transition:background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease)}
 
 /* ═══ Zebra striping ═══
@@ -804,6 +823,10 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .imp-file-icon.csv{background:var(--blue-50);color:var(--blue)}
 .imp-file-name{font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px}
 .imp-file-rows{font-size:var(--fs-xs);color:var(--text-muted)}
+/* "Clear data" now keeps the history row but drops its row payload — this
+   is what tells a reader the file isn't actually loaded anymore, so an
+   old import doesn't silently look identical to a current one. */
+.imp-file-cleared{font-size:var(--fs-xs);color:var(--text-muted);font-style:italic}
 .imp-size,.imp-date{color:var(--text-sec); white-space:nowrap}
 
 .badge{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:600; padding:3px 9px; border-radius:var(--r-full); white-space:nowrap}
@@ -879,6 +902,12 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .pwd-toggle-row{display:flex; align-items:center; justify-content:space-between}
 .pwd-toggle-label{font-size:var(--fs-sm); font-weight:600; color:var(--navy)}
 .link-btn{border:none; background:none; color:var(--blue); font-size:var(--fs-xs); font-weight:600; padding:0}
+/* Alert Logs' Driver cell when no driver is on record — muted rather than
+   the same weight as a real name, since it names an absence, but still a
+   .link-btn so it's clearly clickable rather than reading as disabled
+   filler text. Opens the same edit-case modal the row's pencil icon does. */
+.al-unassigned{color:var(--text-muted); font-style:italic; font-weight:500}
+.al-unassigned:hover{color:var(--accent)}
 
 .save-row{display:flex; justify-content:flex-end; gap:8px}
 .btn-outline{border:1px solid var(--border); border-radius:var(--r-md); padding:7px 14px; font-size:var(--fs-xs); font-weight:500; background:#fff; color:var(--text-sec)}
@@ -1040,6 +1069,26 @@ th[data-sort][aria-sort]{color:var(--accent)}
   /* ── Spacing ─────────────────────────────────────────────────────────── */
   --sp-1:  2px;  --sp-2:  4px;  --sp-3:  6px;  --sp-4:  8px;  --sp-5: 12px;
   --sp-6: 16px;  --sp-7: 20px;  --sp-8: 24px;  --sp-9: 32px;  --sp-10:40px;
+
+  /* ── Table row density ─────────────────────────────────────────────────
+     Three standard row heights, one token pair each, so every data table
+     in the app picks from the same small set instead of accumulating a new
+     ad-hoc padding value per table. Before this, #alTable (37.2px rows) and
+     #dmTable (42.9px rows) used near-identical but distinct padding for the
+     same "scan a status/flag, don't read cell-by-cell" table — same
+     purpose, different heights, no reason for the difference.
+       compact 32px — Alert Logs, Driver & Asset Monitoring: high row count,
+                      scanned for a value/status, not read cell-by-cell.
+       default 40px — Data Management import history, masterlist: fewer
+                      rows, more varied cell content (file names, badges).
+       roomy   48px — tables inside a modal/detail panel, where the row
+                      count is always small and there's room to spend. */
+  --row-compact-cell:   4px 12px;
+  --row-compact-head:   6px 12px;
+  --row-default-cell:   8px 16px;
+  --row-default-head:  10px 16px;
+  --row-roomy-cell:    12px 16px;
+  --row-roomy-head:    12px 16px;
 
   /* ── Typography ──────────────────────────────────────────────────────── */
   /* --fs-base was 11px in v2.2 — below the ~12px floor for sustained reading
@@ -2235,7 +2284,6 @@ body {
                 <th>Action</th>
                 <th>Status</th>
                 <th>Remarks</th>
-                <th>History</th>
                 <th></th>
               </tr>
             </thead>
@@ -2295,6 +2343,22 @@ body {
               <textarea class="field-input" id="acRemarks" rows="3" style="resize:vertical" maxlength="1000"></textarea>
             </div>
             <div class="field-error" id="alertCaseError" hidden></div>
+
+            <!-- Action history for this alert's driver/unit — what management
+                 has already done about them over time, not just this one
+                 alert's own action field above. Replaces the old standalone
+                 "History" column/button (one fewer column, one click instead
+                 of two): reuses the same dds_entity_actions() data and the
+                 same .dm-action-* rendering the Driver & Asset Monitoring
+                 modal uses, so it reads identically wherever it appears. The
+                 entity (driver name, or the asset when no driver is on
+                 record — see historyEntityFor()) is named in the label so
+                 this reads as history for that driver/unit, not for this one
+                 alert. Newest first; see loadAlertCaseHistory(). -->
+            <div class="field-group">
+              <label class="field-label" id="acHistoryLabel">Action history</label>
+              <div id="acHistory" style="display:flex;flex-direction:column;gap:var(--sp-2)"></div>
+            </div>
           </form>
           <div class="detail-actions">
             <button type="button" class="btn btn-outline btn-sm" id="alertCaseCancel">Cancel</button>
@@ -2832,6 +2896,7 @@ body {
                 <th>Flag</th>
                 <th>Database</th>
                 <th>Drive Backup</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="importTableBody"></tbody>
@@ -3212,7 +3277,19 @@ body {
             </div>
             <div class="field-group">
               <label class="field-label" for="manEventCode">Event code</label>
-              <input class="field-input" type="text" id="manEventCode" required maxlength="64" placeholder="Sleep Alert">
+              <!-- Populated from derived.eventCodeDistribution (the distinct
+                   codes already seen in imported data, most-used first) by
+                   populateManEventCodeOptions() — free text let "Sleep
+                   Alert", "SLEEP_ALERT" and "sleep alert" all become
+                   different codes, silently fragmenting every chart/group
+                   that keys on EVENT_CODE. "Other…" still allows a
+                   genuinely new code, same pattern as Alert Logs' Action/
+                   Status "Other" fields below (see acAction/acStatus). -->
+              <select class="field-input sound-select" id="manEventCode" required style="width:100%">
+                <option value="">— Select —</option>
+                <option value="__other__">Other…</option>
+              </select>
+              <input class="field-input" type="text" id="manEventCodeOther" maxlength="64" placeholder="Event code" style="margin-top:8px" hidden>
             </div>
             <div class="field-row">
               <div class="field-group">
@@ -3252,7 +3329,7 @@ body {
           <div class="detail-head">
             <div>
               <h2 id="clearDataTitle" class="detail-title">Clear all imported data?</h2>
-              <p class="detail-sub" id="clearDataSub">This removes every imported file and manually added record from this browser. Overview, Analytics, and Alert Logs will show no data until you import again.</p>
+              <p class="detail-sub" id="clearDataSub">This removes every imported file's rows and manually added records from this browser — Overview, Analytics, and Alert Logs will show no data until you import again. Each file stays listed in Import History, marked as cleared, so the record of what was uploaded and when is kept.</p>
             </div>
             <button type="button" class="detail-close" id="clearDataClose" aria-label="Close">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -3759,15 +3836,9 @@ const normalizeHeader = k => String(k).trim().toUpperCase().replace(/[_\s]+/g, '
 
 const field = (row, col) => {
   if (row[col] !== undefined) return row[col];
-  const accepted = COLUMN_ALIASES[col];
+  const accepted = (COLUMN_ALIASES[col] ?? [col]).map(normalizeHeader);
   const keys = Object.keys(row);
-  if (accepted) {
-    for (const k of keys) {
-      if (accepted.includes(normalizeHeader(k))) return row[k];
-    }
-    return undefined;
-  }
-  const k = keys.find(k => normalizeHeader(k) === col);
+  const k = keys.find(k => accepted.includes(normalizeHeader(k)));
   return k ? row[k] : undefined;
 };
 const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
@@ -3854,6 +3925,62 @@ function applyFilters(rows, f) {
     if (f.eventCodes?.length && !f.eventCodes.includes(field(r, 'EVENT_CODE'))) return false;
     return true;
   });
+}
+
+/* ── Driver/unit severity banding ─────────────────────────────────────────
+   HIGH-CONSISTENCY SEVERITY — how much of a driver/unit's active days each
+   had more than HIGH_DAY_THRESHOLD alerts, not just a single bad day.
+   highDays/activeDays (highDayRatio) is exposed so the UI can explain the
+   status with real numbers instead of just a label.
+
+   Graduated into four bands rather than a single >50% boolean: a fleet
+   where most drivers already run past 50% (the old cutoff) rendered every
+   one of them as the same "High" pill with nothing to separate a 53%
+   driver from an 89% one — the column carried no information once a fleet
+   was busy enough. SEVERITY_RANK gives sorting a stable numeric key
+   without re-deriving it from the label (see dmSortedItems() in the
+   Driver & Asset Monitoring section, which sorts on this same idea).
+
+   TOP-LEVEL, not local to withConsistency()/derive(): this is the ONE
+   place severity is computed, full stop — the local-import path
+   (withConsistency(), below) and the signed-in path (applySeverity()
+   called from App.loadFromServer() over Cloud.metrics()'s raw
+   highDayRatio numbers) both call THIS, rather than each carrying its own
+   copy of the threshold table. dds_metrics() in Postgres deliberately no
+   longer computes severity at all as of 0020_driver_asset_severity.sql —
+   it returns the raw highDayRatio/activeDays/highDays this reads, and
+   nothing else — so there is exactly one severity calculation in the
+   entire system instead of two that could quietly drift apart (which is
+   exactly what test/parity.sh exists to catch, and exactly the failure
+   mode collapsing to one calculation removes outright). */
+const HIGH_DAY_THRESHOLD = 10;
+const SEVERITY_BANDS = [
+  { severity: 'critical', rank: 3, min: 75 },
+  { severity: 'warning',  rank: 2, min: 50 },
+  { severity: 'caution',  rank: 1, min: 25 },
+  { severity: 'normal',   rank: 0, min: 0 }
+];
+const severityFor = highDayRatio =>
+  SEVERITY_BANDS.find(b => highDayRatio >= b.min) || SEVERITY_BANDS[SEVERITY_BANDS.length - 1];
+
+/* Mutates and returns `item` — applied to an already-built consistency row
+   (asset or operator, local or server-sourced) that already carries
+   highDayRatio. Adds severity/severityRank/flagged; never recomputes
+   highDayRatio itself, since that number comes from two different sources
+   (a client-side Map walk locally, a SQL aggregate when signed in) that
+   must each already agree with derive()'s own totals before this point —
+   this function's only job is turning that agreed-upon ratio into a band. */
+function applySeverity(item) {
+  const band = severityFor(item.highDayRatio);
+  item.severity = band.severity;
+  item.severityRank = band.rank;
+  // Derived from severity rather than its own condition, so the two can
+  // never drift apart — anything above Normal counts as needing
+  // attention, same threshold (>0%, i.e. any band above 'normal') the old
+  // boolean used to gate the "Need Attention" KPI and the flagged-first
+  // sort.
+  item.flagged = band.severity !== 'normal';
+  return item;
 }
 
 /* ── Derive: the API response shape ─────────────────────────────────────── */
@@ -3971,32 +4098,33 @@ function derive(allRows, filters) {
       .sort((a, b) => b.total - a.total || String(a.id).localeCompare(String(b.id)))
       .slice(0, n);
 
-  /* HIGH-CONSISTENCY FLAG — a driver/unit is "High" when MOST of its active
-     days (>50%) each had more than HIGH_DAY_THRESHOLD alerts, not just a
-     single bad day — see 0006_driver_asset_consistency.sql for the SQL
-     mirror and the full rationale. highDays/activeDays (highDayRatio) is
-     exposed so the UI can explain the flag with real numbers instead of
-     just a bare label. Unranked/uncapped, unlike topN: the monitoring page
-     wants every driver/unit, not just the top 10 by volume. */
-  const HIGH_DAY_THRESHOLD = 10;
+  /* Per-entity consistency breakdown feeding the Driver & Asset Monitoring
+     page. highDays/activeDays (highDayRatio) is exposed so the UI can
+     explain the status with real numbers instead of just a label.
+     Unranked/uncapped, unlike topN above: the monitoring page wants every
+     driver/unit, not just the top 10 by volume.
 
+     severity/severityRank/flagged come from applySeverity() (top-level,
+     see its own comment above derive()) — NOT computed here. This is the
+     local-import counterpart to App.loadFromServer()'s server path, which
+     calls the exact same applySeverity() over dds_metrics()'s raw
+     highDayRatio numbers — one severity calculation, two data sources. */
   const withConsistency = map =>
     [...map.entries()]
       .map(([id, v]) => {
         const activeDays = v.dayTotals.size;
         const highDays = [...v.dayTotals.values()].filter(day => day > HIGH_DAY_THRESHOLD).length;
         const highDayRatio = activeDays ? (highDays / activeDays) * 100 : 0;
-        return {
+        return applySeverity({
           id, total: v.total, actionable: v.actionable, nonActionable: v.nonActionable,
           activeDays,
           highDays,
           highDayRatio,
-          flagged: activeDays > 0 && highDays / activeDays > 0.5,
           consistencyRate: v.total / (activeDays || 1),
           actionableRatio: v.total ? (v.actionable / v.total) * 100 : 0
-        };
+        });
       })
-      .sort((a, b) => (b.flagged - a.flagged) || b.highDayRatio - a.highDayRatio ||
+      .sort((a, b) => (b.severityRank - a.severityRank) || b.highDayRatio - a.highDayRatio ||
         b.consistencyRate - a.consistencyRate || String(a.id).localeCompare(String(b.id)));
 
   /* Most-recent-first log. _startTime is only absent on rows whose
@@ -7133,25 +7261,30 @@ function renderOverviewKpis(el, derived) {
 }
 
 /* ══ 5c. DRIVER & ASSET MONITORING ══════════════════════════════════════
-   Ranks drivers/units by whether they're flagged High (see
-   derive()'s withConsistency() / 0006_driver_asset_consistency.sql),
-   flagged-first, so a low-volume-but-persistently-over-threshold entity
-   isn't buried below high-mileage entries that just have more days on
-   record. One table at a time (Drivers/Units tab switcher) instead of two
-   side-by-side tables — see dmView below.
+   Ranks drivers/units severity-first, so a low-volume-but-persistently-
+   over-threshold entity isn't buried below high-mileage entries that just
+   have more days on record. One table at a time (Drivers/Units tab
+   switcher) instead of two side-by-side tables — see dmView below.
 
-   HIGH FLAG — a driver/unit is High when MORE THAN HALF of its active days
-   (days it appears in the filtered data at all) each had total alerts
-   over HIGH_DAY_THRESHOLD (10), not just one bad day. A single spike out
-   of 20 active days is noise; 6 of 7 active days over threshold is a
-   pattern. `item.flagged`/`item.highDays`/`item.highDayRatio` come
-   straight from derive() — this file only turns them into copy. */
-const HIGH_DAY_THRESHOLD = 10;
+   SEVERITY — a driver/unit's severity/severityRank/flagged/highDays/
+   highDayRatio come straight from applySeverity() (top-level, above
+   derive() — see its own comment for HIGH_DAY_THRESHOLD/SEVERITY_BANDS
+   and why this is the ONE place severity is computed, local-import or
+   signed-in); this file only turns them into copy. */
 
+/* Maps derive()'s severity band (see SEVERITY_BANDS above derive()) to a
+   pill variant + label. Four bands instead of the old High/Normal
+   boolean: a fleet where most drivers already clear 50% rendered every one
+   of them "High" with nothing to separate a borderline driver from a
+   severe one — see SEVERITY_BANDS' own comment for the full rationale. */
+var DM_STATUS_BY_SEVERITY = {
+  critical: { variant: 'danger',  label: 'Critical' },
+  warning:  { variant: 'warning', label: 'Warning' },
+  caution:  { variant: 'info',    label: 'Caution' },
+  normal:   { variant: 'success', label: 'Normal' }
+};
 function dmStatus(item) {
-  return item.flagged
-    ? { variant: 'danger', label: 'High' }
-    : { variant: 'success', label: 'Normal' };
+  return DM_STATUS_BY_SEVERITY[item.severity] || DM_STATUS_BY_SEVERITY.normal;
 }
 
 /* Action-vocabulary label used for the "Last Action" table column and the
@@ -7186,10 +7319,14 @@ function dmSortedItems(items) {
       case 'activeDays':      return it.activeDays ?? 0;
       case 'consistencyRate': return it.consistencyRate ?? 0;
       case 'highDayRatio':    return it.highDayRatio ?? 0;
-      // Sort by the flag itself, not the rendered label: "High" vs "Normal"
-      // happens to sort correctly alphabetically, but that is a coincidence
-      // of the current wording and would break the day someone renames it.
-      case 'flagged':         return it.flagged ? 1 : 0;
+      // Sort by severityRank, not the rendered label: "Critical"/"Warning"/
+      // "Caution"/"Normal" happens to sort correctly alphabetically today,
+      // but that's a coincidence of the current wording, and the whole
+      // point of severityRank existing is to not depend on it (see the
+      // withConsistency() comment). Column's data-sort is still "flagged"
+      // (no markup change needed) — only what it sorts by changed, from
+      // the old High/Normal boolean to the graduated band rank.
+      case 'flagged':         return it.severityRank ?? 0;
       case 'lastAction':      return dmActionLabel((dmLatestActions[dmView] || {})[it.id]);
       default:                return 0;
     }
@@ -7230,8 +7367,22 @@ function dmRenderTable() {
   bodyEl.innerHTML = items.map((it, i) => {
     const status = dmStatus(it);
     const action = latest[it.id];
+    // The 'Unspecified' bucket (UNSPECIFIED_OPERATOR — see derive()) isn't a
+    // real driver: it's every alert whose OPERATOR came in blank, grouped
+    // under one synthetic id so it can't be "seen details" on the way a real
+    // driver/unit can — there's no single person's action history behind it.
+    // "Assign driver" replaces "See details" for exactly this row, pointing
+    // at Alert Logs' own per-row "Unassigned" affordance (driverCellHtml())
+    // instead of pretending this aggregate has a detail view of its own.
+    const isUnspecified = dmView === 'driver' && it.id === UNSPECIFIED_OPERATOR;
+    const idCell = isUnspecified
+      ? `<span class="dm-unspecified">${esc(it.id)}</span>`
+      : esc(it.id);
+    const actionCell = isUnspecified
+      ? `<button type="button" class="link-btn" data-dm-assign="1">Assign driver</button>`
+      : `<button type="button" class="link-btn" data-dm-detail="${i}">See details</button>`;
     return `<tr>
-      <td>${esc(it.id)}</td>
+      <td>${idCell}</td>
       <td>${fmt.int(it.total)}</td>
       <td>${fmt.int(it.activeDays)}</td>
       <td>${it.consistencyRate.toFixed(2)}</td>
@@ -7239,7 +7390,7 @@ function dmRenderTable() {
       <td><span class="pill" data-variant="${status.variant}">${status.label}</span></td>
       <td>${esc(dmActionLabel(action))}</td>
       <td>
-        <button type="button" class="link-btn" data-dm-detail="${i}">See details</button>
+        ${actionCell}
       </td>
     </tr>`;
   }).join('');
@@ -7382,13 +7533,14 @@ Promise.resolve().then(() => {
     titleEl.textContent = item.id;
 
     if (item.flagged) {
-      subEl.textContent = 'Flagged High — alerts concentrated on most active days';
+      const statusLabel = (DM_STATUS_BY_SEVERITY[item.severity] || DM_STATUS_BY_SEVERITY.normal).label;
+      subEl.textContent = 'Flagged ' + statusLabel + ' — alerts concentrated on active days';
       explainEl.hidden = false;
       explainEl.textContent =
         `This ${noun} logged ${fmt.int(item.total)} alert${item.total === 1 ? '' : 's'} total. ` +
         `${fmt.int(item.highDays)} of its ${fmt.int(item.activeDays)} active day${item.activeDays === 1 ? '' : 's'} ` +
         `(${fmt.pct(item.highDayRatio, 0)}) had more than ${HIGH_DAY_THRESHOLD} alerts in a single day — ` +
-        `more than half its active days, which is why this ${noun} is flagged High rather than a one-off spike.`;
+        `which is why this ${noun} is flagged ${statusLabel} rather than a one-off spike.`;
     } else {
       subEl.textContent = 'Action history';
       explainEl.hidden = true;
@@ -7500,6 +7652,28 @@ Promise.resolve().then(() => {
     const item = items[idx];
     if (item) openDmDetail(dmView, item);
   });
+
+  /* "Assign driver" on the Unspecified row — jumps to Alert Logs pre-
+     filtered to exactly the alerts this aggregate is made of (every row
+     whose driverOf() is blank), reusing that page's own search box and its
+     "Unassigned" driver-cell affordance (driverCellHtml()) rather than
+     building a second assign flow here. There's no single detail view for
+     this row to open — 'Unspecified' isn't one driver, it's however many
+     blank-OPERATOR alerts happen to exist — so the useful action is getting
+     to the rows themselves, where the existing bulk-select + bulk-edit
+     already covers assigning them a name. */
+  document.getElementById('page-driver-monitoring')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-dm-assign]');
+    if (!btn) return;
+    App.showPage('alert-logs');
+    const search = document.getElementById('alSearch');
+    if (search) {
+      search.value = 'unassigned';
+      search.dispatchEvent(new Event('input', { bubbles: true }));
+      search.focus();
+    }
+  });
+
   closeBtn.addEventListener('click', closeDmDetail);
   closeBtn2.addEventListener('click', closeDmDetail);
 
@@ -8358,6 +8532,44 @@ const Cloud = {
     return data;
   },
 
+  /* Persists the CLIENT's severity computation (applySeverity(), see its
+     own comment above derive()) to driver_asset_severity — see
+     0020_driver_asset_severity.sql. No RPC: every value here is either
+     data the client already computed or auth.uid() itself, and RLS
+     (das_upsert/das_update, with-check updated_by = auth.uid()) is
+     sufficient on its own, same reasoning upsertAlertCase[s] above already
+     rely on for alert_cases.
+
+     ONE row per driver/asset, not one per filtered window — the primary
+     key is (entity_type, entity_id) alone. A range-scoped design
+     (computed_from/computed_to as PRIMARY KEY columns) was tried first and
+     reverted: Postgres forces every primary-key column NOT NULL, which
+     directly broke "unfiltered = NULL", the exact case
+     App.loadFromServer() hits by default — caught only by actually running
+     the write against the live database, not by the earlier static
+     review. Whatever window was most recently loaded while signed in wins;
+     good enough for "what does this driver look like right now," which is
+     the only question this table exists to answer. */
+  async saveDriverAssetSeverity(list){
+    if (!list.length) return;
+    const now = new Date().toISOString();
+    const rows = list.map(item => ({
+      entity_type:     item.entityType,
+      entity_id:       item.id,
+      severity:        item.severity,
+      severity_rank:   item.severityRank,
+      high_day_ratio:  item.highDayRatio,
+      active_days:     item.activeDays,
+      high_days:       item.highDays,
+      updated_at:      now,
+      updated_by:      this.session.user.id
+    }));
+    const { error } = await this.client
+      .from('driver_asset_severity')
+      .upsert(rows, { onConflict: 'entity_type,entity_id' });
+    if (error) throw error;
+  },
+
   /* Driver & Asset Monitoring action history — see
      0007_driver_asset_actions.sql. APPEND-ONLY: unlike upsertAlertCase
      above, this never overwrites a prior row — every call inserts a new
@@ -8695,6 +8907,32 @@ const Auth = {
   }
 };
 
+/* Combines assetConsistency + operatorConsistency (each already carrying
+   severity/severityRank/highDayRatio/activeDays/highDays from
+   applySeverity() — see App.loadFromServer()) into the flat entity_type +
+   id shape Cloud.saveDriverAssetSeverity() writes, then fires the upsert.
+   One row per driver/asset (see that function's own comment on why there
+   is no date-range scoping) — whatever window was most recently loaded
+   while signed in is what gets saved.
+
+   Fire-and-forget BY DESIGN: called right after store._setRows() has
+   already painted the dashboard from `cur`, so this write is purely
+   persistence-for-its-own-sake at that point — a failure here (offline,
+   RLS misconfigured, whatever) must never surface as a dashboard error or
+   retry loop, since nothing the user is looking at depends on it having
+   succeeded. Logged to console only. */
+function saveDriverAssetSeverity(derived){
+  if (!Cloud.available() || !Cloud.session) return;
+  const rows = [
+    ...(derived.assetConsistency    || []).map(r => ({ ...r, entityType: 'asset'  })),
+    ...(derived.operatorConsistency || []).map(r => ({ ...r, entityType: 'driver' }))
+  ];
+  if (!rows.length) return;
+  Cloud.saveDriverAssetSeverity(rows).catch(err => {
+    console.error('Failed to save driver/asset severity', err);
+  });
+}
+
 /* ══ 6. APP BRIDGE ══════════════════════════════════════════════════════
    The v2.2 nav / import / settings code below keeps its original IIFEs — it
    has locals (`main`, `table`, `imports`) that would collide with the
@@ -8788,7 +9026,31 @@ const App = {
       cur.comparison = comparison;
       cur.delta7d = delta7d;
       cur.deltaMoM = deltaMoM;
+
+      /* dds_metrics() (0020_driver_asset_severity.sql onward) returns only
+         raw highDays/activeDays/highDayRatio on assetConsistency/
+         operatorConsistency — no severity/severityRank/flagged. Those are
+         computed HERE, client-side, via the exact same applySeverity() the
+         local-import path's withConsistency() calls — one severity
+         calculation for the whole app, not two that could drift apart.
+         Mutates each item in place; cheap (a handful of driver/asset rows,
+         not the underlying alert rows) and avoids rebuilding the arrays
+         dmRenderTable() etc. already expect this exact shape from. */
+      (cur.assetConsistency || []).forEach(applySeverity);
+      (cur.operatorConsistency || []).forEach(applySeverity);
+
       store._setRows([], cur);
+
+      // Persist the just-computed severity back to Supabase — "save it
+      // through Supabase" rather than leaving it purely transient/
+      // recomputed-on-every-load. Fire-and-forget: the dashboard already
+      // has what it needs from `cur` above, so a slow or failed write here
+      // must not block or blank the page that's already painted. Only
+      // fires for THIS (the currently-displayed) window, not every one of
+      // the 6 dds_metrics() calls this function can make for
+      // comparison/trend purposes — those are numbers for a chart, not a
+      // driver's "current" severity.
+      saveDriverAssetSeverity(cur);
     } catch (e) {
       console.error('Metrics fetch failed', e);
       store._setError('Unable to load fleet data. Please retry.');
@@ -8811,7 +9073,7 @@ const App = {
        impossible. */
     const present = new Set(Object.keys(rows[0]).map(normalizeHeader));
     const missing = required.filter(col => {
-      const accepted = COLUMN_ALIASES[col] ?? [col];
+      const accepted = (COLUMN_ALIASES[col] ?? [col]).map(normalizeHeader);
       return !accepted.some(a => present.has(a));
     });
     return { ok: missing.length === 0, missing };
@@ -9071,18 +9333,29 @@ var NotificationSound = (function(){
 
     tableBody.innerHTML = rows.map(function(rec){
       var rowsNote = rec.rowCount != null ? '<div class="imp-file-rows">' + rec.rowCount + ' rows read</div>' : '';
+      // "Clear data" used to wipe this whole ledger along with the row
+      // payloads it wiped — the audit trail of what was uploaded, when, and
+      // with what outcome disappeared right along with the data it was
+      // recording. cleared:true (see App.onClear() below) means only the
+      // heavy rows/rejected/duplicates payloads were dropped; this note is
+      // what tells a reader the file itself isn't loaded anymore without
+      // the row silently vanishing from history.
+      var clearedNote = rec.cleared ? '<div class="imp-file-cleared">Data cleared</div>' : '';
       return '' +
         '<tr>' +
           '<td class="imp-date">' + fmtDate(rec.importedAt) + '</td>' +
           '<td><div class="imp-file">' +
             '<div class="imp-file-icon ' + (rec.ext === 'csv' ? 'csv' : 'xlsx') + '">' + fileIconSvg(rec.ext) + '</div>' +
-            '<div><div class="imp-file-name" title="' + rec.name + '">' + rec.name + '</div>' + rowsNote + '</div>' +
+            '<div><div class="imp-file-name" title="' + esc(rec.name) + '">' + esc(rec.name) + '</div>' + rowsNote + clearedNote + '</div>' +
           '</div></td>' +
           '<td class="imp-size">' + fmtSize(rec.size) + '</td>' +
           '<td>' + statusBadge(rec.status) + '</td>' +
           '<td>' + flagsMarkup(rec.flags, rec.id) + '</td>' +
           '<td>' + dbMarkup(rec) + '</td>' +
           '<td>' + driveMarkup(rec) + '</td>' +
+          '<td><button type="button" class="icon-btn" data-delete-import="' + esc(rec.id) + '" aria-label="Delete this history entry" title="Delete history entry">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>' +
+          '</button></td>' +
         '</tr>';
     }).join('');
   }
@@ -9591,12 +9864,41 @@ var NotificationSound = (function(){
      import record — App.refresh() unions rows across every import record
      regardless of source, so nothing downstream (KPIs, charts, comparison)
      needs to know this one didn't come from a file. */
-  var manualBtn    = document.getElementById('manualEntryBtn');
-  var manualModal  = document.getElementById('manualModal');
-  var manualForm   = document.getElementById('manualForm');
-  var manualClose  = document.getElementById('manualClose');
-  var manualCancel = document.getElementById('manualCancel');
-  var manualError  = document.getElementById('manualError');
+  var manualBtn      = document.getElementById('manualEntryBtn');
+  var manualModal    = document.getElementById('manualModal');
+  var manualForm     = document.getElementById('manualForm');
+  var manualClose    = document.getElementById('manualClose');
+  var manualCancel   = document.getElementById('manualCancel');
+  var manualError    = document.getElementById('manualError');
+  var eventCodeSelect= document.getElementById('manEventCode');
+  var eventCodeOther = document.getElementById('manEventCodeOther');
+
+  // Options come from derived.eventCodeDistribution — the distinct codes
+  // already seen across every import, most-used first (see that field's
+  // own sort in derive()) — not a fixed enum, since EVENT_CODE is free text
+  // from uploaded files and what a fleet actually uses varies. Rebuilt on
+  // every modal open rather than once at load, since a fresh import between
+  // two "Add record" clicks can introduce a code that wasn't there before.
+  function populateManEventCodeOptions(){
+    var dist = (store.get().derived && store.get().derived.eventCodeDistribution) || [];
+    var optionsHtml = '<option value="">— Select —</option>';
+    dist.forEach(function(c){
+      optionsHtml += '<option value="' + esc(c.code) + '">' + esc(c.code) + '</option>';
+    });
+    optionsHtml += '<option value="__other__">Other…</option>';
+    eventCodeSelect.innerHTML = optionsHtml;
+    // Nothing imported yet (dist is empty) — a dropdown with only "Select"
+    // and "Other" makes every entry a two-click detour through "Other" for
+    // no benefit, so default straight to it instead.
+    if (!dist.length){
+      eventCodeSelect.value = '__other__';
+      eventCodeOther.hidden = false;
+    }
+  }
+  eventCodeSelect.addEventListener('change', function(){
+    eventCodeOther.hidden = eventCodeSelect.value !== '__other__';
+    if (!eventCodeOther.hidden) eventCodeOther.focus();
+  });
 
   // datetime-local gives "YYYY-MM-DDTHH:mm:ss" (no timezone — the browser
   // never applies one to this input type). parseDateTime() in dds-state.js
@@ -9612,6 +9914,9 @@ var NotificationSound = (function(){
 
   function openManualModal(){
     manualForm.reset();
+    populateManEventCodeOptions();
+    eventCodeOther.hidden = eventCodeSelect.value !== '__other__';
+    eventCodeOther.value = '';
     document.getElementById('manCount').value = '1';
     manualError.hidden = true;
     manualModal.hidden = false;
@@ -9631,7 +9936,9 @@ var NotificationSound = (function(){
     manualError.hidden = true;
 
     var assetId = document.getElementById('manAsset').value.trim();
-    var eventCode = document.getElementById('manEventCode').value.trim();
+    var eventCode = eventCodeSelect.value === '__other__'
+      ? eventCodeOther.value.trim()
+      : eventCodeSelect.value.trim();
     var operator = document.getElementById('manOperator').value.trim();
     var count = document.getElementById('manCount').value;
     var startRaw  = localInputToAppFormat(document.getElementById('manStart').value);
@@ -9735,16 +10042,47 @@ var NotificationSound = (function(){
     }
   });
 
-  // "Clear data" (App.clearAllData, Data Management topbar) — wipe this
-  // IIFE's own state: the in-memory imports list, the duplicate-detection
-  // fingerprint set (a stale entry here would make a legitimately new
-  // import of the same file silently flag as a duplicate), and the
-  // IndexedDB store those imports were persisted to, then repaint.
+  // "Clear data" (App.clearAllData, Data Management topbar) — wipes the
+  // in-memory dashboard data (rows/rejected/duplicates on every record, and
+  // the duplicate-detection fingerprint set — a stale entry here would make
+  // a legitimately new import of the same file silently flag as a
+  // duplicate) but KEEPS each import record itself: date, file name, size,
+  // status, and flags all stay on the ledger, just marked cleared so a
+  // reader can tell the rows aren't actually loaded anymore (see
+  // clearedNote in render()). The audit trail of what was uploaded and
+  // when should outlive a data reset — only the heavy row payloads (and
+  // whatever they added to the dashboard) actually need to go. Genuinely
+  // deleting a history entry is still possible, just deliberate now — see
+  // the per-row delete handler below.
   App.onClear(function(){
-    imports.length = 0;
+    imports.forEach(function(rec){
+      rec.rows = null;
+      rec.rejected = [];
+      rec.duplicates = [];
+      rec.cleared = true;
+      LocalDB.put('imports', rec);
+    });
     seenFingerprints = new Set();
     render();
-    return LocalDB.clear('imports');
+  });
+
+  // Per-row "Delete history entry" — the deliberate full-removal path
+  // App.clearAllData() above no longer provides. Confirms first: unlike
+  // clearing (which keeps the row on the ledger, just emptied), this
+  // actually removes the entry, and there is nothing to undo it from once
+  // it's gone (no server copy in local mode — see the TEMPORARY block
+  // comment above loadLocal() in the Alert Logs section for the same
+  // local-only caveat).
+  tableBody.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-delete-import]');
+    if (!btn) return;
+    var id = btn.getAttribute('data-delete-import');
+    if (!window.confirm('Delete this history entry? This cannot be undone.')) return;
+    var idx = imports.findIndex(function(r){ return r.id === id; });
+    if (idx === -1) return;
+    imports.splice(idx, 1);
+    render();
+    LocalDB.delete('imports', id);
   });
 })();
 
@@ -10093,6 +10431,24 @@ var NotificationSound = (function(){
     return imported || '';
   }
 
+  /* A blank driverOf() used to render as a bare "—" — visually identical to
+     every other empty cell in the table (Shift, Action, Remarks), so an
+     alert with no driver on record read as "nothing here" rather than
+     "something to do." It is: the edit icon on the same row already lets a
+     reviewer type a name straight in. Rendering it as a clickable
+     "Unassigned" affordance instead makes that actionable, matching the
+     Driver & Asset Monitoring page's own "Unspecified" aggregate row (see
+     dmRenderTable()'s data-dm-assign button) — both point at the same
+     underlying gap, just at different grain (one row here vs. every row for
+     that driver there). Clicking it opens the same edit-case modal the
+     pencil icon does, just via one more entry point. */
+  function driverCellHtml(row){
+    var name = driverOf(row);
+    if (name) return esc(name);
+    var idAttr = esc(row.id);
+    return '<button type="button" class="link-btn al-unassigned" data-edit-case="' + idAttr + '">Unassigned</button>';
+  }
+
   function rowHtml(row){
     // row.id is server-numeric normally, but a synthetic ASSET_ID|EVENT_CODE|
     // timestamp string in local mode (see syntheticId()) — ASSET_ID/EVENT_CODE
@@ -10107,32 +10463,30 @@ var NotificationSound = (function(){
       '<td>' + esc(row.assetId) + '</td>' +
       '<td>' + esc(row.eventCode) + '</td>' +
       '<td>' + esc(row.shift || '—') + '</td>' +
-      '<td>' + esc(driverOf(row) || '—') + '</td>' +
+      '<td>' + driverCellHtml(row) + '</td>' +
       '<td>' + esc(row.actionType || '—') + '</td>' +
       '<td>' + statusPill(row) + '</td>' +
       '<td title="' + esc(row.remarks || '') + '">' + esc(truncate(row.remarks, 40) || '—') + '</td>' +
-      '<td>' + historyLinkHtml(row) + '</td>' +
       '<td><button type="button" class="icon-btn" data-edit-case="' + idAttr + '" aria-label="Edit case">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
       '</button></td>' +
       '</tr>';
   }
 
-  /* "History" column — the accountability trail: what has management
-     already DONE about this driver/unit over time, not just this single
-     alert's own action field. Reuses the exact same #dmDetailModal / action
-     history the Driver & Asset Monitoring page shows (openEntityHistoryModal,
-     defined in that page's own section) rather than a second, duplicate
-     history UI — same data, same "See details"-style link, just reachable
-     from wherever a driver/unit's alerts are actually being reviewed day to
-     day. Prefers the driver (a named person is the more actionable target
-     for "what did you do"); falls back to the asset when no driver name is
-     on record, since ASSET_ID is always known. */
-  function historyLinkHtml(row){
+  /* The accountability trail — what has management already DONE about this
+     driver/unit over time, not just this single alert's own action field —
+     used to live behind a standalone "History" column/button. It now loads
+     straight into the Edit alert case modal instead (see openCaseModal()),
+     one click instead of two and one fewer column competing for width.
+     Prefers the driver (a named person is the more actionable target for
+     "what did you do"); falls back to the asset when no driver name is on
+     record, since ASSET_ID is always known. */
+  function historyEntityFor(row){
     var hasDriver = row.driverName && row.driverName.trim();
-    var entityType = hasDriver ? 'driver' : 'asset';
-    var entityId = hasDriver ? row.driverName.trim() : row.assetId;
-    return '<button type="button" class="link-btn" data-al-history="' + esc(entityType) + '" data-al-history-id="' + esc(entityId) + '">History</button>';
+    return {
+      type: hasDriver ? 'driver' : 'asset',
+      id: hasDriver ? row.driverName.trim() : row.assetId
+    };
   }
 
   /* ── TEMPORARY local-mode fallback ─────────────────────────────────────
@@ -10193,14 +10547,50 @@ var NotificationSound = (function(){
   var SHIFT_SEARCH_LABEL = { DAY: 'day shift', NIGHT: 'night shift' };
 
   function searchHaystack(r){
-    return (r.assetId + ' ' + r.operator + ' ' + r.eventCode + ' ' + r.driverName + ' ' +
+    // "unassigned"/"unspecified" both find a blank driverOf() row — matches
+    // the "Unassigned" affordance driverCellHtml() renders in that cell, and
+    // the "Unspecified" aggregate row Driver & Asset Monitoring shows for
+    // the same underlying gap (driverOf() blank on every row).
+    var driverText = driverOf(r) || 'unassigned unspecified';
+    return (r.assetId + ' ' + r.operator + ' ' + r.eventCode + ' ' + driverText + ' ' +
       (SHIFT_SEARCH_LABEL[r.shift] || r.shift || '') + ' ' +
       (r.statusValue || 'not set') + ' ' + (r.actionType || '') + ' ' + (r.remarks || '')
     ).toLowerCase();
   }
 
+  // toDisplayRow() (plus its search haystack) only actually changes when the
+  // underlying import set changes or a local case edit is saved — never
+  // just because someone sorted or typed in the search box. Re-running that
+  // map over every imported row on every keystroke/sort/filter change is
+  // the dominant cost at fleet scale (measured: ~40-50ms of the ~60ms a
+  // sort click took on 20,000 rows, almost all of it this map). Caching the
+  // mapped array against the store rows reference — a NEW array every time
+  // App.refresh()/_setRows() runs, see createStore() — means loadLocal()
+  // only pays the map cost when there is actually new data to map, and pure
+  // filter/sort/search interactions work over the cached result instead.
+  var displayRowCache = { sourceRows: null, mapped: null };
+  function invalidateDisplayRowCache(){ displayRowCache.sourceRows = null; }
+
+  function mappedLocalRows(){
+    var sourceRows = store.get().rows || [];
+    if (displayRowCache.sourceRows === sourceRows) return displayRowCache.mapped;
+    var mapped = sourceRows.map(function(r, i){
+      var d = toDisplayRow(r, i);
+      d._haystack = searchHaystack(d);
+      return d;
+    });
+    displayRowCache.sourceRows = sourceRows;
+    displayRowCache.mapped = mapped;
+    return mapped;
+  }
+
   function loadLocal(){
-    var rows = (store.get().rows || []).map(toDisplayRow);
+    // .slice(): when no date/search filter is active below, .filter() never
+    // runs and `rows` would otherwise alias displayRowCache.mapped directly
+    // — the .sort() further down would then reorder the cached array
+    // in place. Harmless today (the cache doesn't depend on order), but the
+    // cache is meant to be read-only from loadLocal()'s point of view.
+    var rows = mappedLocalRows().slice();
 
     // state.from/state.to are YYYY-MM-DD; startTime is a full ISO timestamp,
     // so compare on just its date portion — a `to` date is inclusive of the
@@ -10209,7 +10599,7 @@ var NotificationSound = (function(){
     if (state.to)   rows = rows.filter(function(r){ return r.startTime && r.startTime.slice(0, 10) <= state.to; });
     if (state.search){
       var q = state.search.toLowerCase();
-      rows = rows.filter(function(r){ return searchHaystack(r).indexOf(q) !== -1; });
+      rows = rows.filter(function(r){ return r._haystack.indexOf(q) !== -1; });
     }
     /* Mirrors the server's ORDER BY (0016) so the same header click sorts
        identically whether signed in or working from a local import. The
@@ -10311,9 +10701,18 @@ var NotificationSound = (function(){
 
   function loadPage(){
     if (localMode()){
-      // Re-slice the already-filtered/sorted local set instead of
-      // re-filtering from scratch — offset-only changes (Prev/Next) don't
-      // need loadLocal()'s full filter/sort pass again.
+      // Prev/Next (offset-only changes) can safely re-slice the already
+      // filtered/sorted local set instead of paying for loadLocal()'s full
+      // filter/sort pass again. But when localAll hasn't been built yet —
+      // e.g. the nav-click handler calling loadPage() on every local-mode
+      // visit, since store.get().rows can change any time a new file is
+      // imported — re-slicing an empty array leaves the table permanently
+      // stuck on 0 rows. loadLocal() itself calls render(), so return right
+      // after it instead of falling through to the re-slice below.
+      if (!localAll.length && (store.get().rows || []).length) {
+        loadLocal();
+        return;
+      }
       state.rows = localAll.slice(state.offset, state.offset + PAGE_SIZE);
       render();
       return;
@@ -10468,6 +10867,56 @@ var NotificationSound = (function(){
   var remarksInput = document.getElementById('acRemarks');
   var editingRow   = null;
 
+  var historyLabel = document.getElementById('acHistoryLabel');
+  var historyEl    = document.getElementById('acHistory');
+
+  /* Same list markup (.dm-action-item/.dm-action-empty) the Driver & Asset
+     Monitoring modal renders, so history reads identically wherever it
+     appears — see that page's renderHistory() for the twin of this
+     function. Two separate copies instead of a shared export because the
+     two modals live in two separate IIFEs with no existing bridge between
+     them beyond window.openEntityHistoryModal, and duplicating ~10 lines
+     of template is simpler than building one. */
+  function renderCaseHistory(list){
+    if (!list.length){
+      historyEl.innerHTML = '<div class="dm-action-empty">No actions logged yet.</div>';
+      return;
+    }
+    historyEl.innerHTML = list.map(function(a){
+      var when = a.createdAt ? fmt.dateTime(a.createdAt) : '—';
+      var who = a.actorUsername ? esc(a.actorUsername) : 'someone';
+      var via = a.source === 'alert_logs' ? ' · via Alert Logs' : '';
+      return '<div class="dm-action-item">' +
+        '<div class="dm-action-head">' +
+          '<span class="dm-action-type">' + esc(a.actionType) + '</span>' +
+          '<span class="dm-action-meta">' + who + ' · ' + esc(when) + via + '</span>' +
+        '</div>' +
+        (a.remarks ? '<div class="dm-action-remarks">' + esc(a.remarks) + '</div>' : '') +
+        '</div>';
+    }).join('');
+  }
+
+  /* Loads the driver/unit's action history for the currently-open case —
+     the same dds_entity_actions() data the Driver & Asset Monitoring page's
+     "See details" modal shows, via the same Cloud.fetchEntityActions() call.
+     Guards against a stale response landing after the user has already
+     closed this row and opened another, same pattern openDmDetail() uses. */
+  function loadAlertCaseHistory(row){
+    var entity = historyEntityFor(row);
+    historyLabel.textContent = 'Action history for ' + entity.id;
+    if (!(typeof Cloud !== 'undefined' && Cloud.session)){
+      historyEl.innerHTML = '<div class="dm-action-empty">Sign in to view action history.</div>';
+      return;
+    }
+    historyEl.innerHTML = '<div class="dm-action-empty">Loading…</div>';
+    Cloud.fetchEntityActions(entity.type, entity.id).then(function(list){
+      if (editingRow === row) renderCaseHistory(list);
+    }).catch(function(err){
+      console.error('Failed to load action history', err);
+      if (editingRow === row) historyEl.innerHTML = '<div class="dm-action-empty">Could not load history.</div>';
+    });
+  }
+
   function openCaseModal(row){
     editingRow = row;
     caseSub.textContent = row.assetId + ' · ' + row.eventCode + ' · ' + fmtTime(row.startTime) + ' UTC';
@@ -10488,6 +10937,7 @@ var NotificationSound = (function(){
     driverSuggest.hidden = true;
     caseModal.hidden = false;
     driverInput.focus();
+    loadAlertCaseHistory(row);
   }
   function closeCaseModal(){ caseModal.hidden = true; editingRow = null; }
 
@@ -10567,6 +11017,11 @@ var NotificationSound = (function(){
       // TEMPORARY — see block comment above loadLocal(). Saved to an
       // in-memory Map only; lost on reload, never reaches Supabase.
       localCases.set(editingRow.id, caseData);
+      // The mapped-row cache is keyed on store.get().rows, which a case
+      // edit never touches (only localCases does) — without invalidating
+      // here, loadLocal() would keep serving the pre-edit driver/action/
+      // status/remarks and search haystack from cache.
+      invalidateDisplayRowCache();
       closeCaseModal();
       announce('Alert case updated (local only — not signed in)');
       loadLocal();
@@ -10607,23 +11062,6 @@ var NotificationSound = (function(){
     if (row) openCaseModal(row);
   });
 
-  /* "History" column — opens the same action-history modal Driver & Asset
-     Monitoring uses (window.openEntityHistoryModal, exposed by that page's
-     own section) so "what has management already done about this driver/
-     unit" is one click away from wherever the alerts are actually being
-     reviewed, not only from the Monitoring page. Requires a session (same
-     as the rest of Alert Logs); openEntityHistoryModal itself shows "Sign
-     in to view and add actions" when signed out rather than this handler
-     needing its own signed-out branch. */
-  tableBody.addEventListener('click', function(e){
-    var btn = e.target.closest('[data-al-history]');
-    if (!btn) return;
-    var entityType = btn.getAttribute('data-al-history');
-    var entityId = btn.getAttribute('data-al-history-id');
-    if (entityId && typeof window.openEntityHistoryModal === 'function') {
-      window.openEntityHistoryModal(entityType, entityId);
-    }
-  });
 
   /* ── Row selection + bulk edit ──────────────────────────────────────── */
 
@@ -10809,6 +11247,10 @@ var NotificationSound = (function(){
         var existing = localCases.get(id) || {};
         localCases.set(id, applyPatch(existing, patch));
       });
+      // See the single-row save path's identical comment — localCases
+      // changes never touch store.get().rows, so the mapped-row cache must
+      // be invalidated by hand or the bulk-edited fields never show up.
+      invalidateDisplayRowCache();
       delete submitBtn.dataset.loading;
       submitBtn.disabled = false;
       closeBulkModal();
