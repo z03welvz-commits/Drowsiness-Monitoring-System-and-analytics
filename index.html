@@ -1305,9 +1305,11 @@ body[data-status="loading"] .card { pointer-events: none; }
 
    That is most obvious on a signed-in boot, where the IndexedDB restore
    paints from local disk almost immediately and App.loadFromServer() then
-   flips status to 'loading' for up to six sequential dds_metrics()
-   round-trips. The user watches a complete dashboard dissolve into grey bars
-   for the length of six network calls, for no reason: the old data was still
+   flips status to 'loading' for the primary dds_metrics() call plus one
+   dds_metrics_multi() round-trip covering the 5 comparison/delta windows
+   (see Cloud.metricsMulti's own comment — collapsed from up to 6 separate
+   round-trips). The user watches a complete dashboard dissolve into grey
+   bars while that's in flight, for no reason: the old data was still
    perfectly valid and about to be replaced by newer data anyway.
 
    `body:not(.has-painted)` scopes the skeleton to the first load only. The
@@ -7427,9 +7429,10 @@ function initControls(store, { onRefresh } = {}) {
      'loading' is deliberately NOT treated as "no data". Two sources populate
      the dashboard on a signed-in boot and they finish at different times: the
      IndexedDB restore calls App.refresh() off local disk (fast), while
-     App.loadFromServer() sets status:'loading' and then makes up to six
-     sequential dds_metrics() round-trips (slow). Testing `status === 'ready'`
-     alone meant the sequence was:
+     App.loadFromServer() sets status:'loading' and then makes the primary
+     dds_metrics() call plus one dds_metrics_multi() round-trip for the
+     comparison/delta windows (slow — see Cloud.metricsMulti's own
+     comment). Testing `status === 'ready'` alone meant the sequence was:
 
          IndexedDB done   -> ready, rows > 0 -> charts paint
          server load runs -> loading         -> renderEmptyState() WIPES them
@@ -8643,8 +8646,10 @@ const Cloud = {
 
   /** Call dds_metrics(). Returns the same shape derive() produces. Timed
       out at 20s (see withTimeout's own comment) — App.loadFromServer()
-      calls this up to 6 times per page load, so a single hung request
-      shouldn't be able to leave the whole dashboard stuck loading. */
+      calls this directly once (the primary window) and metricsMulti()
+      below calls it again per-window only in its no-RPC-yet fallback
+      path, so a single hung request shouldn't be able to leave the whole
+      dashboard stuck loading either way. */
   async metrics({ from = null, to = null, shift = null, actionableOnly = false } = {}){
     const { data, error } = await withTimeout(
       this.client.rpc('dds_metrics', {
@@ -8660,6 +8665,43 @@ const Cloud = {
     // through, so consumers can rely on derive()'s full shape rather than
     // each guarding a field they have no reason to think is optional.
     return { hourlyByMonth: [], ...data };
+  },
+
+  /* Call dds_metrics_multi() (0021) — the SAME dds_metrics() result for
+     each window in `windows`, in ONE round-trip instead of one call per
+     window. App.loadFromServer() can need up to 6 windows (primary,
+     comparison baseline, 7d-current/previous, month-current/previous) per
+     page load; this collapses that to a single request. Falls back to N
+     sequential metrics() calls if the RPC doesn't exist yet (42883 =
+     undefined_function — the deploy-gap case, same reasoning metrics()'s
+     own hourlyByMonth default handles for an older function signature),
+     so a client that ships ahead of its migration still works, just
+     without the round-trip savings. Returns results in the SAME ORDER as
+     `windows` (dds_metrics_multi() guarantees this — see its own comment). */
+  async metricsMulti(windows){
+    if (!windows.length) return [];
+    try {
+      const { data, error } = await withTimeout(
+        this.client.rpc('dds_metrics_multi', {
+          p_windows: windows.map(w => ({
+            from: w.from ?? null, to: w.to ?? null, shift: w.shift ?? null,
+            assetIds: w.assetIds ?? null, eventCodes: w.eventCodes ?? null,
+            actionableOnly: w.actionableOnly ?? false
+          }))
+        }),
+        20000, 'dds_metrics_multi'
+      );
+      if (error) {
+        if (error.code === '42883' || /function.*does not exist/i.test(error.message ?? '')) {
+          throw Object.assign(new Error('dds_metrics_multi not deployed'), { code: 'FALLBACK' });
+        }
+        throw error;
+      }
+      return (data ?? []).map(d => ({ hourlyByMonth: [], ...d }));
+    } catch (e) {
+      if (e.code !== 'FALLBACK') throw e;
+      return Promise.all(windows.map(w => this.metrics(w)));
+    }
   },
 
   /* Persist one already-annotated local import to Supabase: an `imports`
@@ -9587,16 +9629,18 @@ const App = {
       return;
     }
 
-    // Comparison/7d/MoM are up to 5 MORE dds_metrics() round-trips, each
-    // purely supplementary (delta chips, a comparison line) — none of them
-    // gate whether the dashboard has anything to show. Failing here used to
-    // fall into the same catch as the primary fetch above, which threw away
-    // `cur` (already fetched successfully) and blanked the whole page on a
-    // transient network blip. Now a failure just leaves comparison/delta7d/
-    // deltaMoM at null — kpiTile()/renderOverviewKpis() already treat null
-    // as "no comparison available" (see comparisonFromDerived's own
-    // contract), so the dashboard degrades to "no deltas yet" instead of
-    // "no dashboard."
+    // Comparison/7d/MoM used to be up to 5 MORE sequential/parallel
+    // dds_metrics() round-trips (see git history) — each purely
+    // supplementary (delta chips, a comparison line), none gating whether
+    // the dashboard has anything to show. Now built as one window LIST and
+    // fetched in a single Cloud.metricsMulti() call (dds_metrics_multi(),
+    // 0021) — same 5 windows, same Postgres aggregation work, but 1
+    // network round-trip instead of up to 5. Failing here (the whole
+    // metricsMulti() call, or the RPC not existing yet — see its own
+    // fallback) just leaves comparison/delta7d/deltaMoM at null —
+    // kpiTile()/renderOverviewKpis() already treat null as "no comparison
+    // available" (see comparisonFromDerived's own contract), so the
+    // dashboard degrades to "no deltas yet" instead of "no dashboard."
     let comparison = null, delta7d = null, deltaMoM = null;
     try {
       const f = store.get().filters;
@@ -9608,6 +9652,8 @@ const App = {
         const iso = x => `${String(x.getUTCMonth()+1).padStart(2,'0')}/` +
                          `${String(x.getUTCDate()).padStart(2,'0')}/${x.getUTCFullYear()}`;
         const from = d(dates[0]), to = d(dates.at(-1));
+        const win = (winFrom, winTo) => ({ from: iso(winFrom), to: iso(winTo),
+                                            shift: f.shift, actionableOnly: f.actionableOnly });
 
         // Baseline fallback (30/7/1 days), same cascade the local-import
         // path's resolvePeriods() runs — see resolveServerBaselineWindow's
@@ -9623,38 +9669,36 @@ const App = {
         const unfiltered = !f.from && !f.to;
         const earliest = unfiltered ? from : new Date(0);
         const w = resolveServerBaselineWindow(from, to, earliest);
-        const prev = await Cloud.metrics({ from: iso(w.prevFrom), to: iso(w.prevTo),
-                                           shift: f.shift, actionableOnly: f.actionableOnly });
-        comparison = comparisonFromDerived(cur, prev,
-                       `${iso(w.curFrom)} – ${iso(w.curTo)}`, `${iso(w.prevFrom)} – ${iso(w.prevTo)}`,
-                       w.spanDays, w.baselineComplete);
 
         // Fixed-window KPI trend comparisons (kpiTile()'s 7d/month-over-
-        // month lines) — two more dds_metrics() round-trips, independent of
-        // the active date filter, anchored to the latest date actually
-        // present (`to`) rather than "today" so this agrees with what the
-        // local-import path's computeKpiDeltas7d()/computeMonthOverMonthDelta()
-        // would compute against the same dataset. See the "Signed-in
-        // latency" note on App.loadFromServer growing to up to 6 dds_metrics()
-        // calls per load.
+        // month lines) — independent of the active date filter, anchored
+        // to the latest date actually present (`to`) rather than "today"
+        // so this agrees with what the local-import path's
+        // computeKpiDeltas7d()/computeMonthOverMonthDelta() would compute
+        // against the same dataset.
         const latest = to;
         const week7From = new Date(latest.getTime() - 6 * MS);
         const week7PrevTo = new Date(week7From.getTime() - MS);
         const week7PrevFrom = new Date(week7PrevTo.getTime() - 6 * MS);
-        const [week7Cur, week7Prev] = await Promise.all([
-          Cloud.metrics({ from: iso(week7From), to: iso(latest), shift: f.shift, actionableOnly: f.actionableOnly }),
-          Cloud.metrics({ from: iso(week7PrevFrom), to: iso(week7PrevTo), shift: f.shift, actionableOnly: f.actionableOnly })
-        ]);
-        delta7d = server7dDeltas(week7Cur, week7Prev);
-
         const monthStart = new Date(Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth(), 1));
         const prevMonthStart = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() - 1, 1));
         const prevMonthEnd = new Date(monthStart.getTime() - MS);
         const monthLabel = prevMonthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-        const [monthCur, monthPrev] = await Promise.all([
-          Cloud.metrics({ from: iso(monthStart), to: iso(latest), shift: f.shift, actionableOnly: f.actionableOnly }),
-          Cloud.metrics({ from: iso(prevMonthStart), to: iso(prevMonthEnd), shift: f.shift, actionableOnly: f.actionableOnly })
+
+        // Order here IS the order results come back in — indices below
+        // (0-4) must match. dds_metrics_multi() guarantees order (see its
+        // own migration comment); metricsMulti()'s local-fallback path
+        // (Promise.all over individual metrics() calls) preserves it too.
+        const [prev, week7Cur, week7Prev, monthCur, monthPrev] = await Cloud.metricsMulti([
+          win(w.prevFrom, w.prevTo),
+          win(week7From, latest), win(week7PrevFrom, week7PrevTo),
+          win(monthStart, latest), win(prevMonthStart, prevMonthEnd)
         ]);
+
+        comparison = comparisonFromDerived(cur, prev,
+                       `${iso(w.curFrom)} – ${iso(w.curTo)}`, `${iso(w.prevFrom)} – ${iso(w.prevTo)}`,
+                       w.spanDays, w.baselineComplete);
+        delta7d = server7dDeltas(week7Cur, week7Prev);
         deltaMoM = serverMonthOverMonthDelta(monthCur, monthPrev, monthLabel);
       }
     } catch (e) {
@@ -9683,8 +9727,8 @@ const App = {
     // recomputed-on-every-load. Fire-and-forget: the dashboard already
     // has what it needs from `cur` above, so a slow or failed write here
     // must not block or blank the page that's already painted. Only
-    // fires for THIS (the currently-displayed) window, not every one of
-    // the 6 dds_metrics() calls this function can make for
+    // fires for THIS (the currently-displayed) window, not the other 5
+    // this function fetches via one Cloud.metricsMulti() call for
     // comparison/trend purposes — those are numbers for a chart, not a
     // driver's "current" severity.
     saveDriverAssetSeverity(cur);
@@ -13995,9 +14039,10 @@ initControls(store, {
 
    Debounced: the two date inputs fire a change each, so a from/to pair
    picked in quick succession would otherwise launch two full server loads
-   (up to six dds_metrics round-trips apiece), the first immediately
-   obsolete. 250ms is below the point a filter feels laggy but comfortably
-   groups a from+to pair. */
+   (primary dds_metrics() + one dds_metrics_multi() round-trip apiece —
+   see Cloud.metricsMulti's own comment), the first immediately obsolete.
+   250ms is below the point a filter feels laggy but comfortably groups a
+   from+to pair. */
 (function bindStoreMode(){
   var t = null;
   store._bindServerMode(
