@@ -9446,12 +9446,34 @@ const App = {
   async loadFromServer(){
     if (!Cloud.session) return;
     store._setStatus('loading');
+    let cur;
     try {
       const f = store.get().filters;
-      const cur = await Cloud.metrics({ from: f.from, to: f.to, shift: f.shift,
-                                        actionableOnly: f.actionableOnly });
+      cur = await Cloud.metrics({ from: f.from, to: f.to, shift: f.shift,
+                                  actionableOnly: f.actionableOnly });
+    } catch (e) {
+      // Only the PRIMARY fetch failing is a real "nothing to show" error —
+      // this is the one call the whole page depends on, so store._setError()
+      // (-> status:'error', every render gate checks this) is the right
+      // response here.
+      console.error('Metrics fetch failed', e);
+      store._setError('Unable to load fleet data. Please retry.');
+      return;
+    }
 
-      let comparison = null, delta7d = null, deltaMoM = null;
+    // Comparison/7d/MoM are up to 5 MORE dds_metrics() round-trips, each
+    // purely supplementary (delta chips, a comparison line) — none of them
+    // gate whether the dashboard has anything to show. Failing here used to
+    // fall into the same catch as the primary fetch above, which threw away
+    // `cur` (already fetched successfully) and blanked the whole page on a
+    // transient network blip. Now a failure just leaves comparison/delta7d/
+    // deltaMoM at null — kpiTile()/renderOverviewKpis() already treat null
+    // as "no comparison available" (see comparisonFromDerived's own
+    // contract), so the dashboard degrades to "no deltas yet" instead of
+    // "no dashboard."
+    let comparison = null, delta7d = null, deltaMoM = null;
+    try {
+      const f = store.get().filters;
       const dates = cur.trend.map(t => t.date);
       if (dates.length) {
         const MS = 86400000;
@@ -9496,38 +9518,37 @@ const App = {
         ]);
         deltaMoM = serverMonthOverMonthDelta(monthCur, monthPrev, monthLabel);
       }
-      cur.comparison = comparison;
-      cur.delta7d = delta7d;
-      cur.deltaMoM = deltaMoM;
-
-      /* dds_metrics() (0020_driver_asset_severity.sql onward) returns only
-         raw highDays/activeDays/highDayRatio on assetConsistency/
-         operatorConsistency — no severity/severityRank/flagged. Those are
-         computed HERE, client-side, via the exact same applySeverity() the
-         local-import path's withConsistency() calls — one severity
-         calculation for the whole app, not two that could drift apart.
-         Mutates each item in place; cheap (a handful of driver/asset rows,
-         not the underlying alert rows) and avoids rebuilding the arrays
-         dmRenderTable() etc. already expect this exact shape from. */
-      (cur.assetConsistency || []).forEach(applySeverity);
-      (cur.operatorConsistency || []).forEach(applySeverity);
-
-      store._setRows([], cur);
-
-      // Persist the just-computed severity back to Supabase — "save it
-      // through Supabase" rather than leaving it purely transient/
-      // recomputed-on-every-load. Fire-and-forget: the dashboard already
-      // has what it needs from `cur` above, so a slow or failed write here
-      // must not block or blank the page that's already painted. Only
-      // fires for THIS (the currently-displayed) window, not every one of
-      // the 6 dds_metrics() calls this function can make for
-      // comparison/trend purposes — those are numbers for a chart, not a
-      // driver's "current" severity.
-      saveDriverAssetSeverity(cur);
     } catch (e) {
-      console.error('Metrics fetch failed', e);
-      store._setError('Unable to load fleet data. Please retry.');
+      console.warn('Comparison/delta fetch failed — showing primary data without deltas', e);
     }
+    cur.comparison = comparison;
+    cur.delta7d = delta7d;
+    cur.deltaMoM = deltaMoM;
+
+    /* dds_metrics() (0020_driver_asset_severity.sql onward) returns only
+       raw highDays/activeDays/highDayRatio on assetConsistency/
+       operatorConsistency — no severity/severityRank/flagged. Those are
+       computed HERE, client-side, via the exact same applySeverity() the
+       local-import path's withConsistency() calls — one severity
+       calculation for the whole app, not two that could drift apart.
+       Mutates each item in place; cheap (a handful of driver/asset rows,
+       not the underlying alert rows) and avoids rebuilding the arrays
+       dmRenderTable() etc. already expect this exact shape from. */
+    (cur.assetConsistency || []).forEach(applySeverity);
+    (cur.operatorConsistency || []).forEach(applySeverity);
+
+    store._setRows([], cur);
+
+    // Persist the just-computed severity back to Supabase — "save it
+    // through Supabase" rather than leaving it purely transient/
+    // recomputed-on-every-load. Fire-and-forget: the dashboard already
+    // has what it needs from `cur` above, so a slow or failed write here
+    // must not block or blank the page that's already painted. Only
+    // fires for THIS (the currently-displayed) window, not every one of
+    // the 6 dds_metrics() calls this function can make for
+    // comparison/trend purposes — those are numbers for a chart, not a
+    // driver's "current" severity.
+    saveDriverAssetSeverity(cur);
   },
 
   /* Header validation. Columns match case-insensitively and trimmed —
@@ -12670,12 +12691,24 @@ var NotificationSound = (function(){
      Deliberately does NOT reach into the Alert Logs closure's loadDrivers():
      that reads the older name-keyed driver_master roster, which this feature
      does not write to, and calling across IIFE scopes is what made an earlier
-     version of this function throw. Phase 4 is where re-attribution starts
-     mattering to the charts; there is nothing else to invalidate today. */
+     version of this function throw.
+
+     ALSO re-fetches the dashboard itself (App.loadFromServer — the shared
+     top-level entry point, safe to call across IIFE scopes unlike a
+     closure-local function) — dds_ingest() already re-attributed the
+     underlying events rows server-side by the time this runs, so any KPIs/
+     Key Insights/charts already on screen are showing stale
+     UNSPECIFIED_OPERATOR bucketing until this refetch lands. A no-op when
+     nothing has been loaded yet (loadFromServer() only acts if Cloud.session
+     is set, same guard it always has) or when in local-import mode (no
+     server-side attribution to reflect). */
   function refreshAfterAttribution(){
     Cloud.fetchMasterlist()
       .then(function(list){ masterlist = list || []; })
       .catch(function(){});
+    if (typeof App !== 'undefined' && typeof App.loadFromServer === 'function') {
+      App.loadFromServer();
+    }
   }
 
   nrCancelBtn.addEventListener('click', closeResolveModal);
