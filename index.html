@@ -3967,6 +3967,17 @@ function applyFilters(rows, f) {
   return rows.filter(r => {
     if (f.shift && r.SHIFT !== f.shift) return false;
     if (f.actionableOnly && r.ACTIONABLE !== 'ACTIONABLE') return false;
+    // `r.SHIFT_DATE &&` means a row with no SHIFT_DATE (an unparseable
+    // timestamp — see annotate()'s own "REJECT AT IMPORT" comment) BYPASSES
+    // date-range filtering entirely and is kept regardless of the selected
+    // from/to range, while still subject to shift/actionableOnly/asset/
+    // eventCode below. This is the deliberate flip side of derive()'s
+    // reconciliation design (meta.unclassifiedRows/unclassifiedUnits): such
+    // rows still count toward kpis.totalAlerts even though they have no
+    // date to plot on the trend chart, so a user filtering to "last 7 days"
+    // can see totals include alerts whose date is unknown and therefore
+    // outside any possible range they picked. Don't "fix" this into a
+    // strict date check without also updating meta.reconciles' contract.
     if (f.from && r.SHIFT_DATE && dateKey(r.SHIFT_DATE) < dateKey(f.from)) return false;
     if (f.to   && r.SHIFT_DATE && dateKey(r.SHIFT_DATE) > dateKey(f.to))   return false;
     if (f.assetIds?.length   && !f.assetIds.includes(field(r, 'ASSET_ID'))) return false;
