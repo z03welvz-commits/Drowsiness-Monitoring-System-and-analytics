@@ -1049,6 +1049,10 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .status-inactive::before{background:var(--text-muted)}
 .status-pending::before{background:var(--warning)}
 .um-actions{display:flex; gap:6px}
+/* Approve/Reject failure — previously silent (console.error + re-enable
+   the button, nothing visible). An admin without devtools open needs to
+   see the action didn't happen, not just find the button clickable again. */
+.um-action-error{font-size:var(--fs-2xs); color:var(--danger); margin-top:3px; max-width:160px}
 .icon-btn{border:none; background:none; color:var(--text-muted); width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:var(--r-sm)}
 .icon-btn:hover{background:var(--border-light); color:var(--navy)}
 .icon-btn svg{width:12px;height:12px}
@@ -7702,9 +7706,14 @@ function renderOverviewHero(derived) {
   // own comment) — resolve it once via the DB lookup and repaint just the
   // greeting, same fallback path Auth.paint() uses for the topbar pill.
   if (typeof Cloud !== 'undefined' && Cloud.session && !Auth.lastUsername) {
+    // Worst case on failure is a name-less "Welcome back" instead of
+    // "Welcome back, {name}" — genuinely low-stakes, but an unhandled
+    // rejection here is still an accident, not a choice; swallow it
+    // explicitly instead of leaving it to surface as a console warning
+    // with nothing else to distinguish it from a real bug.
     Cloud.myUsername().then(name => {
       if (name && Cloud.session) { Auth.lastUsername = name; paintGreeting(); }
-    });
+    }).catch(() => {});
   }
 
   const totalAlerts = derived?.kpis?.totalAlerts ?? 0;
@@ -7763,7 +7772,12 @@ function dmStatus(item) {
 /* Action-vocabulary label used for the "Last Action" table column and the
    detail modal — shared between the two so a driver/unit's action reads
    identically wherever it's shown. */
-function dmActionLabel(a) {
+function dmActionLabel(a, failed) {
+  // Distinguishes "no action has ever been logged" from "the fetch for
+  // this column failed" — both used to render as the same bare "—" (see
+  // loadDmActions()'s own comment), so a fetch failure looked identical to
+  // a driver/unit that's simply never had an action taken.
+  if (failed) return 'Couldn’t load';
   if (!a || !a.actionType) return '—';
   return a.actionType;
 }
@@ -7800,7 +7814,7 @@ function dmSortedItems(items) {
       // (no markup change needed) — only what it sorts by changed, from
       // the old High/Normal boolean to the graduated band rank.
       case 'flagged':         return it.severityRank ?? 0;
-      case 'lastAction':      return dmActionLabel((dmLatestActions[dmView] || {})[it.id]);
+      case 'lastAction':      return dmActionLabel((dmLatestActions[dmView] || {})[it.id], dmActionsFailed.has(dmView));
       default:                return 0;
     }
   };
@@ -7861,7 +7875,7 @@ function dmRenderTable() {
       <td>${it.consistencyRate.toFixed(2)}</td>
       <td class="dm-hdr-cell"><span class="dm-hdr-pct" data-high="${it.highDayRatio > 50}">${Math.round(it.highDayRatio)}%</span><span class="dm-hdr-sub">${fmt.int(it.highDays)}/${fmt.int(it.activeDays)}</span></td>
       <td><span class="pill" data-variant="${status.variant}">${status.label}</span></td>
-      <td>${esc(dmActionLabel(action))}</td>
+      <td>${esc(dmActionLabel(action, dmActionsFailed.has(dmView)))}</td>
       <td>
         ${actionCell}
       </td>
@@ -7907,15 +7921,24 @@ function renderDriverMonitoring(derived) {
    as the date-range/shift filters do, and the modal always re-fetches
    fresh history on open regardless — see openDmActionModal). */
 let dmActionsLoadedFor = new Set();
+// Tracks which tabs' Last-Action fetch failed — dmActionLabel() reads this
+// to render "Couldn't load" instead of the bare "—" a real "no action
+// logged" row shows, so the two cases no longer look identical (see
+// dmActionLabel's own comment). NOT added to dmActionsLoadedFor on
+// failure, so the next tab switch/repaint retries automatically.
+let dmActionsFailed = new Set();
 async function loadDmActions() {
   if (typeof Cloud === 'undefined' || !Cloud.session) return;
   if (dmActionsLoadedFor.has(dmView)) { dmRenderTable(); return; }
   try {
     dmLatestActions[dmView] = await Cloud.fetchLatestEntityActions(dmView);
     dmActionsLoadedFor.add(dmView);
+    dmActionsFailed.delete(dmView);
     dmRenderTable();
   } catch (err) {
     console.error('Failed to load latest actions for', dmView, err);
+    dmActionsFailed.add(dmView);
+    dmRenderTable();
   }
 }
 // Session state can flip after this page has already rendered once
@@ -8353,6 +8376,26 @@ const LocalDB = {
 const SUPABASE_URL = 'https://rispydfovrnvnwvfwrnw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_1Yulb6qb-xKI5i8QfuEv0Q_EkOhs-yG';
 
+/* No request in this file carries a timeout of its own — every Cloud.*
+   call depends entirely on the browser/OS TCP timeout, which can take
+   minutes. A HUNG (not rejected) request leaves store.status stuck at
+   'loading' forever: _setError() is only reached from an actual catch, and
+   every render gate in the app checks status === 'ready', so a stuck
+   'loading' state means the dashboard never recovers on its own — no
+   spinner-goes-away, no error message, nothing, until the user reloads the
+   tab. Wraps a promise in a race against a timer so a hang becomes a real
+   rejection that flows into the same catch blocks a normal failure would.
+   Used on Cloud.metrics() specifically since that's the call
+   App.loadFromServer() depends on for the whole page to have anything to
+   show. */
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 const Cloud = {
   client: null,
   session: null,
@@ -8542,11 +8585,17 @@ const Cloud = {
     if (error) throw error;
   },
 
-  /** Call dds_metrics(). Returns the same shape derive() produces. */
+  /** Call dds_metrics(). Returns the same shape derive() produces. Timed
+      out at 20s (see withTimeout's own comment) — App.loadFromServer()
+      calls this up to 6 times per page load, so a single hung request
+      shouldn't be able to leave the whole dashboard stuck loading. */
   async metrics({ from = null, to = null, shift = null, actionableOnly = false } = {}){
-    const { data, error } = await this.client.rpc('dds_metrics', {
-      p_from: from, p_to: to, p_shift: shift, p_actionable_only: actionableOnly
-    });
+    const { data, error } = await withTimeout(
+      this.client.rpc('dds_metrics', {
+        p_from: from, p_to: to, p_shift: shift, p_actionable_only: actionableOnly
+      }),
+      20000, 'dds_metrics'
+    );
     if (error) throw error;
     // Additive fields are absent when the DEPLOYED function predates this
     // client — hourlyByMonth, for one, only exists from 0011 onward, and
@@ -9368,9 +9417,14 @@ const Auth = {
       state.dataset.live = 'true';
       btn.textContent = 'Sign out';
       if (!this.lastUsername){
+        // Worst case on failure: the topbar keeps showing the generic
+        // "Signed in" instead of the real username — harmless, but an
+        // unhandled rejection isn't a deliberate choice; swallow it
+        // explicitly (same reasoning as renderOverviewHero()'s identical
+        // lookup).
         Cloud.myUsername().then(name => {
           if (name && Cloud.session) { this.lastUsername = name; this.paint(); }
-        });
+        }).catch(() => {});
       }
     } else {
       state.textContent = 'Local mode';
@@ -13495,7 +13549,7 @@ var NotificationSound = (function(){
           '<td><span class="role-badge role-' + esc(u.role) + '">' + esc(ROLE_LABEL[u.role] || u.role) + '</span></td>' +
           '<td><span class="status-dot ' + STATUS_TONE[u.status] + '">' + esc(STATUS_LABEL[u.status] || u.status) + '</span></td>' +
           '<td class="imp-date">' + esc(fmtWhen(u.created_at)) + '</td>' +
-          '<td><div class="um-actions">' + actions + '</div></td>' +
+          '<td><div class="um-actions">' + actions + '</div><div class="um-action-error" hidden></div></td>' +
         '</tr>';
     }).join('');
   }
@@ -13504,12 +13558,38 @@ var NotificationSound = (function(){
     if (!Cloud.session){ profiles = []; isAdmin = false; renderUsers(); return; }
     Cloud.client.from('profiles').select('*').order('created_at', { ascending: false })
       .then(function(res){
-        if (res.error){ console.error('Failed to load accounts', res.error); return; }
+        if (res.error){ throw res.error; }
         profiles = res.data || [];
         var mine = profiles.filter(function(p){ return p.user_id === Cloud.session.user.id; })[0];
         isAdmin = !!mine && mine.role === 'admin' && mine.status === 'approved';
         renderUsers();
+      })
+      .catch(function(err){
+        // Previously: a res.error just logged and returned, leaving
+        // whatever the table last showed on screen with zero indication
+        // anything failed — an admin can't tell "no accounts yet" from
+        // "the fetch broke." A rejected promise (network failure) wasn't
+        // even caught at all. Both paths now render an explicit error row,
+        // same .ev-empty convention renderUsers() already uses for its
+        // other empty states.
+        console.error('Failed to load accounts', err);
+        userMgmtBody.innerHTML = '<tr><td colspan="6"><div class="ev-empty">Could not load accounts. <button type="button" class="link-btn" id="umRetryLoad">Retry</button></div></td></tr>';
+        var retryBtn = document.getElementById('umRetryLoad');
+        if (retryBtn) retryBtn.addEventListener('click', loadUsers);
       });
+  }
+
+  // Previously: on failure the button just re-enabled with console-only
+  // logging — an admin without devtools open sees the button reset and has
+  // no way to tell the approve/reject didn't actually happen. Now shows an
+  // inline message in the row (.um-action-error, next to the buttons) and
+  // announces it for screen readers, same as every other action failure in
+  // this file.
+  function showRowActionError(row, message){
+    var errEl = row && row.querySelector('.um-action-error');
+    if (!errEl) return;
+    errEl.textContent = message;
+    errEl.hidden = false;
   }
 
   userMgmtBody.addEventListener('click', function(e){
@@ -13521,10 +13601,20 @@ var NotificationSound = (function(){
 
     if (btn.classList.contains('um-approve')){
       btn.disabled = true;
-      Cloud.approveUser(userId).then(loadUsers).catch(function(e){ console.error('Approve failed', e); btn.disabled = false; });
+      Cloud.approveUser(userId).then(loadUsers).catch(function(e){
+        console.error('Approve failed', e);
+        btn.disabled = false;
+        showRowActionError(row, 'Could not approve — try again.');
+        announce('Could not approve that account.', { assertive: true });
+      });
     } else if (btn.classList.contains('um-reject')){
       btn.disabled = true;
-      Cloud.rejectUser(userId).then(loadUsers).catch(function(e){ console.error('Reject failed', e); btn.disabled = false; });
+      Cloud.rejectUser(userId).then(loadUsers).catch(function(e){
+        console.error('Reject failed', e);
+        btn.disabled = false;
+        showRowActionError(row, 'Could not reject — try again.');
+        announce('Could not reject that account.', { assertive: true });
+      });
     }
   });
 
