@@ -172,6 +172,56 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .topbar-sub{font-size:var(--fs-xs);color:var(--text-sec);margin-top:2px}
 .hcontrols{display:flex;align-items:center;gap:8px}
 .cpill{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px;font-size:var(--fs-xs);font-weight:500;color:var(--text)}
+
+/* ═══ Overview hero — welcome greeting ═══
+   Premium SaaS/CRM-style greeting band (Stripe/HubSpot/Linear pattern): a
+   quiet dark hero above the functional toolbar, not a loud marketing
+   banner — this is still a working dashboard someone reads every day, so
+   the hero carries identity/orientation (who, when, how fresh) and hands
+   off to the ordinary light-surface controls immediately below it for
+   anything actionable (date range, shift filter, refresh). Reuses the
+   sidebar's own navy→blue gradient and .btn's shadow language rather than
+   inventing a new palette. Real data only: name comes from Auth
+   (Cloud.myUsername()/local-mode fallback — see renderOverviewHero()),
+   the freshness pill reads the newest actual alert row, never a
+   fabricated "synced Xs ago" tick. */
+.ov-hero{
+  background:linear-gradient(120deg,var(--navy-dark),var(--navy) 55%,var(--blue));
+  border-radius:var(--r-xl); padding:22px 26px; position:relative; overflow:hidden;
+  box-shadow:var(--shadow-2); flex-shrink:0;
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-6);
+}
+/* A soft glow, not a decorative illustration — one radial wash anchored
+   top-right, echoing the sidebar's own understated depth rather than
+   adding imagery that would compete with the numbers. */
+.ov-hero::before{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(480px 200px at 88% -20%, rgba(255,255,255,.14), transparent 70%);
+}
+.ov-hero-greeting{font-size:26px; font-weight:700; color:#fff; letter-spacing:-.02em; line-height:1.2; position:relative}
+.ov-hero-sub{font-size:var(--fs-sm); color:rgba(255,255,255,.72); margin-top:5px; position:relative}
+.ov-hero-meta{display:flex; flex-direction:column; align-items:flex-end; gap:8px; position:relative; flex-shrink:0}
+.ov-hero-clock{font-size:var(--fs-sm); font-weight:600; color:#fff; font-variant-numeric:tabular-nums; text-align:right}
+.ov-hero-clock span{display:block; font-size:var(--fs-2xs); font-weight:600; color:rgba(255,255,255,.6); text-transform:uppercase; letter-spacing:var(--tracking-label); margin-top:2px}
+.ov-hero-fresh{
+  display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.18); border-radius:var(--r-full);
+  padding:5px 12px; font-size:var(--fs-2xs); font-weight:600; color:#fff;
+}
+.ov-hero-fresh i{width:6px; height:6px; border-radius:50%; background:var(--teal-200); flex-shrink:0; box-shadow:0 0 0 3px rgba(93,202,165,.25)}
+@media (max-width:900px){
+  .ov-hero{flex-direction:column; align-items:flex-start; gap:var(--sp-4)}
+  .ov-hero-meta{align-items:flex-start; width:100%}
+}
+
+/* Toolbar strip directly below the hero — same functional row the old
+   .topbar held (date range / shift filter / refresh), now its own light
+   card so it doesn't fight the hero's dark surface for attention. */
+.ov-toolbar{
+  background:var(--surface); border:1px solid var(--border-light); border-radius:var(--r-lg);
+  box-shadow:var(--shadow-1); padding:8px 14px;
+  display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-shrink:0;
+}
 .cpill svg{width:10px;height:10px;color:var(--text-sec)}
 .btn{border:none;border-radius:var(--r-md);padding:7px 14px;font-size:var(--fs-xs);font-weight:500;display:inline-flex;align-items:center;gap:6px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));box-shadow:var(--shadow-1);cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease)}
 /* Interactivity: a primary action should acknowledge the cursor and the
@@ -317,51 +367,32 @@ svg[data-chart="trend"]{overflow:visible}
 .page[data-page-id="overview"] .dl-row .dl-name{font-size:var(--fs-xs)}
 .page[data-page-id="overview"] .dl-row .dl-pct{font-size:var(--fs-xs);padding-left:4px}
 
-/* Trend / Shift / Key Insights.
-   Key Insights gets a genuinely wide column (1.35fr) rather than the narrow
-   slot it had: at 1fr the tiles were cramped enough that every value needed
-   an ellipsis, which defeats the point of a summary. The shift donut is the
-   one card here with a fixed intrinsic size (a circle plus a two-row
-   legend), so it gives up the width instead — it gains nothing from extra
-   horizontal space. Trend still keeps the largest share; it is the only
-   card whose readability genuinely scales with width. */
-/* 2 columns each (was 3) as of the Overview trim — Shift donut, Hourly-by-
-   month, and Severity donut moved to Analytics-only (that page already
-   shows all three); Recent Alerts and Contributing Factors took their
-   place, both requested by name for a "brief and concise" glance page
-   rather than the previous 8-card, 2-fixed-row layout. Column fractions
-   changed (Trend/Insights ~65/35, Recent/Factors even) but the responsive
-   breakpoints below (1600/1440/1366/1024/600px) still target these same
-   two class names, so nothing there needed to change. */
+/* Alert Volume Over Time / Event Severity Distribution — the only chart
+   row left on Overview after the Key-Insights-hero redesign (see the
+   Overview page markup comment, src/AALYTICS.PNG). Key Insights now lives
+   in its own full-width card above this row, not sharing it with Trend —
+   Recent Alerts / Contributing Factors were dropped from Overview
+   entirely (still on Analytics). Alert Volume keeps the dominant share;
+   the donut+table card doesn't need much width to read well. */
 .ov-row1{display:grid;grid-template-columns:1.7fr 1fr;gap:var(--sp-5);min-height:0;height:320px;flex-shrink:0}
-.ov-row2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-5);min-height:0;height:260px;flex-shrink:0}
 
-/* ═══ Analytics page rows — literal pixel heights (page scrolls) ═══
-   Key Insights (full-width stat strip) + 3 rows, matching Overview's
-   row-based restructure:
-     Row 1: Alert Volume Over Time 55% / Event Severity Distribution 45%
-     Row 2: Alert Activity by Hour 40% / Sync Interval Distribution 30% / Distribution by Shift 30%
-     Row 3: Top Units by Alert Volume 30% / Contributing Factors Impact 70%
-   Operators table and Recent Alerts (previously an-people's 2nd slot and a
-   standalone full-width card) were dropped from Analytics in this pass —
-   not deleted from the codebase (topOperators/recentAlerts chart functions
-   still exist), just no longer wired to any Analytics markup. */
-.an-row1{display:grid;grid-template-columns:1.6fr 1fr;gap:10px;min-height:0;height:290px;flex-shrink:0}
-.an-row2{display:grid;grid-template-columns:2fr 1.5fr 1.5fr;gap:10px;min-height:0;height:230px;flex-shrink:0}
-/* Contributing Factors Impact needs a sized wrapper or .card has no height
-   of its own (see .card{min-height:0}) and .ev-list-wrap/.ev-list's flex:1
-   has nothing to grow against — collapses to near-zero height otherwise. */
-.an-row3{display:grid;grid-template-columns:3fr 7fr;gap:10px;min-height:0;height:280px;flex-shrink:0}
-/* ROW 4 — the two hypothesis charts that don't fit the existing rows'
-   shape: Volume vs. Sync Delay (a trend-chart variant, same geometry as
-   Row 1's Alert Volume Over Time) and Drivers vs. Alerts (its own empty
-   state today — see driversVsAlerts()'s comment). Equal columns; both
-   cards are the same kind of thing (a hypothesis answered or explicitly
-   marked unanswerable), so neither should visually dominate. */
-.an-row4{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0;height:230px;flex-shrink:0}
+/* ═══ Analytics page rows — strict 3-cards-per-row grid ═══
+   Simplified per request: every chart is "simple," 3 equal cards per row,
+   2 rows, no sub-sections:
+     Row 1: Alert Volume by Distinct Asset / Hourly Trend by Month / Alert Count by Sync Interval
+     Row 2: Alert Count by Driver / Contributing Factors / Event Severity Distribution
+   Replaces the earlier 4-row/3-section/9-card layout (Shift Donut, Top
+   Units bar list, Volume-vs-Sync-Delay, Drivers-vs-Alerts all dropped —
+   their chart functions still exist in CHARTS, just unwired from any
+   PAGES entry, same "not deleted, just not mounted" convention this file
+   already uses elsewhere). Equal columns since every card here is the
+   same kind of thing (one simple chart, one topic) — none should
+   visually dominate. */
+.an-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;min-height:0;height:280px;flex-shrink:0}
+.an-row + .an-row{margin-top:var(--sp-5)}
 
 /* ═══ Driver & Asset Monitoring ═══
-   One full-height table (unlike an-row1/2/3's fixed short heights; same
+   One full-height table (unlike .an-row's fixed short heights; same
    "fills whatever vertical space is left" contract as Alert Logs' single
    .card) with a Drivers/Units tab switcher above it instead of two
    side-by-side tables — more room per table, one context at a time.
@@ -462,33 +493,87 @@ svg[data-chart="trend"]{overflow:visible}
    simply omitted, never replaced with a placeholder — same contract the
    old tile system used. */
 .card-insights{flex-shrink:0}
-.ins-grid{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-4); padding:var(--sp-2) 0}
-@media (max-width:760px){ .ins-grid{grid-template-columns:1fr} }
+/* Three-level hierarchy, not a flat N-card grid (see the Overview redesign
+   mock this was built from — src/AALYTICS.PNG):
+     Level 1 — the single highest-priority card (unactionedEntity, "here's
+       the one thing to go act on") as a full-width banner with real visual
+       weight (tinted red/pink surface, its own icon-in-circle, an
+       uppercase "TOP INSIGHT" eyebrow) so it reads as the lead, not just a
+       wider tile breaking an otherwise-even grid.
+     Level 2 — every other card (trend/coverage/note cards) in ONE row of
+       compact cards, evidence for the operational story rather than KPI
+       restatements — icon, title, big value, one line of context, a
+       "View details" link.
+     Level 3 — the real chart/table backing a claim, hidden until the
+       reader clicks "View details" (unchanged from before — still an
+       in-place accordion expansion, just restyled). */
+.ins-grid{display:flex; flex-direction:column; gap:var(--sp-4); padding:var(--sp-2) 0}
+
+/* ═══ Level 1 — Top Insight banner ═══ */
+.ins-hero{width:100%}
+.ins-hero .ins-card{
+  background:var(--danger-bg); border:1px solid color-mix(in srgb, var(--danger) 25%, var(--danger-bg));
+  border-radius:var(--r-xl); overflow:hidden;
+}
+.ins-hero .ins-summary{width:100%; display:flex; align-items:center; gap:var(--sp-4); padding:var(--sp-5); background:none; border:none; text-align:left; cursor:pointer; font-family:inherit; color:inherit}
+.ins-hero .ins-card-icon{
+  width:40px; height:40px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--danger); color:#fff;
+}
+.ins-hero .ins-card-icon svg{width:19px;height:19px}
+.ins-hero .ins-card-body{flex:1; min-width:0}
+.ins-hero-eyebrow{font-size:var(--fs-2xs); font-weight:700; letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--danger)}
+.ins-hero .ins-card-headline{font-size:var(--fs-lg); font-weight:700; color:var(--text); line-height:1.35; margin-top:2px}
+.ins-hero .ins-card-sub{font-size:var(--fs-sm); color:var(--text-sec); margin-top:3px}
+.ins-hero-cta{
+  flex-shrink:0; font-size:var(--fs-xs); font-weight:700; color:var(--danger);
+  border:1px solid color-mix(in srgb, var(--danger) 35%, transparent); background:var(--surface);
+  border-radius:var(--r-md); padding:8px 14px; display:inline-flex; align-items:center; gap:6px;
+  transition:background var(--dur-fast) var(--ease);
+}
+.ins-hero .ins-summary:hover .ins-hero-cta{background:var(--danger-bg)}
+.ins-hero-cta svg{width:13px; height:13px; transition:transform var(--dur-fast) var(--ease)}
+.ins-hero .ins-card.expanded .ins-hero-cta svg{transform:rotate(90deg)}
+.ins-hero .ins-evidence{border-top:1px solid color-mix(in srgb, var(--danger) 20%, var(--danger-bg)); background:var(--surface)}
+
+/* ═══ Level 2 — supporting insight row ═══
+   One row, up to 5 across on desktop — evidence cards, not KPI restatements
+   (icon/title stay small; the big value carries the actual claim). Flex,
+   not grid: an odd count (4 or 5 depending on page) should still fill the
+   row evenly rather than leaving a ragged last row the way a fixed-column
+   grid would with 4 or 5 items. */
+.ins-secondary{display:flex; gap:var(--sp-4); align-items:stretch}
+.ins-secondary .ins-card{flex:1 1 0; min-width:0}
+@media (max-width:1100px){ .ins-secondary{flex-wrap:wrap} .ins-secondary .ins-card{flex:1 1 calc(50% - var(--sp-4))} }
+@media (max-width:600px){ .ins-secondary .ins-card{flex:1 1 100%} }
 .ins-card{
   background:var(--surface-sunken); border:1px solid var(--border-light);
   border-radius:var(--r-lg); overflow:hidden;
   transition:box-shadow var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
-.ins-card[data-full-width]{grid-column:1/-1}
 .ins-card.expanded{background:var(--surface); border-color:var(--border); box-shadow:var(--shadow-2)}
 .ins-summary{
-  width:100%; display:flex; align-items:flex-start; gap:var(--sp-3);
+  width:100%; display:flex; flex-direction:column; align-items:flex-start; gap:var(--sp-2);
   padding:var(--sp-4); background:none; border:none; text-align:left; cursor:pointer;
   font-family:inherit; color:inherit;
 }
 .ins-summary:hover{background:var(--surface-sunken)}
 .ins-card-icon{
-  width:32px; height:32px; border-radius:var(--r-md); flex-shrink:0;
+  width:30px; height:30px; border-radius:var(--r-md); flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
 }
-.ins-card-icon svg{width:15px;height:15px}
-.ins-card-body{flex:1; min-width:0}
-.ins-card-headline{font-size:var(--fs-sm); font-weight:600; color:var(--text); line-height:1.4}
+.ins-card-icon svg{width:14px;height:14px}
+.ins-card-title{font-size:var(--fs-xs); font-weight:600; color:var(--text-sec)}
+.ins-card-body{width:100%; min-width:0}
+.ins-card-headline{font-size:var(--fs-lg); font-weight:700; color:var(--text); line-height:1.25; font-variant-numeric:tabular-nums}
 .ins-card-headline b{font-variant-numeric:tabular-nums; font-weight:700}
-.ins-card-sub{font-size:var(--fs-xs); color:var(--text-muted); margin-top:2px}
-.ins-card-cta{font-size:var(--fs-xs); font-weight:600; color:var(--accent); margin-top:6px; display:inline-flex; align-items:center; gap:3px}
-.ins-card-chevron{width:14px; height:14px; color:var(--text-muted); flex-shrink:0; margin-top:2px; transition:transform var(--dur-fast) var(--ease)}
-.ins-card.expanded .ins-card-chevron{transform:rotate(180deg)}
+.ins-card-sub{font-size:var(--fs-2xs); color:var(--text-muted); line-height:1.4}
+/* Text link, not a chevron — matches the mock's "View details →" pattern;
+   the arrow nudges right on hover/expand instead of rotating a chevron. */
+.ins-card-cta{font-size:var(--fs-xs); font-weight:600; color:var(--accent); display:inline-flex; align-items:center; gap:4px; margin-top:2px}
+.ins-card-cta svg{width:12px; height:12px; transition:transform var(--dur-fast) var(--ease)}
+.ins-card.expanded .ins-card-cta svg{transform:translateX(2px)}
 .ins-evidence{border-top:1px solid var(--border-light); padding:var(--sp-4); background:var(--surface-sunken)}
 .ins-evidence-label{
   font-size:var(--fs-2xs); font-weight:700; letter-spacing:var(--tracking-label);
@@ -507,6 +592,17 @@ svg[data-chart="trend"]{overflow:visible}
 .donut-legend{display:flex;flex-direction:column;gap:9px;min-width:0}
 .dl-row{display:flex;align-items:center;gap:7px}
 .dl-pct{font-size:var(--fs-sm);font-weight:700;margin-left:auto;padding-left:8px;font-variant-numeric:tabular-nums}
+
+/* Table-style donut legend (Overview's Event Severity Distribution — see
+   eventCodes()'s legendStyle:'table' option) — a real Severity/Alerts/%
+   table with a Total footer row, per the Overview redesign mock
+   (src/AALYTICS.PNG), instead of Analytics' compact .dl-row list. */
+.dl-table{width:100%; border-collapse:collapse; font-size:var(--fs-xs)}
+.dl-table th{text-align:left; font-weight:600; color:var(--text-muted); padding:0 0 var(--sp-2); border-bottom:1px solid var(--border-light)}
+.dl-table th.num, .dl-table td.num{text-align:right; font-variant-numeric:tabular-nums}
+.dl-table td{padding:var(--sp-2) 0; border-bottom:1px solid var(--border-light); color:var(--text-sec)}
+.dl-table td:first-child{display:flex; align-items:center; gap:7px; color:var(--text)}
+.dl-table tfoot td{border-bottom:none; border-top:1px solid var(--border); font-weight:700; color:var(--text); padding-top:var(--sp-3)}
 
 /* ═══ List rows — shared by Top N Asset ID (Overview), Event Code
    Distribution (Overview), and Top Operators (Analytics) ═══ */
@@ -1440,12 +1536,13 @@ body {
    Targets from the redesign brief: 1920/1600/1440/1366/1024/768, scoped to
    [data-page-id="overview"] only so Analytics/Data Management/Settings —
    which have zero breakpoints of their own today — are unaffected. Base
-   (unprefixed) rules earlier in this file already ARE the 1920px+ design:
-   5 KPI cols, .ov-row1/.ov-row2 both 2fr/1.5fr/1.5fr (40/30/30) — nothing
-   to override above 1600px. */
+   (unprefixed) rules earlier in this file already ARE the 1920px+ design.
+   .ov-row2 (Recent Alerts / Contributing Factors) was removed from Overview
+   entirely in the Key-Insights-hero redesign (see the Overview page markup
+   comment) — only .ov-row1 (Alert Volume / Event Severity Distribution)
+   remains, so these breakpoints target it alone now. */
 @media (max-width: 1600px) {
   .page[data-page-id="overview"] .ov-row1 { height: 260px; }
-  .page[data-page-id="overview"] .ov-row2 { height: 240px; }
 }
 
 @media (max-width: 1440px) {
@@ -1453,14 +1550,12 @@ body {
      readable, just less vertical breathing room, per the height-aware
      design rule (don't shrink text/marks, shrink whitespace first). */
   .page[data-page-id="overview"] .ov-row1 { height: 250px; }
-  .page[data-page-id="overview"] .ov-row2 { height: 230px; }
 }
 
 @media (max-width: 1366px) {
   .main[data-page="overview"] { padding: var(--sp-6) var(--sp-7); }
   .page[data-page-id="overview"] .kpi { min-height: 88px; }
   .page[data-page-id="overview"] .ov-row1 { height: 240px; }
-  .page[data-page-id="overview"] .ov-row2 { height: 220px; }
 }
 
 @media (max-width: 1024px) {
@@ -1470,22 +1565,20 @@ body {
      spec; tiles use auto height so this reflow is just a grid-column
      change. */
   .page[data-page-id="overview"] .kpi-row { grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
-  /* Row 1 / Row 2 are already 2 columns at full width (see .ov-row1/.ov-row2
-     themselves) — this tier's real job is height:auto, letting each card
-     size to its own content instead of a shared fixed row height, since
-     the unequal column widths (1.7fr/1fr) get cramped well before 1024px. */
-  .page[data-page-id="overview"] .ov-row1,
-  .page[data-page-id="overview"] .ov-row2 { grid-template-columns: 1fr 1fr; height: auto; }
-  .page[data-page-id="overview"] .ov-row1 .card,
-  .page[data-page-id="overview"] .ov-row2 .card { height: 240px; }
+  /* Row 1 is already 2 columns at full width (see .ov-row1 itself) — this
+     tier's real job is height:auto, letting each card size to its own
+     content instead of a shared fixed row height, since the unequal
+     column widths (1.7fr/1fr) get cramped well before 1024px. */
+  .page[data-page-id="overview"] .ov-row1 { grid-template-columns: 1fr 1fr; height: auto; }
+  .page[data-page-id="overview"] .ov-row1 .card { height: 240px; }
 }
 
 @media (max-width: 768px) {
   .page[data-page-id="overview"] .kpi-row { grid-template-columns: repeat(2, 1fr); }
   /* Charts: 1 column below 768px per spec, but the spec allows 1-2 at
-     exactly 768px tablet-portrait width — kept at 2-up here since none of
-     the six cards have dense axis labels that would collide at this
-     width; true 1-column collapse happens at the 600px tier below. */
+     exactly 768px tablet-portrait width — kept at 2-up here since neither
+     card has dense axis labels that would collide at this width; true
+     1-column collapse happens at the 600px tier below. */
 }
 
 @media (max-width: 600px) {
@@ -1493,10 +1586,8 @@ body {
      practical inner edge since 768px itself is the tablet-portrait target
      above). KPI stays 2-up per spec ("KPI: 2 columns" is explicit at every
      tier below 1024px). */
-  .page[data-page-id="overview"] .ov-row1,
-  .page[data-page-id="overview"] .ov-row2 { grid-template-columns: 1fr; }
-  .page[data-page-id="overview"] .ov-row1 .card,
-  .page[data-page-id="overview"] .ov-row2 .card { height: 220px; }
+  .page[data-page-id="overview"] .ov-row1 { grid-template-columns: 1fr; }
+  .page[data-page-id="overview"] .ov-row1 .card { height: 220px; }
 }
 
 @media print {
@@ -1742,32 +1833,47 @@ body {
     <!-- ═══════════════════════ OVERVIEW ═══════════════════════ -->
     <section class="page" id="page-overview" data-page-id="overview">
 
-      <div class="topbar">
+      <!-- Welcome hero — real signed-in name (Auth/Cloud.myUsername(), never
+           fabricated; local-mode falls back to a name-less greeting), a
+           live clock, and a freshness pill reading the newest actual alert
+           row's timestamp (recentAlerts[0].time) — see
+           renderOverviewHero() (CHARTS/paint section) for how each field
+           is populated and its own comment on why nothing here is a
+           placeholder. Static "—" shell below matches every other
+           first-paint contract in this file. -->
+      <div class="ov-hero">
         <div>
-          <div class="topbar-title">Overview</div>
-          <div class="topbar-sub">Real-time summary of drowsiness alerts and driver activity.</div>
+          <div class="ov-hero-greeting" id="ovHeroGreeting">Welcome back</div>
+          <div class="ov-hero-sub" id="ovHeroSub">Here's what's happening with your fleet today.</div>
         </div>
-        <div class="hcontrols">
-          <div class="al-date-range" role="group" aria-label="Date range">
-            <label class="al-date-field">
-              <span>From</span>
-              <input type="date" id="ovDateFrom" aria-label="From date">
-            </label>
-            <span class="al-date-sep" aria-hidden="true">–</span>
-            <label class="al-date-field">
-              <span>To</span>
-              <input type="date" id="ovDateTo" aria-label="To date">
-            </label>
-          </div>
-          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
-          <!-- "All Assets" pill removed: no asset/site column exists in
-               EXPECTED_COLUMNS to filter by, so it never had a real dropdown
-               behind it (initControls()'s .cpill text-matcher has no 'asset'
-               branch) — a chevron-decorated div implying a filter that did
-               nothing on click. Restore it once the data model has an
-               asset/site field to actually filter on. -->
-          <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg>Refresh</button>
+        <div class="ov-hero-meta">
+          <div class="ov-hero-clock" id="ovHeroClock">—<span id="ovHeroDate">—</span></div>
+          <div class="ov-hero-fresh" id="ovHeroFresh"><i></i>—</div>
         </div>
+      </div>
+
+      <!-- Toolbar — the functional controls the old .topbar held, now its
+           own light strip below the hero (see .ov-toolbar's own comment). -->
+      <div class="ov-toolbar">
+        <div class="al-date-range" role="group" aria-label="Date range">
+          <label class="al-date-field">
+            <span>From</span>
+            <input type="date" id="ovDateFrom" aria-label="From date">
+          </label>
+          <span class="al-date-sep" aria-hidden="true">–</span>
+          <label class="al-date-field">
+            <span>To</span>
+            <input type="date" id="ovDateTo" aria-label="To date">
+          </label>
+        </div>
+        <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+        <!-- "All Assets" pill removed: no asset/site column exists in
+             EXPECTED_COLUMNS to filter by, so it never had a real dropdown
+             behind it (initControls()'s .cpill text-matcher has no 'asset'
+             branch) — a chevron-decorated div implying a filter that did
+             nothing on click. Restore it once the data model has an
+             asset/site field to actually filter on. -->
+        <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg>Refresh</button>
       </div>
 
       <!-- SUMMARY — 5 KPI cards, each with a plain comparison line vs the
@@ -1834,28 +1940,37 @@ body {
         </div>
       </div>
 
-      <!-- Key Insights — full-width stat-tile strip, charts.insightsOverview()
-           bullets scoped to Overview's own charts (see the insightBullets
-           comment in the CHARTS section). One tile per bullet: tinted
-           icon + big number + two-line label, divided by thin rules —
-           same .kpi-icon tint vocabulary as the KPI row above. Own row
-           instead of sharing one with two other charts so 3-5 tiles have
-           room to read at a glance without wrapping. -->
-      <!-- ROW 1 — Trend / Key Insights.
-           Alerts by Shift (previously a third column here) moved to
-           Analytics-only as part of the Overview trim — see .ov-row1's own
-           CSS comment. Trend + Key Insights are the two things this page
-           leads with, so they get the full-height first row to themselves;
-           the Top Unit / dominant severity numbers the donut used to show
-           are still one glance away in Key Insights' own tiles
-           (topUnit/topSeverity), just not a second full chart. -->
+      <!-- Key Insights — full-width, directly under the KPI row (see the
+           Overview redesign mock, src/AALYTICS.PNG): "how are we doing"
+           (KPIs) then immediately "what requires attention" (Key Insights),
+           before either chart. Own row so the hero banner + supporting-card
+           row have their full width to lay out in, not squeezed beside the
+           Trend chart the way the previous layout put them. -->
+      <div class="card card-insights">
+        <div class="card-head"><h2>Key Insights</h2></div>
+        <div class="ins-grid" id="ovInsights" data-chart="insights"></div>
+      </div>
+
+      <!-- ROW — Alert Volume Over Time (larger, left) / Recent Activity
+           (right). "How are we doing" (KPIs) → "what requires attention"
+           (Key Insights) → "is it trending up or down" (Trend) → "what
+           just happened" (Recent Activity) — a straight top-to-bottom
+           narrative, each card answering the next natural question.
+           Event Severity Distribution moved to Analytics-only (see that
+           page's Row 2) so Overview stays to just trend + a live feed,
+           matching "trend and recent activity" as asked. -->
       <div class="ov-row1">
-        <!-- Trend card — one combined chart, 3 series (Alert Volume / Asset /
-             Sync), each independently scaled to its own min/max (see
-             charts.trend()'s per-series scaling, CHARTS section) rather
-             than one shared y-scale — Alert Volume/Asset (small integer
-             counts) and Sync (seconds, often thousands) can't share an
-             axis without one flattening the other. Legend items are
+        <!-- Trend card — 2 series (Total Alerts / Distinct Assets), each
+             independently scaled to its own min/max (see charts.trend()'s
+             per-series scaling comment) since raw counts of alerts vs.
+             assets don't share a natural scale. BOTH lines solid, uniform
+             2px, color-only differentiation backed by the legend — dashed
+             secondary lines were dropped (a dash reads as "projection" or
+             "threshold" in chart-design convention, wrong for a real
+             plotted series). Sync delay dropped as a 3rd series here: past
+             2 lines, a shared card gets harder to read at a glance, and
+             Analytics' own Alert Volume by Distinct Asset chart is the
+             place for that comparison in more depth. Legend items are
              clickable (id="ovTrendLegend", wired in initSeriesLegend())
              to show/hide a series; the hover tooltip always names each
              visible series' real, un-rescaled value, so the rescaling is
@@ -1864,19 +1979,17 @@ body {
           <div class="card-head">
             <h2>Alert Volume Over Time</h2>
             <div class="legend-block" id="ovTrendLegend" role="group" aria-label="Toggle trend series">
-              <button type="button" class="legend-item legend-item-toggle" data-series="units" aria-pressed="true"><span class="legend-dot" style="background:var(--blue)"></span>Alert Volume</button>
-              <button type="button" class="legend-item legend-item-toggle" data-series="assets" aria-pressed="true"><span class="legend-dot" style="background:linear-gradient(90deg,var(--text-muted) 55%,transparent 55%);background-size:5px 100%"></span>Asset</button>
-              <button type="button" class="legend-item legend-item-toggle" data-series="avgSyncSeconds" aria-pressed="true"><span class="legend-dot" style="background:linear-gradient(90deg,var(--amber) 45%,transparent 45%);background-size:3px 100%"></span>Sync</button>
+              <button type="button" class="legend-item legend-item-toggle" data-series="units" aria-pressed="true"><span class="legend-dot" style="background:var(--blue)"></span>Total Alerts</button>
+              <button type="button" class="legend-item legend-item-toggle" data-series="assets" aria-pressed="true"><span class="legend-dot" style="background:var(--purple)"></span>Distinct Assets</button>
             </div>
           </div>
           <div class="chart-body">
             <svg id="ovTrendSvg" viewBox="0 0 992 180" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="trend">
               <line x1="0" y1="8" x2="992" y2="8" stroke="#F1F2F5" stroke-width="1"/><line x1="0" y1="88" x2="992" y2="88" stroke="#F1F2F5" stroke-width="1"/><line x1="0" y1="168" x2="992" y2="168" stroke="#F1F2F5" stroke-width="1"/>
-              <path id="ovTrendFillPath" d="" fill="var(--blue)" fill-opacity=".08"/>
-              <path id="ovTrendUnitsPath" d="" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path id="ovTrendAssetsPath" d="" fill="none" stroke="var(--text-muted)" stroke-width="1.25" stroke-dasharray="5 4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
-              <path id="ovTrendSyncPath" d="" fill="none" stroke="var(--amber)" stroke-width="1.25" stroke-dasharray="2 3" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
-              <g id="ovTrendDots" stroke="white" stroke-width="1.5"></g>
+              <path id="ovTrendFillPath" d="" fill="var(--blue)" fill-opacity=".1"/>
+              <path id="ovTrendUnitsPath" d="" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path id="ovTrendAssetsPath" d="" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <g id="ovTrendDots" stroke="white" stroke-width="2.5"></g>
               <g id="ovTrendHover"></g>
             </svg>
             <div id="ovTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0"></div>
@@ -1884,24 +1997,14 @@ body {
             <div class="chart-tooltip" id="ovTrendTooltip"></div>
           </div>
         </div>
-        <!-- Key Insights — click-to-expand evidence cards, see
-             renderInsightCards()/insightBullets (CHARTS section). -->
-        <div class="card card-insights">
-          <div class="card-head"><h2>Key Insights</h2></div>
-          <div class="ins-grid" id="ovInsights" data-chart="insights"></div>
-        </div>
-      </div>
 
-      <!-- ROW 2 — Recent Alerts / Contributing Factors. Both requested by
-           name for the trimmed page: Recent Alerts reuses charts.
-           recentAlerts() (already existed, was never wired to any PAGES
-           entry — see that function's own comment); Contributing Factors
-           reuses charts.factorImpact() exactly as Analytics renders it,
-           just in a shorter card so only the top few factors are visible
-           without scrolling — the full list stays on Analytics. -->
-      <div class="ov-row2">
+        <!-- Recent Activity — a live feed of the newest alert rows
+             (charts.recentAlerts(), already existed but was unwired since
+             an earlier pass — see that function's own comment), the
+             concrete "what just changed" a manager checks after the trend
+             line. -->
         <div class="card">
-          <div class="card-head"><h2>Recent Alerts</h2></div>
+          <div class="card-head"><h2>Recent Activity</h2></div>
           <div class="ev-list-wrap" style="overflow-y:auto">
             <table class="rec-table" id="ovRecentAlertsTable" data-chart="recentAlerts">
               <thead>
@@ -1909,19 +2012,6 @@ body {
               </thead>
               <tbody id="ovRecentAlertsBody"></tbody>
             </table>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-head">
-            <h2>Contributing Factors</h2>
-            <div class="legend-block">
-              <div class="legend-item"><span class="legend-dot" style="background:var(--sev-elevated)"></span>Elevated</div>
-              <div class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span>At baseline</div>
-            </div>
-          </div>
-          <div class="ev-list-wrap">
-            <div class="ev-list" id="ovFactorImpactList" data-chart="factorImpact"></div>
-            <div class="chart-tooltip" id="ovFactorImpactTooltip"></div>
           </div>
         </div>
       </div>
@@ -2034,11 +2124,26 @@ body {
         <div class="ins-grid" id="anInsights" data-chart="insights"></div>
       </div>
 
-      <!-- ROW 1 — Alert Volume Over Time (55%) / Event Severity Distribution (45%). -->
-      <div class="an-row1">
+      <!-- Simplified to exactly 6 one-topic charts, 3 per row (per request)
+           — replaces the earlier 9-card/3-section layout. Shift Donut, Top
+           Units bar list, Volume-vs-Sync-Delay, and Drivers-vs-Alerts were
+           dropped entirely; their chart functions still exist in CHARTS,
+           just unmounted from any PAGES entry. -->
+
+      <!-- ROW 1 — Alert Volume by Distinct Asset / Hourly Trend by Month /
+           Alert Count by Sync Interval. -->
+      <div class="an-row">
+        <!-- Alert Volume by Distinct Asset — 2-series line chart (Total
+             Alerts / Distinct Assets), same trend()/linePath() geometry as
+             Overview's own Alert Volume Over Time card, same cleaned-up
+             mark spec: solid uniform 2px lines (no dashed secondary
+             series — a dash reads as "projection," wrong for real data),
+             10% area wash under the primary series, ≥8px end-markers with
+             a surface-color ring, direct end-of-line reading via the
+             hover crosshair + legend rather than a label on every point. -->
         <div class="card">
           <div class="card-head">
-            <h2>Alert Volume Over Time</h2>
+            <h2>Alert Volume by Distinct Asset</h2>
             <div class="legend-block">
               <div class="legend-item"><span class="legend-dot" style="background:var(--sev-elevated)"></span>Total Alerts</div>
               <div class="legend-item"><span class="legend-dot" style="background:var(--purple)"></span>Distinct Assets</div>
@@ -2049,10 +2154,10 @@ body {
               <line x1="0" y1="20" x2="720" y2="20" stroke="#F1F2F5" stroke-width="1"/>
               <line x1="0" y1="110" x2="720" y2="110" stroke="#F1F2F5" stroke-width="1"/>
               <line x1="0" y1="200" x2="720" y2="200" stroke="#F1F2F5" stroke-width="1"/>
-              <path id="anTrendFillPath" d="" fill="var(--sev-elevated)" fill-opacity=".08"/>
-              <path id="anTrendAlertsPath" d="" fill="none" stroke="var(--sev-elevated)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-              <path id="anTrendAssetsPath" d="" fill="none" stroke="var(--purple)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-              <g id="anTrendDots" fill="var(--purple)" stroke="white" stroke-width="1.5"></g>
+              <path id="anTrendFillPath" d="" fill="var(--sev-elevated)" fill-opacity=".1"/>
+              <path id="anTrendAlertsPath" d="" fill="none" stroke="var(--sev-elevated)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path id="anTrendAssetsPath" d="" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <g id="anTrendDots" stroke="white" stroke-width="2.5"></g>
               <g id="anTrendHover"></g>
             </svg>
             <div id="anTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0"></div>
@@ -2061,31 +2166,10 @@ body {
           </div>
         </div>
 
+        <!-- Hourly Trend by Month — unchanged charts.hourlyMonthly() renderer
+             (same clickable month-legend), only the card position changed. -->
         <div class="card">
-          <div class="card-head"><h2>Event Severity Distribution</h2></div>
-          <div class="donut-wrap" style="position:relative">
-            <svg viewBox="0 0 160 160" style="width:auto;height:100%;max-height:150px;flex-shrink:0;aspect-ratio:1" data-chart="eventCodes">
-              <g id="anEventDonutArcs"></g>
-              <text id="anEventDonutCount" x="80" y="76" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)">—</text>
-              <text x="80" y="94" text-anchor="middle" font-size="9" fill="var(--text-sec)">event codes</text>
-            </svg>
-            <div class="donut-legend" id="anEventDonutLegend"></div>
-            <div class="chart-tooltip" id="anEventDonutTooltip"></div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- ROW 2 — Alert Activity by Hour (40%) / Sync Interval Distribution
-           (30%) / Distribution by Shift (30%). -->
-      <div class="an-row2">
-        <!-- Alert Activity by Hour — identical treatment to Overview's copy
-             (same charts.hourlyMonthly() renderer, same clickable
-             month-legend below the title). The two charts keep INDEPENDENT
-             hidden-month sets, since the set lives on the legend element —
-             toggling a month here does not change Overview's view. -->
-        <div class="card">
-          <div class="card-head"><h2>Alert Activity by Hour</h2></div>
+          <div class="card-head"><h2>Hourly Trend by Month</h2></div>
           <div class="legend-row legend-block" id="anHourlyLegend" role="group" aria-label="Toggle months"></div>
           <div class="chart-body">
             <svg id="anHourlySvg" viewBox="0 0 720 220" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="hourlyMonthly">
@@ -2102,8 +2186,9 @@ body {
           </div>
         </div>
 
+        <!-- Alert Count by Sync Interval — unchanged syncInterval() bar chart. -->
         <div class="card">
-          <div class="card-head"><h2>Sync Interval Distribution</h2></div>
+          <div class="card-head"><h2>Alert Count by Sync Interval</h2></div>
           <div class="chart-body">
             <svg id="anSyncIntervalSvg" viewBox="0 0 300 130" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="syncInterval">
               <line x1="0" y1="128" x2="300" y2="128" stroke="#E6E8EC" stroke-width="1"/>
@@ -2116,41 +2201,29 @@ body {
             <div class="chart-tooltip" id="anSyncIntervalTooltip"></div>
           </div>
         </div>
-
-        <div class="card">
-          <div class="card-head"><h2>Distribution by Shift</h2></div>
-          <div class="donut-wrap" style="position:relative">
-            <svg viewBox="0 0 160 160" style="width:auto;height:100%;max-height:150px;flex-shrink:0;aspect-ratio:1" data-chart="shiftDonut">
-              <circle cx="80" cy="80" r="58" fill="none" stroke="var(--sev-elevated)" stroke-width="22"/>
-              <circle id="anShiftDonutArc" cx="80" cy="80" r="58" fill="none" stroke="var(--blue)" stroke-width="22" stroke-dasharray="0 364" transform="rotate(-90 80 80)"/>
-              <text id="anShiftDonutTotal" x="80" y="76" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)">—</text>
-              <text x="80" y="94" text-anchor="middle" font-size="9" fill="var(--text-sec)">Total Alerts</text>
-            </svg>
-            <div class="donut-legend">
-              <div class="dl-row"><span class="legend-dot" style="background:var(--blue)"></span><div><div style="font-size:var(--fs-sm);font-weight:600">Day Shift</div><div style="font-size:var(--fs-xs);color:var(--text-sec)" id="anShiftDayAlerts">—</div></div><div class="dl-pct" id="anShiftDayPct">—</div></div>
-              <div class="dl-row"><span class="legend-dot" style="background:var(--sev-elevated)"></span><div><div style="font-size:var(--fs-sm);font-weight:600">Night Shift</div><div style="font-size:var(--fs-xs);color:var(--text-sec)" id="anShiftNightAlerts">—</div></div><div class="dl-pct" id="anShiftNightPct">—</div></div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <!-- ROW 3 — Top Units by Alert Volume (30%) / Contributing Factors
-           Impact (70%). Contributing Factors correlates logged factors
-           (Data Management > Contributing Factors) against alert volume;
-           see the `factorImpact` chart function (CHARTS section) for the
-           actual comparison logic. -->
-      <div class="an-row3">
+      <!-- ROW 2 — Alert Count by Driver / Contributing Factors / Event
+           Severity Distribution. -->
+      <div class="an-row">
+        <!-- Alert Count by Driver — new: topOperators() bar-chart variant
+             (see that function's own comment), same visual family as
+             Alert Count by Sync Interval and the other bar-list cards.
+             UNSPECIFIED_OPERATOR filtered out — an honest empty state
+             ("No driver data…") beats a chart whose tallest bar is a
+             data-capture gap mislabeled as a driver. -->
         <div class="card">
-          <div class="card-head"><h2>Top Units by Alert Volume</h2></div>
+          <div class="card-head"><h2>Alert Count by Driver</h2></div>
           <div class="ev-list-wrap">
-            <div class="ev-list" id="anTopUnitsList" data-chart="topAssets"></div>
-            <div class="chart-tooltip" id="anTopUnitsTooltip"></div>
+            <div class="ev-list" id="anTopDriversList" data-chart="topOperators"></div>
+            <div class="chart-tooltip" id="anTopDriversTooltip"></div>
           </div>
         </div>
 
+        <!-- Contributing Factors — unchanged factorImpact() renderer. -->
         <div class="card">
           <div class="card-head">
-            <h2>Contributing Factors Impact</h2>
+            <h2>Contributing Factors</h2>
             <div class="legend-block">
               <div class="legend-item"><span class="legend-dot" style="background:var(--sev-elevated)"></span>Elevated vs. baseline</div>
               <div class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span>At or below baseline</div>
@@ -2161,56 +2234,21 @@ body {
             <div class="chart-tooltip" id="anFactorImpactTooltip"></div>
           </div>
         </div>
-      </div>
 
-      <!-- ROW 4 — Volume vs. Sync Delay / Drivers vs. Alerts. Both answer a
-           specific fleet-behavior question rather than just describing the
-           data (Row 1-3's charts). See .an-row4's own comment. -->
-      <div class="an-row4">
-        <!-- Volume vs. Sync Delay — same trend()/linePath() geometry Row 1's
-             Alert Volume Over Time uses (2-series, independently indexed,
-             r-value line included automatically — see trend()'s insight
-             block), just a different second series (avgSyncSeconds instead
-             of assets) and its own PAGES entry so toggling this chart's
-             legend never touches Row 1's. Answers "does a longer sync delay
-             explain the alert spikes" directly, including the null-result
-             case — see trend()'s pearsonR() comment on why a weak/absent
-             correlation is reported exactly as plainly as a strong one. -->
+        <!-- Event Severity Distribution — moved here from Overview (see
+             Overview's own markup comment); same donut+table-legend
+             treatment eventCodes() already supports. -->
         <div class="card">
-          <div class="card-head">
-            <h2>Volume vs. Sync Delay</h2>
-            <div class="legend-block">
-              <div class="legend-item"><span class="legend-dot" style="background:var(--sev-elevated)"></span>Total Alerts</div>
-              <div class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>Avg. Sync Delay</div>
-            </div>
-          </div>
-          <div class="chart-body">
-            <svg id="anSyncTrendSvg" viewBox="0 0 720 220" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="trend">
-              <line x1="0" y1="20" x2="720" y2="20" stroke="#F1F2F5" stroke-width="1"/>
-              <line x1="0" y1="110" x2="720" y2="110" stroke="#F1F2F5" stroke-width="1"/>
-              <line x1="0" y1="200" x2="720" y2="200" stroke="#F1F2F5" stroke-width="1"/>
-              <path id="anSyncTrendFillPath" d="" fill="var(--sev-elevated)" fill-opacity=".08"/>
-              <path id="anSyncTrendUnitsPath" d="" fill="none" stroke="var(--sev-elevated)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-              <path id="anSyncTrendSyncPath" d="" fill="none" stroke="var(--amber)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-              <g id="anSyncTrendDots" stroke="white" stroke-width="1.5"></g>
-              <g id="anSyncTrendHover"></g>
+          <div class="card-head"><h2>Event Severity Distribution</h2></div>
+          <div class="donut-wrap" style="position:relative;align-items:flex-start">
+            <svg viewBox="0 0 160 160" style="width:auto;height:auto;max-width:130px;flex-shrink:0;aspect-ratio:1" data-chart="eventCodes">
+              <g id="anEventDonutArcs"></g>
+              <text id="anEventDonutCount" x="80" y="76" text-anchor="middle" font-size="18" font-weight="700" fill="var(--text)">—</text>
+              <text x="80" y="94" text-anchor="middle" font-size="9" fill="var(--text-sec)">Total Alerts</text>
             </svg>
-            <div id="anSyncTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0"></div>
-            <div id="anSyncTrendInsight" class="chart-insight-line"></div>
-            <div class="chart-tooltip" id="anSyncTrendTooltip"></div>
+            <div class="donut-legend" id="anEventDonutLegend" style="flex:1"></div>
+            <div class="chart-tooltip" id="anEventDonutTooltip"></div>
           </div>
-        </div>
-
-        <!-- Drivers vs. Alerts — deliberately an empty-state card, not a
-             chart drawing a flat line at zero. Every row in this fleet's
-             events currently has a blank OPERATOR, so there is nothing to
-             plot; see driversVsAlerts()'s own comment for why a bar form
-             (not another trend line) is the right shape once real driver
-             data exists, and why an honest empty state beats a
-             technically-not-wrong-but-meaningless chart. -->
-        <div class="card">
-          <div class="card-head"><h2>Drivers vs. Alerts</h2></div>
-          <div class="chart-body" id="anDriversVsAlerts" data-chart="driversVsAlerts" style="align-items:center;justify-content:center"></div>
         </div>
       </div>
 
@@ -5069,6 +5107,8 @@ const insightBullets = {
     const sign = up ? '+' : '−';
     return {
       icon: 'truck', tint: 'var(--teal-50)', fg: 'var(--teal)',
+      title: 'Assets reporting',
+      value: `<span style="color:${up ? 'var(--danger)' : 'var(--success)'}">${sign}${Math.abs(m.pct).toFixed(0)}%</span> vs 7 days ago`,
       headline: `Assets reporting <b style="color:${up ? 'var(--danger)' : 'var(--success)'}">${sign}${Math.abs(m.pct).toFixed(0)}%</b> vs 7 days ago`,
       sub: `${fmt.int(m.current)} assets today · ${fmt.int(m.previous)} a week ago`,
       evidence: {
@@ -5091,6 +5131,8 @@ const insightBullets = {
     const r = pearsonR(d.trend.map(p => p.units), d.trend.map(p => p.assets));
     return {
       icon: 'trendUp', tint: 'var(--danger-bg)', fg: 'var(--danger)',
+      title: 'Total alert volume',
+      value: `<span style="color:${up ? 'var(--danger)' : 'var(--success)'}">${sign}${Math.abs(m.pct).toFixed(0)}%</span> vs 7 days ago`,
       headline: `Total alert volume <b style="color:${up ? 'var(--danger)' : 'var(--success)'}">${sign}${Math.abs(m.pct).toFixed(0)}%</b> vs 7 days ago`,
       sub: `${fmt.int(d.kpis.totalAlerts)} alerts total`,
       evidence: {
@@ -5117,6 +5159,8 @@ const insightBullets = {
     if (n <= 0) return null;
     return {
       icon: 'truck', tint: 'var(--blue-50)', fg: 'var(--blue)',
+      title: 'Assets in alert data',
+      value: `${fmt.int(n)} assets`,
       headline: `<b>${fmt.int(n)} assets</b> appear in alert data`,
       sub: '% of total fleet — needs a fleet-size source, see note',
       evidence: {
@@ -5142,6 +5186,8 @@ const insightBullets = {
     if ((d.kpis?.totalAlerts ?? 0) <= 0) return null;
     return {
       icon: 'user', tint: 'var(--purple-50)', fg: 'var(--purple)',
+      title: 'Drivers identified',
+      value: real.length ? `${fmt.int(real.length)} drivers` : '0% of drivers identified',
       headline: real.length
         ? `<b>${fmt.int(real.length)} drivers</b> identified in alert data`
         : `<b>0%</b> of driver population identified`,
@@ -5186,7 +5232,7 @@ const insightBullets = {
     const SEV_COLOR = { critical: 'var(--danger)', warning: 'var(--warning-text)', caution: 'var(--accent)' };
     return {
       icon: 'warning', tint: 'var(--danger-bg)', fg: 'var(--danger)',
-      fullWidth: true,
+      hero: true,
       headline: `<b style="font-family:var(--font-mono, monospace);color:${SEV_COLOR[top.severity]}">${esc(top.id)}</b> — ${SEV_LABEL[top.severity] ?? top.severity} severity, highest-ranked ${top.entityType === 'driver' ? 'driver' : 'unit'} needing attention`,
       sub: `Ranked #1 of ${all.length} flagged ${all.length === 1 ? 'entity' : 'entities'} by severity — see Driver & Asset Monitoring to check action history and log one`,
       evidence: {
@@ -5210,7 +5256,9 @@ const insightBullets = {
     if (syncTotal <= 0 || worst / syncTotal < 0.1) return null;
     const pct = (worst / syncTotal) * 100;
     return {
-      icon: 'warning', tint: 'var(--warning-bg)', fg: 'var(--warning)',
+      icon: 'clock', tint: 'var(--warning-bg)', fg: 'var(--warning)',
+      title: 'Sync delay',
+      value: `${fmt.pct(pct, 0)} in 10h+ bucket`,
       headline: `<b>${fmt.pct(pct, 0)}</b> of events sit in the 10h+ sync bucket`,
       sub: `${fmt.int(worst)} events — the longest delay bucket`,
       evidence: {
@@ -5256,8 +5304,10 @@ const insightBullets = {
     if (!top || !(baselineRate > 0 && top.ratio >= 1.2)) return null;
     return {
       icon: 'warning', tint: 'var(--danger-bg)', fg: 'var(--sev-elevated)',
+      title: 'Top contributing factor',
+      value: `${top.ratio.toFixed(1)}× baseline`,
       headline: `<b>${esc(top.factor.factorType)}</b> is running ${top.ratio.toFixed(1)}× the fleet baseline rate`,
-      sub: 'vs. fleet baseline rate',
+      sub: `${esc(top.factor.factorType)} vs. fleet baseline rate`,
       evidence: {
         type: 'note',
         text: `Fleet baseline outside logged factors: ${baselineRate.toFixed(1)} alerts/day. ` +
@@ -5339,18 +5389,42 @@ function renderInsightCards(el, cards) {
     el.innerHTML = `<div class="ins-strip-empty">Not enough data yet to compute insights.</div>`;
     return;
   }
-  el.innerHTML = cards.map((c, i) => `
-    <div class="ins-card"${c.fullWidth ? ' data-full-width' : ''} data-ins-card="${i}">
+  // Hero banner — "TOP INSIGHT" eyebrow, icon-in-circle, headline sentence,
+  // right-aligned pill CTA. Visually distinct from the secondary cards
+  // below (red-tinted surface, not the neutral sunken one) so the single
+  // most actionable card reads as the lead the moment the page loads.
+  const heroHtml = (c, i) => `
+    <div class="ins-card" data-hero data-ins-card="${i}">
       <button type="button" class="ins-summary" aria-expanded="false">
-        <div class="ins-card-icon" style="background:${c.tint};color:${c.fg}">${svg(c.icon)}</div>
+        <div class="ins-card-icon">${svg(c.icon)}</div>
         <div class="ins-card-body">
+          <div class="ins-hero-eyebrow">Top insight</div>
           <div class="ins-card-headline">${c.headline}</div>
           <div class="ins-card-sub">${esc(c.sub)}</div>
-          <span class="ins-card-cta">See details ${svg('down', 'ic-2xs')}</span>
         </div>
-        <svg class="ins-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        <span class="ins-hero-cta">See details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></span>
       </button>
-    </div>`).join('');
+    </div>`;
+  // Secondary cards — title, big value, one line of context, "View
+  // details" text link. Evidence for the operational story, not a KPI
+  // restatement, so the number that matters (value) reads bigger than the
+  // label naming it (title) — opposite emphasis from a KPI tile.
+  const secondaryHtml = (c, i) => `
+    <div class="ins-card" data-ins-card="${i}">
+      <button type="button" class="ins-summary" aria-expanded="false">
+        <div class="ins-card-icon" style="background:${c.tint};color:${c.fg}">${svg(c.icon)}</div>
+        <div class="ins-card-title">${esc(c.title)}</div>
+        <div class="ins-card-body">
+          <div class="ins-card-headline">${c.value}</div>
+          <div class="ins-card-sub">${esc(c.sub)}</div>
+        </div>
+        <span class="ins-card-cta">View details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></span>
+      </button>
+    </div>`;
+  const heroIdx = cards.findIndex(c => c.hero);
+  const heroBlock = heroIdx >= 0 ? `<div class="ins-hero">${heroHtml(cards[heroIdx], heroIdx)}</div>` : '';
+  const secondaryBlock = cards.map((c, i) => i === heroIdx ? '' : secondaryHtml(c, i)).join('');
+  el.innerHTML = heroBlock + `<div class="ins-secondary">${secondaryBlock}</div>`;
 
   el.onclick = e => {
     const openBtn = e.target.closest('[data-ins-open-entity]');
@@ -5385,34 +5459,35 @@ function renderInsightCards(el, cards) {
 const charts = {
 
   /* Key Insights (Overview) — the core evidence-card set: assets trend,
-     volume trend, the two population/coverage cards, and the highest-
-     severity unactioned entity. Same 5 cards as Analytics (see
-     insightsAnalytics below) — the click-to-expand redesign uses one
-     shared card set on both pages rather than each page summarizing only
-     its own charts, unlike the old tile-strip system. Analytics adds two
-     more (sync delay, contributing factors) since those charts only exist
-     there. */
+     volume trend, sync delay, the two population/coverage cards, and the
+     highest-severity unactioned entity (hero). Same 6 cards as Analytics
+     (see insightsAnalytics below) minus the contributing-factor card,
+     since Overview doesn't show that chart — see the Overview redesign
+     mock (src/AALYTICS.PNG) this row was built from, which shows Sync
+     delay as one of Overview's own supporting insights, not Analytics-only
+     as it was before this pass. */
   insightsOverview(el, d) {
     const cards = [
       insightBullets.assetsTrend(d),
       insightBullets.volumeTrend(d),
       insightBullets.populationAssets(d),
+      insightBullets.syncDelay(d),
       insightBullets.populationDrivers(d),
       insightBullets.unactionedEntity(d)
     ].filter(Boolean);
     renderInsightCards(el, cards);
   },
 
-  /* Key Insights (Analytics) — same 5 core cards as Overview, plus two
-     Analytics-only cards (sync delay, contributing-factor correlation)
-     summarizing the two charts only this page shows. */
+  /* Key Insights (Analytics) — same cards as Overview, plus the
+     contributing-factor correlation card summarizing the one chart only
+     Analytics shows. */
   insightsAnalytics(el, d) {
     const cards = [
       insightBullets.assetsTrend(d),
       insightBullets.volumeTrend(d),
       insightBullets.populationAssets(d),
-      insightBullets.populationDrivers(d),
       insightBullets.syncDelay(d),
+      insightBullets.populationDrivers(d),
       insightBullets.topFactor(d),
       insightBullets.unactionedEntity(d)
     ].filter(Boolean);
@@ -5448,7 +5523,7 @@ const charts = {
      it needs to BE the total, not a category count; Analytics' center
      stays untouched (centerText defaults to null). */
   eventCodes(el, d, { variant = 'bars', refs, limit = 6, measure = 'units', tip,
-                       severityFn = severityForCode, centerText = null } = {}) {
+                       severityFn = severityForCode, centerText = null, legendStyle = 'rows' } = {}) {
     const val = c => measure === 'units' ? c.units : c.events;
     const codes = d.eventCodeDistribution.slice(0, limit);
 
@@ -5461,13 +5536,36 @@ const charts = {
     const segs = codes.map(c => ({ value: val(c), color: severityFn(c.code).fg }));
     const total = donutSegments(refs.arcs, segs);
     if (refs.count) refs.count.textContent = centerText === 'total' ? fmt.int(total) : codes.length;
-    if (refs.legend) refs.legend.innerHTML = codes.map((c) => {
-      const pct = total ? Math.round(val(c) / total * 100) : 0;
-      return `<div class="dl-row">
-        <span class="legend-dot" style="background:${severityFn(c.code).fg}"></span>
-        <div class="dl-name">${esc(c.code)}</div>
-        <div class="dl-pct">${pct}%</div></div>`;
-    }).join('');
+    // 'table' legend (Overview's Event Severity Distribution — see the
+    // Overview redesign mock, src/AALYTICS.PNG) — a real Severity/Alerts/%
+    // table with a Total row, matching the mock exactly, instead of
+    // Analytics' compact dot+name+pct rows (still the default, 'rows').
+    if (refs.legend && legendStyle === 'table') {
+      const rowsHtml = codes.map(c => {
+        const pct = total ? (val(c) / total * 100) : 0;
+        const sev = severityFn(c.code);
+        const name = sev.key === 'unknown' ? esc(c.code) : `${esc(c.code)} (${esc(sev.label)})`;
+        return `<tr>
+          <td><span class="legend-dot" style="background:${sev.fg}"></span>${name}</td>
+          <td class="num">${fmt.int(val(c))}</td>
+          <td class="num">${pct.toFixed(1)}%</td>
+        </tr>`;
+      }).join('');
+      refs.legend.innerHTML = `
+        <table class="dl-table">
+          <thead><tr><th>Severity</th><th class="num">Alerts</th><th class="num">%</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+          <tfoot><tr><td>Total</td><td class="num">${fmt.int(total)}</td><td class="num">100%</td></tr></tfoot>
+        </table>`;
+    } else if (refs.legend) {
+      refs.legend.innerHTML = codes.map((c) => {
+        const pct = total ? Math.round(val(c) / total * 100) : 0;
+        return `<div class="dl-row">
+          <span class="legend-dot" style="background:${severityFn(c.code).fg}"></span>
+          <div class="dl-name">${esc(c.code)}</div>
+          <div class="dl-pct">${pct}%</div></div>`;
+      }).join('');
+    }
 
     // Hover — per-arc tooltip. Wired once; harmless to re-wire on every
     // render since it's the same handful of listeners on the same node.
@@ -5559,7 +5657,12 @@ const charts = {
       if (!primary || key === activeSeries[0]) primary = { key, path, points, min, max };
     }
     if (refs.fill) {
-      refs.fill.setAttribute('d', primary && !hidden.has(primary.key) ? `${primary.path} ${geo.width},180 0,180 Z` : '');
+      // Explicit L before closing the fill polygon back down to the
+      // baseline — primary.path's last token is a bare coordinate pair (the
+      // curve's final on-path point), and two consecutive coordinate pairs
+      // with no command between them is invalid path syntax (the browser
+      // silently drops the whole `d`, so the area fill never rendered).
+      refs.fill.setAttribute('d', primary && !hidden.has(primary.key) ? `${primary.path} L${geo.width},${geo.bottom} L0,${geo.bottom} Z` : '');
     }
     // End-marker per visible series (mark spec: filled circle, r>=4,
     // 2px surface-color ring so it stays legible where lines cross) — the
@@ -5990,14 +6093,43 @@ const charts = {
      below were dropped from Analytics' markup in the row-based layout
      revision; left in place rather than deleted since prior redesign
      passes on this page have added widgets back after removing them. */
-  topOperators(el, d, { limit = 10 } = {}) {
-    const items = d.topOperators.slice(0, limit);
+  topOperators(el, d, { limit = 10, variant = 'table', tip } = {}) {
     const total = d.kpis.totalAlerts;
-    if (!items.length) {
+    // 'bars' — Analytics' Alert Count by Driver card, same horizontal
+    // bar-list shape as topAssets()/factorImpact() below, so all three
+    // "simple" comparison charts on the page read as one visual family.
+    // Filters out UNSPECIFIED_OPERATOR (the synthetic fallback bucket for
+    // blank driver fields — see its own const comment): a "driver" bar
+    // chart showing "Unspecified: 4,628" as its tallest bar would misread
+    // as a real driver name, not a data-capture gap.
+    if (variant === 'bars') {
+      const items = d.topOperators.filter(o => o.id !== UNSPECIFIED_OPERATOR).slice(0, limit);
+      barList(el, items.map(o => ({ label: o.id, value: o.total })),
+        { emptyText: 'No driver data — alert rows carry no driver name yet' });
+      [...el.querySelectorAll('.ev-row')].forEach((row, i) => {
+        row.dataset.rank = String(i + 1);
+        if (!tip) return;
+        const o = items[i];
+        const pct = total ? Math.round(o.total / total * 100) : 0;
+        row.addEventListener('mousemove', evt => {
+          const container = el.closest('.ev-list-wrap') || el.closest('.card') || el;
+          const rect = container.getBoundingClientRect();
+          showTooltip(tip, container, evt.clientX - rect.left, evt.clientY - rect.top,
+            tooltipHTML(o.id, [
+              { label: 'Alerts', value: fmt.int(o.total) },
+              { label: 'Share of total', value: `${pct}%` }
+            ]));
+        });
+        row.addEventListener('mouseleave', () => hideTooltip(tip));
+      });
+      return;
+    }
+    const tableItems = d.topOperators.slice(0, limit);
+    if (!tableItems.length) {
       el.innerHTML = `<tr><td colspan="4"><div class="ev-empty">No operator data</div></td></tr>`;
       return;
     }
-    el.innerHTML = items.map((o, i) => {
+    el.innerHTML = tableItems.map((o, i) => {
       const pct = total ? (o.total / total * 100) : 0;
       return `<tr>
         <td>${i + 1}</td>
@@ -6220,27 +6352,24 @@ const PAGES = {
      sparklines isn't a plain label+value tile the `charts` registry
      renders, so it's driven from paint() directly instead of through this
      config. See the OVERVIEW KPI section (OVERVIEW_KPI_ORDER etc). */
-  // Trimmed to Trend / Key Insights / Recent Alerts / Contributing Factors
-  // (was 6 chart entries across 8 cards) — Alerts by Shift, Alert Activity
-  // by Hour, and Alert Severity Distribution moved to Analytics-only,
-  // which already shows all three; Top Units by Alert Volume dropped as a
-  // dedicated card since Key Insights' own topUnit tile already names the
-  // #1 unit, and the full ranked list stays available on Analytics.
+  // Key Insights / Alert Volume Over Time / Recent Activity — a straight
+  // top-to-bottom narrative: "how are we doing" (KPIs) → "what requires
+  // attention" (Key Insights) → "is it trending up or down" (Trend) →
+  // "what just happened" (Recent Activity). Event Severity Distribution
+  // moved to Analytics-only (that page's Row 2) — Overview stays scoped to
+  // trend + a live feed. Contributing Factors also Analytics-only.
   overview: [
     { chart: 'insightsOverview', el: () => $('ovInsights') },
-    // Trend card — one combined chart, 3 series (Alert Volume / Asset /
-    // Sync), each independently scaled to its own min/max (see trend()'s
-    // own comment on why). No previous-period overlay: prevTrend is
-    // unit-denominated only and has no Asset/Sync equivalent, so it
-    // doesn't generalize to a 3-series chart.
-    { chart: 'trend', series: ['units', 'assets', 'avgSyncSeconds'], hiddenFrom: 'ovTrendLegend', refs: () => ({
+    // Trend card — 2 series (Total Alerts / Distinct Assets), each
+    // independently scaled to its own min/max (see trend()'s own comment
+    // on why). No previous-period overlay: prevTrend is unit-denominated
+    // only and has no Asset equivalent, so it doesn't generalize here.
+    { chart: 'trend', series: ['units', 'assets'], hiddenFrom: 'ovTrendLegend', refs: () => ({
         unitsPath: $('ovTrendUnitsPath'), fill: $('ovTrendFillPath'),
-        assetsPath: $('ovTrendAssetsPath'), syncPath: $('ovTrendSyncPath'),
+        assetsPath: $('ovTrendAssetsPath'),
         dots: $('ovTrendDots'), axis: $('ovTrendAxis'), hover: $('ovTrendHover') }),
       tip: () => $('ovTrendTooltip'), insightEl: () => $('ovTrendInsight') },
-    { chart: 'recentAlerts', el: () => $('ovRecentAlertsBody') },
-    { chart: 'factorImpact', el: () => $('ovFactorImpactList'),
-      tip: () => $('ovFactorImpactTooltip') }
+    { chart: 'recentAlerts', el: () => $('ovRecentAlertsBody') }
   ],
 
   /* No 'kpis' or 'summary' entries here: the Analytics KPI strip is a
@@ -6252,41 +6381,35 @@ const PAGES = {
      `tip`/`insightEl` are resolved once per render, same as `el`/`refs` —
      each points at the `.chart-tooltip`/`.chart-insight-line` node living
      in that chart's own `.chart-body` (see the ANALYTICS markup). */
+  // Simplified to 6 one-topic charts, 3 per row (see the Analytics markup
+  // comment) — shiftDonut/topAssets/2nd-trend/driversVsAlerts entries
+  // removed; their chart functions stay in CHARTS, unmounted.
   analytics: [
+    { chart: 'insightsAnalytics', el: () => $('anInsights') },
     { chart: 'trend', series: ['units', 'assets'], refs: () => ({
         unitsPath: $('anTrendAlertsPath'), assetsPath: $('anTrendAssetsPath'),
         fill: $('anTrendFillPath'), dots: $('anTrendDots'), axis: $('anTrendAxis'),
         hover: $('anTrendHover') }),
       tip: () => $('anTrendTooltip'), insightEl: () => $('anTrendInsight') },
-    { chart: 'eventCodes', variant: 'donut', measure: MEASURE, refs: () => ({
-        arcs: $('anEventDonutArcs'), count: $('anEventDonutCount'),
-        legend: $('anEventDonutLegend') }),
-      tip: () => $('anEventDonutTooltip') },
     { chart: 'hourlyMonthly', el: () => $('anHourlyLines'), refs: () => ({
         legend: $('anHourlyLegend'), hover: $('anHourlyHover') }),
       tip: () => $('anHourlyTooltip') },
     { chart: 'syncInterval', el: () => $('anSyncIntervalBars'),
       tip: () => $('anSyncIntervalTooltip'), insightEl: () => $('anSyncIntervalInsight') },
-    { chart: 'shiftDonut', measure: MEASURE, refs: () => ({
-        arc: $('anShiftDonutArc'), total: $('anShiftDonutTotal'),
-        dayValue: $('anShiftDayAlerts'), dayPct: $('anShiftDayPct'),
-        nightValue: $('anShiftNightAlerts'), nightPct: $('anShiftNightPct') }) },
-    { chart: 'topAssets', limit: 8, showPct: true, el: () => $('anTopUnitsList'),
-      tip: () => $('anTopUnitsTooltip') },
+    // Alert Count by Driver — topOperators()'s bars variant (see that
+    // function's own comment), same bar-list shape as Contributing Factors.
+    { chart: 'topOperators', variant: 'bars', limit: 8, el: () => $('anTopDriversList'),
+      tip: () => $('anTopDriversTooltip') },
     { chart: 'factorImpact', el: () => $('anFactorImpactList'),
       tip: () => $('anFactorImpactTooltip') },
-    // Row 4 — same trend() function Row 1 uses, second series swapped to
-    // avgSyncSeconds and its own ref set so this chart's legend/hover are
-    // fully independent of Row 1's. showPrev stays false (default) — a
-    // sync-delay series has no previous-period equivalent, same reasoning
-    // the geo comment on trend() itself gives.
-    { chart: 'trend', series: ['units', 'avgSyncSeconds'], refs: () => ({
-        unitsPath: $('anSyncTrendUnitsPath'), syncPath: $('anSyncTrendSyncPath'),
-        fill: $('anSyncTrendFillPath'), dots: $('anSyncTrendDots'), axis: $('anSyncTrendAxis'),
-        hover: $('anSyncTrendHover') }),
-      tip: () => $('anSyncTrendTooltip'), insightEl: () => $('anSyncTrendInsight') },
-    { chart: 'driversVsAlerts', el: () => $('anDriversVsAlerts') },
-    { chart: 'insightsAnalytics', el: () => $('anInsights') }
+    // Event Severity Distribution — moved here from Overview; table legend
+    // (Severity/Alerts/% + Total row) and centerText:'total' now shared
+    // with the same variant Overview used to render.
+    { chart: 'eventCodes', variant: 'donut', measure: MEASURE, legendStyle: 'table', centerText: 'total',
+      refs: () => ({
+        arcs: $('anEventDonutArcs'), count: $('anEventDonutCount'),
+        legend: $('anEventDonutLegend') }),
+      tip: () => $('anEventDonutTooltip') }
   ]
 };
 
@@ -7539,6 +7662,75 @@ function renderOverviewKpis(el, derived) {
     }))
     .filter(Boolean)
     .join('');
+}
+
+/* Welcome hero (#ovHero* — see the Overview markup comment). Every field
+   is real data, never a placeholder value dressed up as content:
+     - Greeting name: Auth.lastUsername (set on interactive sign-in) or
+       Cloud.myUsername()'s DB lookup (session restored on page load) —
+       the SAME resolution Auth.paint() already uses for the topbar auth
+       pill, so the greeting can never disagree with what that pill shows.
+       Local mode (no session) gets a plain "Welcome back" with no name
+       fabricated in its place.
+     - Live clock: the viewer's actual current time, ticking every
+       second — this is deliberately NOT a data timestamp (the app's data
+       is UTC-only, see fmt.dateTime's own comment), so it's labeled
+       "Local time" to keep the two kinds of "time" on this page visually
+       distinct.
+     - Freshness pill: the newest real alert row's own timestamp
+       (derived.recentAlerts[0].time, already newest-first — see
+       derive()'s recentAlerts comment), formatted through the same
+       fmt.dateTime() the Recent Activity table uses, so the two can never
+       disagree either. Omitted (not a placeholder) when there are no
+       alerts to report a time for. */
+let ovClockTimer = null;
+function renderOverviewHero(derived) {
+  const greetingEl = $('ovHeroGreeting');
+  const subEl = $('ovHeroSub');
+  const clockEl = $('ovHeroClock');
+  const dateEl = $('ovHeroDate');
+  const freshEl = $('ovHeroFresh');
+  if (!greetingEl) return;
+
+  const paintGreeting = () => {
+    const name = (typeof Cloud !== 'undefined' && Cloud.session)
+      ? (Auth.lastUsername ?? null) : null;
+    greetingEl.textContent = name ? `Welcome back, ${name}` : 'Welcome back';
+  };
+  paintGreeting();
+  // Session restored on page load has no typed username yet (see Auth.paint()'s
+  // own comment) — resolve it once via the DB lookup and repaint just the
+  // greeting, same fallback path Auth.paint() uses for the topbar pill.
+  if (typeof Cloud !== 'undefined' && Cloud.session && !Auth.lastUsername) {
+    Cloud.myUsername().then(name => {
+      if (name && Cloud.session) { Auth.lastUsername = name; paintGreeting(); }
+    });
+  }
+
+  const totalAlerts = derived?.kpis?.totalAlerts ?? 0;
+  const flagged = (derived?.assetConsistency ?? []).concat(derived?.operatorConsistency ?? [])
+    .filter(r => r.severity && r.severity !== 'normal' && r.id !== UNSPECIFIED_OPERATOR).length;
+  subEl.textContent = totalAlerts
+    ? `${fmt.int(totalAlerts)} alerts on record${flagged ? ` · ${fmt.int(flagged)} entities flagged for review` : ' · fleet is clear'}`
+    : `Here's what's happening with your fleet today.`;
+
+  if (dateEl) {
+    const paintClock = () => {
+      const now = new Date();
+      clockEl.firstChild.textContent = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      dateEl.textContent = 'Local time';
+    };
+    paintClock();
+    clearInterval(ovClockTimer);
+    ovClockTimer = setInterval(paintClock, 1000 * 30);
+  }
+
+  if (freshEl) {
+    const latest = derived?.recentAlerts?.[0];
+    freshEl.innerHTML = latest
+      ? `<i></i>Last alert: ${esc(fmt.dateTime(latest.time))} UTC`
+      : `<i></i>No alerts yet`;
+  }
 }
 
 /* ══ 5c. DRIVER & ASSET MONITORING ══════════════════════════════════════
@@ -13440,6 +13632,7 @@ function paint(page, derived){
   }
   if (page === 'overview'){
     renderOverviewKpis(document.getElementById('ovKpiRow'), derived);
+    renderOverviewHero(derived);
   }
   if (page === 'driver-monitoring'){
     renderDriverMonitoring(derived);
