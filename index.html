@@ -4331,6 +4331,51 @@ const toDate = mmddyyyy => {
    none of 30/7/1 works either. */
 const BASELINE_FALLBACK_DAYS = [30, 7, 1];
 
+/* Same 30/7/1-day fallback cascade as resolvePeriods() above, reshaped for
+   App.loadFromServer() (the signed-in path), which has no local row array
+   to pull an exact earliest-date-with-data from the way resolvePeriods()
+   does via `dates[0]`. Instead takes `earliest` as a Date already known to
+   the caller — true earliest-with-data ONLY when the active filter is
+   unbounded (no explicit from/to), since dds_metrics() then naturally
+   returns everything and cur.trend[0].date IS that earliest date; the
+   caller is responsible for only invoking this in that case (see its call
+   site's own comment) rather than this function re-deriving that
+   distinction itself. Feasibility here is a pure DATE-RANGE check (does
+   the candidate window's start fall on/after `earliest`), same as
+   resolvePeriods()'s `candidateFrom >= earliest` — whether the window
+   actually HAS rows is still discovered by the real dds_metrics() fetch
+   the caller makes afterward, same "prev.meta.rowCount === 0" contract
+   comparisonFromDerived() already handles. */
+function resolveServerBaselineWindow(from, to, earliest) {
+  const spanDays = Math.round((to - from) / MS_DAY) + 1;
+  const prevTo = new Date(from.getTime() - MS_DAY);
+
+  // Primary: equal-length window, immediately preceding `current`.
+  const prevFrom = new Date(prevTo.getTime() - (spanDays - 1) * MS_DAY);
+  if (prevFrom >= earliest) {
+    return { spanDays, curFrom: from, curTo: to, prevFrom, prevTo, baselineComplete: true };
+  }
+
+  // Equal-length isn't fully covered — try each standard granularity
+  // shorter than spanDays (a step >= spanDays was already just tried).
+  for (const days of BASELINE_FALLBACK_DAYS) {
+    if (days >= spanDays) continue;
+    const candidateFrom = new Date(prevTo.getTime() - (days - 1) * MS_DAY);
+    if (candidateFrom >= earliest) {
+      const clippedCurrentFrom = new Date(to.getTime() - (days - 1) * MS_DAY);
+      return {
+        spanDays: days, curFrom: clippedCurrentFrom, curTo: to,
+        prevFrom: candidateFrom, prevTo, baselineComplete: true
+      };
+    }
+  }
+
+  // Nothing fits — fall back to the original equal-length window, flagged
+  // partial by the caller the same way comparisonFromDerived() already
+  // does when prev.meta.rowCount is 0.
+  return { spanDays, curFrom: from, curTo: to, prevFrom, prevTo, baselineComplete: false };
+}
+
 /** Resolve current and baseline windows from the filters and available data. */
 function resolvePeriods(allRows, filters, fallbackDays = 30) {
   const dates = [...new Set(allRows.map(r => r.SHIFT_DATE).filter(Boolean))]
@@ -9284,7 +9329,15 @@ function buildServerComparisonMetrics(cur, prev){
   ];
 }
 
-function comparisonFromDerived(cur, prev, curLabel, prevLabel, spanDays){
+// `baselineComplete` (new param, defaults true) — the ONE thing
+// resolveServerBaselineWindow() can determine that this function can't
+// infer from prev.meta.rowCount alone: the "nothing in the 30/7/1
+// cascade fit either, fell back to the original partial equal-length
+// window" case. That window can still have real rows (rowCount > 0) even
+// though it doesn't fully cover the requested span — previously
+// indistinguishable from a genuine full baseline, since this function
+// only ever checked rowCount === 0 vs. > 0. See resolveServerBaselineWindow.
+function comparisonFromDerived(cur, prev, curLabel, prevLabel, spanDays, baselineComplete = true){
   if (!prev || !prev.meta.rowCount) {
     /* No baseline is NOT the same as no data. A first import — or any
        dataset whose history does not reach back a full period — has real
@@ -9324,16 +9377,24 @@ function comparisonFromDerived(cur, prev, curLabel, prevLabel, spanDays){
 
   return {
     available: true,
-    // spanDays/baselineDays: the server path always fetches equal-length
-    // current/previous windows (see loadFromServer's `span` computation) —
-    // no fallback cascade like resolvePeriods() runs locally — so both
-    // fields are just the one real window length. Needed by kpiTile()'s
-    // "Current Nd avg" / "Previous Nd avg" labels; omitting it left the
-    // label reading "undefinedd avg" whenever a perAsset-bearing metric
+    // spanDays/baselineDays: `spanDays` here is whatever window length the
+    // caller actually resolved — resolveServerBaselineWindow()'s 30/7/1
+    // cascade when the filter is unbounded, or the original single
+    // equal-length window otherwise (see loadFromServer's own comment on
+    // why). Needed by kpiTile()'s "Current Nd avg" / "Previous Nd avg"
+    // labels; omitting it left the label reading "undefinedd avg" whenever
+    // a perAsset-bearing metric
     // (totalAlerts, sleepAlerts, drowsinessAlerts) rendered from this path.
     periods: { current: curLabel, previous: prevLabel, spanDays, baselineDays: spanDays },
-    baselineComplete: true,
-    baselineCoverage: 1,
+    baselineComplete,
+    baselineCoverage: baselineComplete ? 1
+      // Coarser than resolvePeriods()'s exact day-clipped ratio (which
+      // needs the true earliest date, not just a boolean) — this is the
+      // fallback-exhausted case, which is already the rarest path (no
+      // history reaches back even 1 day before `current`), so a fixed low
+      // number is enough to make kpiTile() show the partial-baseline
+      // caveat rather than presenting the delta as solid fact.
+      : 0.5,
     // See compare()'s matching field — same index-aligned previous-period
     // trend, sourced here from the second dds_metrics() call instead of a
     // second local derive().
@@ -9547,13 +9608,26 @@ const App = {
         const iso = x => `${String(x.getUTCMonth()+1).padStart(2,'0')}/` +
                          `${String(x.getUTCDate()).padStart(2,'0')}/${x.getUTCFullYear()}`;
         const from = d(dates[0]), to = d(dates.at(-1));
-        const span = Math.round((to - from) / MS) + 1;
-        const prevTo = new Date(from.getTime() - MS);
-        const prevFrom = new Date(prevTo.getTime() - (span - 1) * MS);
-        const prev = await Cloud.metrics({ from: iso(prevFrom), to: iso(prevTo),
+
+        // Baseline fallback (30/7/1 days), same cascade the local-import
+        // path's resolvePeriods() runs — see resolveServerBaselineWindow's
+        // own comment for why the `earliest` bound passed in only means
+        // "true earliest date with data" when the active filter is
+        // unbounded: only then does `from` (= dates[0], i.e. cur.trend's
+        // own first date) actually equal that. An explicit filters.from/to
+        // is a user-chosen boundary, not a data boundary, so it gets a
+        // far-past `earliest` instead — that makes the primary equal-length
+        // branch's own `prevFrom >= earliest` check always true, so the
+        // cascade never triggers and this keeps the exact single-window
+        // behavior the app had before the fallback existed.
+        const unfiltered = !f.from && !f.to;
+        const earliest = unfiltered ? from : new Date(0);
+        const w = resolveServerBaselineWindow(from, to, earliest);
+        const prev = await Cloud.metrics({ from: iso(w.prevFrom), to: iso(w.prevTo),
                                            shift: f.shift, actionableOnly: f.actionableOnly });
         comparison = comparisonFromDerived(cur, prev,
-                       `${iso(from)} – ${iso(to)}`, `${iso(prevFrom)} – ${iso(prevTo)}`, span);
+                       `${iso(w.curFrom)} – ${iso(w.curTo)}`, `${iso(w.prevFrom)} – ${iso(w.prevTo)}`,
+                       w.spanDays, w.baselineComplete);
 
         // Fixed-window KPI trend comparisons (kpiTile()'s 7d/month-over-
         // month lines) — two more dds_metrics() round-trips, independent of
