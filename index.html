@@ -12794,8 +12794,14 @@ var NotificationSound = (function(){
     nrConfirmBtn.disabled = true;
     Cloud.resolveNameReview(nrEditing.id, nrSelectedEmp).then(function(res){
       var n = res && res.rowsUpdated != null ? res.rowsUpdated : 0;
+      // "now attributed" previously implied the dashboards already reflect
+      // this match. They don't yet — dds_metrics()/derive() still group by
+      // the raw operator text, not emp_no (see 0019_events_emp_no.sql's own
+      // header: switching that grouping is "phase 4," deliberately not
+      // done yet). The identity link is saved for real, just not visible
+      // anywhere except this review queue until that phase ships.
       announce('Matched — ' + Number(n).toLocaleString() +
-               (n === 1 ? ' alert now attributed' : ' alerts now attributed'));
+               (n === 1 ? ' alert linked to this driver' : ' alerts linked to this driver'));
       closeResolveModal();
       loadNameReview();
       refreshAfterAttribution();
