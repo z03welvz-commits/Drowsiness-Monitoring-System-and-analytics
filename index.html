@@ -588,6 +588,42 @@ svg[data-chart="trend"]{overflow:visible}
 .ins-evidence-note code{font-size:.92em}
 .ins-strip-empty{font-size:var(--fs-sm);color:var(--text-muted);padding:var(--sp-2) var(--sp-5)}
 
+/* ═══ Overview rail ═══
+   A narrow right-side column, full page height, holding ONLY the Latest
+   Updates feed — a session-only change-log: whenever an insight's own
+   value differs from what it was the LAST time this page rendered this
+   session (ovRailLastValues), or a genuinely new alert row shows up
+   (ovRailSeenAlerts), a line is prepended here. See renderOverviewRail's
+   own comment for both halves. Session-only by design: this is "what
+   changed since you started looking," not a persisted audit trail
+   (driver_asset_actions already exists for that). The clickable
+   per-insight list that used to sit above this feed was removed —
+   Analytics' own Key Insights card (.ins-grid, untouched) is the one
+   place to browse insights now. */
+.ov-layout{display:grid; grid-template-columns:1fr 300px; gap:var(--sp-5); align-items:start; min-height:0}
+.ov-layout-main{display:flex; flex-direction:column; gap:10px; min-width:0}
+@media (max-width:1200px){ .ov-layout{grid-template-columns:1fr} }
+
+.ov-rail{
+  background:var(--surface); border:1px solid var(--border-light); border-radius:var(--r-xl);
+  box-shadow:var(--shadow-1); display:flex; flex-direction:column; overflow:hidden;
+}
+.ov-rail-head{
+  padding:var(--sp-4) var(--sp-5); border-bottom:1px solid var(--border-light);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.ov-rail-head h2{font-size:var(--fs-sm); font-weight:700; color:var(--navy); display:flex; align-items:center; gap:7px; margin:0}
+.ov-rail-head h2::before{content:'';display:inline-block;width:3px;height:12px;background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px}
+
+.ov-rail-updates-list{padding:var(--sp-2) 0; max-height:none; overflow-y:auto; flex:1}
+.ov-rail-update{
+  display:flex; align-items:baseline; gap:8px; padding:var(--sp-2) var(--sp-5);
+  font-size:var(--fs-2xs); color:var(--text-sec); line-height:1.5;
+}
+.ov-rail-update b{color:var(--text); font-weight:700; font-variant-numeric:tabular-nums}
+.ov-rail-update-time{color:var(--text-muted); flex-shrink:0; font-variant-numeric:tabular-nums}
+.ov-rail-updates-empty{padding:var(--sp-4) var(--sp-5); font-size:var(--fs-xs); color:var(--text-muted)}
+
 .donut-wrap{display:flex;align-items:center;gap:16px;padding:10px 16px 14px;flex:1;min-height:0}
 .donut-legend{display:flex;flex-direction:column;gap:9px;min-width:0}
 .dl-row{display:flex;align-items:center;gap:7px}
@@ -1882,6 +1918,19 @@ body {
         <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg>Refresh</button>
       </div>
 
+      <!-- Two-column layout below the hero/toolbar: KPIs + Trend + Recent
+           Activity on the left (.ov-layout-main), the compact Key Insights
+           rail full page height on the right (.ov-rail) — replaces the old
+           full-width Key Insights card. See .ov-layout's own CSS comment
+           and renderOverviewRail() (CHARTS section) for how the rail is
+           populated: same insightBullets set Analytics' Key Insights cards
+           use, just rendered as compact clickable rows that navigate
+           straight to the matching Analytics chart (or the Driver & Asset
+           Monitoring detail modal for the one entity-specific item)
+           instead of expanding evidence in place. -->
+      <div class="ov-layout">
+      <div class="ov-layout-main">
+
       <!-- SUMMARY — 5 KPI cards, each with a plain comparison line vs the
            previous period (renderOverviewKpis(), reuses Analytics'
            kpiTile()/comparison.metrics machinery with Overview's own
@@ -1946,25 +1995,12 @@ body {
         </div>
       </div>
 
-      <!-- Key Insights — full-width, directly under the KPI row (see the
-           Overview redesign mock, src/AALYTICS.PNG): "how are we doing"
-           (KPIs) then immediately "what requires attention" (Key Insights),
-           before either chart. Own row so the hero banner + supporting-card
-           row have their full width to lay out in, not squeezed beside the
-           Trend chart the way the previous layout put them. -->
-      <div class="card card-insights">
-        <div class="card-head"><h2>Key Insights</h2></div>
-        <div class="ins-grid" id="ovInsights" data-chart="insights"></div>
-      </div>
-
       <!-- ROW — Alert Volume Over Time (larger, left) / Recent Activity
-           (right). "How are we doing" (KPIs) → "what requires attention"
-           (Key Insights) → "is it trending up or down" (Trend) → "what
-           just happened" (Recent Activity) — a straight top-to-bottom
-           narrative, each card answering the next natural question.
-           Event Severity Distribution moved to Analytics-only (see that
-           page's Row 2) so Overview stays to just trend + a live feed,
-           matching "trend and recent activity" as asked. -->
+           (right). "How are we doing" (KPIs) → "is it trending up or down"
+           (Trend) → "what just happened" (Recent Activity) — Key Insights
+           moved out of this vertical narrative entirely into its own
+           persistent side rail (.ov-rail, below), visible alongside all
+           three of these rather than stacked above them. -->
       <div class="ov-row1">
         <!-- Trend card — 2 series (Total Alerts / Distinct Assets), each
              independently scaled to its own min/max (see charts.trend()'s
@@ -2014,13 +2050,39 @@ body {
           <div class="ev-list-wrap" style="overflow-y:auto">
             <table class="rec-table" id="ovRecentAlertsTable" data-chart="recentAlerts">
               <thead>
-                <tr><th>Time</th><th>Driver</th><th>Asset</th><th>Event</th><th>Shift</th><th>Count</th></tr>
+                <tr><th>Time</th><th>Asset</th><th>Event</th><th>Shift</th><th>Count</th></tr>
               </thead>
               <tbody id="ovRecentAlertsBody"></tbody>
             </table>
           </div>
         </div>
       </div>
+
+      </div>
+      <!-- /.ov-layout-main -->
+
+      <!-- Latest Updates rail — see .ov-rail's own CSS comment and
+           renderOverviewRail() for what feeds it: a session-only log of
+           (a) any insight's own value shifting between renders (e.g.
+           "Sync delay 41% → 43%") and (b) new alert rows landing in
+           Recent Activity, both timestamped, newest first. The old
+           clickable insight-list half of this rail was removed — the
+           insights themselves (and their click-through into the matching
+           Analytics chart / entity modal) still exist, just no longer
+           duplicated here now that Analytics' own Key Insights card is
+           the one place to browse them; this rail is purely "what's new"
+           now, full height instead of splitting it with the list. Static
+           empty-state shell matches every other first-paint contract in
+           this file. -->
+      <aside class="ov-rail">
+        <div class="ov-rail-head"><h2>Latest Updates</h2></div>
+        <div class="ov-rail-updates-list" id="ovRailUpdatesList">
+          <div class="ov-rail-updates-empty">No changes yet this session.</div>
+        </div>
+      </aside>
+
+      </div>
+      <!-- /.ov-layout -->
 
     </section>
 
@@ -2147,7 +2209,12 @@ body {
              10% area wash under the primary series, ≥8px end-markers with
              a surface-color ring, direct end-of-line reading via the
              hover crosshair + legend rather than a label on every point. -->
-        <div class="card">
+        <!-- id="anAssetVolumeCard" — was a scroll target for the Overview
+             rail's old clickable insight list (removed; see
+             insightBullets' analyticsTarget field, now unread). Left in
+             place — a real anchor id costs nothing and is exactly what a
+             future click-through would need again. -->
+        <div class="card" id="anAssetVolumeCard">
           <div class="card-head">
             <h2>Alert Volume by Distinct Asset</h2>
             <div class="legend-block">
@@ -2192,8 +2259,11 @@ body {
           </div>
         </div>
 
-        <!-- Alert Count by Sync Interval — unchanged syncInterval() bar chart. -->
-        <div class="card">
+        <!-- Alert Count by Sync Interval — unchanged syncInterval() bar chart.
+             id="anSyncIntervalCard" — see anAssetVolumeCard's own comment
+             on why this anchor id stays even though nothing scrolls to it
+             today. -->
+        <div class="card" id="anSyncIntervalCard">
           <div class="card-head"><h2>Alert Count by Sync Interval</h2></div>
           <div class="chart-body">
             <svg id="anSyncIntervalSvg" viewBox="0 0 300 130" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="syncInterval">
@@ -2218,7 +2288,10 @@ body {
              UNSPECIFIED_OPERATOR filtered out — an honest empty state
              ("No driver data…") beats a chart whose tallest bar is a
              data-capture gap mislabeled as a driver. -->
-        <div class="card">
+        <!-- id="anTopDriversCard" — see anAssetVolumeCard's own comment on
+             why this anchor id stays even though nothing scrolls to it
+             today. -->
+        <div class="card" id="anTopDriversCard">
           <div class="card-head"><h2>Alert Count by Driver</h2></div>
           <div class="ev-list-wrap">
             <div class="ev-list" id="anTopDriversList" data-chart="topOperators"></div>
@@ -2226,8 +2299,11 @@ body {
           </div>
         </div>
 
-        <!-- Contributing Factors — unchanged factorImpact() renderer. -->
-        <div class="card">
+        <!-- Contributing Factors — unchanged factorImpact() renderer.
+             id="anFactorImpactCard" — see anAssetVolumeCard's own comment
+             on why this anchor id stays even though nothing scrolls to it
+             today. -->
+        <div class="card" id="anFactorImpactCard">
           <div class="card-head">
             <h2>Contributing Factors</h2>
             <div class="legend-block">
@@ -5173,6 +5249,13 @@ const insightBullets = {
       value: `<span style="color:${up ? 'var(--danger)' : 'var(--success)'}">${sign}${Math.abs(m.pct).toFixed(0)}%</span> vs 7 days ago`,
       headline: `Assets reporting <b style="color:${up ? 'var(--danger)' : 'var(--success)'}">${sign}${Math.abs(m.pct).toFixed(0)}%</b> vs 7 days ago`,
       sub: `${fmt.int(m.current)} assets today · ${fmt.int(m.previous)} a week ago`,
+      // rawValue — plain number for the compact rail's session-memory
+      // change tracking (see ovRail's own comment); analyticsTarget — the
+      // Analytics chart-card anchor id clicking this item scrolls to
+      // (Alert Volume by Distinct Asset plots both the units AND assets
+      // series on one chart, so both assetsTrend and volumeTrend point at
+      // the same anchor).
+      rawValue: m.current, analyticsTarget: 'anAssetVolumeCard',
       evidence: {
         type: 'trend', label: 'Assets reporting, last 14 days', color: 'var(--teal)',
         values: d.trend.slice(-14).map(p => p.assets),
@@ -5192,11 +5275,18 @@ const insightBullets = {
     const sign = up ? '+' : '−';
     const r = pearsonR(d.trend.map(p => p.units), d.trend.map(p => p.assets));
     return {
-      icon: 'trendUp', tint: 'var(--danger-bg)', fg: 'var(--danger)',
+      // Icon chip stays a cool, non-alarm color (blue) — this is a trend
+      // reading, not a severity flag; red is reserved for the one card
+      // that's a genuine Critical-severity entity (unactionedEntity). The
+      // inline <span> color inside `value`/`headline` still reads red/green
+      // for up/down, since that's a directional indicator on the number
+      // itself, not the card's own identity color.
+      icon: 'trendUp', tint: 'var(--blue-50)', fg: 'var(--blue)',
       title: 'Total alert volume',
       value: `<span style="color:${up ? 'var(--danger)' : 'var(--success)'}">${sign}${Math.abs(m.pct).toFixed(0)}%</span> vs 7 days ago`,
       headline: `Total alert volume <b style="color:${up ? 'var(--danger)' : 'var(--success)'}">${sign}${Math.abs(m.pct).toFixed(0)}%</b> vs 7 days ago`,
       sub: `${fmt.int(d.kpis.totalAlerts)} alerts total`,
+      rawValue: d.kpis.totalAlerts, analyticsTarget: 'anAssetVolumeCard',
       evidence: {
         type: 'trend', label: 'Total alert volume, last 14 days', color: 'var(--danger)',
         values: d.trend.slice(-14).map(p => p.units),
@@ -5225,6 +5315,7 @@ const insightBullets = {
       value: `${fmt.int(n)} assets`,
       headline: `<b>${fmt.int(n)} assets</b> appear in alert data`,
       sub: '% of total fleet — needs a fleet-size source, see note',
+      rawValue: n, analyticsTarget: 'anAssetVolumeCard',
       evidence: {
         type: 'note',
         text: `<code>assetConsistency</code> counts ${fmt.int(n)} DISTINCT assets that appear in alerts — ` +
@@ -5254,6 +5345,7 @@ const insightBullets = {
         ? `<b>${fmt.int(real.length)} drivers</b> identified in alert data`
         : `<b>0%</b> of driver population identified`,
       sub: real.length ? `${fmt.int(real.length)} distinct named drivers` : 'No alert rows carry a driver name',
+      rawValue: real.length, analyticsTarget: 'anTopDriversCard',
       evidence: {
         type: 'note',
         text: real.length
@@ -5292,11 +5384,21 @@ const insightBullets = {
     const top = all[0];
     const SEV_LABEL = { critical: 'Critical', warning: 'Warning', caution: 'Caution' };
     const SEV_COLOR = { critical: 'var(--danger)', warning: 'var(--warning-text)', caution: 'var(--accent)' };
+    // Icon tint follows the TOP entity's actual severity — red is reserved
+    // for genuinely Critical (see the "only red for critical" color rule
+    // this whole insight system follows); a Warning or Caution top entity
+    // previously still got the red danger tint unconditionally, which
+    // overstated a merely-elevated case as if it were the worst band.
+    const SEV_TINT = { critical: 'var(--danger-bg)', warning: 'var(--warning-bg)', caution: 'var(--accent-bg)' };
     return {
-      icon: 'warning', tint: 'var(--danger-bg)', fg: 'var(--danger)',
+      icon: 'warning', tint: SEV_TINT[top.severity] ?? SEV_TINT.caution, fg: SEV_COLOR[top.severity] ?? SEV_COLOR.caution,
       hero: true,
       headline: `<b style="font-family:var(--font-mono, monospace);color:${SEV_COLOR[top.severity]}">${esc(top.id)}</b> — ${SEV_LABEL[top.severity] ?? top.severity} severity, highest-ranked ${top.entityType === 'driver' ? 'driver' : 'unit'} needing attention`,
       sub: `Ranked #1 of ${all.length} flagged ${all.length === 1 ? 'entity' : 'entities'} by severity — see Driver & Asset Monitoring to check action history and log one`,
+      // Not an Analytics chart — this is about ONE specific entity, so its
+      // click-through target is the Driver & Asset Monitoring page's own
+      // detail modal (entityAction below), not an anchor scroll.
+      rawValue: top.severityRank, entityAction: { entityType: top.entityType, entityId: top.id },
       evidence: {
         type: 'table',
         rows: all.slice(0, 5).map(r => ({
@@ -5323,6 +5425,7 @@ const insightBullets = {
       value: `${fmt.pct(pct, 0)} in 10h+ bucket`,
       headline: `<b>${fmt.pct(pct, 0)}</b> of events sit in the 10h+ sync bucket`,
       sub: `${fmt.int(worst)} events — the longest delay bucket`,
+      rawValue: pct, analyticsTarget: 'anSyncIntervalCard',
       evidence: {
         type: 'note',
         text: `${fmt.int(worst)} of ${fmt.int(syncTotal)} events (${fmt.pct(pct, 1)}) took over 10 hours to sync. ` +
@@ -5365,11 +5468,15 @@ const insightBullets = {
     const top = items[0];
     if (!top || !(baselineRate > 0 && top.ratio >= 1.2)) return null;
     return {
-      icon: 'warning', tint: 'var(--danger-bg)', fg: 'var(--sev-elevated)',
+      // Amber, not red — this is a correlation observation (a factor
+      // running above baseline), not a Critical-severity claim; red stays
+      // reserved for unactionedEntity's genuinely Critical case.
+      icon: 'warning', tint: 'var(--warning-bg)', fg: 'var(--warning-text)',
       title: 'Top contributing factor',
       value: `${top.ratio.toFixed(1)}× baseline`,
       headline: `<b>${esc(top.factor.factorType)}</b> is running ${top.ratio.toFixed(1)}× the fleet baseline rate`,
       sub: `${esc(top.factor.factorType)} vs. fleet baseline rate`,
+      rawValue: top.ratio, analyticsTarget: 'anFactorImpactCard',
       evidence: {
         type: 'note',
         text: `Fleet baseline outside logged factors: ${baselineRate.toFixed(1)} alerts/day. ` +
@@ -6379,15 +6486,18 @@ const charts = {
   recentAlerts(el, d) {
     const rows = d.recentAlerts ?? [];
     if (!rows.length) {
-      el.innerHTML = `<tr><td colspan="6"><div class="ev-empty">No alerts in range</div></td></tr>`;
+      el.innerHTML = `<tr><td colspan="5"><div class="ev-empty">No alerts in range</div></td></tr>`;
       return;
     }
+    // Driver column dropped — Recent Activity is meant as a fast asset/
+    // event/shift scan; driver identity is still one click away via the
+    // rail's "Highest-severity entity" link and Driver & Asset Monitoring
+    // itself, not lost from the app, just not repeated on every row here.
     el.innerHTML = rows.map(r => {
       const sev = severityForCode(r.eventCode);
       return `
       <tr>
         <td>${esc(fmt.dateTime(r.time))}</td>
-        <td>${esc(r.operator)}</td>
         <td>${esc(r.asset)}</td>
         <td><span class="pill" style="background:${sev.bg};color:${sev.fg}">${esc(r.eventCode)}</span></td>
         <td>${r.shift === 'DAY' ? '<span class="pill" data-variant="info">Day Shift</span>'
@@ -6414,14 +6524,16 @@ const PAGES = {
      sparklines isn't a plain label+value tile the `charts` registry
      renders, so it's driven from paint() directly instead of through this
      config. See the OVERVIEW KPI section (OVERVIEW_KPI_ORDER etc). */
-  // Key Insights / Alert Volume Over Time / Recent Activity — a straight
-  // top-to-bottom narrative: "how are we doing" (KPIs) → "what requires
-  // attention" (Key Insights) → "is it trending up or down" (Trend) →
-  // "what just happened" (Recent Activity). Event Severity Distribution
-  // moved to Analytics-only (that page's Row 2) — Overview stays scoped to
-  // trend + a live feed. Contributing Factors also Analytics-only.
+  // Alert Volume Over Time / Recent Activity — "how are we doing" (KPIs)
+  // → "is it trending up or down" (Trend) → "what just happened" (Recent
+  // Activity). Key Insights is no longer a chart-registry entry: it's now
+  // the compact right-side rail (renderOverviewRail(), called directly
+  // from paint() next to renderOverviewHero/renderOverviewKpis — same
+  // reasoning those two already aren't PAGES entries, since the rail also
+  // needs post-render DOM work (click handlers) a declarative chart
+  // config isn't set up for). Event Severity Distribution and
+  // Contributing Factors stay Analytics-only.
   overview: [
-    { chart: 'insightsOverview', el: () => $('ovInsights') },
     // Trend card — 2 series (Total Alerts / Distinct Assets), each
     // independently scaled to its own min/max (see trend()'s own comment
     // on why). No previous-period overlay: prevTrend is unit-denominated
@@ -7799,6 +7911,101 @@ function renderOverviewHero(derived) {
       ? `<i></i>Last alert: ${esc(fmt.dateTime(latest.time))} UTC`
       : `<i></i>No alerts yet`;
   }
+}
+
+/* Session-memory baseline for the Latest Updates feed — NOT persisted (no
+   localStorage, no server round-trip): "what changed since you started
+   looking at this tab," reset on every real page reload, same lifetime as
+   the rest of this app's in-memory store. ovRailLastValues is keyed by
+   the insightBullets function name so a value survives across re-renders
+   triggered by anything (filter change, refresh, a name-review
+   resolution) without caring what triggered the repaint. ovRailSeenAlerts
+   is keyed by a stable per-row identity (time+asset+eventCode+count — see
+   its own comment) so the same alert row is never logged as "new" twice. */
+const ovRailLastValues = new Map();
+const ovRailSeenAlerts = new Set();
+const ovRailUpdates = [];   // [{ text, time }], newest first, capped below
+
+/* The rail is now JUST this feed — the clickable insight list that used
+   to sit above it (with its own scrollToAnalyticsTarget()/entityAction
+   navigation into Analytics or the Driver & Asset Monitoring detail
+   modal) was removed; Analytics' own Key Insights card is the one place
+   to browse those now. insightBullets' rawValue/analyticsTarget/
+   entityAction fields stay on the returned objects (analyticsTarget/
+   entityAction are unread today, same "leave it, don't delete working
+   data a future pass might reuse" convention this file already follows
+   for unmounted chart functions) — only rawValue is actually consumed
+   here, for the value-change half of this feed. */
+function renderOverviewRail(derived) {
+  const updatesEl = $('ovRailUpdatesList');
+  if (!updatesEl) return;
+
+  const formatRailNum = n => Number.isInteger(n) ? fmt.int(n) : n.toFixed(1);
+
+  // ── Half 1: insight VALUE changes ──
+  // Same 6 insightBullets Analytics' own Key Insights card computes —
+  // this feed doesn't render them, just watches their numbers for a diff.
+  const specs = [
+    { key: 'unactionedEntity', bullet: insightBullets.unactionedEntity(derived) },
+    { key: 'volumeTrend',      bullet: insightBullets.volumeTrend(derived) },
+    { key: 'assetsTrend',      bullet: insightBullets.assetsTrend(derived) },
+    { key: 'syncDelay',        bullet: insightBullets.syncDelay(derived) },
+    { key: 'populationDrivers',bullet: insightBullets.populationDrivers(derived) },
+    { key: 'populationAssets', bullet: insightBullets.populationAssets(derived) }
+  ].filter(s => s.bullet);
+
+  // First-ever render (map starts empty) intentionally logs nothing: an
+  // empty map means "no known previous value," not "changed from
+  // nothing," which would just restate the current numbers back as fake
+  // history the instant the page first loads.
+  if (ovRailLastValues.size > 0) {
+    for (const { key, bullet: c } of specs) {
+      const prev = ovRailLastValues.get(key);
+      if (prev != null && prev !== c.rawValue && typeof c.rawValue === 'number') {
+        const dir = c.rawValue > prev ? '↑' : '↓';
+        ovRailUpdates.unshift({
+          text: `${esc(c.title ?? 'Top entity')} ${dir} <b>${esc(formatRailNum(prev))} → ${esc(formatRailNum(c.rawValue))}</b>`,
+          time: new Date()
+        });
+      }
+    }
+  }
+  for (const { key, bullet: c } of specs) ovRailLastValues.set(key, c.rawValue);
+
+  // ── Half 2: new alert rows ──
+  // Same recentAlerts data Overview's own Recent Activity table shows —
+  // any row not already in ovRailSeenAlerts is genuinely new since the
+  // last render (a fresh import, a signed-in reload picking up rows
+  // another tab/device just synced, etc.), not just "the current top-8
+  // slice happens to differ because a date filter changed." Identity key
+  // is time+asset+eventCode+count rather than array position, since
+  // recentAlerts is newest-first and re-sorts/re-slices on every derive()
+  // call — position alone would call the same real row "new" whenever an
+  // unrelated row above it dropped out of the top 8.
+  const alerts = derived?.recentAlerts ?? [];
+  const hadAlertBaseline = ovRailSeenAlerts.size > 0;
+  for (const a of alerts) {
+    const id = `${a.time}|${a.asset}|${a.eventCode}|${a.count}`;
+    if (ovRailSeenAlerts.has(id)) continue;
+    ovRailSeenAlerts.add(id);
+    if (hadAlertBaseline) {
+      const shiftLabel = a.shift === 'DAY' ? 'Day' : a.shift === 'NIGHT' ? 'Night' : '—';
+      ovRailUpdates.unshift({
+        text: `New alert — <b>${esc(a.eventCode)}</b> on ${esc(a.asset)} (${esc(shiftLabel)} shift)`,
+        time: new Date()
+      });
+    }
+  }
+
+  if (ovRailUpdates.length > 30) ovRailUpdates.length = 30;
+
+  updatesEl.innerHTML = ovRailUpdates.length
+    ? ovRailUpdates.map(u => `
+      <div class="ov-rail-update">
+        <span class="ov-rail-update-time">${u.time.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>
+        <span>${u.text}</span>
+      </div>`).join('')
+    : `<div class="ov-rail-updates-empty">No changes yet this session.</div>`;
 }
 
 /* ══ 5c. DRIVER & ASSET MONITORING ══════════════════════════════════════
@@ -13891,6 +14098,7 @@ function paint(page, derived){
   if (page === 'overview'){
     renderOverviewKpis(document.getElementById('ovKpiRow'), derived);
     renderOverviewHero(derived);
+    renderOverviewRail(derived);
   }
   if (page === 'driver-monitoring'){
     renderDriverMonitoring(derived);
