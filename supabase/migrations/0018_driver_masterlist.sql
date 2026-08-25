@@ -88,11 +88,6 @@ create table if not exists public.drivers (
   updated_at  timestamptz not null default now()
 );
 
--- Fuzzy candidate shortlisting (tier 5) searches on the normalized name, so
--- the trigram index must match what that search actually filters on.
-create index if not exists idx_drivers_name_trgm
-  on public.drivers using gin (public.dds_norm_name(full_name) gin_trgm_ops);
-
 create index if not exists idx_drivers_status on public.drivers (status);
 
 -- ── Normalization ──────────────────────────────────────────────────────────
@@ -158,6 +153,14 @@ as $$
     )),
   '');
 $$;
+
+-- Fuzzy candidate shortlisting (tier 5) searches on the normalized name, so
+-- the trigram index must match what that search actually filters on. Placed
+-- here, immediately after dds_norm_name() rather than beside the table's own
+-- definition above, because an expression index needs the function to exist
+-- first — IMMUTABLE alone doesn't let Postgres forward-reference it.
+create index if not exists idx_drivers_name_trgm
+  on public.drivers using gin (public.dds_norm_name(full_name) gin_trgm_ops);
 
 -- Strips generational suffixes. " JR" and " SR" are matched with a leading
 -- space so a surname legitimately ENDING in those letters is untouched.

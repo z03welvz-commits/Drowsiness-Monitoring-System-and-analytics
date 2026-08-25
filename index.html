@@ -3130,6 +3130,65 @@ body {
         </div>
       </div>
 
+      <!-- Reset fleet data — a distinct control from "Clear data" above on
+           purpose. That button only ever wipes the LOCAL/signed-out store
+           (App.imports + IndexedDB factors); it has no effect once signed in,
+           because signed-in mode reads everything from Postgres instead (see
+           App.loadFromServer()). This card is the signed-in counterpart: it
+           wipes every imported alert, case, factor, and the whole driver
+           masterlist server-side via dds_reset_fleet_data() (0022), for
+           standing up a genuinely empty database before a fresh rollout.
+           Hidden while signed out — there's nothing server-side to reset. -->
+      <div class="card" id="resetFleetCard" style="flex:0 0 auto;border:1px solid var(--danger,#8A2424);display:none">
+        <div class="card-head">
+          <div class="imp-toolbar-title">Reset Fleet Data</div>
+        </div>
+        <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0 0 12px">
+          Permanently deletes every imported alert, case, contributing factor, and the entire
+          employee masterlist from the database — for everyone, not just this browser. Account
+          sign-ins and personal settings are not affected. There is no undo.
+        </p>
+        <div class="hcontrols">
+          <button class="btn btn-danger btn-sm" id="resetFleetBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            Reset all fleet data…
+          </button>
+        </div>
+      </div>
+
+      <!-- Confirm modal — same fixed-overlay/backdrop/Escape-to-close shell
+           as the other Data Management modals. Requires typing a literal
+           phrase rather than a single click, unlike the local "Clear data"
+           modal: that one only ever destroyed in-browser data with no other
+           user affected, this one deletes shared server data for the whole
+           fleet, so the extra friction is deliberate. -->
+      <div class="detail-modal" id="resetFleetModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="resetFleetTitle" style="max-width:460px">
+          <div class="detail-head">
+            <div>
+              <h2 id="resetFleetTitle" class="detail-title">Reset all fleet data?</h2>
+              <p class="detail-sub">
+                This deletes every import, alert, case, contributing factor, and the whole employee
+                masterlist from the database. Everyone signed in will see an empty dashboard
+                afterward. This cannot be undone.
+              </p>
+            </div>
+            <button type="button" class="detail-close" id="resetFleetClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="resetFleetConfirmInput">Type RESET to confirm</label>
+            <input class="field-input" id="resetFleetConfirmInput" type="text" autocomplete="off" style="width:100%">
+          </div>
+          <div class="field-error" id="resetFleetError" hidden></div>
+          <div class="detail-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="resetFleetCancel">Cancel</button>
+            <button type="button" class="btn btn-danger btn-sm" id="resetFleetConfirmBtn" disabled>Reset all fleet data</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Driver names needing review — the queue from 0019's
            import_name_review. These are NOT failed imports: every alert row
            loaded and every total is whole. What is missing is only WHICH
@@ -9299,6 +9358,17 @@ const Cloud = {
     return data;
   },
 
+  /* Full server-side wipe — imports/events/alert_cases/contributing_factors/
+     driver_asset_actions/driver_asset_severity/driver_master/drivers/
+     driver_aliases/driver_alias_log — see 0022_reset_fleet_data.sql for
+     exactly what is and is not included. Returns the pre-wipe row counts per
+     table so the confirming UI can say what was actually removed. */
+  async resetFleetData(){
+    const { data, error } = await this.client.rpc('dds_reset_fleet_data');
+    if (error) throw error;
+    return data;
+  },
+
   async resolutionStats(importId = null){
     const { data, error } = await this.client.rpc('dds_resolution_stats', {
       p_import_id: importId
@@ -11217,6 +11287,85 @@ var NotificationSound = (function(){
       announce('All imported data cleared');
     });
   });
+})();
+
+/* ═══════════════════════ RESET FLEET DATA (server-side) ═══════════════════
+   The signed-in counterpart to "Clear data" above (see resetFleetCard's own
+   comment on the html side for why that button can't cover this). Visible
+   only while signed in — Cloud.onSignIn/onSignOut toggle resetFleetCard,
+   same gating style as the masterlist/name-review cards. Typing the
+   confirmation phrase gates the button rather than a single click, since
+   this deletes shared server data for the whole fleet, not a local session. */
+(function(){
+  var card       = document.getElementById('resetFleetCard');
+  var btn        = document.getElementById('resetFleetBtn');
+  var modal      = document.getElementById('resetFleetModal');
+  var closeBtn   = document.getElementById('resetFleetClose');
+  var cancelBtn  = document.getElementById('resetFleetCancel');
+  var confirmBtn = document.getElementById('resetFleetConfirmBtn');
+  var input      = document.getElementById('resetFleetConfirmInput');
+  var errorEl    = document.getElementById('resetFleetError');
+  if (!card || !btn || !modal) return;
+
+  var CONFIRM_PHRASE = 'RESET';
+
+  function open(){
+    input.value = '';
+    confirmBtn.disabled = true;
+    errorEl.hidden = true;
+    modal.hidden = false;
+    input.focus();
+  }
+  function close(){ modal.hidden = true; btn.focus(); }
+
+  btn.addEventListener('click', open);
+  closeBtn.addEventListener('click', close);
+  cancelBtn.addEventListener('click', close);
+  modal.addEventListener('click', function(e){ if (e.target === modal) close(); });
+  modal.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+  input.addEventListener('input', function(){
+    confirmBtn.disabled = input.value.trim() !== CONFIRM_PHRASE;
+  });
+
+  confirmBtn.addEventListener('click', function(){
+    if (input.value.trim() !== CONFIRM_PHRASE) return;
+    confirmBtn.dataset.loading = 'true';
+    confirmBtn.disabled = true;
+    errorEl.hidden = true;
+
+    Cloud.resetFleetData()
+      .then(function(){
+        return Promise.resolve(App.clearAllData());
+      })
+      .then(function(){
+        if (typeof App.loadMasterlist === 'function') App.loadMasterlist();
+        if (typeof App.loadNameReview === 'function') App.loadNameReview();
+        if (typeof App.loadFromServer === 'function') App.loadFromServer();
+        close();
+        announce('All fleet data has been reset', { assertive: true });
+      })
+      .catch(function(err){
+        console.error('Fleet reset failed', err);
+        errorEl.textContent = 'Could not reset fleet data. Try again.';
+        errorEl.hidden = false;
+      })
+      .finally(function(){
+        delete confirmBtn.dataset.loading;
+        confirmBtn.disabled = input.value.trim() !== CONFIRM_PHRASE;
+      });
+  });
+
+  /* No Cloud.onSignOut hook exists in this codebase (only onSignIn), and this
+     app currently forces sign-in for every visitor (Auth.DISABLED = false
+     gates index.html itself before this script ever runs signed out) — so
+     there is no live signed-out state to react to here. Visibility is just
+     "is there a session right now", checked once at boot and again on the
+     one event that can turn a signed-out visitor into a signed-in one. */
+  function syncVisibility(){
+    card.style.display = (Cloud.available() && Cloud.session) ? '' : 'none';
+  }
+  Cloud.onSignIn(syncVisibility);
+  syncVisibility();
 })();
 
 /* ═══════════════════════ ALERT LOGS ═══════════════════════
