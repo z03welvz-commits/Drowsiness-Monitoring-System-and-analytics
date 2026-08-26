@@ -373,7 +373,14 @@ svg[data-chart="trend"]{overflow:visible}
    applies here too — this override now only sets what's genuinely
    Overview-specific (the 5-column grid and its gap). */
 .page[data-page-id="overview"] .card-head{padding:var(--sp-4) var(--sp-5)}
-.page[data-page-id="overview"] .chart-body{padding:var(--sp-3) var(--sp-5) var(--sp-4)}
+/* --sp-4/--sp-6/--sp-5, not --sp-3/--sp-5/--sp-4 — the tighter padding put
+   the trend chart's y-axis labels and plotted lines almost flush against
+   the card's rounded corners once the redundant summary column (removed
+   separately) stopped sharing the card's right edge with them. Widened
+   for every Overview chart card, not just Alert Volume Over Time, so the
+   page reads as one consistent amount of breathing room rather than one
+   card standing out. */
+.page[data-page-id="overview"] .chart-body{padding:var(--sp-4) var(--sp-6) var(--sp-5)}
 .page[data-page-id="overview"] .ev-list{padding:var(--sp-4) var(--sp-5)}
 
 /* Severity donut — vertical layout (ring on top, legend below), donut
@@ -740,7 +747,12 @@ svg[data-chart="trend"]{overflow:visible}
    the chart at some widths); the KPI row above already carries that
    number, and the dashed mean-reference line/axis ticks remain the
    chart's own magnitude cues. */
-.ov-trend-layout{display:flex; gap:var(--sp-5); flex:1; min-height:0}
+/* No gap here: .ov-trend-layout wraps a single child (.ov-trend-chart) now
+   that the summary column beside it is gone, so a row gap would be a
+   no-op left over from when there were two. display:flex/flex:1 still do
+   real work — they're what let that one child stretch to the card's full
+   height. */
+.ov-trend-layout{display:flex; flex:1; min-height:0}
 .ov-trend-chart{flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; position:relative}
 .ov-trend-plot{display:flex; gap:6px; flex:1; min-height:0}
 /* Fixed width so the plot's left edge doesn't shift as the tick labels
