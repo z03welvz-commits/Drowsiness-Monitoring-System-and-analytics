@@ -672,7 +672,19 @@ svg[data-chart="trend"]{overflow:visible}
   padding:10px 16px; background:linear-gradient(90deg,var(--surface-sunken),var(--surface-raised));
   border-bottom:1px solid var(--divider); display:flex; align-items:center; gap:7px; flex-shrink:0;
 }
+.ov-insight-head{justify-content:space-between}
 .ov-insight-head h2{font-size:var(--fs-md); font-weight:600; color:var(--navy); margin:0; display:flex; align-items:center; gap:7px}
+/* Baseline-aligned with the title, top-right of the header. align-self
+   center rather than baseline: the title carries an icon, so its text
+   baseline sits lower than the chip's and true baseline alignment reads
+   as misalignment. */
+.ov-insight-more{
+  flex-shrink:0; border:1px solid var(--border-light); background:var(--surface);
+  color:var(--accent); border-radius:var(--r-full); padding:2px 9px;
+  font-size:var(--fs-2xs); font-weight:700; font-variant-numeric:tabular-nums;
+  cursor:pointer; line-height:1.5; transition:background var(--dur-fast) var(--ease);
+}
+.ov-insight-more:hover{background:var(--surface-sunken)}
 .ov-insight-head h2 svg{width:13px; height:13px; color:var(--accent)}
 .ov-insight-body{padding:12px 16px; display:flex; flex-direction:column; gap:10px; flex:1; min-height:0; overflow-y:auto}
 /* Headline: one sentence naming the single most important movement, with
@@ -735,6 +747,17 @@ svg[data-chart="trend"]{overflow:visible}
   font-size:var(--fs-2xs); color:var(--text-muted); text-align:right;
   font-variant-numeric:tabular-nums; padding-bottom:2px;
 }
+/* Right axis mirrors the left one's fixed width and tick spacing; only the
+   text alignment and tint differ. Colour is the axis's ONLY differentiator
+   from the left axis, so each axis also caps its top tick with a coloured
+   dot as a non-colour cue (see renderOverviewTrend). */
+.ov-trend-yaxis-right{text-align:left; color:var(--purple)}
+.ov-axis-cap{display:flex; align-items:center; gap:4px}
+.ov-trend-yaxis .ov-axis-cap{justify-content:flex-end}
+.ov-axis-cap i{width:6px; height:6px; border-radius:50%; flex-shrink:0}
+.ov-trend-yaxis .ov-axis-cap i{background:var(--blue)}
+.ov-trend-yaxis-right .ov-axis-cap i{background:var(--purple)}
+
 .ov-trend-summary{
   width:132px; flex-shrink:0; border-left:1px solid var(--divider); padding-left:var(--sp-5);
   display:flex; flex-direction:column; gap:3px; justify-content:center;
@@ -1928,7 +1951,7 @@ body {
   /* The y-axis gutter and its matching axis-label offset come off together
      — they're one alignment, so they must never be tuned separately. */
   .page[data-page-id="overview"] .ov-trend-yaxis { display: none; }
-  .page[data-page-id="overview"] #ovTrendAxis { padding-left: 0 !important; }
+  .page[data-page-id="overview"] #ovTrendAxis { padding-left: 0 !important; padding-right: 0 !important; }
 }
 
 @media (max-width: 600px) {
@@ -2378,8 +2401,24 @@ body {
                     <g id="ovTrendDots" stroke="white" stroke-width="2.5"></g>
                     <g id="ovTrendHover"></g>
                   </svg>
+                  <!-- Right-hand axis for the SECOND series. This chart scales
+                       each series to its own min/max (alerts in the thousands,
+                       distinct assets in the dozens — one shared axis would
+                       flatten the smaller series into the baseline). With only
+                       a left axis, the Distinct Assets line appeared to be
+                       reading ~2,900 off the left scale when its real value is
+                       ~110, which is what made it look like it wasn't a
+                       distinct count at all. Each axis is now tinted to match
+                       its own line so which scale belongs to which is
+                       unambiguous. -->
+                  <div class="ov-trend-yaxis ov-trend-yaxis-right" id="ovTrendYAxisRight" aria-hidden="true"></div>
                 </div>
-                <div id="ovTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0;padding-left:44px"></div>
+                <!-- Insets match the two axis gutters (38px + 6px gap on each side) so the
+                     first and last date labels sit under the first and last plotted
+                     points rather than under the axis numbers. These three values are
+                     one alignment — changing .ov-trend-yaxis's width means changing
+                     these too. -->
+                <div id="ovTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0;padding-left:44px;padding-right:44px"></div>
                 <div id="ovTrendInsight" class="chart-insight-line"></div>
               </div>
               <div class="ov-trend-summary" id="ovTrendSummary"></div>
@@ -2398,6 +2437,10 @@ body {
         <div class="ov-insight">
           <div class="ov-insight-head">
             <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2m0 14v2M5.6 5.6l1.4 1.4m10 10 1.4 1.4M3 12h2m14 0h2M5.6 18.4 7 17m10-10 1.4-1.4"/><circle cx="12" cy="12" r="3.2"/></svg>Key Insight</h2>
+            <!-- Exact count of items that exist but did not fit, written by
+                 renderOverviewInsight(). Hidden (not "+0") when everything
+                 fits — a badge showing zero is noise claiming to be news. -->
+            <button type="button" class="ov-insight-more" id="ovInsightMore" hidden></button>
           </div>
           <div class="ov-insight-body">
             <div id="ovInsightMain">
@@ -5703,7 +5746,7 @@ function tooltipHTML(title, rows, note) {
     time. Assigning to `.onmousemove`/`.onmouseleave` instead of adding a
     listener replaces the previous handler rather than stacking a new one,
     so repeated renders stay at exactly one handler each. */
-function wireHover(svg, tipEl, { toSvgPoint, locate, content }) {
+function wireHover(svg, tipEl, { toSvgPoint, locate, content, onLeave }) {
   if (!svg || !tipEl) return;
   const container = svg.closest('.chart-body') || svg.parentElement;
   svg.onmousemove = evt => {
@@ -5715,7 +5758,12 @@ function wireHover(svg, tipEl, { toSvgPoint, locate, content }) {
     const rect = container.getBoundingClientRect();
     showTooltip(tipEl, container, evt.clientX - rect.left, evt.clientY - rect.top, html);
   };
-  svg.onmouseleave = () => hideTooltip(tipEl);
+  /* onLeave lets a chart tear down whatever it drew INTO the SVG on hover
+     (crosshair, point markers) — hiding the tooltip alone left the trend
+     chart's crosshair frozen at the last hovered x after the pointer left,
+     which read as a permanent vertical rule on the chart. Optional, so
+     charts that draw nothing on hover are unaffected. */
+  svg.onmouseleave = () => { hideTooltip(tipEl); onLeave?.(); };
 }
 
 /** Convert a mouse event to the SVG's own viewBox coordinate space, so hit
@@ -6332,9 +6380,13 @@ const charts = {
     // shared one) since prevTrend is unit-denominated only.
     const activeSeries = series.filter(key => !hidden.has(key));
     let primary = null;
-    // key -> last plotted point (for the end-marker below) — same points
-    // linePath() already computed, not a second pass over the data.
-    const lastPointByKey = {};
+    /* key -> that series' full plotted points, kept so the hover handler
+       can place a marker on EVERY visible line at the hovered index. Each
+       series has its own y-scale (see the per-series scaling note below),
+       so the primary's points cannot stand in for the others' — a marker
+       placed from primary.points would sit on the wrong height for any
+       secondary line. */
+    const pointsByKey = {};
     for (const key of series) {
       if (hidden.has(key)) { if (paths[key]) paths[key].setAttribute('d', ''); continue; }
       const values = pts.map(p => p[key]);
@@ -6343,7 +6395,7 @@ const charts = {
       const min = Math.min(...scaleValues), max = Math.max(...scaleValues);
       const { d: path, points } = linePath(values, { ...geo, min, max });
       if (paths[key]) paths[key].setAttribute('d', path);
-      if (points.length) lastPointByKey[key] = points[points.length - 1];
+      if (points.length) pointsByKey[key] = points;
       if (!primary || key === activeSeries[0]) primary = { key, path, points, min, max };
     }
     if (refs.fill) {
@@ -6354,33 +6406,24 @@ const charts = {
       // silently drops the whole `d`, so the area fill never rendered).
       refs.fill.setAttribute('d', primary && !hidden.has(primary.key) ? `${primary.path} L${geo.width},${geo.bottom} L0,${geo.bottom} Z` : '');
     }
-    // End-marker per visible series (mark spec: filled circle, r>=4,
-    // 2px surface-color ring so it stays legible where lines cross) — the
-    // one place a permanent dot earns its ink, since it's the "where does
-    // each line stand right now" answer a reader looks for first. No
-    // per-point markers along the rest of the curve; the hover crosshair
-    // already covers every other point on demand. refs.dots is optional
-    // (only anTrend/ov correlation charts pass it) so charts that don't
-    // want end-markers are unaffected.
-    //
-    // Color comes from each series' OWN <path> stroke attribute, not
-    // SERIES_COLOR — Overview and Analytics intentionally pass different
-    // palettes for the same series key via their own markup (see the
-    // formatSeriesVal comment above: "Overview's own call passes its own
-    // SERIES_COLOR-matching palette via its own <path> stroke colors").
-    // SERIES_COLOR only controls the tooltip swatch; a marker colored from
-    // that map would silently mismatch its own line's actual rendered
-    // color on Overview (blue line, but an amber/red dot from the
-    // Analytics-tuned map).
-    if (refs.dots) {
-      refs.dots.innerHTML = activeSeries.map(key => {
-        const p = lastPointByKey[key];
-        const path = paths[key];
-        if (!p || !path) return '';
-        const color = path.getAttribute('stroke') || 'var(--ink)';
-        return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="${color}" stroke="var(--surface)" stroke-width="2.5"/>`;
-      }).join('');
-    }
+    /* NO permanent markers. These used to draw one filled circle per series
+       at the last plotted point, on every render. Two problems, both visible
+       in a real 200-day render:
+
+       1. The SVG is stretched with preserveAspectRatio="none" (a 992x180
+          viewBox filling a ~940x300 box), so a circle is NOT drawn as a
+          circle — it is scaled ~0.95x horizontally and ~1.7x vertically and
+          renders as a visible vertical ellipse. The marker looked like a
+          rendering fault because, geometrically, it was one.
+       2. Sitting permanently at the right edge, two stacked ellipses read as
+          an artifact of the chart rather than as data — especially next to
+          the dashed mean line, which shares that corner.
+
+       Markers are now hover-only: one dot per visible series at the hovered
+       index, drawn by the crosshair handler below, which is where a reader
+       actually asks "what is the value here". refs.dots is kept as the
+       container the hover handler writes into, so no caller changes. */
+    if (refs.dots) refs.dots.innerHTML = '';
     if (refs.prevPath) {
       // Resampled to the CURRENT period's point count (index-aligned, not
       // date-aligned — see the option comment above) so a shorter/longer
@@ -6463,11 +6506,45 @@ const charts = {
             xs.forEach((x, i) => { const dist = Math.abs(x - pt.x); if (dist < bestDist) { bestDist = dist; best = i; } });
             return best;
           },
+          onLeave() {
+            crosshair.setAttribute('opacity', '0');
+            if (refs.dots) refs.dots.innerHTML = '';
+          },
           content(i) {
             const p = pts[i];
             crosshair.setAttribute('x1', xs[i].toFixed(1));
             crosshair.setAttribute('x2', xs[i].toFixed(1));
             crosshair.setAttribute('opacity', '1');
+
+            /* One marker per visible series at the hovered index — the dots
+               that used to sit permanently at the line's end (see the
+               refs.dots comment above).
+
+               Drawn as an <ellipse> with radii counter-scaled by the SVG's
+               own stretch factors, not as a <circle>. With
+               preserveAspectRatio="none" the viewBox is scaled by different
+               factors on each axis, so a circle of r=4 renders as an
+               ellipse; dividing each radius by its own axis' scale factor
+               cancels that out and the marker lands on screen as an actual
+               circle. Factors are read per-hover from the live rendered box
+               so a resized window stays correct. */
+            const box = svg.getBoundingClientRect();
+            const vb = svg.viewBox.baseVal;
+            const sx = (box.width && vb.width) ? box.width / vb.width : 1;
+            const sy = (box.height && vb.height) ? box.height / vb.height : 1;
+            const R = 4;
+            if (refs.dots) {
+              refs.dots.innerHTML = activeSeries.map(key => {
+                const ptsForKey = pointsByKey[key];
+                const path = paths[key];
+                if (!ptsForKey || !ptsForKey[i] || !path) return '';
+                const color = path.getAttribute('stroke') || 'var(--ink)';
+                return `<ellipse cx="${ptsForKey[i].x.toFixed(1)}" cy="${ptsForKey[i].y.toFixed(1)}"
+                          rx="${(R / sx).toFixed(2)}" ry="${(R / sy).toFixed(2)}"
+                          fill="${color}" stroke="var(--surface)"
+                          stroke-width="${(2 / sy).toFixed(2)}"/>`;
+              }).join('');
+            }
             const rows = activeSeries.map(key => ({
               label: SERIES_LABEL[key] ?? key, value: formatSeriesVal(key, p[key]), color: SERIES_COLOR[key]
             }));
@@ -8317,25 +8394,52 @@ const KPI_SPARK_DAYS = 14;
 function kpiSparkline(values, tone) {
   const pts = (values ?? []).filter(v => typeof v === 'number' && isFinite(v));
   if (pts.length < 3) return '';
-  const geo = { top: 4, bottom: 30, width: 96 };
+
   const min = Math.min(...pts), max = Math.max(...pts);
-  // A perfectly flat series has range 0; linePath's `|| 1` guard keeps it
-  // from dividing by zero, but the line would sit pinned to the top edge.
-  // Pad the band so a flat metric draws as a flat line through the middle.
-  const pad = (max - min) === 0 ? Math.max(Math.abs(max) * 0.5, 1) : 0;
-  const { d: path, points } = linePath(pts, { ...geo, min: min - pad, max: max + pad });
-  const last = points[points.length - 1];
+  /* A series with no variation gets NO sparkline. The earlier version padded
+     the band so a flat series drew a straight line through the middle — but
+     a horizontal rule in a slot labelled "trend" asserts "this metric held
+     steady", which is a claim about the data, and it looked identical to a
+     rendering failure. Three of five tiles rendered as flat bars in the
+     first real run. Drawing nothing is the same never-fabricate rule the
+     <3-point case already follows: absence is honest, a flat line is not. */
+  if (max === min) return '';
+
+  const geo = { top: 4, bottom: 30, width: 96 };
+  const { d: path } = linePath(pts, { ...geo, min, max });
   const color = tone === 'good' ? 'var(--success)'
               : tone === 'bad'  ? 'var(--danger)'
               : 'var(--text-muted)';
+
+  /* Unique gradient/mask ids per instance — five sparklines share one
+     document, and duplicate ids would make every tile reuse the first
+     tile's mask. */
+  const uid = `sk${Math.random().toString(36).slice(2, 9)}`;
+
+  /* Fade toward the right edge instead of ending on a hard dot. The old
+     end-marker read as a data point ("something happened here") when it
+     only meant "the series stops". A fade says "this continues" without
+     asserting anything, and it keeps the eye on the shape rather than the
+     terminus. The fill fades harder and earlier than the stroke so the area
+     doesn't leave a visible vertical edge where it stops. */
   return `<svg class="kpi-spark" viewBox="0 0 ${geo.width} 34" preserveAspectRatio="none"
                aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="${uid}-s" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0%"   stop-color="${color}" stop-opacity="1"/>
+        <stop offset="62%"  stop-color="${color}" stop-opacity="1"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="${uid}-f" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0%"   stop-color="${color}" stop-opacity=".14"/>
+        <stop offset="45%"  stop-color="${color}" stop-opacity=".10"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
     <path d="${path} L${geo.width},${geo.bottom} L0,${geo.bottom} Z"
-          fill="${color}" fill-opacity=".10" stroke="none"/>
-    <path d="${path}" fill="none" stroke="${color}" stroke-width="1.75"
+          fill="url(#${uid}-f)" stroke="none"/>
+    <path d="${path}" fill="none" stroke="url(#${uid}-s)" stroke-width="1.75"
           stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="2.4"
-            fill="${color}" stroke="var(--surface)" stroke-width="1.5"/>
   </svg>`;
 }
 
@@ -8392,7 +8496,44 @@ function kpiSparkSeries(derived, metricKey) {
   if (!field) return null;
   const trend = derived?.trend ?? [];
   if (trend.length < 3) return null;
-  return trend.slice(-KPI_SPARK_DAYS).map(p => p[field] ?? 0);
+  const window = trend.slice(-KPI_SPARK_DAYS);
+
+  /* Two shapes reach this function, and they carry the severity split
+     differently:
+
+       LOCAL import  — derive()'s byDate accumulator already banded each
+                       day into `sleep`/`drowsy` using severityForCode().
+       SERVER        — dds_metrics() returns raw per-day `byCode`
+                       ({ code -> units }); migration 0022's own comment
+                       explains why the banding is NOT done in SQL.
+
+     Both are classified by the SAME severityForCode() rules, so the two
+     paths cannot diverge. A day with neither field (an older server that
+     predates 0022) contributes nothing rather than a fabricated zero — a
+     zero would be indistinguishable from a real quiet day and would drag
+     the sparkline's shape down. If NO day in the window can be resolved,
+     the series is null and the tile simply renders without a sparkline. */
+  if (field === 'sleep' || field === 'drowsy') {
+    const wanted = field === 'sleep' ? 'critical' : 'elevated';
+    const vals = [];
+    for (const p of window) {
+      if (typeof p[field] === 'number') { vals.push(p[field]); continue; }
+      if (p.byCode && typeof p.byCode === 'object') {
+        let sum = 0;
+        for (const [code, units] of Object.entries(p.byCode)) {
+          if (severityForCode(code).key === wanted) sum += Number(units) || 0;
+        }
+        vals.push(sum);
+        continue;
+      }
+      return null;             // shape carries neither — no honest series
+    }
+    return vals;
+  }
+
+  // units / assets / operators are returned directly by both paths.
+  if (window.some(p => typeof p[field] !== 'number')) return null;
+  return window.map(p => p[field]);
 }
 
 function kpiTrendText(delta, windowLabel, metricKey) {
@@ -8646,8 +8787,10 @@ function renderOverviewInsight(derived) {
     insightBullets.syncDelay(derived)
   ].filter(Boolean);
 
+  const moreBtn = $('ovInsightMore');
   if (!bullets.length) {
     el.innerHTML = `<div class="ov-insight-empty">No insights yet — import alert data to see what stands out.</div>`;
+    if (moreBtn) moreBtn.hidden = true;
     return;
   }
 
@@ -8657,16 +8800,77 @@ function renderOverviewInsight(derived) {
   // same trust boundary the Analytics Key Insights card already applies to
   // these exact strings.
   const [lead, ...rest] = bullets;
-  const rows = rest.map(b => `
+
+  /* Fit the supporting rows to the space that actually exists rather than
+     always rendering all of them. The first real render overflowed: five
+     bullets plus the Latest Updates feed exceeded the card, and the
+     headline was clipped off the top by the body's own scroll.
+
+     Measured, not guessed at a fixed count — the card's height varies with
+     the viewport (see .ov-row1's breakpoints), so a hardcoded "show 3"
+     would be wrong at most widths. Render the headline first, read the
+     remaining height, then admit as many rows as fit. */
+  const renderRows = n => rest.slice(0, n).map(b => `
     <li class="ov-insight-item">
       <span class="ov-insight-icon" style="background:${b.tint};color:${b.fg}">${svg(b.icon, 'ic')}</span>
       <span>${b.headline ?? `${esc(b.title)} ${b.value ?? ''}`}</span>
     </li>`).join('');
 
-  el.innerHTML = `
-    <p class="ov-insight-headline">${lead.headline ?? esc(lead.title)}</p>
-    ${lead.sub ? `<div class="ov-insight-sub" style="text-transform:none;letter-spacing:0;font-weight:500">${lead.sub}</div>` : ''}
-    ${rows ? `<ul class="ov-insight-list">${rows}</ul>` : ''}`;
+  const head = `<p class="ov-insight-headline">${lead.headline ?? esc(lead.title)}</p>
+    ${lead.sub ? `<div class="ov-insight-sub" style="text-transform:none;letter-spacing:0;font-weight:500">${lead.sub}</div>` : ''}`;
+
+  el.innerHTML = head + (rest.length ? `<ul class="ov-insight-list">${renderRows(rest.length)}</ul>` : '');
+
+  let shown = rest.length;
+  const body = el.closest('.ov-insight-body');
+  const list = el.querySelector('.ov-insight-list');
+  if (body && list && rest.length) {
+    /* Budget = what's left of the body after the headline and the Latest
+       Updates block below. offsetHeight reads post-layout, so this runs
+       after the innerHTML assignment above, not before it. */
+    const feed = body.querySelector('.ov-insight-divider');
+    const budget = body.clientHeight - (el.offsetHeight - list.offsetHeight)
+                 - (feed ? feed.offsetHeight : 0) - 8;
+    if (budget > 0 && list.offsetHeight > budget) {
+      const items = [...list.children];
+      let used = 0;
+      shown = 0;
+      for (const item of items) {
+        const h = item.offsetHeight + 9;          // + .ov-insight-list gap
+        if (used + h > budget) break;
+        used += h; shown++;
+      }
+      // Always keep at least one supporting row — a headline alone with a
+      // "+4" badge tells the reader less than one row plus "+3".
+      shown = Math.max(1, shown);
+      list.innerHTML = renderRows(shown);
+    }
+  }
+
+  /* Badge counts what EXISTS but isn't on screen: the hidden bullets plus
+     any Latest Updates beyond the feed's own visible scroll. Both are real
+     counts read from the DOM/data, never an estimate. */
+  if (moreBtn) {
+    const hiddenBullets = Math.max(0, rest.length - shown);
+    const updateRows = document.querySelectorAll('#ovRailUpdatesList .ov-rail-update').length;
+    const feedEl = $('ovRailUpdatesList');
+    let hiddenUpdates = 0;
+    if (feedEl && updateRows) {
+      const perRow = feedEl.scrollHeight / updateRows;
+      const visible = perRow ? Math.floor(feedEl.clientHeight / perRow) : updateRows;
+      hiddenUpdates = Math.max(0, updateRows - visible);
+    }
+    const n = hiddenBullets + hiddenUpdates;
+    moreBtn.hidden = n === 0;
+    moreBtn.textContent = `+${n}`;
+    moreBtn.setAttribute('aria-label',
+      `${n} more item${n === 1 ? '' : 's'} not shown — open Analytics for the full set`);
+    moreBtn.title = hiddenBullets && hiddenUpdates
+      ? `${hiddenBullets} more insight${hiddenBullets === 1 ? '' : 's'}, ${hiddenUpdates} more update${hiddenUpdates === 1 ? '' : 's'}`
+      : hiddenBullets ? `${hiddenBullets} more insight${hiddenBullets === 1 ? '' : 's'}`
+      : `${hiddenUpdates} more update${hiddenUpdates === 1 ? '' : 's'}`;
+    moreBtn.onclick = () => { if (App?.showPage) App.showPage('analytics'); };
+  }
 }
 
 /* Trend card's y-axis, mean reference line and summary column. Reads the
@@ -8683,6 +8887,7 @@ function renderOverviewInsight(derived) {
    place where both series report real values. */
 function renderOverviewTrend(derived) {
   const axisEl = $('ovTrendYAxis');
+  const axisRightEl = $('ovTrendYAxisRight');
   const sumEl = $('ovTrendSummary');
   const meanLine = $('ovTrendMeanLine');
   const pts = derived?.trend ?? [];
@@ -8690,8 +8895,39 @@ function renderOverviewTrend(derived) {
   const hidden = $('ovTrendLegend')?._ddsHidden ?? new Set();
   const unitsVisible = !hidden.has('units');
 
-  if (!pts.length || !unitsVisible) {
-    // Units hidden: the axis would be describing a line that isn't on
+  const assetsVisible = !hidden.has('assets');
+
+  /* Each axis is drawn ONLY when its own series is on screen. An axis left
+     behind after its line is toggled off would be describing nothing —
+     worse than no axis, because it still looks authoritative. */
+  const ticksFor = (values, capped) => {
+    const lo = Math.min(...values), hi = Math.max(...values);
+    const t = [hi, lo + (hi - lo) * 2 / 3, lo + (hi - lo) / 3, lo];
+    return t.map((v, i) => i === 0 && capped
+      ? `<span class="ov-axis-cap"><i></i>${esc(fmt.compact(v))}</span>`
+      : `<span>${esc(fmt.compact(v))}</span>`).join('');
+  };
+
+  if (!pts.length) {
+    if (axisEl) axisEl.innerHTML = '';
+    if (axisRightEl) axisRightEl.innerHTML = '';
+    if (sumEl) sumEl.innerHTML = '';
+    if (meanLine) meanLine.setAttribute('y1', '-10'), meanLine.setAttribute('y2', '-10');
+    return;
+  }
+
+  /* Right axis: Distinct Assets on ITS OWN scale — the whole point of this
+     addition. The line is scaled to its own min/max by charts.trend(), so
+     without this axis a reader inevitably reads its height against the left
+     (alerts) scale and concludes the distinct-asset count is in the
+     thousands. It is not: it is bounded by fleet size. */
+  if (axisRightEl) {
+    axisRightEl.innerHTML = assetsVisible
+      ? ticksFor(pts.map(p => p.assets), true) : '';
+  }
+
+  if (!unitsVisible) {
+    // Units hidden: the left axis would be describing a line that isn't on
     // screen, so remove it rather than leave a stale scale behind.
     if (axisEl) axisEl.innerHTML = '';
     if (sumEl) sumEl.innerHTML = '';
@@ -8706,8 +8942,9 @@ function renderOverviewTrend(derived) {
   if (axisEl) {
     // 4 ticks, top-to-bottom, matching the SVG's own three gridlines plus
     // the floor. fmt.compact keeps 12,842 from wrapping a 38px gutter.
-    const ticks = [max, min + (max - min) * 2 / 3, min + (max - min) / 3, min];
-    axisEl.innerHTML = ticks.map(t => `<span>${esc(fmt.compact(t))}</span>`).join('');
+    // Capped with a coloured dot when a second axis is also on screen, so
+    // the two are distinguishable without relying on colour alone.
+    axisEl.innerHTML = ticksFor(vals, assetsVisible);
   }
 
   const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
