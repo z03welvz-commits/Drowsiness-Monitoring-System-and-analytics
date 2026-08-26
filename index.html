@@ -9740,13 +9740,29 @@ const Cloud = {
       return false;
     }
     this.client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    /* Supabase fires this callback more than once for what a user would
+       call "one sign-in": INITIAL_SESSION when getSession() first resolves
+       (see Cloud.restore(), called from the boot-time sign-in gate), plus
+       SIGNED_IN and/or TOKEN_REFRESHED shortly after, all with a non-null
+       session. Calling App.loadFromServer() unconditionally on every one of
+       those — as this used to — fired the SAME expensive dds_metrics()/
+       dds_metrics_multi() round-trip two or three times within
+       milliseconds of each other on a single page load, which is what was
+       overwhelming Postgres and surfacing as intermittent 500s on
+       dds_metrics (not a bug in that function itself). Gating on
+       `!wasSignedIn`, the same transition check _signInListeners already
+       uses two lines below, makes this fire exactly once per genuine
+       signed-out -> signed-in transition — covering both a fresh
+       interactive sign-in AND a session restored on page load, since
+       `this.session` starts null in both cases. A later TOKEN_REFRESHED
+       event (session was already set) correctly does nothing here now. */
     this.client.auth.onAuthStateChange((_e, session) => {
       const wasSignedIn = !!this.session;
       this.session = session;
       Auth.paint();
-      if (session){
+      if (session && !wasSignedIn){
         App.loadFromServer();
-        if (!wasSignedIn) this._signInListeners.forEach(fn => fn());
+        this._signInListeners.forEach(fn => fn());
       }
     });
     return true;
@@ -15403,8 +15419,9 @@ Auth.mount();
    What actually protects the fleet data is unchanged and does not depend on
    this block at all:
      - App.loadFromServer() is the only thing that fetches rows, and it is
-       only ever called with a live session (below, and from
-       onAuthStateChange).
+       only ever called with a live session (from onAuthStateChange's
+       sign-in transition below, plus the Refresh button and a few
+       post-write refetches elsewhere — never on its own here).
      - dds_metrics() raises UNAUTHENTICATED when auth.uid() is null.
      - RLS blocks every table read for an anonymous caller.
    So a signed-out visitor never receives fleet data whether this redirect
@@ -15440,7 +15457,16 @@ if (!Auth.DISABLED) {
       }
       document.body.classList.remove('auth-pending');
       Auth.paint();
-      App.loadFromServer();
+      /* No explicit App.loadFromServer() call here — this used to fire one
+         directly, but Cloud.restore() (just above) calls getSession(),
+         which itself fires onAuthStateChange with an INITIAL_SESSION event
+         the moment the session resolves. Cloud.init()'s handler already
+         calls App.loadFromServer() on that transition (session was null,
+         now isn't) — see its own comment. Firing it again here was a
+         second call to the same expensive dds_metrics()/dds_metrics_multi()
+         round-trip within milliseconds of the first, which is what was
+         surfacing as intermittent 500s on dds_metrics under the load of
+         two/three near-simultaneous identical requests. */
     }).catch(err => {
       /* A thrown restore() (network failure mid-call) must not leave the
          page permanently invisible with no error and no way forward. Reveal
