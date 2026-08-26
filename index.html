@@ -730,13 +730,16 @@ svg[data-chart="trend"]{overflow:visible}
    instead of the removed .ov-rail shell. */
 .ov-rail-updates-list{padding:0; max-height:170px; overflow-y:auto}
 
-/* ── Trend card: chart + in-card summary column ────────────────────────
+/* ── Trend card: chart + axes ────────────────────────────────────────────
    The trend chart previously showed shape with no magnitude — no y-axis,
-   no total, no reference level, so a reader could see "it went up" but
-   could not read a single value off it. Two additions fix that without
-   adding a widget: y-axis tick labels down the left (.ov-trend-yaxis) and
-   a summary column on the right (.ov-trend-summary) carrying the period
-   total, its delta, and the mean the dashed reference line marks. */
+   no reference level, so a reader could see "it went up" but could not
+   read a single value off it. y-axis tick labels down the left
+   (.ov-trend-yaxis) fix that without adding a widget. A summary column
+   used to sit beside the chart restating the Total Alerts KPI tile's own
+   number/delta — removed as pure duplication (and it visually overlapped
+   the chart at some widths); the KPI row above already carries that
+   number, and the dashed mean-reference line/axis ticks remain the
+   chart's own magnitude cues. */
 .ov-trend-layout{display:flex; gap:var(--sp-5); flex:1; min-height:0}
 .ov-trend-chart{flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; position:relative}
 .ov-trend-plot{display:flex; gap:6px; flex:1; min-height:0}
@@ -757,24 +760,6 @@ svg[data-chart="trend"]{overflow:visible}
 .ov-axis-cap i{width:6px; height:6px; border-radius:50%; flex-shrink:0}
 .ov-trend-yaxis .ov-axis-cap i{background:var(--blue)}
 .ov-trend-yaxis-right .ov-axis-cap i{background:var(--purple)}
-
-.ov-trend-summary{
-  width:132px; flex-shrink:0; border-left:1px solid var(--divider); padding-left:var(--sp-5);
-  display:flex; flex-direction:column; gap:3px; justify-content:center;
-}
-.ov-trend-summary-label{font-size:var(--fs-xs); color:var(--text-muted); font-weight:600}
-.ov-trend-summary-val{font-size:var(--fs-2xl); font-weight:700; color:var(--text); letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.15}
-.ov-trend-summary-sub{font-size:var(--fs-2xs); color:var(--text-muted); line-height:1.4}
-.ov-trend-summary-delta{display:inline-flex; align-items:center; gap:3px; font-size:var(--fs-sm); font-weight:700; font-variant-numeric:tabular-nums}
-.ov-trend-summary-delta svg{width:10px; height:10px}
-.ov-trend-summary-delta[data-tone="good"]{color:var(--success)}
-.ov-trend-summary-delta[data-tone="bad"]{color:var(--danger)}
-.ov-trend-summary-delta[data-tone="neutral"]{color:var(--text-muted)}
-/* Legend for the dashed mean line, using a real dashed swatch rather than
-   a solid dot — a solid dot beside "average" would imply a plotted series. */
-.ov-trend-summary-ref{display:flex; align-items:center; gap:6px; font-size:var(--fs-2xs); color:var(--text-muted); margin-top:6px}
-.ov-trend-summary-ref i{width:14px; height:0; border-top:1.5px dashed var(--text-muted); flex-shrink:0}
-@media (max-width:1400px){ .ov-trend-summary{display:none} }
 
 /* ── Alerts by Hour of Day: intensity scale legend ─────────────────────
    The bars are tinted by their own value, so the scale has to be stated
@@ -1910,8 +1895,6 @@ body {
 
 @media (max-width: 1440px) {
   .page[data-page-id="overview"] .ov-row1 { min-height: 315px; }
-  /* .ov-trend-summary is hidden at this width by its own rule — the trend
-     card keeps the full width for the plot rather than squeezing both. */
 }
 
 @media (max-width: 1366px) {
@@ -2357,19 +2340,21 @@ body {
              secondary lines were dropped (a dash reads as "projection" or
              "threshold" in chart-design convention, wrong for a real
              plotted series). The one dashed line on this chart is the
-             30-day mean reference, which IS a threshold and is labelled as
-             such in the summary column. Legend items are clickable
-             (id="ovTrendLegend", wired in initSeriesLegend()) to show/hide
-             a series; the hover tooltip always names each visible series'
-             real, un-rescaled value, so the rescaling is purely visual,
-             never a misrepresentation of the numbers.
+             30-day mean reference (#ovTrendMeanLine), a real threshold.
+             Legend items are clickable (id="ovTrendLegend", wired in
+             initSeriesLegend()) to show/hide a series; the hover tooltip
+             always names each visible series' real, un-rescaled value, so
+             the rescaling is purely visual, never a misrepresentation of
+             the numbers.
 
-             NEW vs the previous version of this card: a y-axis
-             (#ovTrendYAxis) and a summary column (#ovTrendSummary). The
-             chart previously showed shape with no magnitude — you could
-             see that it rose, but could not read a single value off it.
-             Both are filled by renderOverviewTrend() from the same
-             derived.trend the lines are drawn from. -->
+             y-axis tick labels (#ovTrendYAxis / #ovTrendYAxisRight) are
+             filled by renderOverviewTrend() from the same derived.trend
+             the lines are drawn from — the chart previously showed shape
+             with no magnitude, you could see that it rose but could not
+             read a single value off it. A summary column used to sit
+             beside the chart here restating the Total Alerts KPI tile's
+             own number/delta; removed as duplication of a number already
+             on screen in the KPI row above. -->
         <div class="card">
           <div class="card-head">
             <h2>Alert Volume Over Time</h2>
@@ -2421,7 +2406,6 @@ body {
                 <div id="ovTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0;padding-left:44px;padding-right:44px"></div>
                 <div id="ovTrendInsight" class="chart-insight-line"></div>
               </div>
-              <div class="ov-trend-summary" id="ovTrendSummary"></div>
             </div>
             <div class="chart-tooltip" id="ovTrendTooltip"></div>
           </div>
@@ -8873,22 +8857,26 @@ function renderOverviewInsight(derived) {
   }
 }
 
-/* Trend card's y-axis, mean reference line and summary column. Reads the
-   same derived.trend charts.trend() plots, and — critically — recomputes
-   the units series' min/max exactly the way charts.trend() does (per
-   series, over the visible points) so the tick labels describe the line
-   actually drawn rather than a second, subtly different scale.
+/* Trend card's y-axis and mean reference line. Reads the same derived.trend
+   charts.trend() plots, and — critically — recomputes the units series'
+   min/max exactly the way charts.trend() does (per series, over the
+   visible points) so the tick labels describe the line actually drawn
+   rather than a second, subtly different scale.
 
    The y-axis describes the UNITS series only. That is a deliberate limit,
    not an oversight: this chart scales its two series independently (see
    charts.trend()'s own comment on why alerts and asset counts don't share
    a natural scale), so a single axis can only ever be true for one of
    them. It is labelled accordingly, and the hover tooltip remains the
-   place where both series report real values. */
+   place where both series report real values.
+
+   A summary column (#ovTrendSummary) used to sit beside the chart here,
+   restating the Total Alerts KPI tile's own number and 7d delta — removed
+   as pure duplication of a number already on screen one row up, and one
+   that visually overlapped the chart itself at some widths. */
 function renderOverviewTrend(derived) {
   const axisEl = $('ovTrendYAxis');
   const axisRightEl = $('ovTrendYAxisRight');
-  const sumEl = $('ovTrendSummary');
   const meanLine = $('ovTrendMeanLine');
   const pts = derived?.trend ?? [];
 
@@ -8911,7 +8899,6 @@ function renderOverviewTrend(derived) {
   if (!pts.length) {
     if (axisEl) axisEl.innerHTML = '';
     if (axisRightEl) axisRightEl.innerHTML = '';
-    if (sumEl) sumEl.innerHTML = '';
     if (meanLine) meanLine.setAttribute('y1', '-10'), meanLine.setAttribute('y2', '-10');
     return;
   }
@@ -8930,7 +8917,6 @@ function renderOverviewTrend(derived) {
     // Units hidden: the left axis would be describing a line that isn't on
     // screen, so remove it rather than leave a stale scale behind.
     if (axisEl) axisEl.innerHTML = '';
-    if (sumEl) sumEl.innerHTML = '';
     if (meanLine) meanLine.setAttribute('y1', '-10'), meanLine.setAttribute('y2', '-10');
     return;
   }
@@ -8953,21 +8939,6 @@ function renderOverviewTrend(derived) {
     const y = geo.bottom - ((mean - min) / range) * (geo.bottom - geo.top);
     meanLine.setAttribute('y1', y.toFixed(1));
     meanLine.setAttribute('y2', y.toFixed(1));
-  }
-
-  if (sumEl) {
-    const total = vals.reduce((s, v) => s + v, 0);
-    // Same delta7d source the Total Alerts KPI tile reads, so the summary
-    // column and the tile above it can never show different percentages.
-    const tone = kpiTrendLine(derived.delta7d, '7d', 'totalAlerts', true);
-    const text = kpiTrendText(derived.delta7d, '7d', 'totalAlerts');
-    const dirIcon = text ? (text.startsWith('+') ? 'up' : text.startsWith('-') ? 'down' : 'flat') : 'flat';
-    sumEl.innerHTML = `
-      <div class="ov-trend-summary-label">Total Alerts</div>
-      <div class="ov-trend-summary-val">${esc(fmt.int(total))}</div>
-      ${text ? `<div class="ov-trend-summary-delta" data-tone="${tone}">${svg(dirIcon, 'ic-2xs')}${esc(text)}</div>` : ''}
-      <div class="ov-trend-summary-sub">across ${esc(fmt.int(pts.length))} day${pts.length === 1 ? '' : 's'}</div>
-      <div class="ov-trend-summary-ref"><i></i>Average ${esc(fmt.int(Math.round(mean)))}/day</div>`;
   }
 }
 
