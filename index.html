@@ -69,6 +69,15 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .nav-item.active svg{opacity:1}
 .nav-item.active::after{content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--decor-1)}
 
+/* Theme toggle — pinned to the bottom of the sidebar (margin-top:auto in a
+   flex column) rather than sitting inline with the page nav items, since
+   it isn't a page and shouldn't compete with "which page am I on" as a
+   6th-looking nav entry. Reuses .nav-item's own look (same hover/active
+   language as every other sidebar row) so it doesn't need a second visual
+   vocabulary for one button. */
+.nav-theme{margin-top:auto; padding-top:8px; border-top:0.5px solid rgba(255,255,255,.15)}
+.nav-theme .nav-item[aria-pressed="true"]{color:#fff}
+
 /* ═══ MAIN — every page scrolls except Settings (a short, fixed-height
    form that always fits one viewport). Overview used to be height-locked
    with three fixed-ratio rows sized to fit without scrolling; adding the
@@ -171,56 +180,54 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .topbar-title{font-size:var(--fs-2xl);font-weight:700;color:var(--navy);letter-spacing:-.01em}
 .topbar-sub{font-size:var(--fs-xs);color:var(--text-sec);margin-top:2px}
 .hcontrols{display:flex;align-items:center;gap:8px}
-.cpill{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px;font-size:var(--fs-xs);font-weight:500;color:var(--text)}
+.cpill{display:flex;align-items:center;gap:5px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px;font-size:var(--fs-xs);font-weight:500;color:var(--text)}
 
-/* ═══ Overview hero — welcome greeting ═══
-   Premium SaaS/CRM-style greeting band (Stripe/HubSpot/Linear pattern): a
-   quiet dark hero above the functional toolbar, not a loud marketing
-   banner — this is still a working dashboard someone reads every day, so
-   the hero carries identity/orientation (who, when, how fresh) and hands
-   off to the ordinary light-surface controls immediately below it for
-   anything actionable (date range, shift filter, refresh). Reuses the
-   sidebar's own navy→blue gradient and .btn's shadow language rather than
-   inventing a new palette. Real data only: name comes from Auth
-   (Cloud.myUsername()/local-mode fallback — see renderOverviewHero()),
-   the freshness pill reads the newest actual alert row, never a
-   fabricated "synced Xs ago" tick. */
-.ov-hero{
-  background:linear-gradient(120deg,var(--navy-dark),var(--navy) 55%,var(--blue));
-  border-radius:var(--r-xl); padding:22px 26px; position:relative; overflow:hidden;
-  box-shadow:var(--shadow-2); flex-shrink:0;
-  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-6);
+/* ═══ Overview header ═══
+   Replaces the navy gradient hero + separate white toolbar strip that used
+   to sit here (two stacked bands, ~150px of chrome before the first
+   number). One un-carded header row instead: title block left, controls
+   right — the pattern Linear/Stripe/Vercel all use, and what the Overview
+   reference specifies.
+
+   Why un-carded: a card here would be a third surface competing with the
+   KPI row directly beneath it, and the header holds no data to enclose.
+   The page title IS the orientation; the dark band was decoration doing
+   the job a heading already does for free.
+
+   Nothing was deleted, only demoted. The greeting still resolves the real
+   signed-in name and now prefixes the subtitle; the live clock and the
+   last-alert freshness pill moved into .ov-header-meta on the right. All
+   three remain real data from renderOverviewHero() — never a fabricated
+   "synced Xs ago" tick. */
+.ov-header{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:var(--sp-6); flex-shrink:0; padding:2px 2px 0;
 }
-/* A soft glow, not a decorative illustration — one radial wash anchored
-   top-right, echoing the sidebar's own understated depth rather than
-   adding imagery that would compete with the numbers. */
-.ov-hero::before{
-  content:''; position:absolute; inset:0; pointer-events:none;
-  background:radial-gradient(480px 200px at 88% -20%, rgba(255,255,255,.14), transparent 70%);
+.ov-header-title{font-size:var(--fs-2xl); font-weight:700; color:var(--text); letter-spacing:-.02em; line-height:1.2}
+.ov-header-sub{font-size:var(--fs-sm); color:var(--text-sec); margin-top:4px}
+.ov-header-meta{display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0}
+/* The controls themselves keep their existing .cpill/.btn/.al-date-range
+   language — this row only positions them, so nothing about how a date
+   field or the Refresh button looks changed. */
+.ov-header-controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+/* Caption row: local clock + last-alert freshness. Quiet by construction —
+   these orient the reader but are never the thing being read, so they sit
+   at caption size in muted text rather than as a lit-up pill on a dark
+   band, which over-weighted them relative to the KPIs below. */
+.ov-header-caption{
+  display:flex; align-items:center; gap:10px;
+  font-size:var(--fs-xs); color:var(--text-muted); font-variant-numeric:tabular-nums;
 }
-.ov-hero-greeting{font-size:26px; font-weight:700; color:#fff; letter-spacing:-.02em; line-height:1.2; position:relative}
-.ov-hero-sub{font-size:var(--fs-sm); color:rgba(255,255,255,.72); margin-top:5px; position:relative}
-.ov-hero-meta{display:flex; flex-direction:column; align-items:flex-end; gap:8px; position:relative; flex-shrink:0}
-.ov-hero-clock{font-size:var(--fs-sm); font-weight:600; color:#fff; font-variant-numeric:tabular-nums; text-align:right}
-.ov-hero-clock span{display:block; font-size:var(--fs-2xs); font-weight:600; color:rgba(255,255,255,.6); text-transform:uppercase; letter-spacing:var(--tracking-label); margin-top:2px}
-.ov-hero-fresh{
-  display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.12);
-  border:1px solid rgba(255,255,255,.18); border-radius:var(--r-full);
-  padding:5px 12px; font-size:var(--fs-2xs); font-weight:600; color:#fff;
+.ov-header-caption .ov-clock span{color:var(--text-muted)}
+.ov-header-fresh{display:inline-flex; align-items:center; gap:6px}
+.ov-header-fresh i{
+  width:6px; height:6px; border-radius:50%; background:var(--success); flex-shrink:0;
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
 }
-.ov-hero-fresh i{width:6px; height:6px; border-radius:50%; background:var(--teal-200); flex-shrink:0; box-shadow:0 0 0 3px rgba(93,202,165,.25)}
 @media (max-width:900px){
-  .ov-hero{flex-direction:column; align-items:flex-start; gap:var(--sp-4)}
-  .ov-hero-meta{align-items:flex-start; width:100%}
-}
-
-/* Toolbar strip directly below the hero — same functional row the old
-   .topbar held (date range / shift filter / refresh), now its own light
-   card so it doesn't fight the hero's dark surface for attention. */
-.ov-toolbar{
-  background:var(--surface); border:1px solid var(--border-light); border-radius:var(--r-lg);
-  box-shadow:var(--shadow-1); padding:8px 14px;
-  display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-shrink:0;
+  .ov-header{flex-direction:column; align-items:flex-start; gap:var(--sp-4)}
+  .ov-header-meta{align-items:flex-start; width:100%}
+  .ov-header-controls{justify-content:flex-start}
 }
 .cpill svg{width:10px;height:10px;color:var(--text-sec)}
 .btn{border:none;border-radius:var(--r-md);padding:7px 14px;font-size:var(--fs-xs);font-weight:500;display:inline-flex;align-items:center;gap:6px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));box-shadow:var(--shadow-1);cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease)}
@@ -277,12 +284,25 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 /* Border added alongside the shadow: with the page background now flat
    white (was a gray gradient), a shadow alone was too faint to separate a
    white card from a white page — the border is what actually reads now. */
-.card{background:#fff;border:1px solid var(--border-light);border-radius:var(--r-2xl);box-shadow:var(--shadow-2);overflow:hidden;display:flex;flex-direction:column;min-height:0;transition:border-color var(--dur-fast) var(--ease)}
+/* var(--surface-raised), not the literal #fff this shipped with — the
+   hardcoded white bypassed every theme token and stayed white even after
+   the dark palette (:root[data-theme="dark"]) changed everything else,
+   which is why cards looked like bright cutouts on a dark page. Raised
+   rather than --surface itself: cards need to read as a distinct layer
+   above the page background, and --surface-raised is the token that
+   carries that "one step up" meaning on both themes. */
+.card{background:var(--surface-raised);border:1px solid var(--border-light);border-radius:var(--r-2xl);box-shadow:var(--shadow-2);overflow:hidden;display:flex;flex-direction:column;min-height:0;transition:border-color var(--dur-fast) var(--ease)}
 /* Chart cards had no hover state, so a card holding a clickable legend
    looked identical to a static one. A hairline border shift says "this
    responds" without competing with the KPI row above. */
 .card:hover{border-color:var(--border)}
-.card-head{padding:10px 16px;background:linear-gradient(90deg,#F8FAFF,#fff);border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+/* var(--surface-sunken) -> var(--surface-raised), not the literal
+   #F8FAFF -> #fff this shipped with — same reasoning as .card's own fix:
+   a hardcoded light gradient stayed light under the dark palette,
+   producing a pale header bar on an otherwise-dark card. The two tokens
+   are close in value on the light theme (so this is a no-op there) but
+   diverge correctly on dark. */
+.card-head{padding:10px 16px;background:linear-gradient(90deg,var(--surface-sunken),var(--surface-raised));border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .card-head h2{font-size:var(--fs-md);font-weight:600;color:var(--navy);display:flex;align-items:center;gap:7px}
 .card-head h2::before{content:'';display:inline-block;width:3px;height:12px;background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px}
 .legend-block{display:flex;align-items:center;gap:12px}
@@ -341,7 +361,14 @@ svg[data-chart="trend"]{overflow:visible}
      KPI summary -> Key Insights (full-width stat strip)
                  -> ROW 1 (Trend 55% / Shift 45%)
                  -> ROW 2 (Hourly 40% / Severity 30% / Top Units 30%). */
-.page[data-page-id="overview"] .kpi-row{grid-template-columns:repeat(5,1fr);align-items:stretch;gap:var(--sp-5)}
+/* auto-fit/minmax, not a fixed repeat(5,1fr): five cards at equal width
+   left too little room for "Drowsiness Alerts"/"Drivers Involved"/"Assets
+   Reporting" to render without the label's own overflow:ellipsis (see
+   .akpi .kpi-label) kicking in — the row read as truncated on anything
+   short of a very wide monitor. 190px is the narrowest a card can go before
+   its own label needs to clip; below that the grid drops to fewer, wider
+   cards on its own rather than the row scrolling or the text cutting off. */
+.page[data-page-id="overview"] .kpi-row{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));align-items:stretch;gap:var(--sp-5)}
 /* .akpi's own height/padding/gap (below, in the shared KPI-card block)
    applies here too — this override now only sets what's genuinely
    Overview-specific (the 5-column grid and its gap). */
@@ -367,14 +394,11 @@ svg[data-chart="trend"]{overflow:visible}
 .page[data-page-id="overview"] .dl-row .dl-name{font-size:var(--fs-xs)}
 .page[data-page-id="overview"] .dl-row .dl-pct{font-size:var(--fs-xs);padding-left:4px}
 
-/* Alert Volume Over Time / Event Severity Distribution — the only chart
-   row left on Overview after the Key-Insights-hero redesign (see the
-   Overview page markup comment, src/AALYTICS.PNG). Key Insights now lives
-   in its own full-width card above this row, not sharing it with Trend —
-   Recent Alerts / Contributing Factors were dropped from Overview
-   entirely (still on Analytics). Alert Volume keeps the dominant share;
-   the donut+table card doesn't need much width to read well. */
-.ov-row1{display:grid;grid-template-columns:1.7fr 1fr;gap:var(--sp-5);min-height:0;height:320px;flex-shrink:0}
+/* .ov-row1 / .ov-row2 are defined further down, with the rest of the
+   Overview layout bands — see the .ov-layout block. Recent Activity moved
+   out of row 1 into its own full-width band (.ov-row3), so the old
+   1.15fr/1fr split and its 420–560px height band no longer describe
+   what's in this row. */
 
 /* ═══ Analytics page rows — strict 3-cards-per-row grid ═══
    Simplified per request: every chart is "simple," 3 equal cards per row,
@@ -600,29 +624,179 @@ svg[data-chart="trend"]{overflow:visible}
    per-insight list that used to sit above this feed was removed —
    Analytics' own Key Insights card (.ins-grid, untouched) is the one
    place to browse insights now. */
-.ov-layout{display:grid; grid-template-columns:1fr 300px; gap:var(--sp-5); align-items:start; min-height:0}
-.ov-layout-main{display:flex; flex-direction:column; gap:10px; min-width:0}
-@media (max-width:1200px){ .ov-layout{grid-template-columns:1fr} }
+/* PREVIOUS SHAPE (kept as rationale, since the reasoning still applies to
+   the new one): the rail used to be a page-height right column holding
+   only this feed. Two problems, both structural rather than cosmetic.
+   First, a 300px column was subtracted from the width of EVERY row on the
+   page, not just the row the feed belonged beside — which is why there
+   was never enough width for a second chart row underneath. Second, the
+   feed's own content is a handful of short lines, so any height it was
+   given past that was blank by construction: capping it moved the empty
+   space around rather than removing it.
 
-.ov-rail{
-  background:var(--surface); border:1px solid var(--border-light); border-radius:var(--r-xl);
-  box-shadow:var(--shadow-1); display:flex; flex-direction:column; overflow:hidden;
-}
-.ov-rail-head{
-  padding:var(--sp-4) var(--sp-5); border-bottom:1px solid var(--border-light);
-  display:flex; align-items:center; justify-content:space-between;
-}
-.ov-rail-head h2{font-size:var(--fs-sm); font-weight:700; color:var(--navy); display:flex; align-items:center; gap:7px; margin:0}
-.ov-rail-head h2::before{content:'';display:inline-block;width:3px;height:12px;background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px}
+   NEW SHAPE: the rail is gone as a page-level column. Its Latest Updates
+   feed now sits inside the Key Insight card (.ov-insight), which occupies
+   the right slot of ROW 1 ONLY. Rows 2 and 3 get the full page width
+   back, which is what makes a four-card secondary row fit legibly. The
+   feed's markup, its ids (#ovRailUpdatesList) and renderOverviewRail()
+   are all unchanged — only where the container hangs in the tree moved.
 
-.ov-rail-updates-list{padding:var(--sp-2) 0; max-height:none; overflow-y:auto; flex:1}
+   The page is a plain vertical stack of three bands now (KPI row / row 1 /
+   row 2), each sized by its own content, with the footer last. No band
+   claims leftover viewport height: a dashboard whose content doesn't fill
+   an oversized window should end in background, not stretch to hide it. */
+.ov-layout{display:flex; flex-direction:column; gap:var(--sp-5); min-height:0}
+
+/* ── Row 1: dominant trend chart + Key Insight ─────────────────────────
+   2.6fr/1fr, matching the reference. The trend chart is the page's
+   primary analytic and gets the width; the insight card is read as text
+   and needs only enough measure to avoid ragged wrapping. */
+.ov-row1{display:grid; grid-template-columns:2.6fr 1fr; gap:var(--sp-5); min-height:360px; align-items:stretch}
+
+/* ── Row 2: four equal secondary cards ─────────────────────────────────
+   Equal columns because every card here is the same KIND of thing — one
+   simple chart, one topic — so none should visually dominate. Same
+   reasoning (and same grid) as the Analytics page's own .an-row. */
+.ov-row2{display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-5); min-height:270px; align-items:stretch}
+
+/* ── Key Insight card ──────────────────────────────────────────────────
+   Two stacked sections in one card: the computed insight bullets on top,
+   the session change-feed below a divider. Both were already on the page;
+   this only gives them a shared shell so they occupy one slot instead of
+   a full-height column each. */
+.ov-insight{
+  background:var(--surface); border:1px solid var(--border-light); border-radius:var(--r-2xl);
+  box-shadow:var(--shadow-2); display:flex; flex-direction:column; overflow:hidden; min-height:0;
+}
+.ov-insight-head{
+  padding:10px 16px; background:linear-gradient(90deg,var(--surface-sunken),var(--surface-raised));
+  border-bottom:1px solid var(--divider); display:flex; align-items:center; gap:7px; flex-shrink:0;
+}
+.ov-insight-head h2{font-size:var(--fs-md); font-weight:600; color:var(--navy); margin:0; display:flex; align-items:center; gap:7px}
+.ov-insight-head h2 svg{width:13px; height:13px; color:var(--accent)}
+.ov-insight-body{padding:12px 16px; display:flex; flex-direction:column; gap:10px; flex:1; min-height:0; overflow-y:auto}
+/* Headline: one sentence naming the single most important movement, with
+   the number itself carrying the only colour in the block. */
+.ov-insight-headline{font-size:var(--fs-md); color:var(--text); line-height:1.45; margin:0}
+.ov-insight-headline b{font-weight:700; font-variant-numeric:tabular-nums}
+.ov-insight-list{display:flex; flex-direction:column; gap:9px; margin:0; padding:0; list-style:none}
+.ov-insight-item{display:flex; align-items:flex-start; gap:9px; font-size:var(--fs-xs); color:var(--text-sec); line-height:1.45}
+/* Round tinted icon chip, matching the KPI row's own icon language so the
+   two blocks read as one design system rather than two. */
+.ov-insight-icon{
+  width:22px; height:22px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; margin-top:-1px;
+}
+.ov-insight-icon svg{width:11px; height:11px}
+.ov-insight-item b{color:var(--text); font-weight:700; font-variant-numeric:tabular-nums}
+.ov-insight-empty{font-size:var(--fs-xs); color:var(--text-muted)}
+.ov-insight-divider{border-top:1px solid var(--divider); margin-top:2px; padding-top:10px}
+.ov-insight-sub{
+  font-size:var(--fs-2xs); font-weight:700; color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:var(--tracking-label); margin-bottom:2px;
+}
+
+/* ── Row 3: operational table, full width ──────────────────────────────
+   Recent Activity used to share row 1 with the trend chart at 1fr against
+   1.15fr, which left its five nowrap columns (Time/Asset/Event/Shift/
+   Count) fighting for width — it needed a horizontal scrollbar on top of
+   the vertical one it already had, two scrollbars on a glance card. At
+   full width all five columns fit with room to spare, and the card can
+   show a useful number of rows instead of eight.
+
+   This is also the "Operational Tables" band the layout structure calls
+   for, which the page simply didn't have before: it went KPIs → charts →
+   nothing. min-height is generous because a table that shows three rows
+   is not doing the job a table is for. */
+.ov-row3{display:grid; grid-template-columns:1fr; min-height:360px}
+.ov-row3 .ev-list-wrap{max-height:420px}
+
+@media (max-width:1400px){ .ov-row2{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:1200px){ .ov-row1{grid-template-columns:1fr} }
+
+/* Latest Updates feed — unchanged rules, now scoped inside .ov-insight
+   instead of the removed .ov-rail shell. */
+.ov-rail-updates-list{padding:0; max-height:170px; overflow-y:auto}
+
+/* ── Trend card: chart + in-card summary column ────────────────────────
+   The trend chart previously showed shape with no magnitude — no y-axis,
+   no total, no reference level, so a reader could see "it went up" but
+   could not read a single value off it. Two additions fix that without
+   adding a widget: y-axis tick labels down the left (.ov-trend-yaxis) and
+   a summary column on the right (.ov-trend-summary) carrying the period
+   total, its delta, and the mean the dashed reference line marks. */
+.ov-trend-layout{display:flex; gap:var(--sp-5); flex:1; min-height:0}
+.ov-trend-chart{flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; position:relative}
+.ov-trend-plot{display:flex; gap:6px; flex:1; min-height:0}
+/* Fixed width so the plot's left edge doesn't shift as the tick labels
+   change magnitude (1,200 vs 900) between renders. */
+.ov-trend-yaxis{
+  width:38px; flex-shrink:0; display:flex; flex-direction:column; justify-content:space-between;
+  font-size:var(--fs-2xs); color:var(--text-muted); text-align:right;
+  font-variant-numeric:tabular-nums; padding-bottom:2px;
+}
+.ov-trend-summary{
+  width:132px; flex-shrink:0; border-left:1px solid var(--divider); padding-left:var(--sp-5);
+  display:flex; flex-direction:column; gap:3px; justify-content:center;
+}
+.ov-trend-summary-label{font-size:var(--fs-xs); color:var(--text-muted); font-weight:600}
+.ov-trend-summary-val{font-size:var(--fs-2xl); font-weight:700; color:var(--text); letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.15}
+.ov-trend-summary-sub{font-size:var(--fs-2xs); color:var(--text-muted); line-height:1.4}
+.ov-trend-summary-delta{display:inline-flex; align-items:center; gap:3px; font-size:var(--fs-sm); font-weight:700; font-variant-numeric:tabular-nums}
+.ov-trend-summary-delta svg{width:10px; height:10px}
+.ov-trend-summary-delta[data-tone="good"]{color:var(--success)}
+.ov-trend-summary-delta[data-tone="bad"]{color:var(--danger)}
+.ov-trend-summary-delta[data-tone="neutral"]{color:var(--text-muted)}
+/* Legend for the dashed mean line, using a real dashed swatch rather than
+   a solid dot — a solid dot beside "average" would imply a plotted series. */
+.ov-trend-summary-ref{display:flex; align-items:center; gap:6px; font-size:var(--fs-2xs); color:var(--text-muted); margin-top:6px}
+.ov-trend-summary-ref i{width:14px; height:0; border-top:1.5px dashed var(--text-muted); flex-shrink:0}
+@media (max-width:1400px){ .ov-trend-summary{display:none} }
+
+/* ── Alerts by Hour of Day: intensity scale legend ─────────────────────
+   The bars are tinted by their own value, so the scale has to be stated
+   or the colour is decoration pretending to be data. */
+.ov-hour-scale{display:flex; align-items:center; gap:8px; font-size:var(--fs-2xs); color:var(--text-muted); flex-shrink:0; margin-top:6px}
+.ov-hour-scale i{
+  flex:1; height:5px; border-radius:var(--r-full);
+  background:linear-gradient(90deg, var(--accent), var(--warning), var(--danger));
+}
+
+/* ── Card footer link ──────────────────────────────────────────────────
+   "View details →" — a real navigation into the page that owns the full
+   version of this card's chart, not a decorative affordance. */
+.ov-card-link{
+  display:inline-flex; align-items:center; gap:5px; padding:8px 16px 10px;
+  font-size:var(--fs-xs); font-weight:600; color:var(--accent);
+  background:none; border:none; cursor:pointer; flex-shrink:0; text-align:left;
+  transition:gap var(--dur-fast) var(--ease);
+}
+.ov-card-link:hover{gap:8px; text-decoration:underline}
+.ov-card-link svg{width:11px; height:11px}
+
+/* ── Page footer strip ─────────────────────────────────────────────────
+   Two things the page relied on the reader already knowing: that every
+   timestamp is UTC, and that on this dashboard red means "more alerts"
+   (worse) while green means fewer. The colour convention in particular
+   was undocumented anywhere in the UI. */
+.ov-foot{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-6);
+  flex-wrap:wrap; padding:10px 16px; margin-top:var(--sp-2);
+  border-top:1px solid var(--divider); font-size:var(--fs-xs); color:var(--text-muted);
+  flex-shrink:0;
+}
+.ov-foot-note{display:flex; align-items:center; gap:6px}
+.ov-foot-note svg{width:12px; height:12px; flex-shrink:0}
+.ov-foot-legend{display:flex; align-items:center; gap:var(--sp-6); flex-wrap:wrap}
+.ov-foot-legend span{display:inline-flex; align-items:center; gap:6px}
+.ov-foot-legend i{width:7px; height:7px; border-radius:50%; flex-shrink:0}
 .ov-rail-update{
-  display:flex; align-items:baseline; gap:8px; padding:var(--sp-2) var(--sp-5);
+  display:flex; align-items:baseline; gap:8px; padding:var(--sp-2) 0;
   font-size:var(--fs-2xs); color:var(--text-sec); line-height:1.5;
 }
 .ov-rail-update b{color:var(--text); font-weight:700; font-variant-numeric:tabular-nums}
 .ov-rail-update-time{color:var(--text-muted); flex-shrink:0; font-variant-numeric:tabular-nums}
-.ov-rail-updates-empty{padding:var(--sp-4) var(--sp-5); font-size:var(--fs-xs); color:var(--text-muted)}
+.ov-rail-updates-empty{padding:var(--sp-2) 0; font-size:var(--fs-xs); color:var(--text-muted)}
 
 .donut-wrap{display:flex;align-items:center;gap:16px;padding:10px 16px 14px;flex:1;min-height:0}
 .donut-legend{display:flex;flex-direction:column;gap:9px;min-width:0}
@@ -665,10 +839,14 @@ svg[data-chart="trend"]{overflow:visible}
   position:sticky; top:0; background:var(--surface); text-align:left;
   font-size:var(--fs-2xs); font-weight:700; color:var(--text-muted);
   text-transform:uppercase; letter-spacing:var(--tracking-label);
-  padding:4px 8px; border-bottom:1px solid var(--border-light);
+  padding:4px 6px; border-bottom:1px solid var(--border-light);
 }
+/* padding trimmed from 8px to 6px horizontal — 5 nowrap columns (Time/
+   Asset/Event/Shift/Count) in a card sharing a row with Trend were a few
+   pixels wider than the card at common viewport widths, forcing a
+   horizontal scrollbar for what amounted to sub-10px of actual overflow. */
 .rec-table tbody td{
-  padding:6px 8px; font-size:var(--fs-xs); color:var(--text);
+  padding:6px 6px; font-size:var(--fs-xs); color:var(--text);
   border-bottom:1px solid var(--border-light); white-space:nowrap;
 }
 .rec-table tbody tr:last-child td{border-bottom:none}
@@ -717,24 +895,51 @@ svg[data-chart="trend"]{overflow:visible}
    the plain non-comparison tiles elsewhere) into the head row inline with
    its label, so nothing overlaps and the card reads top-to-bottom. */
 .page[data-page-id="analytics"] .kpi-row{grid-template-columns:repeat(5,1fr);align-items:stretch}
-.akpi{height:auto;min-height:118px;padding:14px 16px;gap:0;justify-content:flex-start}
+.akpi{height:auto;min-height:104px;padding:14px 16px;gap:0;justify-content:flex-start}
 .akpi::before{background:var(--kpi-accent, var(--blue))}
 .akpi-head{display:flex;align-items:center;gap:8px}
 .akpi .kpi-icon{position:static;width:22px;height:22px;flex-shrink:0}
 .akpi .kpi-icon svg{width:11px;height:11px}
 .akpi .kpi-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .akpi .kpi-val{margin:6px 0 4px}
-/* Two-line KPI trend block — a bold arrow+percent for the fixed trailing-
-   7-day window, and a smaller neutral-gray line for the fixed calendar
-   month-over-month window (see kpiTrendLine()/kpiTile() JS). Replaces the
-   former .akpi-rate/.akpi-avg7d per-metric-type comparison layouts (every
-   metric now reads the same two fixed windows, not three different
-   comparison shapes depending on metric type). */
-.kpi-trend{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+
+/* ── KPI body row: figure left, sparkline right ──────────────────────────
+   The tile used to stack head → value → two trend lines down the left
+   edge, leaving the entire right half of every card empty. The sparkline
+   now occupies that space, which is the arrangement the Overview
+   reference specifies and the one the design skill's KPI spec asks for
+   (icon / label / large number / small trend / tiny sparkline).
+
+   align-items:flex-end so the sparkline's baseline sits with the trend
+   line rather than floating beside the big number — the number is the
+   headline and shouldn't have a graphic competing at its own height.
+   min-width:0 on the figure lets a long formatted value ellipsize instead
+   of shoving the sparkline out of the card. */
+.akpi-body{display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-top:2px}
+.akpi-figure{min-width:0; flex:1}
+.akpi-figure .kpi-val{margin:4px 0 0}
+/* Fixed height, flexible width: the sparkline is a shape, so it may
+   stretch horizontally, but a varying height across five tiles in a row
+   would read as five different chart scales rather than one row.
+   pointer-events:none — it carries no tooltip by design (see
+   kpiSparkline()), so it must never look interactive. */
+.kpi-spark{
+  width:96px; height:34px; flex-shrink:0; display:block; pointer-events:none;
+  opacity:.9; align-self:flex-end; margin-bottom:1px;
+}
+
+/* KPI trend block — ONE visible line now (the trailing-7-day window); the
+   month-over-month figure moved into this block's title attribute and the
+   tile's sr-only text (see kpiTile()/kpiTrendText() JS). The
+   :first-child/:last-child selectors below still resolve correctly with a
+   single child, so the sizing rules cover both the one-line case and any
+   future second line without a rewrite. */
+.kpi-trend{margin-top:5px;display:flex;flex-direction:column;gap:2px}
 .kpi-trend-line{display:flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums}
 .kpi-trend-line:first-child{font-size:var(--fs-xs)}
 .kpi-trend-line:first-child .kpi-trend-value{font-size:var(--fs-sm);font-weight:700}
-.kpi-trend-line:last-child{font-size:var(--fs-2xs);color:var(--text-muted)}
+.kpi-trend-line:only-child{font-size:var(--fs-xs)}
+.kpi-trend-line:last-child:not(:only-child){font-size:var(--fs-2xs);color:var(--text-muted)}
 .kpi-trend-value{display:inline-flex;align-items:center;gap:2px}
 .kpi-trend-value svg{width:9px;height:9px;flex-shrink:0}
 .kpi-trend-line[data-tone="good"] .kpi-trend-value{color:var(--success)}
@@ -1268,6 +1473,91 @@ th[data-sort][aria-sort]{color:var(--accent)}
   --sidebar-w-collapsed: 56px;
 }
 
+/* ══ DARK THEME ═════════════════════════════════════════════════════════
+   Overrides only the tokens that actually need to change: the neutral
+   surface/text/border ramp, plus each color's own -50/-bg tint (a near-white
+   tint reads as a bright, out-of-place patch on a dark surface, so every
+   -50 gets a dark-appropriate tint instead of inheriting the light one).
+   The hue ramp itself (--navy/--blue/--teal/--red/--amber/--purple/--orange)
+   is untouched — every one of them already has enough contrast against a
+   dark surface to stay legible, and keeping the same hues is what makes
+   this read as "the same app, dark" rather than a different color scheme.
+
+   Applied via [data-theme="dark"] on <html> rather than only
+   prefers-color-scheme, so the in-app toggle (ThemeToggle, see the script
+   section) can force either theme regardless of OS setting; the OS default
+   is still respected through the prefers-color-scheme block below for
+   anyone who hasn't chosen explicitly yet (see the toggle's own comment on
+   the tri-state default/light/dark contract). */
+:root[data-theme="dark"] {
+  --text: #E7E6E2;      --text-sec: #B7B5AC;    --text-muted: #8B8A83;
+  --border: #3A3D45;    --border-light: #2A2D34; --divider: #262931;
+
+  --surface: #14161B;
+  --surface-sunken: #1B1E24;
+  --surface-raised: #1F222A;
+  --canvas-from: #14161B;
+  --canvas-to:   #1B1E24;
+  --neutral-bar: #4A4D55;
+
+  --navy-dark: #0A1930;
+
+  --blue-50: #16283D;    --blue-200: #4A85C4;
+  --teal-50: #12302A;    --teal-200: #5DCAA5;
+  --red-50:  #3A1B1B;
+  --amber-50:#3A2A0F;    --amber-text: #E0A94E;
+  --purple-50:#211E42;
+  --orange-50:#3A2413;   --elevated-text: #E08A54;
+
+  --ov-sev-sleep-bg:       #3A1B1B;
+  --ov-sev-drowsy-bg:      #3A2A0F;
+  --ov-sev-inattentive-bg: #35300F;
+  --ov-sev-posture-bg:     #241D3D;
+  --ov-sev-other-bg:       #24262B;
+
+  --shadow-1: 0 1px 3px rgba(0,0,0,.4);
+  --shadow-2: 0 2px 10px rgba(0,0,0,.45);
+  --shadow-3: 0 8px 24px rgba(0,0,0,.5);
+  --shadow-focus: 0 0 0 3px var(--accent-bg);
+}
+
+/* System-default dark, for anyone who hasn't used the toggle yet — same
+   values as the explicit block above, guarded so an explicit data-theme
+   (either direction) always wins over the OS setting. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --text: #E7E6E2;      --text-sec: #B7B5AC;    --text-muted: #8B8A83;
+    --border: #3A3D45;    --border-light: #2A2D34; --divider: #262931;
+
+    --surface: #14161B;
+    --surface-sunken: #1B1E24;
+    --surface-raised: #1F222A;
+    --canvas-from: #14161B;
+    --canvas-to:   #1B1E24;
+    --neutral-bar: #4A4D55;
+
+    --navy-dark: #0A1930;
+
+    --blue-50: #16283D;    --blue-200: #4A85C4;
+    --teal-50: #12302A;    --teal-200: #5DCAA5;
+    --red-50:  #3A1B1B;
+    --amber-50:#3A2A0F;    --amber-text: #E0A94E;
+    --purple-50:#211E42;
+    --orange-50:#3A2413;   --elevated-text: #E08A54;
+
+    --ov-sev-sleep-bg:       #3A1B1B;
+    --ov-sev-drowsy-bg:      #3A2A0F;
+    --ov-sev-inattentive-bg: #35300F;
+    --ov-sev-posture-bg:     #241D3D;
+    --ov-sev-other-bg:       #24262B;
+
+    --shadow-1: 0 1px 3px rgba(0,0,0,.4);
+    --shadow-2: 0 2px 10px rgba(0,0,0,.45);
+    --shadow-3: 0 8px 24px rgba(0,0,0,.5);
+    --shadow-focus: 0 0 0 3px var(--accent-bg);
+  }
+}
+
 /* ══ ACCESSIBILITY ═══════════════════════════════════════════════════════
    v2.2 had 0 :focus-visible rules and 19 buttons. Keyboard users had no way
    to tell where they were. This single rule closes that. */
@@ -1575,61 +1865,83 @@ body {
 }
 
 /* ── Overview page — responsive reflow ────────────────────────────────────
-   Targets from the redesign brief: 1920/1600/1440/1366/1024/768, scoped to
+   Targets: 1920/1600/1440/1366/1024/768/600, scoped to
    [data-page-id="overview"] only so Analytics/Data Management/Settings —
    which have zero breakpoints of their own today — are unaffected. Base
    (unprefixed) rules earlier in this file already ARE the 1920px+ design.
-   .ov-row2 (Recent Alerts / Contributing Factors) was removed from Overview
-   entirely in the Key-Insights-hero redesign (see the Overview page markup
-   comment) — only .ov-row1 (Alert Volume / Event Severity Distribution)
-   remains, so these breakpoints target it alone now. */
+
+   Three bands to reflow now, not one: .ov-row1 (trend + insight),
+   .ov-row2 (four secondary cards) and .ov-row3 (full-width table). The
+   column-count changes for row 1 and row 2 live with their own rules up
+   in the layout block (1400px / 1200px) so a reader editing the grid sees
+   its breakpoints beside it; what's left here is the height and padding
+   tuning, which is genuinely cross-cutting.
+
+   General principle, unchanged: shrink whitespace before content. Charts
+   lose vertical breathing room at each tier; type sizes and mark sizes
+   never shrink. */
 @media (max-width: 1600px) {
-  .page[data-page-id="overview"] .ov-row1 { height: 260px; }
+  .page[data-page-id="overview"] .ov-row1 { min-height: 330px; }
+  .page[data-page-id="overview"] .ov-row2 { min-height: 255px; }
 }
 
 @media (max-width: 1440px) {
-  /* Chart rows lose a little height rather than width — content stays
-     readable, just less vertical breathing room, per the height-aware
-     design rule (don't shrink text/marks, shrink whitespace first). */
-  .page[data-page-id="overview"] .ov-row1 { height: 250px; }
+  .page[data-page-id="overview"] .ov-row1 { min-height: 315px; }
+  /* .ov-trend-summary is hidden at this width by its own rule — the trend
+     card keeps the full width for the plot rather than squeezing both. */
 }
 
 @media (max-width: 1366px) {
   .main[data-page="overview"] { padding: var(--sp-6) var(--sp-7); }
-  .page[data-page-id="overview"] .kpi { min-height: 88px; }
-  .page[data-page-id="overview"] .ov-row1 { height: 240px; }
+  .page[data-page-id="overview"] .kpi { min-height: 96px; }
+  /* The sparkline is the first thing to go when tiles get narrow: it's a
+     supporting graphic, and a 96px chart beside a 5-digit number in a
+     cramped tile helps nobody. The number and its delta always stay. */
+  .page[data-page-id="overview"] .kpi-spark { width: 68px; }
+  .page[data-page-id="overview"] .ov-row1 { min-height: 300px; }
 }
 
 @media (max-width: 1024px) {
   .main[data-page="overview"] { padding: var(--sp-6); }
   /* KPI: 5 tiles no longer fit legibly at 3 columns without excessive
-     card-height growth, so drop to a 2-up grid — matches the "2-3 columns"
-     spec; tiles use auto height so this reflow is just a grid-column
-     change. */
+     card-height growth, so drop to a 2-up grid; tiles use auto height so
+     this reflow is just a grid-column change. */
   .page[data-page-id="overview"] .kpi-row { grid-template-columns: repeat(2, 1fr); gap: var(--sp-4); }
-  /* Row 1 is already 2 columns at full width (see .ov-row1 itself) — this
-     tier's real job is height:auto, letting each card size to its own
-     content instead of a shared fixed row height, since the unequal
-     column widths (1.7fr/1fr) get cramped well before 1024px. */
-  .page[data-page-id="overview"] .ov-row1 { grid-template-columns: 1fr 1fr; height: auto; }
-  .page[data-page-id="overview"] .ov-row1 .card { height: 240px; }
+  /* Rows 1 and 2 have already collapsed to 1 and 2 columns respectively by
+     this width (see their own rules); this tier's job is letting each card
+     size to its own content instead of a shared row height. */
+  .page[data-page-id="overview"] .ov-row1,
+  .page[data-page-id="overview"] .ov-row2,
+  .page[data-page-id="overview"] .ov-row3 { min-height: 0; }
+  .page[data-page-id="overview"] .ov-row1 .card,
+  .page[data-page-id="overview"] .ov-row1 .ov-insight { min-height: 280px; }
+  .page[data-page-id="overview"] .ov-row2 .card { min-height: 250px; }
+  .page[data-page-id="overview"] .ov-row3 .card { min-height: 300px; }
 }
 
 @media (max-width: 768px) {
   .page[data-page-id="overview"] .kpi-row { grid-template-columns: repeat(2, 1fr); }
-  /* Charts: 1 column below 768px per spec, but the spec allows 1-2 at
-     exactly 768px tablet-portrait width — kept at 2-up here since neither
-     card has dense axis labels that would collide at this width; true
-     1-column collapse happens at the 600px tier below. */
+  /* Row 2 stays 2-up at tablet-portrait — none of these four cards has
+     axis labels dense enough to collide at this width. True 1-column
+     collapse happens at the 600px tier below. */
+  .page[data-page-id="overview"] .ov-row2 { grid-template-columns: repeat(2, 1fr); }
+  /* The y-axis gutter and its matching axis-label offset come off together
+     — they're one alignment, so they must never be tuned separately. */
+  .page[data-page-id="overview"] .ov-trend-yaxis { display: none; }
+  .page[data-page-id="overview"] #ovTrendAxis { padding-left: 0 !important; }
 }
 
 @media (max-width: 600px) {
-  /* True 1-column collapse (spec's "<768px" tier — 600px chosen as the
-     practical inner edge since 768px itself is the tablet-portrait target
-     above). KPI stays 2-up per spec ("KPI: 2 columns" is explicit at every
-     tier below 1024px). */
-  .page[data-page-id="overview"] .ov-row1 { grid-template-columns: 1fr; }
-  .page[data-page-id="overview"] .ov-row1 .card { height: 220px; }
+  /* True 1-column collapse. KPI stays 2-up: two tiles per row is still
+     scannable, one per row turns the summary into a scroll. */
+  .page[data-page-id="overview"] .ov-row2 { grid-template-columns: 1fr; }
+  .page[data-page-id="overview"] .ov-row1 .card,
+  .page[data-page-id="overview"] .ov-row1 .ov-insight,
+  .page[data-page-id="overview"] .ov-row2 .card { min-height: 230px; }
+  /* Sparkline off entirely below 600px — at a half-width tile it has no
+     room to show a shape worth reading. */
+  .page[data-page-id="overview"] .kpi-spark { display: none; }
+  .ov-foot { flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
 }
 
 @media print {
@@ -1850,6 +2162,22 @@ body {
 <noscript><style>body.auth-pending{visibility:visible}</style></noscript>
 </head>
 <body class="auth-pending">
+<script>
+/* Applied synchronously, before any visible markup, so a returning
+   dark-mode user never sees a flash of the light theme while the rest of
+   the page's <script> (way down near the closing body tag) loads and runs.
+   No stored choice -> no attribute is set at all, which is what lets the
+   prefers-color-scheme media query (see the :root[data-theme] token block)
+   take over for anyone who hasn't used the toggle yet. */
+(function(){
+  try {
+    var saved = localStorage.getItem('dds-theme');
+    if (saved === 'light' || saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  } catch (e) { /* storage unavailable (private mode, disabled) — fall through to OS default */ }
+})();
+</script>
 <div class="app">
 
   <nav class="sidenav">
@@ -1868,6 +2196,18 @@ body {
     <div class="nav-section-label">Management</div>
     <button class="nav-item" data-nav="data-mgmt"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="8" cy="4" rx="6" ry="2"/><path d="M2 4v4c0 1.1 2.7 2 6 2s6-.9 6-2V4"/><path d="M2 8v4c0 1.1 2.7 2 6 2s6-.9 6-2V8"/></svg>Data Management</button>
     <button class="nav-item" data-nav="settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>Settings</button>
+
+    <!-- Theme toggle — minimal, verification-scoped (see ThemeToggle, script
+         section, for the full rationale): flips data-theme between 'light'
+         and 'dark' and remembers the choice in localStorage. Sits at the
+         bottom of the nav, its own section so it doesn't read as a 6th page. -->
+    <div class="nav-theme">
+      <button class="nav-item" id="themeToggleBtn" type="button" aria-pressed="false">
+        <svg id="themeToggleIconDark" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 9.5A6 6 0 016.5 2.5a6.5 6.5 0 106.99 7z"/></svg>
+        <svg id="themeToggleIconLight" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" hidden><circle cx="8" cy="8" r="3.2"/><path d="M8 1.3v1.6M8 13v1.6M2.7 8H1.3M14.7 8h-1.4M3.7 3.7l1 1M11.3 11.3l1 1M12.3 3.7l-1 1M4.7 11.3l-1 1"/></svg>
+        <span id="themeToggleLabel">Dark mode</span>
+      </button>
+    </div>
   </nav>
 
   <div class="main" id="main" data-page="overview">
@@ -1875,132 +2215,116 @@ body {
     <!-- ═══════════════════════ OVERVIEW ═══════════════════════ -->
     <section class="page" id="page-overview" data-page-id="overview">
 
-      <!-- Welcome hero — real signed-in name (Auth/Cloud.myUsername(), never
-           fabricated; local-mode falls back to a name-less greeting), a
-           live clock, and a freshness pill reading the newest actual alert
-           row's timestamp (recentAlerts[0].time) — see
-           renderOverviewHero() (CHARTS/paint section) for how each field
-           is populated and its own comment on why nothing here is a
-           placeholder. Static "—" shell below matches every other
+      <!-- HEADER — replaces the navy gradient hero + separate white toolbar
+           strip (two stacked bands of chrome above the first number). See
+           .ov-header's own CSS comment for why this is un-carded.
+
+           Nothing here is a placeholder: the subtitle, the clock and the
+           freshness caption are all populated by renderOverviewHero(),
+           which resolves the real signed-in name via
+           Auth.lastUsername/Cloud.myUsername() and reads the newest actual
+           alert row's timestamp. The static "—" shell matches every other
            first-paint contract in this file. -->
-      <div class="ov-hero">
+      <div class="ov-header">
         <div>
-          <div class="ov-hero-greeting" id="ovHeroGreeting">Welcome back</div>
-          <div class="ov-hero-sub" id="ovHeroSub">Here's what's happening with your fleet today.</div>
+          <div class="ov-header-title">Overview</div>
+          <div class="ov-header-sub" id="ovHeroSub">Here's what's happening with your fleet today.</div>
         </div>
-        <div class="ov-hero-meta">
-          <div class="ov-hero-clock" id="ovHeroClock">—<span id="ovHeroDate">—</span></div>
-          <div class="ov-hero-fresh" id="ovHeroFresh"><i></i>—</div>
+        <div class="ov-header-meta">
+          <div class="ov-header-controls">
+            <div class="al-date-range" role="group" aria-label="Date range">
+              <label class="al-date-field">
+                <span>From</span>
+                <input type="date" id="ovDateFrom" aria-label="From date">
+              </label>
+              <span class="al-date-sep" aria-hidden="true">–</span>
+              <label class="al-date-field">
+                <span>To</span>
+                <input type="date" id="ovDateTo" aria-label="To date">
+              </label>
+            </div>
+            <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+            <!-- "All Assets" pill removed: no asset/site column exists in
+                 EXPECTED_COLUMNS to filter by, so it never had a real dropdown
+                 behind it (initControls()'s .cpill text-matcher has no 'asset'
+                 branch) — a chevron-decorated div implying a filter that did
+                 nothing on click. Restore it once the data model has an
+                 asset/site field to actually filter on. -->
+            <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg>Refresh</button>
+          </div>
+          <div class="ov-header-caption">
+            <span class="ov-clock" id="ovHeroClock">—<span id="ovHeroDate"></span></span>
+            <span class="ov-header-fresh" id="ovHeroFresh"><i></i>—</span>
+          </div>
         </div>
       </div>
 
-      <!-- Toolbar — the functional controls the old .topbar held, now its
-           own light strip below the hero (see .ov-toolbar's own comment). -->
-      <div class="ov-toolbar">
-        <div class="al-date-range" role="group" aria-label="Date range">
-          <label class="al-date-field">
-            <span>From</span>
-            <input type="date" id="ovDateFrom" aria-label="From date">
-          </label>
-          <span class="al-date-sep" aria-hidden="true">–</span>
-          <label class="al-date-field">
-            <span>To</span>
-            <input type="date" id="ovDateTo" aria-label="To date">
-          </label>
-        </div>
-        <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
-        <!-- "All Assets" pill removed: no asset/site column exists in
-             EXPECTED_COLUMNS to filter by, so it never had a real dropdown
-             behind it (initControls()'s .cpill text-matcher has no 'asset'
-             branch) — a chevron-decorated div implying a filter that did
-             nothing on click. Restore it once the data model has an
-             asset/site field to actually filter on. -->
-        <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg>Refresh</button>
-      </div>
-
-      <!-- Two-column layout below the hero/toolbar: KPIs + Trend + Recent
-           Activity on the left (.ov-layout-main), the compact Key Insights
-           rail full page height on the right (.ov-rail) — replaces the old
-           full-width Key Insights card. See .ov-layout's own CSS comment
-           and renderOverviewRail() (CHARTS section) for how the rail is
-           populated: same insightBullets set Analytics' Key Insights cards
-           use, just rendered as compact clickable rows that navigate
-           straight to the matching Analytics chart (or the Driver & Asset
-           Monitoring detail modal for the one entity-specific item)
-           instead of expanding evidence in place. -->
+      <!-- Three vertical bands: KPI row → row 1 (trend + insight) → row 2
+           (four secondary cards). See .ov-layout's own CSS comment for why
+           the old full-height right rail was dissolved into row 1's insight
+           card rather than kept as a page-level column. -->
       <div class="ov-layout">
-      <div class="ov-layout-main">
 
-      <!-- SUMMARY — 5 KPI cards, each with a plain comparison line vs the
-           previous period (renderOverviewKpis(), reuses Analytics'
-           kpiTile()/comparison.metrics machinery with Overview's own
-           icon/tint/label maps — see OVERVIEW_KPI_ORDER). Static "—"
-           placeholder shell shown until first real render, same contract
-           as Analytics' #anKpiRow. -->
+      <!-- SUMMARY — 5 KPI cards, each with one comparison line and a
+           sparkline of that metric's own daily series (renderOverviewKpis(),
+           reuses Analytics' kpiTile()/comparison.metrics machinery with
+           Overview's own icon/tint/label maps — see OVERVIEW_KPI_ORDER).
+           Static "—" placeholder shell shown until first real render, same
+           contract as Analytics' #anKpiRow. The shell deliberately carries
+           NO sparkline: there is no data to draw one from yet, and a
+           decorative squiggle in its place would be exactly the fabricated
+           placeholder this file avoids everywhere else. -->
       <div class="kpi-row" id="ovKpiRow">
         <div class="kpi akpi">
           <div class="akpi-head">
             <div class="kpi-icon" style="background:var(--amber-50);color:var(--amber)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
             <div class="kpi-label">Total Alerts</div>
           </div>
-          <span class="kpi-val">—</span>
-          <div class="kpi-trend">
-            <div class="kpi-trend-line"><span class="kpi-trend-label">vs 7d</span></div>
-            <div class="kpi-trend-line"><span class="kpi-trend-label">vs last month</span></div>
-          </div>
+          <div class="akpi-body"><div class="akpi-figure"><span class="kpi-val">—</span>
+            <div class="kpi-trend"><div class="kpi-trend-line"><span class="kpi-trend-label">vs 7d</span></div></div>
+          </div></div>
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
             <div class="kpi-icon" style="background:var(--ov-sev-sleep-bg);color:var(--ov-sev-sleep)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg></div>
             <div class="kpi-label">Sleep Alerts</div>
           </div>
-          <span class="kpi-val">—</span>
-          <div class="kpi-trend">
-            <div class="kpi-trend-line"><span class="kpi-trend-label">vs 7d</span></div>
-            <div class="kpi-trend-line"><span class="kpi-trend-label">vs last month</span></div>
-          </div>
+          <div class="akpi-body"><div class="akpi-figure"><span class="kpi-val">—</span>
+            <div class="kpi-trend"><div class="kpi-trend-line"><span class="kpi-trend-label">vs 7d</span></div></div>
+          </div></div>
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
             <div class="kpi-icon" style="background:var(--ov-sev-drowsy-bg);color:var(--ov-sev-drowsy)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></div>
             <div class="kpi-label">Drowsiness Alerts</div>
           </div>
-          <span class="kpi-val">—</span>
-          <div class="kpi-trend">
-            <div class="kpi-trend-line"><span class="kpi-trend-label">vs 7d</span></div>
-            <div class="kpi-trend-line"><span class="kpi-trend-label">vs last month</span></div>
-          </div>
+          <div class="akpi-body"><div class="akpi-figure"><span class="kpi-val">—</span>
+            <div class="kpi-trend"><div class="kpi-trend-line"><span class="kpi-trend-label">vs 7d</span></div></div>
+          </div></div>
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
             <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
             <div class="kpi-label">Drivers Involved</div>
           </div>
-          <span class="kpi-val">—</span>
-          <div class="kpi-trend">
-            <div class="kpi-trend-line"><span class="kpi-trend-label">vs 7d</span></div>
-            <div class="kpi-trend-line"><span class="kpi-trend-label">vs last month</span></div>
-          </div>
+          <div class="akpi-body"><div class="akpi-figure"><span class="kpi-val">—</span>
+            <div class="kpi-trend"><div class="kpi-trend-line"><span class="kpi-trend-label">vs 7d</span></div></div>
+          </div></div>
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
             <div class="kpi-icon" style="background:var(--teal-50);color:var(--teal)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.3a4 4 0 0 0-.9-2.5l-1.9-2.3a2 2 0 0 0-1.5-.7H14v8.8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
             <div class="kpi-label">Assets Reporting</div>
           </div>
-          <span class="kpi-val">—</span>
-          <div class="kpi-trend">
-            <div class="kpi-trend-line"><span class="kpi-trend-label">vs 7d</span></div>
-            <div class="kpi-trend-line"><span class="kpi-trend-label">vs last month</span></div>
-          </div>
+          <div class="akpi-body"><div class="akpi-figure"><span class="kpi-val">—</span>
+            <div class="kpi-trend"><div class="kpi-trend-line"><span class="kpi-trend-label">vs 7d</span></div></div>
+          </div></div>
         </div>
       </div>
 
-      <!-- ROW — Alert Volume Over Time (larger, left) / Recent Activity
-           (right). "How are we doing" (KPIs) → "is it trending up or down"
-           (Trend) → "what just happened" (Recent Activity) — Key Insights
-           moved out of this vertical narrative entirely into its own
-           persistent side rail (.ov-rail, below), visible alongside all
-           three of these rather than stacked above them. -->
+      <!-- ROW 1 — Alert Volume Over Time (dominant) / Key Insight.
+           "How are we doing" (KPIs) → "is it trending, and by how much"
+           (Trend) → "what should I look at because of it" (Key Insight). -->
       <div class="ov-row1">
         <!-- Trend card — 2 series (Total Alerts / Distinct Assets), each
              independently scaled to its own min/max (see charts.trend()'s
@@ -2009,14 +2333,20 @@ body {
              2px, color-only differentiation backed by the legend — dashed
              secondary lines were dropped (a dash reads as "projection" or
              "threshold" in chart-design convention, wrong for a real
-             plotted series). Sync delay dropped as a 3rd series here: past
-             2 lines, a shared card gets harder to read at a glance, and
-             Analytics' own Alert Volume by Distinct Asset chart is the
-             place for that comparison in more depth. Legend items are
-             clickable (id="ovTrendLegend", wired in initSeriesLegend())
-             to show/hide a series; the hover tooltip always names each
-             visible series' real, un-rescaled value, so the rescaling is
-             purely visual, never a misrepresentation of the numbers. -->
+             plotted series). The one dashed line on this chart is the
+             30-day mean reference, which IS a threshold and is labelled as
+             such in the summary column. Legend items are clickable
+             (id="ovTrendLegend", wired in initSeriesLegend()) to show/hide
+             a series; the hover tooltip always names each visible series'
+             real, un-rescaled value, so the rescaling is purely visual,
+             never a misrepresentation of the numbers.
+
+             NEW vs the previous version of this card: a y-axis
+             (#ovTrendYAxis) and a summary column (#ovTrendSummary). The
+             chart previously showed shape with no magnitude — you could
+             see that it rose, but could not read a single value off it.
+             Both are filled by renderOverviewTrend() from the same
+             derived.trend the lines are drawn from. -->
         <div class="card">
           <div class="card-head">
             <h2>Alert Volume Over Time</h2>
@@ -2026,25 +2356,145 @@ body {
             </div>
           </div>
           <div class="chart-body">
-            <svg id="ovTrendSvg" viewBox="0 0 992 180" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="trend">
-              <line x1="0" y1="8" x2="992" y2="8" stroke="#F1F2F5" stroke-width="1"/><line x1="0" y1="88" x2="992" y2="88" stroke="#F1F2F5" stroke-width="1"/><line x1="0" y1="168" x2="992" y2="168" stroke="#F1F2F5" stroke-width="1"/>
-              <path id="ovTrendFillPath" d="" fill="var(--blue)" fill-opacity=".1"/>
-              <path id="ovTrendUnitsPath" d="" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path id="ovTrendAssetsPath" d="" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <g id="ovTrendDots" stroke="white" stroke-width="2.5"></g>
-              <g id="ovTrendHover"></g>
-            </svg>
-            <div id="ovTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0"></div>
-            <div id="ovTrendInsight" class="chart-insight-line"></div>
+            <div class="ov-trend-layout">
+              <div class="ov-trend-chart">
+                <div class="ov-trend-plot">
+                  <div class="ov-trend-yaxis" id="ovTrendYAxis" aria-hidden="true"></div>
+                  <svg id="ovTrendSvg" viewBox="0 0 992 180" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="trend">
+                    <!-- var(--divider), not the literal #F1F2F5 these three shipped
+                         with — a hardcoded light gridline colour stayed light-gray
+                         under the dark palette and read as a harsh bright line
+                         across an otherwise-dark chart. CSS custom properties
+                         resolve fine on SVG presentation attributes here since the
+                         SVG is inline in the HTML document, same as ovTrendFillPath
+                         two lines down already relying on var(--blue). -->
+                    <line x1="0" y1="8" x2="992" y2="8" stroke="var(--divider)" stroke-width="1"/><line x1="0" y1="88" x2="992" y2="88" stroke="var(--divider)" stroke-width="1"/><line x1="0" y1="168" x2="992" y2="168" stroke="var(--divider)" stroke-width="1"/>
+                    <path id="ovTrendFillPath" d="" fill="var(--blue)" fill-opacity=".1"/>
+                    <!-- Mean reference line, positioned by renderOverviewTrend()
+                         on the units series' own scale. Empty d until then. -->
+                    <line id="ovTrendMeanLine" x1="0" y1="-10" x2="992" y2="-10" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="4 4" opacity=".7"/>
+                    <path id="ovTrendUnitsPath" d="" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path id="ovTrendAssetsPath" d="" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <g id="ovTrendDots" stroke="white" stroke-width="2.5"></g>
+                    <g id="ovTrendHover"></g>
+                  </svg>
+                </div>
+                <div id="ovTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0;padding-left:44px"></div>
+                <div id="ovTrendInsight" class="chart-insight-line"></div>
+              </div>
+              <div class="ov-trend-summary" id="ovTrendSummary"></div>
+            </div>
             <div class="chart-tooltip" id="ovTrendTooltip"></div>
           </div>
         </div>
 
-        <!-- Recent Activity — a live feed of the newest alert rows
-             (charts.recentAlerts(), already existed but was unwired since
-             an earlier pass — see that function's own comment), the
-             concrete "what just changed" a manager checks after the trend
-             line. -->
+        <!-- Key Insight — the computed insightBullets set (the same one
+             Analytics' Key Insights card reads) rendered as a headline plus
+             compact icon rows, with the session change-feed below a divider.
+             That feed is the former .ov-rail's entire content: same markup,
+             same #ovRailUpdatesList id, same renderOverviewRail() — only its
+             position in the tree changed, from a page-height column to this
+             card's lower half. See .ov-layout's CSS comment for why. -->
+        <div class="ov-insight">
+          <div class="ov-insight-head">
+            <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2m0 14v2M5.6 5.6l1.4 1.4m10 10 1.4 1.4M3 12h2m14 0h2M5.6 18.4 7 17m10-10 1.4-1.4"/><circle cx="12" cy="12" r="3.2"/></svg>Key Insight</h2>
+          </div>
+          <div class="ov-insight-body">
+            <div id="ovInsightMain">
+              <div class="ov-insight-empty">No insights yet — import alert data to see what stands out.</div>
+            </div>
+            <div class="ov-insight-divider">
+              <div class="ov-insight-sub">Latest Updates</div>
+              <div class="ov-rail-updates-list" id="ovRailUpdatesList">
+                <div class="ov-rail-updates-empty">No changes yet this session.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2 — four secondary cards, full page width (only possible now
+           that the right rail no longer taxes every row). Every renderer
+           here already existed and was exercised on Analytics; none is a
+           new widget. Each card ends in a link into the page that owns the
+           fuller version of the same chart, so this row stays a summary
+           rather than a second Analytics page. -->
+      <div class="ov-row2">
+        <!-- Alerts by Hour of Day — charts.hourly()'s bars variant, tinted
+             by each bar's own value (see the intensity option on hourly()).
+             The scale legend below the chart states what the tint means;
+             without it the colour would be decoration impersonating data. -->
+        <div class="card">
+          <div class="card-head"><h2>Alerts by Hour of Day</h2></div>
+          <div class="chart-body">
+            <svg id="ovHourlySvg" viewBox="0 0 1012 134" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0">
+              <g id="ovHourlyBars" data-chart="hourly"></g>
+            </svg>
+            <div style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0">
+              <span class="axis">12 AM</span><span class="axis">6 AM</span><span class="axis">12 PM</span><span class="axis">6 PM</span><span class="axis">11 PM</span>
+            </div>
+            <div class="ov-hour-scale"><span>Low</span><i></i><span>High</span></div>
+            <div id="ovHourlyInsight" class="chart-insight-line"></div>
+          </div>
+        </div>
+
+        <!-- Alerts by Event Type — charts.eventCodes()'s donut variant with
+             the compact 'rows' legend. A small donut paired with a legend is
+             the readable form of this chart; the design skill's caution is
+             against LARGE donuts standing alone, which this is not. -->
+        <div class="card">
+          <div class="card-head"><h2>Alerts by Event Type</h2></div>
+          <div class="donut-wrap" style="position:relative;align-items:center">
+            <svg viewBox="0 0 160 160" style="width:auto;height:auto;max-width:108px;flex-shrink:0;aspect-ratio:1" data-chart="eventCodes">
+              <g id="ovEventDonutArcs"></g>
+              <text id="ovEventDonutCount" x="80" y="76" text-anchor="middle" font-size="18" font-weight="700" fill="var(--text)">—</text>
+              <text x="80" y="94" text-anchor="middle" font-size="9" fill="var(--text-sec)">Total</text>
+            </svg>
+            <div class="donut-legend" id="ovEventDonutLegend" style="flex:1"></div>
+            <div class="chart-tooltip" id="ovEventDonutTooltip"></div>
+          </div>
+          <button type="button" class="ov-card-link" data-goto="analytics">View details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+
+        <!-- Top Assets by Alerts — charts.topAssets(), unchanged renderer.
+             showPct:false because the card is narrow here; the exact share
+             is in the row's own hover tooltip. -->
+        <div class="card">
+          <div class="card-head"><h2>Top Assets by Alerts</h2></div>
+          <div class="ev-list-wrap">
+            <div class="ev-list" id="ovTopAssetList" data-chart="topAssets"></div>
+            <div class="chart-tooltip" id="ovTopAssetTooltip"></div>
+          </div>
+          <button type="button" class="ov-card-link" data-goto="driver-monitoring">View all assets <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+
+        <!-- Contributing Factors — factorImpact(), unchanged renderer.
+             This card is EMPTY until factors are logged in Data Management,
+             and that is deliberate: factors are hand-recorded context (power
+             interruptions, weather), not something derivable from the alert
+             feed. factorImpact()'s own empty state says so and names where
+             to add one. A confident "Strong / Moderate" strength chip with
+             no factor behind it would be a fabricated number, which this
+             file does not do anywhere. -->
+        <div class="card">
+          <div class="card-head">
+            <h2>Contributing Factors</h2>
+          </div>
+          <div class="ev-list-wrap">
+            <div class="ev-list" id="ovFactorImpactList" data-chart="factorImpact"></div>
+            <div class="chart-tooltip" id="ovFactorImpactTooltip"></div>
+          </div>
+          <button type="button" class="ov-card-link" data-goto="data-mgmt">Manage factors <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+
+      <!-- ROW 3 — Recent Activity, full width. charts.recentAlerts(),
+           unchanged renderer and unchanged PAGES entry; only the card's
+           width and position changed. "What just happened" belongs after
+           the analysis, not competing with the trend chart for row 1 —
+           and at full width its five columns finally fit without the
+           horizontal scrollbar the narrow version needed. -->
+      <div class="ov-row3">
         <div class="card">
           <div class="card-head"><h2>Recent Activity</h2></div>
           <div class="ev-list-wrap" style="overflow-y:auto">
@@ -2058,28 +2508,20 @@ body {
         </div>
       </div>
 
-      </div>
-      <!-- /.ov-layout-main -->
-
-      <!-- Latest Updates rail — see .ov-rail's own CSS comment and
-           renderOverviewRail() for what feeds it: a session-only log of
-           (a) any insight's own value shifting between renders (e.g.
-           "Sync delay 41% → 43%") and (b) new alert rows landing in
-           Recent Activity, both timestamped, newest first. The old
-           clickable insight-list half of this rail was removed — the
-           insights themselves (and their click-through into the matching
-           Analytics chart / entity modal) still exist, just no longer
-           duplicated here now that Analytics' own Key Insights card is
-           the one place to browse them; this rail is purely "what's new"
-           now, full height instead of splitting it with the list. Static
-           empty-state shell matches every other first-paint contract in
-           this file. -->
-      <aside class="ov-rail">
-        <div class="ov-rail-head"><h2>Latest Updates</h2></div>
-        <div class="ov-rail-updates-list" id="ovRailUpdatesList">
-          <div class="ov-rail-updates-empty">No changes yet this session.</div>
+      <!-- FOOTER — two conventions the page previously relied on the reader
+           already knowing: that every timestamp on it is UTC, and that red
+           means "more alerts" (worse) rather than simply "up". -->
+      <div class="ov-foot">
+        <div class="ov-foot-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg>
+          All alert timestamps are UTC, as imported.
         </div>
-      </aside>
+        <div class="ov-foot-legend">
+          <span><i style="background:var(--danger)"></i>Worse than previous period</span>
+          <span><i style="background:var(--success)"></i>Better than previous period</span>
+          <span><i style="background:var(--text-muted)"></i>No change</span>
+        </div>
+      </div>
 
       </div>
       <!-- /.ov-layout -->
@@ -3130,6 +3572,65 @@ body {
         </div>
       </div>
 
+      <!-- Reset fleet data — a distinct control from "Clear data" above on
+           purpose. That button only ever wipes the LOCAL/signed-out store
+           (App.imports + IndexedDB factors); it has no effect once signed in,
+           because signed-in mode reads everything from Postgres instead (see
+           App.loadFromServer()). This card is the signed-in counterpart: it
+           wipes every imported alert, case, factor, and the whole driver
+           masterlist server-side via dds_reset_fleet_data() (0022), for
+           standing up a genuinely empty database before a fresh rollout.
+           Hidden while signed out — there's nothing server-side to reset. -->
+      <div class="card" id="resetFleetCard" style="flex:0 0 auto;border:1px solid var(--danger,#8A2424);display:none">
+        <div class="card-head">
+          <div class="imp-toolbar-title">Reset Fleet Data</div>
+        </div>
+        <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0 0 12px">
+          Permanently deletes every imported alert, case, contributing factor, and the entire
+          employee masterlist from the database — for everyone, not just this browser. Account
+          sign-ins and personal settings are not affected. There is no undo.
+        </p>
+        <div class="hcontrols">
+          <button class="btn btn-danger btn-sm" id="resetFleetBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            Reset all fleet data…
+          </button>
+        </div>
+      </div>
+
+      <!-- Confirm modal — same fixed-overlay/backdrop/Escape-to-close shell
+           as the other Data Management modals. Requires typing a literal
+           phrase rather than a single click, unlike the local "Clear data"
+           modal: that one only ever destroyed in-browser data with no other
+           user affected, this one deletes shared server data for the whole
+           fleet, so the extra friction is deliberate. -->
+      <div class="detail-modal" id="resetFleetModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="resetFleetTitle" style="max-width:460px">
+          <div class="detail-head">
+            <div>
+              <h2 id="resetFleetTitle" class="detail-title">Reset all fleet data?</h2>
+              <p class="detail-sub">
+                This deletes every import, alert, case, contributing factor, and the whole employee
+                masterlist from the database. Everyone signed in will see an empty dashboard
+                afterward. This cannot be undone.
+              </p>
+            </div>
+            <button type="button" class="detail-close" id="resetFleetClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="resetFleetConfirmInput">Type RESET to confirm</label>
+            <input class="field-input" id="resetFleetConfirmInput" type="text" autocomplete="off" style="width:100%">
+          </div>
+          <div class="field-error" id="resetFleetError" hidden></div>
+          <div class="detail-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="resetFleetCancel">Cancel</button>
+            <button type="button" class="btn btn-danger btn-sm" id="resetFleetConfirmBtn" disabled>Reset all fleet data</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Driver names needing review — the queue from 0019's
            import_name_review. These are NOT failed imports: every alert row
            loaded and every total is whole. What is missing is only WHICH
@@ -3592,7 +4093,7 @@ body {
                 </button>
               </div>
               <div class="sound-row sound-custom-row" id="soundCustomRow" style="flex:1; padding:0; margin-top:8px" hidden>
-                <input type="file" accept="audio/*" id="soundCustomFile" class="sound-select" style="width:100%">
+                <input type="file" accept="audio/*" id="soundCustomFile" class="sound-select" style="width:100%" aria-label="Choose a custom alert sound file">
                 <div class="field-hint" id="soundCustomHint">This browser tab only — clears on reload.</div>
               </div>
             </div>
@@ -4213,9 +4714,25 @@ function derive(allRows, filters) {
     alertBuckets[isAct ? 'actionable' : 'nonActionable'][ai]++;
 
     if (r.SHIFT_DATE) {
-      const d = byDate.get(r.SHIFT_DATE) || { units: 0, events: 0, assets: new Set(), syncSum: 0, syncN: 0 };
+      const d = byDate.get(r.SHIFT_DATE) || { units: 0, events: 0, assets: new Set(),
+                                              operators: new Set(), sleep: 0, drowsy: 0,
+                                              syncSum: 0, syncN: 0 };
       d.units += units; d.events += 1;
       if (asset) d.assets.add(asset);
+      /* Per-day severity + driver counts, added for the Overview KPI
+         sparklines. Deliberately computed from the SAME sources the KPI
+         numbers themselves use — severityForCode() (hoisted, see the
+         CHARTS section) for the sleep/drowsy split that compare()'s
+         sleepAlerts/drowsinessAlerts metrics read via severityCount(),
+         and the same `oper` fallback the operators map above uses for
+         distinctOperators. A sparkline drawn from a second, independent
+         calculation could disagree with the number printed above it. */
+      d.operators.add(oper);
+      if (code) {
+        const sev = severityForCode(code).key;
+        if (sev === 'critical') d.sleep += units;
+        else if (sev === 'elevated') d.drowsy += units;
+      }
       // Same null-when-unmeasured convention as the whole-period
       // avgSyncSeconds below — a day with zero synced rows must not
       // silently read as a sync delay of zero.
@@ -4310,6 +4827,10 @@ function derive(allRows, filters) {
     trend: [...byDate.entries()]
       .map(([date, v]) => ({
         date, units: v.units, events: v.events, assets: v.assets.size,
+        // sleep/drowsy/operators: sparkline series only (see byDate above).
+        // No existing consumer of `trend` reads them, so adding them is
+        // additive — nothing downstream changes shape.
+        sleep: v.sleep, drowsy: v.drowsy, operators: v.operators.size,
         avgSyncSeconds: v.syncN ? v.syncSum / v.syncN : null
       }))
       .sort((a, b) => new Date(a.date) - new Date(b.date)),
@@ -5979,16 +6500,58 @@ const charts = {
      preserve Analytics' current blue/orange exactly); Overview passes its
      own day/night palette so the two pages can differ without either one
      hardcoding a page-specific color inside this shared function. */
-  hourly(el, d, { variant = 'bars', refs, geo, tip, dayColor = 'var(--blue)', nightColor = 'var(--sev-elevated)' } = {}) {
+  hourly(el, d, { variant = 'bars', refs, geo, tip, insightEl, intensity = false,
+                   dayColor = 'var(--blue)', nightColor = 'var(--sev-elevated)' } = {}) {
     if (variant === 'bars') {
       const totals = d.hourly.DAY.map((v, i) => v + d.hourly.NIGHT[i]);
       const peak = Math.max(...totals, 1);
       const g = geo ?? { barW: 28, gap: 42, baseline: 128, top: 5, offsetX: 4 };
+      /* `intensity` (opt-in, Overview only) tints each bar by its OWN share
+         of the peak rather than leaving the whole series one flat colour.
+         Three stops, not a continuous ramp: a continuous gradient across 24
+         bars reads as decoration, whereas three bands map to something a
+         reader can actually name (quiet / busy / peak) and match against
+         the Low→High scale legend under the chart. Thresholds are on the
+         value, never on the hour — colouring by time of day would be the
+         chart asserting its own conclusion instead of showing the data.
+         Default false keeps every existing caller's flat fill unchanged. */
+      const tint = v => {
+        const share = v / peak;
+        return share >= 0.75 ? 'var(--danger)'
+             : share >= 0.45 ? 'var(--warning)'
+             : 'var(--accent)';
+      };
       el.innerHTML = totals.map((v, h) => {
         const height = (v / peak) * (g.baseline - g.top);
+        const fill = intensity ? ` fill="${tint(v)}"` : '';
         return `<rect x="${h * g.gap + g.offsetX}" y="${(g.baseline - height).toFixed(1)}"
-                  width="${g.barW}" height="${height.toFixed(1)}" rx="2"/>`;
+                  width="${g.barW}" height="${height.toFixed(1)}" rx="2"${fill}/>`;
       }).join('');
+
+      /* Insight line — the contiguous run of hours carrying the most
+         alerts, computed here rather than asserted. Omitted entirely (not
+         a placeholder) when there's nothing plotted. Window length is
+         fixed at 4 hours so the sentence is comparable between renders
+         instead of growing to whatever span happens to look dramatic. */
+      if (insightEl) {
+        const sum = totals.reduce((s, v) => s + v, 0);
+        if (!sum) { insightEl.textContent = ''; return; }
+        const WIN = 4;
+        let bestStart = 0, bestSum = -1;
+        for (let s = 0; s < 24; s++) {
+          let acc = 0;
+          for (let k = 0; k < WIN; k++) acc += totals[(s + k) % 24];
+          if (acc > bestSum) { bestSum = acc; bestStart = s; }
+        }
+        const hr = h => {
+          const period = h < 12 ? 'AM' : 'PM';
+          const base = h % 12 === 0 ? 12 : h % 12;
+          return `${base}:00 ${period}`;
+        };
+        const share = Math.round((bestSum / sum) * 100);
+        insightEl.textContent =
+          `Busiest between ${hr(bestStart)} and ${hr((bestStart + WIN) % 24)} — ${share}% of all alerts.`;
+      }
       return;
     }
     /* Lines: DAY vs NIGHT on a shared scale.
@@ -6543,6 +7106,29 @@ const PAGES = {
         assetsPath: $('ovTrendAssetsPath'),
         dots: $('ovTrendDots'), axis: $('ovTrendAxis'), hover: $('ovTrendHover') }),
       tip: () => $('ovTrendTooltip'), insightEl: () => $('ovTrendInsight') },
+    /* ROW 2 — every renderer here already existed and was exercised on
+       Analytics; only the markup they paint into is new (see the Overview
+       ROW 2 markup comment). `hourly` uses its bars variant with the new
+       `intensity` option so each bar is tinted by its own value; the
+       others take the same options Analytics passes, adjusted only for
+       this row's narrower cards. */
+    { chart: 'hourly', variant: 'bars', intensity: true,
+      el: () => $('ovHourlyBars'),
+      geo: { barW: 30, gap: 42, baseline: 128, top: 6, offsetX: 4 },
+      insightEl: () => $('ovHourlyInsight') },
+    { chart: 'eventCodes', variant: 'donut', measure: MEASURE, limit: 5,
+      refs: () => ({ arcs: $('ovEventDonutArcs'), count: $('ovEventDonutCount'),
+                     legend: $('ovEventDonutLegend') }),
+      centerText: 'total', severityFn: overviewSeverityForCode,
+      tip: () => $('ovEventDonutTooltip') },
+    // showPct:false — the card is narrow in a 4-up row; the exact share is
+    // in each row's own hover tooltip instead of crowding the value cell.
+    { chart: 'topAssets', limit: 6, showPct: false, el: () => $('ovTopAssetList'),
+      tip: () => $('ovTopAssetTooltip') },
+    { chart: 'factorImpact', el: () => $('ovFactorImpactList'),
+      tip: () => $('ovFactorImpactTooltip') },
+    /* ROW 3 — Recent Activity. Unchanged renderer and unchanged target id;
+       only the card's width and position on the page moved. */
     { chart: 'recentAlerts', el: () => $('ovRecentAlertsBody') }
   ],
 
@@ -6748,8 +7334,18 @@ function applyStatic(root = document) {
       }
       return;
     }
-    const hasLabel = input.id && root.querySelector(`label[for="${CSS.escape(input.id)}"]`);
-    if (hasLabel || input.getAttribute('aria-label')) return;
+    /* Three ways an input can already be named, all equally valid per the
+       accessible-name spec:
+         1. an explicit <label for="..."> pointing at it
+         2. an implicit <label> WRAPPING it  ← was missing, caused false
+            positives on every wrapped field (e.g. the From/To date ranges)
+         3. an aria-label of its own
+       An implicit label only counts when it actually has text; an empty
+       wrapper names nothing. */
+    const explicitLabel = input.id && root.querySelector(`label[for="${CSS.escape(input.id)}"]`);
+    const wrappingLabel = input.closest('label');
+    const implicitLabel = wrappingLabel && wrappingLabel.textContent.trim().length > 0;
+    if (explicitLabel || implicitLabel || input.getAttribute('aria-label')) return;
     const near = input.closest('.field-group, .sound-row, .field-row, .settings-row')
       ?.querySelector('.field-label, .sound-row-label, .settings-label');
     if (near) {
@@ -7700,7 +8296,58 @@ function formatValue(v, unit) {
 
 /* ── Components ─────────────────────────────────────────────────────────── */
 
-/* One line of kpiTile()'s two-line trend block — a bold arrow+percent for
+/* Sparkline for a KPI tile — the last N days of that metric's OWN daily
+   series, drawn into the empty right half of the card (see the Overview
+   reference layout). Reuses linePath() rather than a second path builder,
+   so a sparkline and the big Alert Volume chart below it interpolate the
+   same way.
+
+   Deliberately axis-less, label-less and tooltip-less: its job is SHAPE
+   ("is this climbing or settling"), not values — the exact number is
+   already printed beside it, and the trend chart below owns the readable
+   version. Returns '' rather than a flat placeholder line when there
+   aren't at least 3 real points, same never-fabricate convention the
+   rest of this file follows.
+
+   `tone` is resolved by the CALLER from the metric's own goodWhen
+   direction (see kpiTile), not from whether the line slopes up — more
+   alerts is bad, faster sync is good, so slope alone would paint a
+   genuine improvement green. */
+const KPI_SPARK_DAYS = 14;
+function kpiSparkline(values, tone) {
+  const pts = (values ?? []).filter(v => typeof v === 'number' && isFinite(v));
+  if (pts.length < 3) return '';
+  const geo = { top: 4, bottom: 30, width: 96 };
+  const min = Math.min(...pts), max = Math.max(...pts);
+  // A perfectly flat series has range 0; linePath's `|| 1` guard keeps it
+  // from dividing by zero, but the line would sit pinned to the top edge.
+  // Pad the band so a flat metric draws as a flat line through the middle.
+  const pad = (max - min) === 0 ? Math.max(Math.abs(max) * 0.5, 1) : 0;
+  const { d: path, points } = linePath(pts, { ...geo, min: min - pad, max: max + pad });
+  const last = points[points.length - 1];
+  const color = tone === 'good' ? 'var(--success)'
+              : tone === 'bad'  ? 'var(--danger)'
+              : 'var(--text-muted)';
+  return `<svg class="kpi-spark" viewBox="0 0 ${geo.width} 34" preserveAspectRatio="none"
+               aria-hidden="true" focusable="false">
+    <path d="${path} L${geo.width},${geo.bottom} L0,${geo.bottom} Z"
+          fill="${color}" fill-opacity=".10" stroke="none"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="1.75"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="2.4"
+            fill="${color}" stroke="var(--surface)" stroke-width="1.5"/>
+  </svg>`;
+}
+
+/* Maps a KPI metric key to the field on derived.trend carrying its daily
+   series (added in derive()'s byDate accumulator). A key absent here
+   simply gets no sparkline — the tile still renders. */
+const KPI_SPARK_FIELD = {
+  totalAlerts: 'units', sleepAlerts: 'sleep', drowsinessAlerts: 'drowsy',
+  distinctOperators: 'operators', distinctAssets: 'assets'
+};
+
+/* One line of kpiTile()'s trend block — a bold arrow+percent for
    `delta` (the fixed-window comparison: trailing 7 days, or calendar
    month-over-month) against `windowLabel` ("7d" / "May 2026"), or a plain
    "vs <label>" line when no percent is computable (no baseline, metric
@@ -7710,13 +8357,15 @@ function formatValue(v, unit) {
    two can be styled independently. Reuses the up/down/flat icons already
    in the ICON map rather than a raw arrow glyph, same convention every
    other icon on this page follows. */
-function kpiTrendLine(delta, windowLabel, metricKey) {
+function kpiTrendLine(delta, windowLabel, metricKey, toneOnly = false) {
   if (!delta?.available) {
-    return `<div class="kpi-trend-line"><span class="kpi-trend-label">No ${esc(windowLabel)} data</span></div>`;
+    return toneOnly ? 'neutral'
+      : `<div class="kpi-trend-line"><span class="kpi-trend-label">No ${esc(windowLabel)} data</span></div>`;
   }
   const m = delta.metrics.find(x => x.key === metricKey);
   if (!m || m.pct == null) {
-    return `<div class="kpi-trend-line"><span class="kpi-trend-label">vs ${esc(windowLabel)}</span></div>`;
+    return toneOnly ? 'neutral'
+      : `<div class="kpi-trend-line"><span class="kpi-trend-label">vs ${esc(windowLabel)}</span></div>`;
   }
   const dir = m.delta > 0 ? 'up' : m.delta < 0 ? 'down' : 'flat';
   // Direction is about GOOD/BAD, not up/down — same goodWhen convention
@@ -7726,10 +8375,31 @@ function kpiTrendLine(delta, windowLabel, metricKey) {
   const good = m.goodWhen === 'flat' ? dir === 'flat' : (m.goodWhen === dir);
   const tone = dir === 'flat' ? 'neutral' : (good ? 'good' : 'bad');
   const sign = m.pct > 0 ? '+' : '';
+  if (toneOnly) return tone;
   return `<div class="kpi-trend-line" data-tone="${tone}">
     <span class="kpi-trend-value">${svg(dir, 'ic-2xs')}${sign}${m.pct.toFixed(0)}%</span>
     <span class="kpi-trend-label">vs ${esc(windowLabel)}</span>
   </div>`;
+}
+
+/* Plain-text twin of kpiTrendLine() — same delta lookup, no markup. Used
+   for the month-over-month figure now that it lives in a title attribute
+   and the screen-reader text instead of its own visible line. Returns
+   null (never a placeholder string) when there's no computable percent,
+   so callers can omit the attribute entirely. */
+function kpiSparkSeries(derived, metricKey) {
+  const field = KPI_SPARK_FIELD[metricKey];
+  if (!field) return null;
+  const trend = derived?.trend ?? [];
+  if (trend.length < 3) return null;
+  return trend.slice(-KPI_SPARK_DAYS).map(p => p[field] ?? 0);
+}
+
+function kpiTrendText(delta, windowLabel, metricKey) {
+  if (!delta?.available) return null;
+  const m = delta.metrics.find(x => x.key === metricKey);
+  if (!m || m.pct == null) return null;
+  return `${m.pct > 0 ? '+' : ''}${m.pct.toFixed(0)}% vs ${windowLabel}`;
 }
 
 /* One tile per metric. `icons`/`tints`/`labels` default to the Analytics
@@ -7747,14 +8417,29 @@ function kpiTrendLine(delta, windowLabel, metricKey) {
    plain-previous-value line) entirely, on both Overview and Analytics —
    every metric now reads the same two fixed windows rather than three
    different comparison shapes depending on metric type. */
-function kpiTile(m, c, { note = false, icons = METRIC_ICON, tints = METRIC_TINT, labels = METRIC_LABEL, delta7d = null, deltaMoM = null } = {}) {
+function kpiTile(m, c, { note = false, icons = METRIC_ICON, tints = METRIC_TINT, labels = METRIC_LABEL, delta7d = null, deltaMoM = null, spark = null } = {}) {
   const [bg, fg] = tints[m.key] ?? ['--blue-50', '--blue'];
   const label = labels[m.key] ?? m.label;
 
-  const trend = `<div class="kpi-trend">
+  /* ONE visible comparison line, not two. Both windows are still computed
+     and both are still reachable — the month-over-month figure moved to
+     this line's own title/`sr-only` text rather than being deleted. Two
+     stacked percentages gave the card two equally-weighted numbers under
+     the headline value, which is a hierarchy problem, not a density win:
+     the reader had to decide which one mattered before they could read
+     either. The trailing-7-day window stays visible because it is the one
+     the sparkline beside it draws. */
+  const momLabel = deltaMoM?.monthLabel ?? 'last month';
+  const momText = kpiTrendText(deltaMoM, momLabel, m.key);
+  const trend = `<div class="kpi-trend"${momText ? ` title="${esc(momText)}"` : ''}>
       ${kpiTrendLine(delta7d, '7d', m.key)}
-      ${kpiTrendLine(deltaMoM, deltaMoM?.monthLabel ?? 'last month', m.key)}
     </div>`;
+
+  /* Sparkline tone follows the 7-day comparison's own good/bad verdict —
+     the same call kpiTrendLine() makes for the arrow, in toneOnly mode, so
+     the two can never disagree about whether this metric moved the right
+     way. */
+  const sparkHtml = spark ? kpiSparkline(spark, kpiTrendLine(delta7d, '7d', m.key, true)) : '';
 
   // Partial-baseline is a property of the whole comparison window, not any
   // one metric — kept as a note on a single tile (`note: true`, the
@@ -7770,11 +8455,17 @@ function kpiTile(m, c, { note = false, icons = METRIC_ICON, tints = METRIC_TINT,
       <div class="kpi-icon" style="background:var(${bg});color:var(${fg})">${svg(icons[m.key], 'ic')}</div>
       <div class="kpi-label">${esc(label)}</div>
     </div>
-    <span class="kpi-val">${formatValue(m.current, m.unit)}</span>
-    ${trend}
+    <div class="akpi-body">
+      <div class="akpi-figure">
+        <span class="kpi-val">${formatValue(m.current, m.unit)}</span>
+        ${trend}
+      </div>
+      ${sparkHtml}
+    </div>
     ${partialNote}
     <span class="sr-only">${esc(label)}: ${formatValue(m.current, m.unit)} in the current period,
-      ${formatValue(m.previous, m.unit)} in ${esc(c.periods.previous)}.</span>
+      ${formatValue(m.previous, m.unit)} in ${esc(c.periods.previous)}.${momText ? ` ${esc(momText)}.` : ''}
+      ${spark ? `Sparkline shows the last ${KPI_SPARK_DAYS} days; the full series is in the Alert Volume Over Time chart below.` : ''}</span>
   </div>`;
 }
 
@@ -7806,7 +8497,12 @@ function renderAnalyticsKpis(el, derived) {
     .map(key => byKey[key] && kpiTile(byKey[key], c, {
       icons: OVERVIEW_METRIC_ICON, tints: OVERVIEW_METRIC_TINT, labels: OVERVIEW_METRIC_LABEL,
       note:  key === 'totalAlerts',
-      delta7d: derived.delta7d, deltaMoM: derived.deltaMoM
+      delta7d: derived.delta7d, deltaMoM: derived.deltaMoM,
+      // Same sparkline as Overview's row: these two rows are deliberately
+      // the same 5 metrics under the same tile component (see the comment
+      // above), so a visual change to one has to land on the other or the
+      // pages read as inconsistent again.
+      spark: kpiSparkSeries(derived, key)
     }))
     .filter(Boolean)
     .join('');
@@ -7833,7 +8529,8 @@ function renderOverviewKpis(el, derived) {
   el.innerHTML = OVERVIEW_KPI_ORDER
     .map(key => byKey[key] && kpiTile(byKey[key], c, {
       icons: OVERVIEW_METRIC_ICON, tints: OVERVIEW_METRIC_TINT, labels: OVERVIEW_METRIC_LABEL,
-      delta7d: derived.delta7d, deltaMoM: derived.deltaMoM
+      delta7d: derived.delta7d, deltaMoM: derived.deltaMoM,
+      spark: kpiSparkSeries(derived, key)
     }))
     .filter(Boolean)
     .join('');
@@ -7860,17 +8557,33 @@ function renderOverviewKpis(el, derived) {
        alerts to report a time for. */
 let ovClockTimer = null;
 function renderOverviewHero(derived) {
-  const greetingEl = $('ovHeroGreeting');
   const subEl = $('ovHeroSub');
   const clockEl = $('ovHeroClock');
   const dateEl = $('ovHeroDate');
   const freshEl = $('ovHeroFresh');
-  if (!greetingEl) return;
+  if (!subEl) return;
 
+  /* The greeting is no longer its own 26px hero line — the page title
+     ("Overview") does the orientation job a heading already does for free.
+     It survives as a prefix on the subtitle, so the personalization is
+     kept without spending a whole band on it. Same name resolution as
+     before (and as Auth.paint()'s topbar pill), so the two can never
+     disagree; local mode with no session gets no prefix rather than a
+     fabricated name. */
+  let greetingName = null;
+  const paintSub = () => {
+    const totalAlerts = derived?.kpis?.totalAlerts ?? 0;
+    const flagged = (derived?.assetConsistency ?? []).concat(derived?.operatorConsistency ?? [])
+      .filter(r => r.severity && r.severity !== 'normal' && r.id !== UNSPECIFIED_OPERATOR).length;
+    const prefix = greetingName ? `Welcome back, ${greetingName} — ` : '';
+    subEl.textContent = totalAlerts
+      ? `${prefix}${fmt.int(totalAlerts)} alerts on record${flagged ? ` · ${fmt.int(flagged)} entities flagged for review` : ' · fleet is clear'}`
+      : `${prefix}Here's what's happening with your fleet today.`;
+  };
   const paintGreeting = () => {
-    const name = (typeof Cloud !== 'undefined' && Cloud.session)
+    greetingName = (typeof Cloud !== 'undefined' && Cloud.session)
       ? (Auth.lastUsername ?? null) : null;
-    greetingEl.textContent = name ? `Welcome back, ${name}` : 'Welcome back';
+    paintSub();
   };
   paintGreeting();
   // Session restored on page load has no typed username yet (see Auth.paint()'s
@@ -7887,18 +8600,13 @@ function renderOverviewHero(derived) {
     }).catch(() => {});
   }
 
-  const totalAlerts = derived?.kpis?.totalAlerts ?? 0;
-  const flagged = (derived?.assetConsistency ?? []).concat(derived?.operatorConsistency ?? [])
-    .filter(r => r.severity && r.severity !== 'normal' && r.id !== UNSPECIFIED_OPERATOR).length;
-  subEl.textContent = totalAlerts
-    ? `${fmt.int(totalAlerts)} alerts on record${flagged ? ` · ${fmt.int(flagged)} entities flagged for review` : ' · fleet is clear'}`
-    : `Here's what's happening with your fleet today.`;
-
-  if (dateEl) {
+  if (dateEl && clockEl) {
     const paintClock = () => {
       const now = new Date();
-      clockEl.firstChild.textContent = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-      dateEl.textContent = 'Local time';
+      // firstChild is the bare text node before <span id="ovHeroDate">.
+      clockEl.firstChild.textContent =
+        `${now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} local`;
+      dateEl.textContent = '';
     };
     paintClock();
     clearInterval(ovClockTimer);
@@ -7908,8 +8616,121 @@ function renderOverviewHero(derived) {
   if (freshEl) {
     const latest = derived?.recentAlerts?.[0];
     freshEl.innerHTML = latest
-      ? `<i></i>Last alert: ${esc(fmt.dateTime(latest.time))} UTC`
+      ? `<i></i>Last alert ${esc(fmt.dateTime(latest.time))} UTC`
       : `<i></i>No alerts yet`;
+  }
+}
+
+/* Key Insight card (row 1, right) — the headline + supporting rows the
+   Overview reference specifies, built from the SAME insightBullets set
+   Analytics' own Key Insights card reads. Nothing is computed here that
+   isn't already computed there; this is a second presentation of one
+   source, not a second calculation, so the two pages can never state
+   different numbers for the same insight.
+
+   Bullets that can't be computed return null from insightBullets and are
+   simply dropped — never rendered as a placeholder row. If EVERY bullet
+   is null (no data imported yet), the card keeps its static empty state
+   rather than showing a headline with nothing under it. */
+function renderOverviewInsight(derived) {
+  const el = $('ovInsightMain');
+  if (!el) return;
+
+  // Ordered by what a supervisor checks first: overall volume movement,
+  // then the entity that needs action, then the supporting context.
+  const bullets = [
+    insightBullets.volumeTrend(derived),
+    insightBullets.unactionedEntity(derived),
+    insightBullets.assetsTrend(derived),
+    insightBullets.populationDrivers(derived),
+    insightBullets.syncDelay(derived)
+  ].filter(Boolean);
+
+  if (!bullets.length) {
+    el.innerHTML = `<div class="ov-insight-empty">No insights yet — import alert data to see what stands out.</div>`;
+    return;
+  }
+
+  // The first bullet is promoted to the headline sentence; the rest become
+  // compact icon rows. `headline` is pre-escaped markup from
+  // insightBullets (it carries its own <b>/<span style> for the number) —
+  // same trust boundary the Analytics Key Insights card already applies to
+  // these exact strings.
+  const [lead, ...rest] = bullets;
+  const rows = rest.map(b => `
+    <li class="ov-insight-item">
+      <span class="ov-insight-icon" style="background:${b.tint};color:${b.fg}">${svg(b.icon, 'ic')}</span>
+      <span>${b.headline ?? `${esc(b.title)} ${b.value ?? ''}`}</span>
+    </li>`).join('');
+
+  el.innerHTML = `
+    <p class="ov-insight-headline">${lead.headline ?? esc(lead.title)}</p>
+    ${lead.sub ? `<div class="ov-insight-sub" style="text-transform:none;letter-spacing:0;font-weight:500">${lead.sub}</div>` : ''}
+    ${rows ? `<ul class="ov-insight-list">${rows}</ul>` : ''}`;
+}
+
+/* Trend card's y-axis, mean reference line and summary column. Reads the
+   same derived.trend charts.trend() plots, and — critically — recomputes
+   the units series' min/max exactly the way charts.trend() does (per
+   series, over the visible points) so the tick labels describe the line
+   actually drawn rather than a second, subtly different scale.
+
+   The y-axis describes the UNITS series only. That is a deliberate limit,
+   not an oversight: this chart scales its two series independently (see
+   charts.trend()'s own comment on why alerts and asset counts don't share
+   a natural scale), so a single axis can only ever be true for one of
+   them. It is labelled accordingly, and the hover tooltip remains the
+   place where both series report real values. */
+function renderOverviewTrend(derived) {
+  const axisEl = $('ovTrendYAxis');
+  const sumEl = $('ovTrendSummary');
+  const meanLine = $('ovTrendMeanLine');
+  const pts = derived?.trend ?? [];
+
+  const hidden = $('ovTrendLegend')?._ddsHidden ?? new Set();
+  const unitsVisible = !hidden.has('units');
+
+  if (!pts.length || !unitsVisible) {
+    // Units hidden: the axis would be describing a line that isn't on
+    // screen, so remove it rather than leave a stale scale behind.
+    if (axisEl) axisEl.innerHTML = '';
+    if (sumEl) sumEl.innerHTML = '';
+    if (meanLine) meanLine.setAttribute('y1', '-10'), meanLine.setAttribute('y2', '-10');
+    return;
+  }
+
+  const vals = pts.map(p => p.units);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const geo = { top: 8, bottom: 168 };
+
+  if (axisEl) {
+    // 4 ticks, top-to-bottom, matching the SVG's own three gridlines plus
+    // the floor. fmt.compact keeps 12,842 from wrapping a 38px gutter.
+    const ticks = [max, min + (max - min) * 2 / 3, min + (max - min) / 3, min];
+    axisEl.innerHTML = ticks.map(t => `<span>${esc(fmt.compact(t))}</span>`).join('');
+  }
+
+  const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+  if (meanLine) {
+    const range = (max - min) || 1;
+    const y = geo.bottom - ((mean - min) / range) * (geo.bottom - geo.top);
+    meanLine.setAttribute('y1', y.toFixed(1));
+    meanLine.setAttribute('y2', y.toFixed(1));
+  }
+
+  if (sumEl) {
+    const total = vals.reduce((s, v) => s + v, 0);
+    // Same delta7d source the Total Alerts KPI tile reads, so the summary
+    // column and the tile above it can never show different percentages.
+    const tone = kpiTrendLine(derived.delta7d, '7d', 'totalAlerts', true);
+    const text = kpiTrendText(derived.delta7d, '7d', 'totalAlerts');
+    const dirIcon = text ? (text.startsWith('+') ? 'up' : text.startsWith('-') ? 'down' : 'flat') : 'flat';
+    sumEl.innerHTML = `
+      <div class="ov-trend-summary-label">Total Alerts</div>
+      <div class="ov-trend-summary-val">${esc(fmt.int(total))}</div>
+      ${text ? `<div class="ov-trend-summary-delta" data-tone="${tone}">${svg(dirIcon, 'ic-2xs')}${esc(text)}</div>` : ''}
+      <div class="ov-trend-summary-sub">across ${esc(fmt.int(pts.length))} day${pts.length === 1 ? '' : 's'}</div>
+      <div class="ov-trend-summary-ref"><i></i>Average ${esc(fmt.int(Math.round(mean)))}/day</div>`;
   }
 }
 
@@ -9295,6 +10116,17 @@ const Cloud = {
     const { data, error } = await this.client.rpc('dds_upsert_drivers', {
       p_rows: [{ emp_no: empNo, name: fullName }], p_deactivate: false
     });
+    if (error) throw error;
+    return data;
+  },
+
+  /* Full server-side wipe — imports/events/alert_cases/contributing_factors/
+     driver_asset_actions/driver_asset_severity/driver_master/drivers/
+     driver_aliases/driver_alias_log — see 0022_reset_fleet_data.sql for
+     exactly what is and is not included. Returns the pre-wipe row counts per
+     table so the confirming UI can say what was actually removed. */
+  async resetFleetData(){
+    const { data, error } = await this.client.rpc('dds_reset_fleet_data');
     if (error) throw error;
     return data;
   },
@@ -11217,6 +12049,85 @@ var NotificationSound = (function(){
       announce('All imported data cleared');
     });
   });
+})();
+
+/* ═══════════════════════ RESET FLEET DATA (server-side) ═══════════════════
+   The signed-in counterpart to "Clear data" above (see resetFleetCard's own
+   comment on the html side for why that button can't cover this). Visible
+   only while signed in — Cloud.onSignIn/onSignOut toggle resetFleetCard,
+   same gating style as the masterlist/name-review cards. Typing the
+   confirmation phrase gates the button rather than a single click, since
+   this deletes shared server data for the whole fleet, not a local session. */
+(function(){
+  var card       = document.getElementById('resetFleetCard');
+  var btn        = document.getElementById('resetFleetBtn');
+  var modal      = document.getElementById('resetFleetModal');
+  var closeBtn   = document.getElementById('resetFleetClose');
+  var cancelBtn  = document.getElementById('resetFleetCancel');
+  var confirmBtn = document.getElementById('resetFleetConfirmBtn');
+  var input      = document.getElementById('resetFleetConfirmInput');
+  var errorEl    = document.getElementById('resetFleetError');
+  if (!card || !btn || !modal) return;
+
+  var CONFIRM_PHRASE = 'RESET';
+
+  function open(){
+    input.value = '';
+    confirmBtn.disabled = true;
+    errorEl.hidden = true;
+    modal.hidden = false;
+    input.focus();
+  }
+  function close(){ modal.hidden = true; btn.focus(); }
+
+  btn.addEventListener('click', open);
+  closeBtn.addEventListener('click', close);
+  cancelBtn.addEventListener('click', close);
+  modal.addEventListener('click', function(e){ if (e.target === modal) close(); });
+  modal.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+  input.addEventListener('input', function(){
+    confirmBtn.disabled = input.value.trim() !== CONFIRM_PHRASE;
+  });
+
+  confirmBtn.addEventListener('click', function(){
+    if (input.value.trim() !== CONFIRM_PHRASE) return;
+    confirmBtn.dataset.loading = 'true';
+    confirmBtn.disabled = true;
+    errorEl.hidden = true;
+
+    Cloud.resetFleetData()
+      .then(function(){
+        return Promise.resolve(App.clearAllData());
+      })
+      .then(function(){
+        if (typeof App.loadMasterlist === 'function') App.loadMasterlist();
+        if (typeof App.loadNameReview === 'function') App.loadNameReview();
+        if (typeof App.loadFromServer === 'function') App.loadFromServer();
+        close();
+        announce('All fleet data has been reset', { assertive: true });
+      })
+      .catch(function(err){
+        console.error('Fleet reset failed', err);
+        errorEl.textContent = 'Could not reset fleet data. Try again.';
+        errorEl.hidden = false;
+      })
+      .finally(function(){
+        delete confirmBtn.dataset.loading;
+        confirmBtn.disabled = input.value.trim() !== CONFIRM_PHRASE;
+      });
+  });
+
+  /* No Cloud.onSignOut hook exists in this codebase (only onSignIn), and this
+     app currently forces sign-in for every visitor (Auth.DISABLED = false
+     gates index.html itself before this script ever runs signed out) — so
+     there is no live signed-out state to react to here. Visibility is just
+     "is there a session right now", checked once at boot and again on the
+     one event that can turn a signed-out visitor into a signed-in one. */
+  function syncVisibility(){
+    card.style.display = (Cloud.available() && Cloud.session) ? '' : 'none';
+  }
+  Cloud.onSignIn(syncVisibility);
+  syncVisibility();
 })();
 
 /* ═══════════════════════ ALERT LOGS ═══════════════════════
@@ -13212,8 +14123,16 @@ var NotificationSound = (function(){
   function smDetailRowHtml(r){
     var t = r.startTime ? String(r.startTime).slice(11, 16) : '—';
     var sel = function(name, value, opts){
+      /* aria-label, not a visible <label>: these live in a dense table where
+         the column header already carries the visible name, so a per-cell
+         label would be visual noise. The header text is duplicated here
+         rather than referenced via aria-labelledby because each row needs
+         the row's own identity in the name too ("Action type for <id>"),
+         which a shared header id can't provide. */
+      var fieldLabel = name === 'actionType' ? 'Action type' : 'Status';
       return '<select class="field-input field-input-sm" data-sm-field="' + name +
-        '" data-sm-id="' + esc(r.id) + '">' +
+        '" aria-label="' + esc(fieldLabel + ' for ' + r.id) + '"' +
+        ' data-sm-id="' + esc(r.id) + '">' +
         opts.map(function(o){
           return '<option value="' + esc(o) + '"' + ((value || '') === o ? ' selected' : '') + '>' +
                  esc(o || '—') + '</option>';
@@ -14098,6 +15017,11 @@ function paint(page, derived){
   if (page === 'overview'){
     renderOverviewKpis(document.getElementById('ovKpiRow'), derived);
     renderOverviewHero(derived);
+    renderOverviewInsight(derived);
+    // AFTER renderPage() above has drawn the trend lines — the y-axis and
+    // mean line are positioned against the scale those lines were drawn
+    // on, so this has to read a chart that already exists this frame.
+    renderOverviewTrend(derived);
     renderOverviewRail(derived);
   }
   if (page === 'driver-monitoring'){
@@ -14151,6 +15075,76 @@ App.showPage = function(name){
   const s = store.get();
   if (s.status === 'ready' && s.derived) paint(name, s.derived);
 };
+
+/* Overview card-footer links ("View details →" etc). Delegated on the
+   page section rather than bound per button, since two of these cards
+   have their bodies replaced wholesale on every render — a directly-bound
+   listener would survive on a detached node and silently stop working
+   after the first repaint. The buttons themselves are static markup
+   outside the re-rendered region, but delegation keeps that a layout
+   detail rather than a load-bearing assumption.
+
+   data-goto carries a real page id from the nav (analytics /
+   driver-monitoring / data-mgmt), routed through the same App.showPage()
+   the sidebar uses so nav highlight, page visibility and repaint all stay
+   consistent with a normal navigation. */
+(function(){
+  var page = document.getElementById('page-overview');
+  if (!page) return;
+  page.addEventListener('click', function(evt){
+    var btn = evt.target.closest('.ov-card-link[data-goto]');
+    if (!btn || !page.contains(btn)) return;
+    var target = btn.getAttribute('data-goto');
+    if (target && typeof App !== 'undefined' && App.showPage) App.showPage(target);
+  });
+})();
+
+/* ═══════════════════════ THEME TOGGLE ═══════════════════════
+   Minimal by design: a light/dark flip persisted to localStorage, no
+   Settings-page UI and no Cloud.saveSettings() sync — this exists to make
+   the dark palette (:root[data-theme="dark"], THEME section above)
+   reachable and verifiable, not to ship a full per-account preference.
+   Promote it into Settings' existing preferences blob (see
+   currentPreferences()/applyPreferences()) if/when the dark theme itself
+   gets a proper cross-page pass rather than just Overview.
+
+   Three-state model: no attribute (follow OS via prefers-color-scheme),
+   data-theme="light", data-theme="dark". The toggle only ever writes the
+   latter two — there's no button state for "back to following the OS,"
+   since a user who has explicitly chosen has no obvious way to want that
+   without a third UI affordance this minimal version isn't adding. */
+(function(){
+  var btn = document.getElementById('themeToggleBtn');
+  if (!btn) return;
+  var iconDark  = document.getElementById('themeToggleIconDark');
+  var iconLight = document.getElementById('themeToggleIconLight');
+  var label     = document.getElementById('themeToggleLabel');
+  var root      = document.documentElement;
+
+  function isDark(){
+    var attr = root.getAttribute('data-theme');
+    if (attr === 'dark') return true;
+    if (attr === 'light') return false;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function sync(){
+    var dark = isDark();
+    btn.setAttribute('aria-pressed', String(dark));
+    iconDark.hidden = dark;
+    iconLight.hidden = !dark;
+    label.textContent = dark ? 'Light mode' : 'Dark mode';
+  }
+
+  btn.addEventListener('click', function(){
+    var next = isDark() ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('dds-theme', next); } catch (e) { /* storage unavailable — theme still applies for this load */ }
+    sync();
+  });
+
+  sync();
+})();
 
 applyStatic();
 Cloud.init();
