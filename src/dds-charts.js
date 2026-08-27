@@ -677,6 +677,63 @@ export const charts = {
       geo ?? { groupW: 130, gap: 184, baseline: 128, top: 10, offsetX: 46 });
   },
 
+  /* Alert Volume by Day of Week — same bar-geometry approach as
+     syncInterval() above (computed rects, no scaled/stretched viewBox), just
+     7 categories instead of 5. The single highest weekday is picked out in
+     --navy so a scheduling pattern (e.g. weekend volume) reads at a glance;
+     every other bar stays the neutral --blue-200 rather than a 7-step
+     gradient, which would imply an ordering (least->most) the days don't
+     actually have. */
+  dayOfWeek(el, d, { geo, tip, insightEl } = {}) {
+    const g = geo ?? { barW: 30, gap: 42, baseline: 128, top: 10, offsetX: 6 };
+    const items = d.dayOfWeek ?? [];
+    const peak = Math.max(...items.map(x => x.units), 1);
+    const peakIdx = items.length
+      ? items.reduce((best, x, i) => x.units > items[best].units ? i : best, 0)
+      : -1;
+    const bars = items.map((x, i) => {
+      const height = (x.units / peak) * (g.baseline - g.top);
+      const xPos = i * g.gap + g.offsetX, y = g.baseline - height;
+      const fill = i === peakIdx && x.units > 0 ? 'var(--navy)' : 'var(--blue-200)';
+      return { x: xPos, y, height, v: x.units, fill, day: x.day };
+    });
+    el.innerHTML = bars.map(b =>
+      `<rect x="${b.x}" y="${b.y.toFixed(1)}" width="${g.barW}"
+         height="${Math.max(b.height, 0).toFixed(1)}" fill="${b.fill}" rx="3"/>`).join('');
+
+    /* Same "only worth a line if it's non-trivial" convention as
+       syncInterval()'s insight — silent (not a placeholder) when volume is
+       too flat across the week for a peak day to mean anything. */
+    if (insightEl) {
+      const total = items.reduce((s, x) => s + x.units, 0);
+      const peakShare = total && peakIdx >= 0 ? items[peakIdx].units / total : 0;
+      insightEl.textContent = (total > 0 && peakShare >= (1 / 7) * 1.3)
+        ? `${items[peakIdx].day} concentrates ${fmt.pct(peakShare * 100)} of the week's volume.`
+        : '';
+    }
+
+    if (tip) {
+      const svg = el.ownerSVGElement || el.closest('svg');
+      if (svg) {
+        wireHover(svg, tip, {
+          toSvgPoint: svgPoint,
+          locate(pt) {
+            const i = bars.findIndex(b => pt.x >= b.x - g.gap / 2 + g.barW / 2 && pt.x < b.x + g.gap / 2 + g.barW / 2);
+            return i >= 0 ? i : null;
+          },
+          content(i) {
+            const total = items.reduce((s, x) => s + x.units, 0);
+            const pct = total ? Math.round(bars[i].v / total * 100) : 0;
+            return tooltipHTML(bars[i].day, [
+              { label: 'Alerts', value: fmt.int(bars[i].v), color: bars[i].fill },
+              { label: 'Share of week', value: `${pct}%` }
+            ], i === peakIdx ? 'Highest-volume day' : null);
+          }
+        });
+      }
+    }
+  },
+
   /* Top Units by Alert Volume — ranked bar list, single consistent blue,
      top entry subtly highlighted via .ev-row[data-rank="1"] (see index.html
      CSS). Tooltip carries only what's actually derivable from topAssets:

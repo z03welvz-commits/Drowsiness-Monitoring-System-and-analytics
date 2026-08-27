@@ -421,6 +421,17 @@ svg[data-chart="trend"]{overflow:visible}
    visually dominate. */
 .an-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;min-height:0;height:280px;flex-shrink:0}
 .an-row + .an-row{margin-top:var(--sp-5)}
+/* 2-column variant — Day of Week + Alert Volume by Top Asset both need more
+   per-card width than a 3-up row gives them; same fixed height so the row
+   still fits this page's "one screenful of small multiples" rhythm. */
+.an-row.an-row-2{grid-template-columns:repeat(2,1fr)}
+
+/* Live contributing-factor banner — same warning tint as the rest of the
+   app's "needs attention" surfaces (.badge-warn, .dm-day[data-high]), kept
+   to a single line so it never competes with the KPI row below it. */
+.an-live-banner{display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:var(--sp-4);
+  background:var(--warning-bg);color:var(--warning-text);border-radius:var(--r-md);font-size:var(--fs-sm);font-weight:var(--fw-medium)}
+.an-live-banner .ic{width:16px;height:16px;flex-shrink:0}
 
 /* ═══ Driver & Asset Monitoring ═══
    One full-height table (unlike .an-row's fixed short heights; same
@@ -2598,6 +2609,19 @@ body {
         </div>
       </div>
 
+      <!-- Live contributing-factor banner — surfaces any factor logged with
+           no end time (Data Management > Contributing Factors) so a reviewer
+           looking at today's alert volume can immediately see "is something
+           active right now that could explain this?" without having to open
+           the Contributing Factors card and scan for the "Active" tag.
+           Hidden by default; renderAnalyticsFactorBanner() (RENDER section)
+           shows/fills it whenever App.factors has an active entry, same
+           refresh path (App.refreshCharts) factorImpact() already uses. -->
+      <div class="an-live-banner" id="anLiveBanner" role="status" hidden>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span id="anLiveBannerText"></span>
+      </div>
+
       <!-- Static placeholder shell — five tiles matching renderAnalyticsKpis()'s
            icon/label/tint scheme (METRIC_ICON/METRIC_TINT/METRIC_LABEL) with
            "—" values, so the row is visible on first paint instead of
@@ -2817,6 +2841,41 @@ body {
             </svg>
             <div class="donut-legend" id="anEventDonutLegend" style="flex:1"></div>
             <div class="chart-tooltip" id="anEventDonutTooltip"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 3 — Alert Volume by Day of Week / Alert Volume by Top Asset.
+           2-column (.an-row-2): both cards read better wide than squeezed
+           into a 3-up row, and neither pairs naturally with anything in
+           Row 1/2. -->
+      <div class="an-row an-row-2">
+        <!-- Alert Volume by Day of Week — new dayOfWeek() bar chart, same
+             geometry/insight/tooltip conventions as Alert Count by Sync
+             Interval above. -->
+        <div class="card">
+          <div class="card-head"><h2>Alert Volume by Day of Week</h2></div>
+          <div class="chart-body">
+            <svg id="anDayOfWeekSvg" viewBox="0 0 300 130" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="dayOfWeek">
+              <line x1="0" y1="128" x2="300" y2="128" stroke="#E6E8EC" stroke-width="1"/>
+              <g id="anDayOfWeekBars" fill="var(--blue-200)"></g>
+            </svg>
+            <div style="display:flex;justify-content:space-around;margin-top:3px;flex-shrink:0">
+              <span class="axis">Mon</span><span class="axis">Tue</span><span class="axis">Wed</span><span class="axis">Thu</span><span class="axis">Fri</span><span class="axis">Sat</span><span class="axis">Sun</span>
+            </div>
+            <div id="anDayOfWeekInsight" class="chart-insight-line"></div>
+            <div class="chart-tooltip" id="anDayOfWeekTooltip"></div>
+          </div>
+        </div>
+
+        <!-- Alert Volume by Top Asset — reuses the existing topAssets()
+             renderer (same one Overview uses), just at a higher limit since
+             this card has a full half-row to itself. -->
+        <div class="card">
+          <div class="card-head"><h2>Alert Volume by Top Asset</h2></div>
+          <div class="ev-list-wrap">
+            <div class="ev-list" id="anTopAssetsList" data-chart="topAssets"></div>
+            <div class="chart-tooltip" id="anTopAssetsTooltip"></div>
           </div>
         </div>
       </div>
@@ -8211,6 +8270,63 @@ const charts = {
       geo ?? { groupW: 130, gap: 184, baseline: 128, top: 10, offsetX: 46 });
   },
 
+  /* Alert Volume by Day of Week — same bar-geometry approach as
+     syncInterval() above (computed rects, no scaled/stretched viewBox), just
+     7 categories instead of 5. The single highest weekday is picked out in
+     --navy so a scheduling pattern (e.g. weekend volume) reads at a glance;
+     every other bar stays the neutral --blue-200 rather than a 7-step
+     gradient, which would imply an ordering (least->most) the days don't
+     actually have. */
+  dayOfWeek(el, d, { geo, tip, insightEl } = {}) {
+    const g = geo ?? { barW: 30, gap: 42, baseline: 128, top: 10, offsetX: 6 };
+    const items = d.dayOfWeek ?? [];
+    const peak = Math.max(...items.map(x => x.units), 1);
+    const peakIdx = items.length
+      ? items.reduce((best, x, i) => x.units > items[best].units ? i : best, 0)
+      : -1;
+    const bars = items.map((x, i) => {
+      const height = (x.units / peak) * (g.baseline - g.top);
+      const xPos = i * g.gap + g.offsetX, y = g.baseline - height;
+      const fill = i === peakIdx && x.units > 0 ? 'var(--navy)' : 'var(--blue-200)';
+      return { x: xPos, y, height, v: x.units, fill, day: x.day };
+    });
+    el.innerHTML = bars.map(b =>
+      `<rect x="${b.x}" y="${b.y.toFixed(1)}" width="${g.barW}"
+         height="${Math.max(b.height, 0).toFixed(1)}" fill="${b.fill}" rx="3"/>`).join('');
+
+    /* Same "only worth a line if it's non-trivial" convention as
+       syncInterval()'s insight — silent (not a placeholder) when volume is
+       too flat across the week for a peak day to mean anything. */
+    if (insightEl) {
+      const total = items.reduce((s, x) => s + x.units, 0);
+      const peakShare = total && peakIdx >= 0 ? items[peakIdx].units / total : 0;
+      insightEl.textContent = (total > 0 && peakShare >= (1 / 7) * 1.3)
+        ? `${items[peakIdx].day} concentrates ${fmt.pct(peakShare * 100)} of the week's volume.`
+        : '';
+    }
+
+    if (tip) {
+      const svg = el.ownerSVGElement || el.closest('svg');
+      if (svg) {
+        wireHover(svg, tip, {
+          toSvgPoint: svgPoint,
+          locate(pt) {
+            const i = bars.findIndex(b => pt.x >= b.x - g.gap / 2 + g.barW / 2 && pt.x < b.x + g.gap / 2 + g.barW / 2);
+            return i >= 0 ? i : null;
+          },
+          content(i) {
+            const total = items.reduce((s, x) => s + x.units, 0);
+            const pct = total ? Math.round(bars[i].v / total * 100) : 0;
+            return tooltipHTML(bars[i].day, [
+              { label: 'Alerts', value: fmt.int(bars[i].v), color: bars[i].fill },
+              { label: 'Share of week', value: `${pct}%` }
+            ], i === peakIdx ? 'Highest-volume day' : null);
+          }
+        });
+      }
+    }
+  },
+
   /* Top Units by Alert Volume — ranked bar list, single consistent blue,
      top entry subtly highlighted via .ev-row[data-rank="1"] (see index.html
      CSS). Tooltip carries only what's actually derivable from topAssets:
@@ -8389,8 +8505,14 @@ const charts = {
       // both render, but only the elevated ones use the warning color.
       const elevated = baselineRate > 0 && ratio >= 1.2;
       const fillColor = elevated ? 'var(--sev-elevated)' : 'var(--accent)';
+      // No endTime means the factor is still logged as ongoing — worth a
+      // quick visual flag since an "active now" factor is exactly what a
+      // reviewer looking at today's alert spike wants to spot fastest.
+      const active = !factor.endTime;
       return `<div class="ev-row" data-elevated="${elevated}">
-        <div class="ev-label" title="${esc(factor.factorType)}${factor.detail ? ' — ' + esc(factor.detail) : ''}">${esc(factor.factorType)}</div>
+        <div class="ev-label" title="${esc(factor.factorType)}${factor.detail ? ' — ' + esc(factor.detail) : ''}">
+          ${esc(factor.factorType)}${active ? ' <span class="status-dot status-active" title="Still active (no end time logged)">Active</span>' : ''}
+        </div>
         <div class="ev-track"><div class="ev-fill" style="width:${pct}%;background:${fillColor}"></div></div>
         <div class="ev-val">${rate.toFixed(1)}/day</div>
       </div>`;
@@ -8591,7 +8713,13 @@ const PAGES = {
       refs: () => ({
         arcs: $('anEventDonutArcs'), count: $('anEventDonutCount'),
         legend: $('anEventDonutLegend') }),
-      tip: () => $('anEventDonutTooltip') }
+      tip: () => $('anEventDonutTooltip') },
+    // Row 3 — Alert Volume by Day of Week (new) / Alert Volume by Top Asset
+    // (topAssets() reused verbatim from Overview, just a higher limit here).
+    { chart: 'dayOfWeek', el: () => $('anDayOfWeekBars'),
+      tip: () => $('anDayOfWeekTooltip'), insightEl: () => $('anDayOfWeekInsight') },
+    { chart: 'topAssets', limit: 12, el: () => $('anTopAssetsList'),
+      tip: () => $('anTopAssetsTooltip') }
   ]
 };
 
@@ -8976,6 +9104,19 @@ const describe = {
             `Most common interval is ${b.labels[peakI]} with ${fmt.int(totals[peakI])} events.`,
       table: table('Sync interval buckets', ['Delay', 'Events'],
         b.labels.map((l, i) => [l, fmt.int(totals[i])]))
+    };
+  },
+
+  dayOfWeek(d) {
+    const items = d.dayOfWeek ?? [];
+    if (!items.length) return { title: 'Alert volume by day of week', desc: 'No alert data in range.' };
+    const peakI = items.reduce((best, x, i) => x.units > items[best].units ? i : best, 0);
+    return {
+      title: 'Alert volume by day of week',
+      desc: `Alerts grouped by weekday. Highest-volume day is ${items[peakI].day} ` +
+            `with ${fmt.int(items[peakI].units)} alerts.`,
+      table: table('Alerts by weekday', ['Day', 'Alerts'],
+        items.map(x => [x.day, fmt.int(x.units)]))
     };
   },
 
@@ -9992,6 +10133,31 @@ function renderAnalyticsKpis(el, derived) {
     }))
     .filter(Boolean)
     .join('');
+}
+
+/* Live contributing-factor banner (#anLiveBanner) — reads App.factors
+   directly, same source and "no endTime = still active" rule as
+   charts.factorImpact()'s per-row "Active" tag (CHARTS section). Kept as
+   its own small function rather than folded into renderAnalyticsKpis()
+   since it doesn't depend on `derived` at all — it only needs to know
+   whether at least one factor is currently open. Called from paint()
+   alongside the KPI row, and from App.refreshCharts() (via paint()) so
+   adding/closing a factor in Data Management updates it immediately, same
+   as it already does for the Contributing Factors chart. */
+function renderAnalyticsFactorBanner() {
+  const banner = document.getElementById('anLiveBanner');
+  const textEl = document.getElementById('anLiveBannerText');
+  if (!banner || !textEl) return;
+
+  const factors = (typeof App !== 'undefined' && App.factors) || [];
+  const active = factors.filter(f => !f.endTime);
+  if (!active.length) { banner.hidden = true; return; }
+
+  const label = active.length === 1
+    ? active[0].factorType
+    : `${active.length} contributing factors`;
+  textEl.textContent = `${label} still logged as active — it may be contributing to current alert volume.`;
+  banner.hidden = false;
 }
 
 /* Overview's 5-card KPI row — same underlying comparison.metrics/kpiTile()
@@ -16624,6 +16790,7 @@ function paint(page, derived){
   describePage(page, derived);
   if (page === 'analytics'){
     renderAnalyticsKpis(document.getElementById('anKpiRow'), derived);
+    renderAnalyticsFactorBanner();
   }
   if (page === 'overview'){
     renderOverviewKpis(document.getElementById('ovKpiRow'), derived);
