@@ -59,9 +59,9 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .nav-brand-row{display:flex; align-items:center; gap:9px}
 .nav-mark{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .nav-mark svg{width:16px;height:16px;color:#fff}
-.nav-brand-title{font-size:var(--fs-xl);font-weight:800;color:#fff;letter-spacing:.03em;line-height:1.2}
-.nav-brand-sub{font-size:var(--fs-2xs);color:rgba(255,255,255,.45);letter-spacing:.04em;margin-top:1px}
-.nav-section-label{font-size:var(--fs-2xs);color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:var(--tracking-label);padding:8px 14px 3px}
+.nav-brand-title{font-size:var(--fs-xl);font-weight:var(--fw-black);color:#fff;letter-spacing:.03em;line-height:1.2}
+.nav-brand-sub{font-size:var(--fs-2xs);color:rgba(255,255,255,.6);letter-spacing:.04em;margin-top:1px}
+.nav-section-label{font-size:var(--fs-2xs);color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:var(--tracking-label);padding:8px 14px 3px}
 .nav-item{display:flex;align-items:center;gap:9px;padding:8px 14px;font-size:var(--fs-xs);color:rgba(255,255,255,.6);border:none;background:none;width:100%;text-align:left;border-left:3px solid transparent;position:relative}
 .nav-item:hover{color:#fff;background:rgba(255,255,255,.07)}
 .nav-item.active{color:#fff;background:rgba(255,255,255,.12);border-left-color:var(--decor-1)}
@@ -177,10 +177,10 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .page[hidden]{display:none}
 
 .topbar{background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border:0.5px solid rgba(27,58,107,.08); border-radius:var(--r-xl); box-shadow:var(--shadow-1); padding:10px 16px; display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0; position:relative; z-index:10}
-.topbar-title{font-size:var(--fs-2xl);font-weight:700;color:var(--navy);letter-spacing:-.01em}
+.topbar-title{font-size:var(--fs-2xl);font-weight:var(--fw-bold);color:var(--navy);letter-spacing:-.01em}
 .topbar-sub{font-size:var(--fs-xs);color:var(--text-sec);margin-top:2px}
 .hcontrols{display:flex;align-items:center;gap:8px}
-.cpill{display:flex;align-items:center;gap:5px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px;font-size:var(--fs-xs);font-weight:500;color:var(--text)}
+.cpill{display:flex;align-items:center;gap:5px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px;font-size:var(--fs-xs);font-weight:var(--fw-medium);color:var(--text)}
 
 /* ═══ Overview header ═══
    Replaces the navy gradient hero + separate white toolbar strip that used
@@ -203,7 +203,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
   display:flex; align-items:flex-start; justify-content:space-between;
   gap:var(--sp-6); flex-shrink:0; padding:2px 2px 0;
 }
-.ov-header-title{font-size:var(--fs-2xl); font-weight:700; color:var(--text); letter-spacing:-.02em; line-height:1.2}
+.ov-header-title{font-size:var(--fs-2xl); font-weight:var(--fw-bold); color:var(--text); letter-spacing:-.02em; line-height:1.2}
 .ov-header-sub{font-size:var(--fs-sm); color:var(--text-sec); margin-top:4px}
 .ov-header-meta{display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0}
 /* The controls themselves keep their existing .cpill/.btn/.al-date-range
@@ -230,7 +230,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
   .ov-header-controls{justify-content:flex-start}
 }
 .cpill svg{width:10px;height:10px;color:var(--text-sec)}
-.btn{border:none;border-radius:var(--r-md);padding:7px 14px;font-size:var(--fs-xs);font-weight:500;display:inline-flex;align-items:center;gap:6px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));box-shadow:var(--shadow-1);cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease)}
+.btn{border:none;border-radius:var(--r-md);padding:7px 14px;font-size:var(--fs-xs);font-weight:var(--fw-medium);display:inline-flex;align-items:center;gap:6px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));box-shadow:var(--shadow-1);cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease)}
 /* Interactivity: a primary action should acknowledge the cursor and the
    click. Lift on hover, settle on press -- the press state is what most
    dashboards forget, and its absence is why buttons feel dead. */
@@ -277,8 +277,8 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .kpi-ratio::before{background:var(--blue)}
 .kpi-icon{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center}
 .kpi-icon svg{width:12px;height:12px}
-.kpi-label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-label);font-weight:600}
-.kpi-val{font-size:var(--fs-3xl);font-weight:700;color:var(--text);line-height:1.15;margin:4px 0 1px;letter-spacing:-.025em;font-variant-numeric:tabular-nums;font-feature-settings:"ss01","cv01"}
+.kpi-label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-label);font-weight:var(--fw-semi)}
+.kpi-val{font-size:var(--fs-3xl);font-weight:var(--fw-bold);color:var(--text);line-height:1.15;margin:4px 0 1px;letter-spacing:-.025em;font-variant-numeric:tabular-nums;font-feature-settings:"ss01","cv01"}
 
 /* ═══ card shell ═══ */
 /* Border added alongside the shadow: with the page background now flat
@@ -303,10 +303,10 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    are close in value on the light theme (so this is a no-op there) but
    diverge correctly on dark. */
 .card-head{padding:10px 16px;background:linear-gradient(90deg,var(--surface-sunken),var(--surface-raised));border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.card-head h2{font-size:var(--fs-md);font-weight:600;color:var(--navy);display:flex;align-items:center;gap:7px}
+.card-head h2{font-size:var(--fs-md);font-weight:var(--fw-semi);color:var(--navy);display:flex;align-items:center;gap:7px}
 .card-head h2::before{content:'';display:inline-block;width:3px;height:12px;background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px}
 .legend-block{display:flex;align-items:center;gap:12px}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--text-sec);font-weight:500}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--text-sec);font-weight:var(--fw-medium)}
 .legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
 
 /* Month legend on its own row beneath the card title. With 8+ months it is
@@ -459,7 +459,7 @@ svg[data-chart="trend"]{overflow:visible}
    the raw counts matters: "62%" alone is unfalsifiable, "62% · 93/150" can
    be checked against the day list in the modal. */
 .dm-hdr-cell{display:flex;flex-direction:column;gap:1px;line-height:1.25}
-.dm-hdr-pct{font-weight:650;font-variant-numeric:tabular-nums;color:var(--text-sec)}
+.dm-hdr-pct{font-weight:var(--fw-semi-bold);font-variant-numeric:tabular-nums;color:var(--text-sec)}
 /* Over half its active days breached -- the condition for the flag itself,
    so the number carries the same warning colour as the pill it explains. */
 .dm-hdr-pct[data-high="true"]{color:var(--warning-text)}
@@ -490,10 +490,10 @@ svg[data-chart="trend"]{overflow:visible}
 .dm-day-bar{height:6px;background:var(--border-light);border-radius:100px;overflow:hidden}
 .dm-day-bar i{display:block;height:100%;background:var(--text-muted);border-radius:100px}
 .dm-day[data-high="true"] .dm-day-bar i{background:var(--warning-text)}
-.dm-day-units{font-size:var(--fs-xs);font-weight:650;text-align:right;font-variant-numeric:tabular-nums}
-.dm-day-tag{font-size:var(--fs-2xs);font-weight:650;color:var(--warning-text);text-align:right}
+.dm-day-units{font-size:var(--fs-xs);font-weight:var(--fw-semi-bold);text-align:right;font-variant-numeric:tabular-nums}
+.dm-day-tag{font-size:var(--fs-2xs);font-weight:var(--fw-semi-bold);color:var(--warning-text);text-align:right}
 
-.dm-day-legend{display:flex;gap:var(--sp-3);font-weight:400}
+.dm-day-legend{display:flex;gap:var(--sp-3);font-weight:var(--fw-regular)}
 .dm-day-key{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-2xs);color:var(--text-muted)}
 .dm-day-swatch{width:8px;height:8px;border-radius:2px;background:var(--border);display:inline-block}
 .dm-day-swatch[data-high="true"]{background:var(--warning-text)}
@@ -554,11 +554,11 @@ svg[data-chart="trend"]{overflow:visible}
 }
 .ins-hero .ins-card-icon svg{width:19px;height:19px}
 .ins-hero .ins-card-body{flex:1; min-width:0}
-.ins-hero-eyebrow{font-size:var(--fs-2xs); font-weight:700; letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--danger)}
-.ins-hero .ins-card-headline{font-size:var(--fs-lg); font-weight:700; color:var(--text); line-height:1.35; margin-top:2px}
+.ins-hero-eyebrow{font-size:var(--fs-2xs); font-weight:var(--fw-bold); letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--danger)}
+.ins-hero .ins-card-headline{font-size:var(--fs-lg); font-weight:var(--fw-bold); color:var(--text); line-height:1.35; margin-top:2px}
 .ins-hero .ins-card-sub{font-size:var(--fs-sm); color:var(--text-sec); margin-top:3px}
 .ins-hero-cta{
-  flex-shrink:0; font-size:var(--fs-xs); font-weight:700; color:var(--danger);
+  flex-shrink:0; font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--danger);
   border:1px solid color-mix(in srgb, var(--danger) 35%, transparent); background:var(--surface);
   border-radius:var(--r-md); padding:8px 14px; display:inline-flex; align-items:center; gap:6px;
   transition:background var(--dur-fast) var(--ease);
@@ -595,19 +595,19 @@ svg[data-chart="trend"]{overflow:visible}
   display:flex; align-items:center; justify-content:center;
 }
 .ins-card-icon svg{width:14px;height:14px}
-.ins-card-title{font-size:var(--fs-xs); font-weight:600; color:var(--text-sec)}
+.ins-card-title{font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--text-sec)}
 .ins-card-body{width:100%; min-width:0}
-.ins-card-headline{font-size:var(--fs-lg); font-weight:700; color:var(--text); line-height:1.25; font-variant-numeric:tabular-nums}
-.ins-card-headline b{font-variant-numeric:tabular-nums; font-weight:700}
+.ins-card-headline{font-size:var(--fs-lg); font-weight:var(--fw-bold); color:var(--text); line-height:1.25; font-variant-numeric:tabular-nums}
+.ins-card-headline b{font-variant-numeric:tabular-nums; font-weight:var(--fw-bold)}
 .ins-card-sub{font-size:var(--fs-2xs); color:var(--text-muted); line-height:1.4}
 /* Text link, not a chevron — matches the mock's "View details →" pattern;
    the arrow nudges right on hover/expand instead of rotating a chevron. */
-.ins-card-cta{font-size:var(--fs-xs); font-weight:600; color:var(--accent); display:inline-flex; align-items:center; gap:4px; margin-top:2px}
+.ins-card-cta{font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--accent); display:inline-flex; align-items:center; gap:4px; margin-top:2px}
 .ins-card-cta svg{width:12px; height:12px; transition:transform var(--dur-fast) var(--ease)}
 .ins-card.expanded .ins-card-cta svg{transform:translateX(2px)}
 .ins-evidence{border-top:1px solid var(--border-light); padding:var(--sp-4); background:var(--surface-sunken)}
 .ins-evidence-label{
-  font-size:var(--fs-2xs); font-weight:700; letter-spacing:var(--tracking-label);
+  font-size:var(--fs-2xs); font-weight:var(--fw-bold); letter-spacing:var(--tracking-label);
   text-transform:uppercase; color:var(--text-muted); margin-bottom:var(--sp-3);
 }
 .ins-evidence-chart{width:100%; height:70px; display:block; overflow:visible}
@@ -680,7 +680,7 @@ svg[data-chart="trend"]{overflow:visible}
   border-bottom:1px solid var(--divider); display:flex; align-items:center; gap:7px; flex-shrink:0;
 }
 .ov-insight-head{justify-content:space-between}
-.ov-insight-head h2{font-size:var(--fs-md); font-weight:600; color:var(--navy); margin:0; display:flex; align-items:center; gap:7px}
+.ov-insight-head h2{font-size:var(--fs-md); font-weight:var(--fw-semi); color:var(--navy); margin:0; display:flex; align-items:center; gap:7px}
 /* Baseline-aligned with the title, top-right of the header. align-self
    center rather than baseline: the title carries an icon, so its text
    baseline sits lower than the chip's and true baseline alignment reads
@@ -688,7 +688,7 @@ svg[data-chart="trend"]{overflow:visible}
 .ov-insight-more{
   flex-shrink:0; border:1px solid var(--border-light); background:var(--surface);
   color:var(--accent); border-radius:var(--r-full); padding:2px 9px;
-  font-size:var(--fs-2xs); font-weight:700; font-variant-numeric:tabular-nums;
+  font-size:var(--fs-2xs); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums;
   cursor:pointer; line-height:1.5; transition:background var(--dur-fast) var(--ease);
 }
 .ov-insight-more:hover{background:var(--surface-sunken)}
@@ -697,7 +697,7 @@ svg[data-chart="trend"]{overflow:visible}
 /* Headline: one sentence naming the single most important movement, with
    the number itself carrying the only colour in the block. */
 .ov-insight-headline{font-size:var(--fs-md); color:var(--text); line-height:1.45; margin:0}
-.ov-insight-headline b{font-weight:700; font-variant-numeric:tabular-nums}
+.ov-insight-headline b{font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
 .ov-insight-list{display:flex; flex-direction:column; gap:9px; margin:0; padding:0; list-style:none}
 .ov-insight-item{display:flex; align-items:flex-start; gap:9px; font-size:var(--fs-xs); color:var(--text-sec); line-height:1.45}
 /* Round tinted icon chip, matching the KPI row's own icon language so the
@@ -707,11 +707,11 @@ svg[data-chart="trend"]{overflow:visible}
   display:flex; align-items:center; justify-content:center; margin-top:-1px;
 }
 .ov-insight-icon svg{width:11px; height:11px}
-.ov-insight-item b{color:var(--text); font-weight:700; font-variant-numeric:tabular-nums}
+.ov-insight-item b{color:var(--text); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
 .ov-insight-empty{font-size:var(--fs-xs); color:var(--text-muted)}
 .ov-insight-divider{border-top:1px solid var(--divider); margin-top:2px; padding-top:10px}
 .ov-insight-sub{
-  font-size:var(--fs-2xs); font-weight:700; color:var(--text-muted);
+  font-size:var(--fs-2xs); font-weight:var(--fw-bold); color:var(--text-muted);
   text-transform:uppercase; letter-spacing:var(--tracking-label); margin-bottom:2px;
 }
 
@@ -787,7 +787,7 @@ svg[data-chart="trend"]{overflow:visible}
    version of this card's chart, not a decorative affordance. */
 .ov-card-link{
   display:inline-flex; align-items:center; gap:5px; padding:8px 16px 10px;
-  font-size:var(--fs-xs); font-weight:600; color:var(--accent);
+  font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--accent);
   background:none; border:none; cursor:pointer; flex-shrink:0; text-align:left;
   transition:gap var(--dur-fast) var(--ease);
 }
@@ -814,25 +814,25 @@ svg[data-chart="trend"]{overflow:visible}
   display:flex; align-items:baseline; gap:8px; padding:var(--sp-2) 0;
   font-size:var(--fs-2xs); color:var(--text-sec); line-height:1.5;
 }
-.ov-rail-update b{color:var(--text); font-weight:700; font-variant-numeric:tabular-nums}
+.ov-rail-update b{color:var(--text); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
 .ov-rail-update-time{color:var(--text-muted); flex-shrink:0; font-variant-numeric:tabular-nums}
 .ov-rail-updates-empty{padding:var(--sp-2) 0; font-size:var(--fs-xs); color:var(--text-muted)}
 
 .donut-wrap{display:flex;align-items:center;gap:16px;padding:10px 16px 14px;flex:1;min-height:0}
 .donut-legend{display:flex;flex-direction:column;gap:9px;min-width:0}
 .dl-row{display:flex;align-items:center;gap:7px}
-.dl-pct{font-size:var(--fs-sm);font-weight:700;margin-left:auto;padding-left:8px;font-variant-numeric:tabular-nums}
+.dl-pct{font-size:var(--fs-sm);font-weight:var(--fw-bold);margin-left:auto;padding-left:8px;font-variant-numeric:tabular-nums}
 
 /* Table-style donut legend (Overview's Event Severity Distribution — see
    eventCodes()'s legendStyle:'table' option) — a real Severity/Alerts/%
    table with a Total footer row, per the Overview redesign mock
    (src/AALYTICS.PNG), instead of Analytics' compact .dl-row list. */
 .dl-table{width:100%; border-collapse:collapse; font-size:var(--fs-xs)}
-.dl-table th{text-align:left; font-weight:600; color:var(--text-muted); padding:0 0 var(--sp-2); border-bottom:1px solid var(--border-light)}
+.dl-table th{text-align:left; font-weight:var(--fw-semi); color:var(--text-muted); padding:0 0 var(--sp-2); border-bottom:1px solid var(--border-light)}
 .dl-table th.num, .dl-table td.num{text-align:right; font-variant-numeric:tabular-nums}
 .dl-table td{padding:var(--sp-2) 0; border-bottom:1px solid var(--border-light); color:var(--text-sec)}
 .dl-table td:first-child{display:flex; align-items:center; gap:7px; color:var(--text)}
-.dl-table tfoot td{border-bottom:none; border-top:1px solid var(--border); font-weight:700; color:var(--text); padding-top:var(--sp-3)}
+.dl-table tfoot td{border-bottom:none; border-top:1px solid var(--border); font-weight:var(--fw-bold); color:var(--text); padding-top:var(--sp-3)}
 
 /* ═══ List rows — shared by Top N Asset ID (Overview), Event Code
    Distribution (Overview), and Top Operators (Analytics) ═══ */
@@ -857,7 +857,7 @@ svg[data-chart="trend"]{overflow:visible}
 .rec-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
 .rec-table thead th{
   position:sticky; top:0; background:var(--surface); text-align:left;
-  font-size:var(--fs-2xs); font-weight:700; color:var(--text-muted);
+  font-size:var(--fs-2xs); font-weight:var(--fw-bold); color:var(--text-muted);
   text-transform:uppercase; letter-spacing:var(--tracking-label);
   padding:4px 6px; border-bottom:1px solid var(--border-light);
 }
@@ -874,7 +874,7 @@ svg[data-chart="trend"]{overflow:visible}
 .ev-row{display:grid;grid-template-columns:76px 1fr 64px;align-items:center;gap:9px;border-radius:var(--r-sm);transition:background var(--dur-fast) var(--ease)}
 /* Densest rows on Overview and previously inert to the cursor. */
 .ev-row:hover{background:var(--surface-sunken)}
-.ev-label{font-size:var(--fs-sm);color:var(--text);font-weight:500}
+.ev-label{font-size:var(--fs-sm);color:var(--text);font-weight:var(--fw-medium)}
 .ev-track{height:5px;border-radius:3px;background:var(--border-light);overflow:hidden}
 .ev-fill{height:100%;border-radius:3px;background:var(--accent)}
 .ev-val{font-size:var(--fs-xs);color:var(--text-sec);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -883,9 +883,9 @@ svg[data-chart="trend"]{overflow:visible}
    over the rest of the list. Scoped to Analytics only: `topAssets` is a
    shared chart function also used by Overview's "Top N Asset ID" list,
    which this redesign must not visually change. */
-.page[data-page-id="analytics"] .ev-row[data-rank="1"] .ev-label{color:var(--navy);font-weight:700}
+.page[data-page-id="analytics"] .ev-row[data-rank="1"] .ev-label{color:var(--navy);font-weight:var(--fw-bold)}
 .page[data-page-id="analytics"] .ev-row[data-rank="1"] .ev-fill{background:var(--accent)}
-.page[data-page-id="analytics"] .ev-row[data-rank="1"] .ev-val{color:var(--text);font-weight:700}
+.page[data-page-id="analytics"] .ev-row[data-rank="1"] .ev-val{color:var(--text);font-weight:var(--fw-bold)}
 
 /* ═══ Analytics/Overview comparison KPI cards (.akpi) ═══
    Both KPI rows (Overview's 5 and Analytics' 5) render through kpiTile()
@@ -957,7 +957,7 @@ svg[data-chart="trend"]{overflow:visible}
 .kpi-trend{margin-top:5px;display:flex;flex-direction:column;gap:2px}
 .kpi-trend-line{display:flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums}
 .kpi-trend-line:first-child{font-size:var(--fs-xs)}
-.kpi-trend-line:first-child .kpi-trend-value{font-size:var(--fs-sm);font-weight:700}
+.kpi-trend-line:first-child .kpi-trend-value{font-size:var(--fs-sm);font-weight:var(--fw-bold)}
 .kpi-trend-line:only-child{font-size:var(--fs-xs)}
 .kpi-trend-line:last-child:not(:only-child){font-size:var(--fs-2xs);color:var(--text-muted)}
 .kpi-trend-value{display:inline-flex;align-items:center;gap:2px}
@@ -965,23 +965,23 @@ svg[data-chart="trend"]{overflow:visible}
 .kpi-trend-line[data-tone="good"] .kpi-trend-value{color:var(--success)}
 .kpi-trend-line[data-tone="bad"] .kpi-trend-value{color:var(--danger)}
 .kpi-trend-line[data-tone="neutral"] .kpi-trend-value{color:var(--text-muted)}
-.kpi-trend-label{color:var(--text-muted);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-trend-label{color:var(--text-muted);font-weight:var(--fw-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .akpi-note{display:flex;align-items:flex-start;gap:4px;font-size:var(--fs-2xs);line-height:1.3;color:var(--text-sec);margin-top:6px}
 .akpi-note .ic-xs{flex-shrink:0;color:var(--warning-text);margin-top:1px}
 
 /* ═══ Data Management page ═══ */
-.dz{border:1.5px dashed var(--blue-200); border-radius:var(--r-2xl); background:linear-gradient(135deg,#fff 60%,var(--blue-50) 100%); padding:32px 24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; cursor:pointer; transition:border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); flex-shrink:0}
-.dz:hover,.dz.dz-drag{border-color:var(--blue); background:linear-gradient(135deg,#fff 40%,var(--blue-50) 100%)}
+.dz{border:1.5px dashed var(--blue-200); border-radius:var(--r-2xl); background:linear-gradient(135deg,var(--surface) 60%,var(--blue-50) 100%); padding:32px 24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; cursor:pointer; transition:border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); flex-shrink:0}
+.dz:hover,.dz.dz-drag{border-color:var(--blue); background:linear-gradient(135deg,var(--surface) 40%,var(--blue-50) 100%)}
 .dz-icon{width:40px;height:40px;border-radius:var(--r-lg);background:var(--blue-50);display:flex;align-items:center;justify-content:center;color:var(--blue)}
 .dz-icon svg{width:19px;height:19px}
-.dz-title{font-size:var(--fs-md);font-weight:600;color:var(--navy)}
+.dz-title{font-size:var(--fs-md);font-weight:var(--fw-semi);color:var(--navy)}
 .dz-sub{font-size:var(--fs-xs);color:var(--text-sec)}
 .dz-formats{display:flex;gap:6px;margin-top:2px}
-.dz-chip{font-size:var(--fs-2xs);font-weight:600;color:var(--decor-1);background:var(--decor-1-bg);border-radius:4px;padding:2px 7px;letter-spacing:.03em}
+.dz-chip{font-size:var(--fs-2xs);font-weight:var(--fw-semi);color:var(--decor-1);background:var(--decor-1-bg);border-radius:4px;padding:2px 7px;letter-spacing:.03em}
 .dz input[type="file"]{display:none}
 
 .imp-toolbar{display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.imp-toolbar-title{font-size:var(--fs-sm);font-weight:600;color:var(--navy);display:flex;align-items:center;gap:7px}
+.imp-toolbar-title{font-size:var(--fs-sm);font-weight:var(--fw-semi);color:var(--navy);display:flex;align-items:center;gap:7px}
 .imp-toolbar-title::before{content:'';display:inline-block;width:3px;height:12px;background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px}
 .imp-count{font-size:var(--fs-xs);color:var(--text-sec)}
 
@@ -991,10 +991,10 @@ svg[data-chart="trend"]{overflow:visible}
    already reads from. Counts recompute on every render(), so a tab can never
    disagree with the row count beneath it. */
 .imp-tabs{display:flex; align-items:center; gap:4px; padding:10px 16px; border-bottom:1px solid var(--divider); flex-shrink:0; flex-wrap:wrap}
-.imp-tab{display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:none; background:none; border-radius:var(--r-lg); font-size:var(--fs-xs); font-weight:600; color:var(--text-sec); cursor:pointer; white-space:nowrap; transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.imp-tab{display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:none; background:none; border-radius:var(--r-lg); font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--text-sec); cursor:pointer; white-space:nowrap; transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
 .imp-tab:hover{background:var(--surface-sunken); color:var(--text)}
 .imp-tab[aria-selected="true"]{background:var(--accent-bg); color:var(--accent)}
-.imp-tab-count{display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:8px; background:var(--border-light); color:var(--text-sec); font-size:var(--fs-2xs); font-weight:700; font-variant-numeric:tabular-nums}
+.imp-tab-count{display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:8px; background:var(--border-light); color:var(--text-sec); font-size:var(--fs-2xs); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
 .imp-tab[aria-selected="true"] .imp-tab-count{background:var(--accent); color:var(--surface)}
 .imp-tab-count[data-tone="danger"]{background:var(--danger-bg); color:var(--danger)}
 .imp-tab[aria-selected="true"] .imp-tab-count[data-tone="danger"]{background:var(--danger); color:var(--surface)}
@@ -1044,7 +1044,7 @@ svg[data-chart="trend"]{overflow:visible}
 }
 .al-date-field:hover{border-color:var(--border)}
 .al-date-field:focus-within{border-color:var(--accent); box-shadow:var(--shadow-focus)}
-.al-date-field span{font-size:var(--fs-xs); color:var(--text-muted); font-weight:600}
+.al-date-field span{font-size:var(--fs-xs); color:var(--text-muted); font-weight:var(--fw-semi)}
 .al-date-field input{border:none; outline:none; background:none; font-size:var(--fs-xs); font-family:inherit; color:var(--text); font-variant-numeric:tabular-nums; width:112px}
 .al-date-sep{color:var(--text-muted); font-size:var(--fs-xs)}
 
@@ -1063,7 +1063,7 @@ svg[data-chart="trend"]{overflow:visible}
 .al-bulk-bar{
   display:flex; align-items:center; gap:12px;
   padding:8px 16px; background:var(--accent-bg); border-bottom:1px solid var(--border-light);
-  font-size:var(--fs-xs); font-weight:600; color:var(--accent);
+  font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--accent);
 }
 .al-bulk-bar #alBulkCount{font-variant-numeric:tabular-nums}
 #alTable thead th:first-child, #alTable tbody td:first-child{width:32px; padding-right:0}
@@ -1087,7 +1087,7 @@ svg[data-chart="trend"]{overflow:visible}
    background swap. font-variant-numeric keeps any column of digits
    (counts, durations, IDs) aligned in a column rather than jittering. */
 .imp-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
-.imp-table thead th{position:sticky; top:0; background:linear-gradient(90deg,#F8FAFF,#fff); text-align:left; font-size:var(--fs-xs); font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:var(--row-default-head); border-bottom:2px solid var(--border); z-index:1}
+.imp-table thead th{position:sticky; top:0; background:linear-gradient(90deg,var(--surface-sunken),var(--surface)); text-align:left; font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:var(--row-default-head); border-bottom:2px solid var(--border); z-index:1}
 .imp-table tbody td{padding:var(--row-default-cell); font-size:var(--fs-sm); color:var(--text); border-bottom:1px solid var(--border-light); vertical-align:middle; line-height:1.2}
 .imp-table tbody tr:last-child td{border-bottom:none}
 /* Alert Log and Driver & Asset Monitoring both run denser than Data
@@ -1127,7 +1127,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
   border:1px solid var(--border-light); border-radius:var(--r-lg);
   background:var(--surface-sunken); padding:var(--sp-4); flex-shrink:0;
 }
-.sm-bulk-title{font-size:var(--fs-xs); font-weight:700; color:var(--navy); margin-bottom:var(--sp-3)}
+.sm-bulk-title{font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--navy); margin-bottom:var(--sp-3)}
 /* auto-1fr pairs so the three label/control rows line up on one grid; wraps
    to stacked rows on a narrow viewport rather than squeezing the inputs. */
 .sm-bulk-fields{display:grid; grid-template-columns:auto 1fr auto 1fr auto 1fr; gap:var(--sp-2) var(--sp-3); align-items:center}
@@ -1171,7 +1171,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .imp-file-icon svg{width:12px;height:12px}
 .imp-file-icon.xlsx{background:var(--decor-1-bg);color:var(--decor-1)}
 .imp-file-icon.csv{background:var(--blue-50);color:var(--blue)}
-.imp-file-name{font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px}
+.imp-file-name{font-weight:var(--fw-medium); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px}
 .imp-file-rows{font-size:var(--fs-xs);color:var(--text-muted)}
 /* "Clear data" now keeps the history row but drops its row payload — this
    is what tells a reader the file isn't actually loaded anymore, so an
@@ -1179,7 +1179,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .imp-file-cleared{font-size:var(--fs-xs);color:var(--text-muted);font-style:italic}
 .imp-size,.imp-date{color:var(--text-sec); white-space:nowrap}
 
-.badge{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:600; padding:3px 9px; border-radius:var(--r-full); white-space:nowrap}
+.badge{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:var(--fw-semi); padding:3px 9px; border-radius:var(--r-full); white-space:nowrap}
 .badge svg{width:9px;height:9px}
 .badge-success{background:var(--success-bg); color:var(--success)}
 .badge-error{background:var(--danger-bg); color:var(--danger)}
@@ -1187,7 +1187,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .badge-pending{background:var(--border-light); color:var(--text-sec)}
 
 .flag-row{display:flex; flex-direction:column; gap:4px}
-.flag{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-2xs); font-weight:600; padding:2px 7px; border-radius:var(--r-sm); width:fit-content}
+.flag{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-2xs); font-weight:var(--fw-semi); padding:2px 7px; border-radius:var(--r-sm); width:fit-content}
 .flag-dup{background:var(--warning-bg); color:var(--warning-text)}
 .flag-err{background:var(--danger-bg); color:var(--danger)}
 .flag-none{font-size:var(--fs-xs); color:var(--text-muted)}
@@ -1212,7 +1212,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .imp-db.db-pending{color:var(--text-muted)}
 .imp-db.db-syncing{color:var(--accent)}
 .imp-db.db-error{color:var(--danger)}
-.imp-db-retry{border:none; background:none; color:inherit; font:inherit; font-weight:600; text-decoration:underline; cursor:pointer; padding:0}
+.imp-db-retry{border:none; background:none; color:inherit; font:inherit; font-weight:var(--fw-semi); text-decoration:underline; cursor:pointer; padding:0}
 
 .imp-empty{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:44px 20px; color:var(--text-muted); flex:1}
 .imp-empty[hidden]{display:none}
@@ -1236,41 +1236,41 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .settings-body{padding:16px; display:flex; flex-direction:column; gap:16px}
 
 .field-group{display:flex; flex-direction:column; gap:6px}
-.field-label{font-size:var(--fs-xs); font-weight:600; color:var(--text-sec); text-transform:uppercase; letter-spacing:var(--tracking-label)}
-.field-input{border:1px solid var(--border); border-radius:var(--r-lg); padding:9px 12px; font-size:var(--fs-sm); font-family:inherit; color:var(--text); background:#fff; width:100%}
+.field-label{font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--text-sec); text-transform:uppercase; letter-spacing:var(--tracking-label)}
+.field-input{border:1px solid var(--border); border-radius:var(--r-lg); padding:9px 12px; font-size:var(--fs-sm); font-family:inherit; color:var(--text); background:var(--surface); width:100%}
 .field-input:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-50)}
 .field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
 .field-hint{font-size:var(--fs-2xs); color:var(--text-muted)}
 
 .avatar-row{display:flex; align-items:center; gap:14px}
-.avatar-circle{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--navy));display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-xl);font-weight:700;flex-shrink:0}
-.avatar-meta-name{font-size:var(--fs-md);font-weight:700;color:var(--text)}
+.avatar-circle{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--navy));display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-xl);font-weight:var(--fw-bold);flex-shrink:0}
+.avatar-meta-name{font-size:var(--fs-md);font-weight:var(--fw-bold);color:var(--text)}
 .avatar-meta-role{font-size:var(--fs-xs);color:var(--text-sec);margin-top:2px}
 
 .divider-line{height:1px; background:var(--divider); margin:2px 0}
 
 .pwd-toggle-row{display:flex; align-items:center; justify-content:space-between}
-.pwd-toggle-label{font-size:var(--fs-sm); font-weight:600; color:var(--navy)}
-.link-btn{border:none; background:none; color:var(--blue); font-size:var(--fs-xs); font-weight:600; padding:0}
+.pwd-toggle-label{font-size:var(--fs-sm); font-weight:var(--fw-semi); color:var(--navy)}
+.link-btn{border:none; background:none; color:var(--blue); font-size:var(--fs-xs); font-weight:var(--fw-semi); padding:0}
 /* Alert Logs' Driver cell when no driver is on record — muted rather than
    the same weight as a real name, since it names an absence, but still a
    .link-btn so it's clearly clickable rather than reading as disabled
    filler text. Opens the same edit-case modal the row's pencil icon does. */
-.al-unassigned{color:var(--text-muted); font-style:italic; font-weight:500}
+.al-unassigned{color:var(--text-muted); font-style:italic; font-weight:var(--fw-medium)}
 .al-unassigned:hover{color:var(--accent)}
 
 .save-row{display:flex; justify-content:flex-end; gap:8px}
-.btn-outline{border:1px solid var(--border); border-radius:var(--r-md); padding:7px 14px; font-size:var(--fs-xs); font-weight:500; background:#fff; color:var(--text-sec)}
+.btn-outline{border:1px solid var(--border); border-radius:var(--r-md); padding:7px 14px; font-size:var(--fs-xs); font-weight:var(--fw-medium); background:var(--surface); color:var(--text-sec)}
 .btn-sm{padding:7px 14px; font-size:var(--fs-xs)}
 
-.saved-pill{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:600; color:var(--success); background:var(--success-bg); border-radius:var(--r-full); padding:3px 10px; opacity:0; transition:opacity var(--dur-base) var(--ease)}
+.saved-pill{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--success); background:var(--success-bg); border-radius:var(--r-full); padding:3px 10px; opacity:0; transition:opacity var(--dur-base) var(--ease)}
 .saved-pill.show{opacity:1}
 .saved-pill svg{width:9px;height:9px}
 
 /* Notification sound */
 .sound-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0}
 .sound-row + .sound-row{border-top:1px solid var(--border-light)}
-.sound-row-label{font-size:var(--fs-sm); font-weight:600; color:var(--text)}
+.sound-row-label{font-size:var(--fs-sm); font-weight:var(--fw-semi); color:var(--text)}
 .sound-row-sub{font-size:var(--fs-xs); color:var(--text-sec); margin-top:2px}
 
 .toggle{position:relative; width:34px; height:19px; flex-shrink:0}
@@ -1281,30 +1281,30 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .toggle input:checked + .toggle-track::before{transform:translateX(15px)}
 
 .sound-select-row{display:flex; align-items:center; gap:8px}
-.sound-select{border:1px solid var(--border); border-radius:var(--r-md); padding:7px 10px; font-size:var(--fs-xs); font-family:inherit; color:var(--text); background:#fff}
-.sound-preview-btn{border:1px solid var(--border); background:#fff; border-radius:var(--r-md); width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--blue); flex-shrink:0}
+.sound-select{border:1px solid var(--border); border-radius:var(--r-md); padding:7px 10px; font-size:var(--fs-xs); font-family:inherit; color:var(--text); background:var(--surface)}
+.sound-preview-btn{border:1px solid var(--border); background:var(--surface); border-radius:var(--r-md); width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--blue); flex-shrink:0}
 .sound-preview-btn svg{width:12px;height:12px}
 .vol-slider{width:100%; accent-color:var(--blue)}
 
 /* User Management */
 .um-toolbar{display:flex; align-items:center; justify-content:space-between}
 .um-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
-.um-table thead th{text-align:left; font-size:var(--fs-xs); font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:10px 16px; border-bottom:2px solid var(--border)}
+.um-table thead th{text-align:left; font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:10px 16px; border-bottom:2px solid var(--border)}
 .um-table tbody td{padding:12px 16px; font-size:var(--fs-sm); color:var(--text); border-bottom:1px solid var(--border-light); vertical-align:middle}
 .um-table tbody tr:last-child td{border-bottom:none}
 .um-table tbody tr{box-shadow:inset 2px 0 0 transparent; transition:background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease)}
 .um-table tbody tr:hover{background:var(--surface-sunken); box-shadow:inset 2px 0 0 var(--accent)}
 .um-user{display:flex; align-items:center; gap:9px}
-.um-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue-200),var(--blue));display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-xs);font-weight:700;flex-shrink:0}
-.um-name{font-weight:600}
+.um-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue-200),var(--blue));display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-xs);font-weight:var(--fw-bold);flex-shrink:0}
+.um-name{font-weight:var(--fw-semi)}
 .um-username{font-size:var(--fs-xs); color:var(--text-muted)}
 /* Role tint is a legitimate small-multiples pattern — distinguishing 3+
    roles in a scannable table column — not decoration; keep multi-color. */
-.role-badge{display:inline-flex; font-size:var(--fs-xs); font-weight:600; padding:3px 9px; border-radius:var(--r-full)}
+.role-badge{display:inline-flex; font-size:var(--fs-xs); font-weight:var(--fw-semi); padding:3px 9px; border-radius:var(--r-full)}
 .role-admin{background:var(--purple-50); color:var(--purple)}
 .role-oa{background:var(--blue-50); color:var(--blue)}
 .role-b2b{background:var(--teal-50); color:var(--teal)}
-.status-dot{display:inline-flex; align-items:center; gap:6px; font-size:var(--fs-xs); font-weight:500}
+.status-dot{display:inline-flex; align-items:center; gap:6px; font-size:var(--fs-xs); font-weight:var(--fw-medium)}
 .status-dot::before{content:''; width:6px; height:6px; border-radius:50%; flex-shrink:0}
 .status-active::before{background:var(--success)}
 .status-inactive::before{background:var(--text-muted)}
@@ -1463,7 +1463,13 @@ th[data-sort][aria-sort]{color:var(--accent)}
   --fs-2xl: 19px;   /* page title */
   --fs-3xl: 24px;   /* KPI values */
 
-  --fw-medium: 500; --fw-semi: 600; --fw-bold: 700; --fw-black: 800;
+  --fw-regular: 400; --fw-medium: 500; --fw-semi: 600;
+  /* --fw-semi-bold: dense numeric micro-data (day-density counts/percentages
+     in the alert-history modal) reads as too light at --fw-semi and too
+     heavy at --fw-bold when set at --fs-xs/--fs-2xs — this in-between step
+     is a deliberate 5th weight for that case, not an accidental value. */
+  --fw-semi-bold: 650;
+  --fw-bold: 700; --fw-black: 800;
   --lh-tight: 1.2;  --lh-base: 1.5;  --lh-loose: 1.6;
   --tracking-label: .06em;  /* uppercase micro-labels read better tracked out */
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -2161,7 +2167,7 @@ body {
 .detail-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 .detail-table thead th {
   position: sticky; top: 0; background: var(--surface-sunken); text-align: left;
-  font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted);
+  font-size: var(--fs-xs); font-weight:var(--fw-bold); color: var(--text-muted);
   text-transform: uppercase; letter-spacing: var(--tracking-label);
   padding: var(--sp-3) var(--sp-4); border-bottom: 2px solid var(--border);
 }
@@ -15036,8 +15042,8 @@ var NotificationSound = (function(){
       // than disabled ones that would just fail against profiles_update_admin.
       if (isAdmin && u.status === 'pending'){
         actions =
-          '<button class="icon-btn um-approve" title="Approve">' + ICON_APPROVE + '</button>' +
-          '<button class="icon-btn um-reject" title="Reject">' + ICON_REJECT + '</button>';
+          '<button class="icon-btn um-approve" aria-label="Approve" title="Approve">' + ICON_APPROVE + '</button>' +
+          '<button class="icon-btn um-reject" aria-label="Reject" title="Reject">' + ICON_REJECT + '</button>';
       }
       return '' +
         '<tr data-user-id="' + esc(u.user_id) + '">' +
