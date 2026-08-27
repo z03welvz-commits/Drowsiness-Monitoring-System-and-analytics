@@ -385,6 +385,12 @@ export function derive(allRows, filters) {
                         NIGHT: { units: 0, assets: new Set() } };
   const syncBuckets  = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
   const alertBuckets = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
+  // Mon..Sun totals, for the Analytics "which weekday concentrates volume"
+  // view. Keyed off SHIFT_DATE (the attributed shift day), matching every
+  // other bucket in this function — NOT _startTime's raw calendar date,
+  // which can disagree with SHIFT_DATE for the night-shift tail rows
+  // classifyShift() already rolls back to the previous day.
+  const dayOfWeekUnits = Array(7).fill(0);
 
   for (const r of rows) {
     const units = num(field(r, 'EVENT_COUNT'));
@@ -479,6 +485,9 @@ export function derive(allRows, filters) {
       // silently read as a sync delay of zero.
       if (r._syncSeconds != null) { d.syncSum += r._syncSeconds; d.syncN += 1; }
       byDate.set(r.SHIFT_DATE, d);
+      // getUTCDay(): 0=Sun..6=Sat. Rotated so the array is Mon-first,
+      // matching how the chart displays the week.
+      dayOfWeekUnits[(toDate(r.SHIFT_DATE).getUTCDay() + 6) % 7] += units;
     }
   }
 
@@ -577,6 +586,13 @@ export function derive(allRows, filters) {
         avgSyncSeconds: v.syncN ? v.syncSum / v.syncN : null
       }))
       .sort((a, b) => new Date(a.date) - new Date(b.date)),
+
+    // Mon..Sun totals — see dayOfWeekUnits above for why SHIFT_DATE (not
+    // _startTime) is the grouping key. Additive field; no existing consumer
+    // reads it.
+    dayOfWeek: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((day, i) => ({
+      day, units: dayOfWeekUnits[i]
+    })),
 
     shiftDistribution: {
       DAY:   { units: dayU,   assets: shiftTotals.DAY.assets.size,
