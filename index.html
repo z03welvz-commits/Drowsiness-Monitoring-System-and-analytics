@@ -4210,6 +4210,1227 @@ body {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script type="text/plain" id="ddsComputeWorkerSrc">
+/* ============================================================================
+   DDS — Off-main-thread compute worker (generated copy, not authored here)
+   ----------------------------------------------------------------------------
+   Everything below down to the 'WORKER MESSAGE PROTOCOL' marker is a literal,
+   verbatim copy of two ranges from THIS FILE's main <script> block:
+     - annotate()/derive()/compare()/computeKpiDeltas7d()/computeMonthOverMonthDelta()
+       and their shared constants/helpers (createState() through computeMonthOverMonthDelta())
+     - severityForCode()/colorForCode() and their SEVERITY_RULES/SEVERITY_TOKENS/
+       EVENT_COLORS constants, which derive() calls for per-code severity banding
+   Both ranges are pure — no DOM, no window/document/localStorage — which is
+   exactly what a Worker's isolated global scope can and cannot reach. Verified
+   by running this exact text in an isolated Node vm context against the test
+   fixture: annotate()+derive()+compare() all run clean, no ReferenceError, and
+   meta.reconciles comes back true.
+
+   KEEP IN SYNC: if annotate()/derive()/compare()/severityForCode()/colorForCode()
+   or anything they call changes in the main script above, copy the same change
+   here. This is the same manual-sync convention this file already uses for
+   src/*.js (see README) — accepted here to keep index.html a single deployable
+   file with no build step and no second file that must ship alongside it. */
+
+/* Shared by compare() and comparisonFromDerived(): the absolute floor a
+   previous-period value must clear before a period-over-period percentage
+   is considered meaningful, regardless of what each metric's own
+   (much lower) minBaseline allows through for the plain delta. Below this,
+   a swing of even one unit produces a triple-digit "+%" that is technically
+   correct and practically misleading, so pct comes back null and callers
+   fall back to the plain delta instead. */
+const PCT_MIN_BASELINE = 10;
+
+/* ========================================================================
+   DDS v3.1 - single file, deploy ready
+
+   Two data sources share one store:
+     LOCAL   drop a CSV/XLSX - computed in the browser, nothing uploaded,
+             works signed out and offline.
+     SERVER  sign in - metrics come from dds_metrics() in Postgres.
+   Both produce the same `derived` object, so the renderer, accessibility
+   layer and insight panel are identical either way.
+
+   Changed from v2.2:
+   * OverviewCharts + AnalyticsCharts (23.3KB, already diverged) merged into
+     one renderer. The two pages silently disagreed - Shift and Event Code
+     distributions counted units on Overview and rows on Analytics.
+   * DOM-as-state replaced with a store. `derived` doubles as the API contract.
+   * Boundary gap closed: v2.2 left 17:20:00-17:20:59 in no shift window,
+     forcing NON_ACTIONABLE. DAY now runs to 17:20:59, NIGHT from 17:21:00.
+   * Rows with unreadable timestamps rejected at import, so KPI totals always
+     reconcile with the trend chart.
+   * Stored XSS fixed - uploaded asset/operator/event values were concatenated
+     into innerHTML in four places.
+   * Accessibility: roles, names, focus-visible, live region, screen-reader
+     data tables behind all 13 charts. v2.2 had zero aria.
+   * Filter pills, Refresh and Export were inert; all now work.
+   * Hardcoded placeholder KPIs replaced with a real empty state.
+   * Analytics summary rebuilt as a period-over-period insight panel.
+   ======================================================================== */
+
+/* == 1. STATE == */
+/* ============================================================================
+   DDS — State Model & Derived Metrics
+   ----------------------------------------------------------------------------
+   Single source of truth for the dashboard. Replaces DOM-ID-as-state.
+
+   Contract:
+     - `rows` is the ONLY input. Everything else is derived.
+     - `derive(rows, filters)` is pure: same input -> same output, no DOM.
+     - The shape returned by `derive()` IS the API response shape.
+       When the backend lands, swap `derive()` for `fetch()` and nothing
+       downstream changes.
+
+   TIME SEMANTICS (do not change without changing the backend):
+     All timestamps are parsed and evaluated in UTC. The existing mock is
+     internally consistent about this (parseDateTime -> Date.UTC, all readers
+     use getUTC*). The server MUST return UTC and MUST NOT localize, or shift
+     attribution will silently break for night shifts.
+   ========================================================================= */
+
+/* ── Domain constants ───────────────────────────────────────────────────── */
+
+const EXPECTED_COLUMNS = [
+  'UPDATE_TIME', 'START_TIME', 'END_TIME',
+  'ASSET_ID', 'EVENT_CODE', 'EVENT_COUNT', 'OPERATOR'
+];
+
+// OPERATOR (driver) isn't always captured at the source — some assets report
+// unmanned or the field is left blank. A file missing it is still valid;
+// those rows fall back to the UNSPECIFIED_OPERATOR label at aggregation time.
+const OPTIONAL_COLUMNS = ['OPERATOR'];
+const UNSPECIFIED_OPERATOR = 'Unspecified';
+
+const SHIFT = { DAY: 'DAY', NIGHT: 'NIGHT', UNKNOWN: '' };
+
+// Shift classification boundaries (minutes from UTC midnight)
+const DAY_START_MIN = 5 * 60 + 21;   // 05:21
+const DAY_END_MIN   = 17 * 60 + 21;  // 17:21 (exclusive)
+
+// Actionable windows. Contiguous — every second belongs to exactly one shift.
+const DAY_WINDOW   = { start: [5, 21, 0],  end: [17, 20, 59] };
+const NIGHT_WINDOW = { start: [17, 21, 0], end: [5, 20, 59] }; // end is +1 day
+
+/* BOUNDARY — resolved. v2.2 left 17:20:00–17:20:59 in no window at all, so
+   anything landing there was forced NON_ACTIONABLE. DAY now runs through
+   17:20:59 and NIGHT begins 17:21:00: contiguous, no gap, no overlap.
+   Mirrored exactly in supabase/migrations/0001_init.sql — change both or
+   neither, and re-run the parity test. */
+
+const SYNC_BUCKETS  = ['<3h', '3-6h', '6-8h', '8-10h', '10h+'];
+const ALERT_BUCKETS = ['<5', '5-10', '10-15', '15-20', '20+'];
+
+/* ── State ──────────────────────────────────────────────────────────────── */
+
+function createState() {
+  return {
+    // ---- raw ----
+    rows: [],            // annotated rows (see annotate())
+    imports: [],         // [{ id, name, size, uploadedAt, rowCount, problems }]
+
+    // ---- query ----
+    filters: {
+      from: null,        // 'MM/DD/YYYY' | null
+      to: null,
+      shift: null,       // 'DAY' | 'NIGHT' | null (= both)
+      assetIds: [],      // [] = all
+      eventCodes: [],    // [] = all
+      actionableOnly: false
+    },
+
+    // ---- derived (never written by hand; output of derive()) ----
+    derived: null,
+
+    // ---- async / UI ----
+    status: 'idle',      // 'idle' | 'loading' | 'ready' | 'error'
+    error: null          // { code, message } — never a raw stack trace
+  };
+}
+
+/* ── Time helpers (UTC-only) ────────────────────────────────────────────── */
+
+// Accepts '/' or '-' as the date separator, ':SS' and AM/PM as optional, and
+// either month-first or day-first ordering (disambiguated by detectDayFirst,
+// since real-world exports vary and a 31/07/2026 value only fails silently
+// if this is too strict).
+const DATETIME_RE =
+  /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?$/;
+
+// Year-first ISO-ish order ("2026-07-28 03:38:09" / "2026/07/28..."): the
+// leading 4-digit group makes this unambiguous on its own — no day-first/
+// month-first guessing needed, unlike DATETIME_RE above — so it's matched
+// as its own pattern rather than folded into detectDayFirst's heuristic.
+const DATETIME_YMD_RE =
+  /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?$/;
+
+/* Some exports produce a timestamp that looks identical on screen to
+   "31/07/2026 22:12:43" but is not built from plain ASCII -- a non-breaking
+   space or zero-width space instead of a regular space, a full-width digit
+   set, or an en/em dash standing in for the date separator. Normalizing to
+   plain ASCII before either regex sees the string covers that whole class.
+   Every non-ASCII code point below is written as a \u escape sequence, not
+   a literal pasted character. */
+function normalizeDateTimeStr(s) {
+  // Visible-width spaces: these separate two real tokens (date from time),
+  // so they collapse to a single ASCII space -- deleting them outright
+  // would glue two digit groups together into one unparseable run.
+  const SPACE_CODES = [
+    0x00A0, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006,
+    0x2007, 0x2008, 0x2009, 0x200A, 0x202F, 0x2028, 0x2029
+  ];
+  // Zero-width: these carry no visible width, so they're stripped to
+  // nothing rather than becoming a space -- a stray one landing MID-DIGIT
+  // ("3<ZWSP>1/07/2026...") must not turn into "3 1/07/2026...".
+  const ZERO_WIDTH_CODES = [0x200B, 0xFEFF];
+  const HYPHEN_CODES = [0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212];
+
+  const toCharClass = codes => '[' + codes.map(c => '\\u' + c.toString(16).padStart(4, '0')).join('') + ']';
+  const spaceRe = new RegExp(toCharClass(SPACE_CODES), 'g');
+  const zeroWidthRe = new RegExp(toCharClass(ZERO_WIDTH_CODES), 'g');
+  const hyphenRe = new RegExp(toCharClass(HYPHEN_CODES), 'g');
+  // Full-width digits 0xFF10-0xFF19 ('0'-'9') and full-width solidus
+  // 0xFF0F ('/'), built from code points only -- no literal non-ASCII
+  // character anywhere in this function's source.
+  const FULLWIDTH_DIGIT_CODES = [0xFF10, 0xFF11, 0xFF12, 0xFF13, 0xFF14, 0xFF15, 0xFF16, 0xFF17, 0xFF18, 0xFF19];
+  const fullWidthDigitRe = new RegExp(toCharClass(FULLWIDTH_DIGIT_CODES), 'g');
+  const fullWidthSlashRe = new RegExp('\\u' + (0xFF0F).toString(16), 'g');
+
+  return String(s)
+    .replace(zeroWidthRe, '')
+    .replace(spaceRe, ' ')
+    .replace(hyphenRe, '-')
+    .replace(fullWidthDigitRe, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(fullWidthSlashRe, '/');
+}
+
+function parseDateTime(str, opts){
+  opts = opts || {};
+  var dayFirst = !!opts.dayFirst;
+  // XLSX cellDates:true hands back real Date objects for date-formatted
+  // cells instead of a string — pass them through rather than stringifying
+  // and failing the regex.
+  if (str instanceof Date) return Number.isNaN(str.getTime()) ? null : str;
+  if (!str || !String(str).trim()) return null;
+  const normalized = normalizeDateTimeStr(str).trim();
+
+  // Year-first order is checked first and, if it matches, settles month/day
+  // unambiguously on its own — dayFirst never applies to it, since there is
+  // no day-vs-month guessing to do once the year is already pinned to the
+  // leading 4-digit group.
+  const ymd = DATETIME_YMD_RE.exec(normalized);
+  if (ymd) {
+    const yyyy = Number(ymd[1]), month = Number(ymd[2]), dd = Number(ymd[3]);
+    let HH = Number(ymd[4]);
+    const MM = Number(ymd[5]);
+    const SS = ymd[6] ? Number(ymd[6]) : 0;
+    const ampm = ymd[7];
+    if (month < 1 || month > 12 || dd < 1 || dd > 31) return null;
+    if (ampm) {
+      const pm = /p/i.test(ampm);
+      if (pm && HH < 12) HH += 12;
+      if (!pm && HH === 12) HH = 0;
+    }
+    if (HH > 23) return null;
+    return new Date(Date.UTC(yyyy, month - 1, dd, HH, MM, SS));
+  }
+
+  const m = DATETIME_RE.exec(normalized);
+  if (!m) return null;
+  const a = Number(m[1]), b = Number(m[2]), yyyy = Number(m[3]);
+  let HH = Number(m[4]);
+  const MM = Number(m[5]);
+  const SS = m[6] ? Number(m[6]) : 0;
+  const ampm = m[7];
+
+  const month = dayFirst ? b : a;
+  const dd    = dayFirst ? a : b;
+  if (month < 1 || month > 12 || dd < 1 || dd > 31) return null;
+
+  if (ampm) {
+    const pm = /p/i.test(ampm);
+    if (pm && HH < 12) HH += 12;
+    if (!pm && HH === 12) HH = 0;
+  }
+  if (HH > 23) return null;
+
+  return new Date(Date.UTC(yyyy, month - 1, dd, HH, MM, SS));
+}
+
+// A file's date convention is consistent across all its rows, so one
+// unambiguous value (a day-of-month > 12) is enough to settle it for every
+// row — including the ambiguous-looking ones the regex alone can't resolve.
+// Falls back to month-first (the documented default) when nothing disambiguates.
+function detectDayFirst(rawRows) {
+  for (const row of rawRows) {
+    for (const col of ['START_TIME', 'UPDATE_TIME', 'END_TIME']) {
+      const v = field(row, col);
+      if (!v) continue;
+      const m = /^(\d{1,2})[/-](\d{1,2})[/-]\d{4}/.exec(normalizeDateTimeStr(v).trim());
+      if (!m) continue;
+      const a = Number(m[1]), b = Number(m[2]);
+      if (a > 12 && b <= 12) return true;
+      if (b > 12 && a <= 12) return false;
+    }
+  }
+  return false;
+}
+
+const dateOnly = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+const addDays  = (d, n) => new Date(d.getTime() + n * 86400000);
+const atTime   = (d, [h, m, s]) => new Date(Date.UTC(
+  d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m, s));
+const minutesOf = d => d.getUTCHours() * 60 + d.getUTCMinutes() + d.getUTCSeconds() / 60;
+
+const formatDate = d =>
+  `${String(d.getUTCMonth() + 1).padStart(2, '0')}/` +
+  `${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
+
+/* ── Domain logic ───────────────────────────────────────────────────────── */
+
+function classifyShift(startTime) {
+  const t = minutesOf(startTime);
+  const base = dateOnly(startTime);
+  if (t >= DAY_START_MIN && t < DAY_END_MIN) {
+    return { shift: SHIFT.DAY, shiftDate: base };
+  }
+  // Early-morning tail (00:00–05:20) belongs to the PREVIOUS day's night shift.
+  return {
+    shift: SHIFT.NIGHT,
+    shiftDate: t < DAY_START_MIN ? addDays(base, -1) : base
+  };
+}
+
+function shiftWindow(shift, shiftDate) {
+  return shift === SHIFT.DAY
+    ? { start: atTime(shiftDate, DAY_WINDOW.start), end: atTime(shiftDate, DAY_WINDOW.end) }
+    : { start: atTime(shiftDate, NIGHT_WINDOW.start),
+        end:   atTime(addDays(shiftDate, 1), NIGHT_WINDOW.end) };
+}
+
+/* Column aliases. Real exports label the person behind the wheel
+   inconsistently — OPERATOR, DRIVER, "Driver Name" — and all of them mean
+   the same field here. Matching only the canonical name silently dropped
+   the column, which is how an import can look successful while every
+   Operator/Driver cell reads "—".
+
+   Keys are the canonical name used everywhere else in the code; values are
+   the accepted spellings, compared upper-cased and whitespace-trimmed (so
+   "driver name" and " Driver_Name " both match). Underscores and spaces are
+   normalised to a single space before comparison. */
+const COLUMN_ALIASES = {
+  OPERATOR: ['OPERATOR', 'DRIVER', 'DRIVER NAME', 'DRIVERNAME', 'OPERATOR NAME']
+};
+
+const normalizeHeader = k => String(k).trim().toUpperCase().replace(/[_\s]+/g, ' ');
+
+const field = (row, col) => {
+  if (row[col] !== undefined) return row[col];
+  const accepted = (COLUMN_ALIASES[col] ?? [col]).map(normalizeHeader);
+  const keys = Object.keys(row);
+  const k = keys.find(k => accepted.includes(normalizeHeader(k)));
+  return k ? row[k] : undefined;
+};
+const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
+
+/* ── Ingest: raw rows -> annotated rows ─────────────────────────────────── */
+
+/* REJECT AT IMPORT — rows whose timestamps can't be parsed never enter the
+   dataset. They are returned separately so the import UI can report them.
+   Consequence: derived totals always reconcile with the trend chart, because
+   every surviving row has a shift. meta.reconciles is therefore always true
+   for locally-loaded data; it remains in the shape as a server-side guard. */
+function annotate(rawRows) {
+  const dayFirst = detectDayFirst(rawRows);
+  const problems = [];
+  const rejected = [];
+  const rows = [];
+  rawRows.forEach((row, i) => {
+    const startTime  = parseDateTime(field(row, 'START_TIME'), { dayFirst });
+    const updateTime = parseDateTime(field(row, 'UPDATE_TIME'), { dayFirst });
+    const endTime    = parseDateTime(field(row, 'END_TIME'), { dayFirst });
+
+    if (!startTime || !updateTime) {
+      const reason = !startTime ? 'Unparseable START_TIME' : 'Unparseable UPDATE_TIME';
+      problems.push({ rowIndex: i, reason });
+      rejected.push({ rowIndex: i, reason, row });
+      return;                                   // excluded from the dataset
+    }
+
+    const { shift, shiftDate } = classifyShift(startTime);
+    const win = shiftWindow(shift, shiftDate);
+    const actionable = updateTime >= win.start && updateTime <= win.end;
+
+    // Sync lag: how long after the event ended did it reach the server.
+    const syncSeconds = endTime ? (updateTime - endTime) / 1000 : null;
+
+    rows.push({
+      ...row,
+      SHIFT: shift,
+      SHIFT_DATE: formatDate(shiftDate),
+      ACTIONABLE: actionable ? 'ACTIONABLE' : 'NON_ACTIONABLE',
+      _startHour: startTime.getUTCHours(),
+      _startTime: startTime,          // full Date — sort key for recent-alerts lists
+      _syncSeconds: syncSeconds != null && syncSeconds >= 0 ? syncSeconds : null
+    });
+  });
+  return { rows, problems, rejected };
+}
+
+/* ── Filtering ──────────────────────────────────────────────────────────── */
+
+/* MM/DD/YYYY -> sortable YYYYMMDD integer.
+
+   applyFilters() compared SHIFT_DATE against the filter bounds as plain
+   STRINGS, which is only correct while every date shares a year: as strings
+   '01/05/2027' < '12/01/2026' is true, because comparison starts at the
+   month. A range spanning a year boundary therefore returned the wrong rows,
+   and a pair like 03/01/2026 -> 02/01/2027 returned NOTHING. Measured on an
+   84,401-row set: 0 rows kept where 35,167 should have been.
+
+   A numeric key fixes the ordering and is also the fastest correct option:
+   23ms vs 71ms for constructing two Date objects per row, because it
+   allocates nothing. (The broken string compare ran in 4ms, which is exactly
+   why it was attractive -- fast and wrong.)
+
+   Padding is what makes the concatenation sortable. Both inputs are already
+   padded -- formatDate() pads explicitly and <input type="date"> always
+   yields YYYY-MM-DD -- but padStart is kept so a hand-built value like
+   '1/5/2027' cannot silently produce a 6-digit key that sorts before every
+   real date. */
+const dateKey = mmddyyyy => {
+  const p = String(mmddyyyy).split('/');
+  if (p.length !== 3) return NaN;
+  return Number(p[2] + p[0].padStart(2, '0') + p[1].padStart(2, '0'));
+};
+
+function applyFilters(rows, f) {
+  if (!f) return rows;
+  return rows.filter(r => {
+    if (f.shift && r.SHIFT !== f.shift) return false;
+    if (f.actionableOnly && r.ACTIONABLE !== 'ACTIONABLE') return false;
+    // `r.SHIFT_DATE &&` means a row with no SHIFT_DATE (an unparseable
+    // timestamp — see annotate()'s own "REJECT AT IMPORT" comment) BYPASSES
+    // date-range filtering entirely and is kept regardless of the selected
+    // from/to range, while still subject to shift/actionableOnly/asset/
+    // eventCode below. This is the deliberate flip side of derive()'s
+    // reconciliation design (meta.unclassifiedRows/unclassifiedUnits): such
+    // rows still count toward kpis.totalAlerts even though they have no
+    // date to plot on the trend chart, so a user filtering to "last 7 days"
+    // can see totals include alerts whose date is unknown and therefore
+    // outside any possible range they picked. Don't "fix" this into a
+    // strict date check without also updating meta.reconciles' contract.
+    if (f.from && r.SHIFT_DATE && dateKey(r.SHIFT_DATE) < dateKey(f.from)) return false;
+    if (f.to   && r.SHIFT_DATE && dateKey(r.SHIFT_DATE) > dateKey(f.to))   return false;
+    if (f.assetIds?.length   && !f.assetIds.includes(field(r, 'ASSET_ID'))) return false;
+    if (f.eventCodes?.length && !f.eventCodes.includes(field(r, 'EVENT_CODE'))) return false;
+    return true;
+  });
+}
+
+/* ── Driver/unit severity banding ─────────────────────────────────────────
+   HIGH-CONSISTENCY SEVERITY — how much of a driver/unit's active days each
+   had more than HIGH_DAY_THRESHOLD alerts, not just a single bad day.
+   highDays/activeDays (highDayRatio) is exposed so the UI can explain the
+   status with real numbers instead of just a label.
+
+   Graduated into four bands rather than a single >50% boolean: a fleet
+   where most drivers already run past 50% (the old cutoff) rendered every
+   one of them as the same "High" pill with nothing to separate a 53%
+   driver from an 89% one — the column carried no information once a fleet
+   was busy enough. SEVERITY_RANK gives sorting a stable numeric key
+   without re-deriving it from the label (see dmSortedItems() in the
+   Driver & Asset Monitoring section, which sorts on this same idea).
+
+   TOP-LEVEL, not local to withConsistency()/derive(): this is the ONE
+   place severity is computed, full stop — the local-import path
+   (withConsistency(), below) and the signed-in path (applySeverity()
+   called from App.loadFromServer() over Cloud.metrics()'s raw
+   highDayRatio numbers) both call THIS, rather than each carrying its own
+   copy of the threshold table. dds_metrics() in Postgres deliberately no
+   longer computes severity at all as of 0020_driver_asset_severity.sql —
+   it returns the raw highDayRatio/activeDays/highDays this reads, and
+   nothing else — so there is exactly one severity calculation in the
+   entire system instead of two that could quietly drift apart (which is
+   exactly what test/parity.sh exists to catch, and exactly the failure
+   mode collapsing to one calculation removes outright). */
+const HIGH_DAY_THRESHOLD = 10;
+const SEVERITY_BANDS = [
+  { severity: 'critical', rank: 3, min: 75 },
+  { severity: 'warning',  rank: 2, min: 50 },
+  { severity: 'caution',  rank: 1, min: 25 },
+  { severity: 'normal',   rank: 0, min: 0 }
+];
+const severityFor = highDayRatio =>
+  SEVERITY_BANDS.find(b => highDayRatio >= b.min) || SEVERITY_BANDS[SEVERITY_BANDS.length - 1];
+
+/* Mutates and returns `item` — applied to an already-built consistency row
+   (asset or operator, local or server-sourced) that already carries
+   highDayRatio. Adds severity/severityRank/flagged; never recomputes
+   highDayRatio itself, since that number comes from two different sources
+   (a client-side Map walk locally, a SQL aggregate when signed in) that
+   must each already agree with derive()'s own totals before this point —
+   this function's only job is turning that agreed-upon ratio into a band. */
+function applySeverity(item) {
+  const band = severityFor(item.highDayRatio);
+  item.severity = band.severity;
+  item.severityRank = band.rank;
+  // Derived from severity rather than its own condition, so the two can
+  // never drift apart — anything above Normal counts as needing
+  // attention, same threshold (>0%, i.e. any band above 'normal') the old
+  // boolean used to gate the "Need Attention" KPI and the flagged-first
+  // sort.
+  item.flagged = band.severity !== 'normal';
+  return item;
+}
+
+/* ── Derive: the API response shape ─────────────────────────────────────── */
+
+function derive(allRows, filters) {
+  const rows = applyFilters(allRows, filters);
+
+  let totalAlerts = 0, actionableAlerts = 0;
+  let syncSum = 0, syncN = 0;
+  let unclassifiedRows = 0, unclassifiedUnits = 0;
+
+  const assets = new Map();      // id -> { total, actionable, nonActionable }
+  const operators = new Map();   // id -> { total, codeCounts:{code:count}, lastTime:Date }
+  const eventCodes = new Map();  // code -> { units, events }
+  const byDate = new Map();      // MM/DD/YYYY -> { units, events, assets:Set, syncSum, syncN }
+  const hourly = { DAY: Array(24).fill(0), NIGHT: Array(24).fill(0) };
+  // "YYYY-MM" -> number[24] — one line per calendar month for the Hourly
+  // chart's by-month view (charts.hourlyMonthly()). Separate from `hourly`
+  // above (DAY/NIGHT split), which several other consumers still read
+  // unchanged — see that field's own comment further down.
+  const hourlyByMonth = new Map();
+  const shiftTotals = { DAY: { units: 0, assets: new Set() },
+                        NIGHT: { units: 0, assets: new Set() } };
+  const syncBuckets  = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
+  const alertBuckets = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
+
+  for (const r of rows) {
+    const units = num(field(r, 'EVENT_COUNT'));
+    const isAct = r.ACTIONABLE === 'ACTIONABLE';
+    const asset = field(r, 'ASSET_ID');
+    const operRaw = field(r, 'OPERATOR');
+    const oper  = (operRaw != null && String(operRaw).trim()) ? String(operRaw).trim() : UNSPECIFIED_OPERATOR;
+    const code  = field(r, 'EVENT_CODE');
+
+    totalAlerts += units;
+    if (isAct) actionableAlerts += units;
+
+    /* ⚠ RECONCILIATION — inherited from v2.2 compute().
+       Rows with an unparseable timestamp have no SHIFT, so they are excluded
+       from trend/shift/hourly but STILL counted in totalAlerts. Result:
+       kpis.totalAlerts can exceed sum(trend.units). Surfaced in meta so the
+       UI can warn instead of silently disagreeing with itself. */
+    if (!r.SHIFT) { unclassifiedRows++; unclassifiedUnits += units; }
+
+    if (asset) {
+      const a = assets.get(asset) || { total: 0, actionable: 0, nonActionable: 0, dayTotals: new Map() };
+      a.total += units;
+      isAct ? (a.actionable += units) : (a.nonActionable += units);
+      if (r.SHIFT_DATE) a.dayTotals.set(r.SHIFT_DATE, (a.dayTotals.get(r.SHIFT_DATE) || 0) + units);
+      assets.set(asset, a);
+    }
+    {
+      const o = operators.get(oper) || { total: 0, actionable: 0, nonActionable: 0, dayTotals: new Map(), codeCounts: {}, lastTime: null };
+      o.total += units;
+      isAct ? (o.actionable += units) : (o.nonActionable += units);
+      if (r.SHIFT_DATE) o.dayTotals.set(r.SHIFT_DATE, (o.dayTotals.get(r.SHIFT_DATE) || 0) + units);
+      if (code) o.codeCounts[code] = (o.codeCounts[code] || 0) + 1;
+      if (!o.lastTime || r._startTime > o.lastTime) o.lastTime = r._startTime;
+      operators.set(oper, o);
+    }
+    if (code) {
+      const c = eventCodes.get(code) || { units: 0, events: 0 };
+      c.units += units; c.events += 1;
+      eventCodes.set(code, c);
+    }
+
+    if (r._startHour != null && hourly[r.SHIFT]) hourly[r.SHIFT][r._startHour] += units;
+
+    if (r._startHour != null && r._startTime) {
+      // UTC month key, matching _startHour's own UTC convention (see
+      // annotate()'s _startHour: startTime.getUTCHours()) — "the hour" and
+      // "the month it's grouped under" must agree on which clock they're
+      // reading, or a day near a UTC month boundary could double count.
+      const mKey = `${r._startTime.getUTCFullYear()}-${String(r._startTime.getUTCMonth() + 1).padStart(2, '0')}`;
+      const bucket = hourlyByMonth.get(mKey) || Array(24).fill(0);
+      bucket[r._startHour] += units;
+      hourlyByMonth.set(mKey, bucket);
+    }
+
+    if (shiftTotals[r.SHIFT]) {
+      shiftTotals[r.SHIFT].units += units;
+      if (asset) shiftTotals[r.SHIFT].assets.add(asset);
+    }
+
+    if (r._syncSeconds != null) {
+      syncSum += r._syncSeconds; syncN++;
+      const h = r._syncSeconds / 3600;
+      const i = h < 3 ? 0 : h < 6 ? 1 : h < 8 ? 2 : h < 10 ? 3 : 4;
+      syncBuckets[isAct ? 'actionable' : 'nonActionable'][i]++;
+    }
+
+    const ai = units < 5 ? 0 : units < 10 ? 1 : units < 15 ? 2 : units < 20 ? 3 : 4;
+    alertBuckets[isAct ? 'actionable' : 'nonActionable'][ai]++;
+
+    if (r.SHIFT_DATE) {
+      const d = byDate.get(r.SHIFT_DATE) || { units: 0, events: 0, assets: new Set(),
+                                              operators: new Set(), sleep: 0, drowsy: 0,
+                                              syncSum: 0, syncN: 0 };
+      d.units += units; d.events += 1;
+      if (asset) d.assets.add(asset);
+      /* Per-day severity + driver counts, added for the Overview KPI
+         sparklines. Deliberately computed from the SAME sources the KPI
+         numbers themselves use — severityForCode() (hoisted, see the
+         CHARTS section) for the sleep/drowsy split that compare()'s
+         sleepAlerts/drowsinessAlerts metrics read via severityCount(),
+         and the same `oper` fallback the operators map above uses for
+         distinctOperators. A sparkline drawn from a second, independent
+         calculation could disagree with the number printed above it. */
+      d.operators.add(oper);
+      if (code) {
+        const sev = severityForCode(code).key;
+        if (sev === 'critical') d.sleep += units;
+        else if (sev === 'elevated') d.drowsy += units;
+      }
+      // Same null-when-unmeasured convention as the whole-period
+      // avgSyncSeconds below — a day with zero synced rows must not
+      // silently read as a sync delay of zero.
+      if (r._syncSeconds != null) { d.syncSum += r._syncSeconds; d.syncN += 1; }
+      byDate.set(r.SHIFT_DATE, d);
+    }
+  }
+
+  /* Ties at the LIMIT boundary must break the same way here and in SQL, or
+     two assets with equal totals swap in and out of the top-10 depending on
+     which engine answered. Secondary sort on id makes it deterministic.
+     Mirrored by `order by total desc, asset_id` in 0002/0006_*.sql. */
+  const topN = (map, n = 10) =>
+    [...map.entries()]
+      .map(([id, v]) => ({ id, total: v.total, actionable: v.actionable,
+                            nonActionable: v.nonActionable, activeDays: v.dayTotals.size }))
+      .sort((a, b) => b.total - a.total || String(a.id).localeCompare(String(b.id)))
+      .slice(0, n);
+
+  /* Per-entity consistency breakdown feeding the Driver & Asset Monitoring
+     page. highDays/activeDays (highDayRatio) is exposed so the UI can
+     explain the status with real numbers instead of just a label.
+     Unranked/uncapped, unlike topN above: the monitoring page wants every
+     driver/unit, not just the top 10 by volume.
+
+     severity/severityRank/flagged come from applySeverity() (top-level,
+     see its own comment above derive()) — NOT computed here. This is the
+     local-import counterpart to App.loadFromServer()'s server path, which
+     calls the exact same applySeverity() over dds_metrics()'s raw
+     highDayRatio numbers — one severity calculation, two data sources. */
+  const withConsistency = map =>
+    [...map.entries()]
+      .map(([id, v]) => {
+        const activeDays = v.dayTotals.size;
+        const highDays = [...v.dayTotals.values()].filter(day => day > HIGH_DAY_THRESHOLD).length;
+        const highDayRatio = activeDays ? (highDays / activeDays) * 100 : 0;
+        return applySeverity({
+          id, total: v.total, actionable: v.actionable, nonActionable: v.nonActionable,
+          activeDays,
+          highDays,
+          highDayRatio,
+          consistencyRate: v.total / (activeDays || 1),
+          actionableRatio: v.total ? (v.actionable / v.total) * 100 : 0
+        });
+      })
+      .sort((a, b) => (b.severityRank - a.severityRank) || b.highDayRatio - a.highDayRatio ||
+        b.consistencyRate - a.consistencyRate || String(a.id).localeCompare(String(b.id)));
+
+  /* Most-recent-first log. _startTime is only absent on rows whose
+     timestamp failed to parse — annotate() already excludes those from
+     `rows` entirely, so no null guard is needed here. Ties (same
+     millisecond) break on asset id for a stable, deterministic order. */
+  const recentAlerts = [...rows]
+    .sort((a, b) => b._startTime - a._startTime ||
+      String(field(a, 'ASSET_ID')).localeCompare(String(field(b, 'ASSET_ID'))))
+    .slice(0, 8)
+    .map(r => ({
+      time: r._startTime.toISOString(),
+      operator: (() => {
+        const v = field(r, 'OPERATOR');
+        return (v != null && String(v).trim()) ? String(v).trim() : UNSPECIFIED_OPERATOR;
+      })(),
+      asset: field(r, 'ASSET_ID') ?? '—',
+      eventCode: field(r, 'EVENT_CODE') ?? '—',
+      shift: r.SHIFT || SHIFT.UNKNOWN,
+      count: num(field(r, 'EVENT_COUNT'))
+    }));
+
+  const dayU = shiftTotals.DAY.units, nightU = shiftTotals.NIGHT.units;
+  const shiftSum = dayU + nightU;
+
+  return {
+    meta: {
+      rowCount: rows.length,
+      unclassifiedRows,          // rows with unparseable timestamps
+      unclassifiedUnits,         // their EVENT_COUNT — the trend/KPI delta
+      reconciles: unclassifiedUnits === 0,
+      filters: filters ?? null,
+      generatedAt: new Date().toISOString()
+    },
+
+    // ---- KPI strip (both Overview and Analytics consume this) ----
+    kpis: {
+      totalAlerts,
+      distinctAssets: assets.size,
+      distinctOperators: operators.size,
+      avgSyncSeconds: syncN ? syncSum / syncN : null,
+      actionableRatio: totalAlerts ? (actionableAlerts / totalAlerts) * 100 : 0
+    },
+
+    // ---- charts ----
+    trend: [...byDate.entries()]
+      .map(([date, v]) => ({
+        date, units: v.units, events: v.events, assets: v.assets.size,
+        // sleep/drowsy/operators: sparkline series only (see byDate above).
+        // No existing consumer of `trend` reads them, so adding them is
+        // additive — nothing downstream changes shape.
+        sleep: v.sleep, drowsy: v.drowsy, operators: v.operators.size,
+        avgSyncSeconds: v.syncN ? v.syncSum / v.syncN : null
+      }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date)),
+
+    shiftDistribution: {
+      DAY:   { units: dayU,   assets: shiftTotals.DAY.assets.size,
+               pct: shiftSum ? (dayU / shiftSum) * 100 : 0 },
+      NIGHT: { units: nightU, assets: shiftTotals.NIGHT.assets.size,
+               pct: shiftSum ? (nightU / shiftSum) * 100 : 0 }
+    },
+
+    eventCodeDistribution: [...eventCodes.entries()]
+      .map(([code, v]) => ({ code, units: v.units, events: v.events,
+                             pct: totalAlerts ? (v.units / totalAlerts) * 100 : 0 }))
+      .sort((a, b) => b.units - a.units || a.code.localeCompare(b.code)),
+
+    hourly,                              // { DAY: number[24], NIGHT: number[24] }
+
+    // One entry per calendar month present in the data, sorted chronologically
+    // ("YYYY-MM" sorts correctly as a plain string). Powers the Hourly chart's
+    // by-month view (charts.hourlyMonthly()) — a separate field from `hourly`
+    // above rather than a replacement, since several other consumers
+    // (insightBullets.peakHour, the a11y hourly table, CSV export) still read
+    // the DAY/NIGHT shape unchanged.
+    hourlyByMonth: [...hourlyByMonth.entries()]
+      .map(([month, hours]) => ({ month, hours }))
+      .sort((a, b) => a.month.localeCompare(b.month)),
+
+    syncBuckets:  { labels: SYNC_BUCKETS,  ...syncBuckets  },
+    alertBuckets: { labels: ALERT_BUCKETS, ...alertBuckets },
+
+    topAssets:    topN(assets),          // [{ id, total, actionable, nonActionable, activeDays }]
+
+    // [{ id, total, actionable, nonActionable, activeDays, primaryEventCode,
+    //    lastAlertTime }] — primaryEventCode is whichever code appears most
+    // often for that operator (ties broken by code string so it's
+    // deterministic); codeCounts itself isn't exposed, it's an internal
+    // tally only used to pick the winner here.
+    topOperators: topN(operators).map(o => {
+      const raw = operators.get(o.id);
+      const codes = Object.entries(raw.codeCounts);
+      const primaryEventCode = codes.length
+        ? codes.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0]
+        : null;
+      return {
+        ...o,
+        primaryEventCode,
+        lastAlertTime: raw.lastTime ? raw.lastTime.toISOString() : null
+      };
+    }),
+
+    // Full (uncapped) per-entity breakdown, sorted flagged-first — feeds
+    // the Driver & Asset Monitoring page. See withConsistency() above /
+    // 0006_driver_asset_consistency.sql for the flagging rule.
+    assetConsistency:    withConsistency(assets),    // [{ id, total, actionable, nonActionable, activeDays, highDays, highDayRatio, flagged, consistencyRate, actionableRatio }]
+    operatorConsistency: withConsistency(operators), // same shape, keyed by OPERATOR
+
+    // Most recent individual rows, newest first — a log view, not an
+    // aggregate. Respects the active filters, same as everything above.
+    recentAlerts                         // [{ time, operator, asset, eventCode, shift, count }]
+  };
+}
+
+/* ── Period comparison ──────────────────────────────────────────────────────
+   "vs last month" needs a baseline, and the honest baseline is an equal-length
+   window immediately before the selected one — not a calendar month. Imported
+   files are historical and often partial, so a calendar-month baseline
+   silently compares 31 days against 9 and reports a 70% "drop" that is really
+   just missing data.
+
+   RATE vs VOLUME. Raw totals are confounded by fleet size: if alerts rise 50%
+   while active assets rise 25%, per-asset risk only rose 20%. Both are
+   reported so the confound is visible instead of hidden. */
+
+const MS_DAY = 86400000;
+const toDate = mmddyyyy => {
+  const [m, d, y] = String(mmddyyyy).split('/').map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+};
+
+/* Baseline-window fallback. The primary rule stays "equal length to the
+   current period, immediately preceding it" (spanDays). When that window
+   isn't fully covered by the data, instead of immediately settling for a
+   caveat-flagged partial baseline, try shorter STANDARD granularities —
+   30 days, then 7, then 1 (yesterday) — skipping any step that's not
+   actually shorter than spanDays (already covered by the primary attempt).
+   Both `current` AND `previous` shrink to the SAME chosen length, clipped
+   to the most recent N days of whatever `current` originally was — never
+   just `previous`. Comparing a shrunk previous window against the
+   ORIGINAL, longer current window (e.g. 7 days of history vs a 30-day
+   current total) produced a real but wildly disproportionate percentage —
+   more alerts almost always accumulate over 30 days than over 7, so
+   "current vastly exceeds previous" was structural, not a genuine trend.
+   Every comparison here is strictly N days vs N days, for whichever N is
+   the largest granularity fully covered by the data on BOTH sides. Only
+   falls all the way back to the original partial-equal-length behavior if
+   none of 30/7/1 works either. */
+const BASELINE_FALLBACK_DAYS = [30, 7, 1];
+
+/* Same 30/7/1-day fallback cascade as resolvePeriods() above, reshaped for
+   App.loadFromServer() (the signed-in path), which has no local row array
+   to pull an exact earliest-date-with-data from the way resolvePeriods()
+   does via `dates[0]`. Instead takes `earliest` as a Date already known to
+   the caller — true earliest-with-data ONLY when the active filter is
+   unbounded (no explicit from/to), since dds_metrics() then naturally
+   returns everything and cur.trend[0].date IS that earliest date; the
+   caller is responsible for only invoking this in that case (see its call
+   site's own comment) rather than this function re-deriving that
+   distinction itself. Feasibility here is a pure DATE-RANGE check (does
+   the candidate window's start fall on/after `earliest`), same as
+   resolvePeriods()'s `candidateFrom >= earliest` — whether the window
+   actually HAS rows is still discovered by the real dds_metrics() fetch
+   the caller makes afterward, same "prev.meta.rowCount === 0" contract
+   comparisonFromDerived() already handles. */
+function resolveServerBaselineWindow(from, to, earliest) {
+  const spanDays = Math.round((to - from) / MS_DAY) + 1;
+  const prevTo = new Date(from.getTime() - MS_DAY);
+
+  // Primary: equal-length window, immediately preceding `current`.
+  const prevFrom = new Date(prevTo.getTime() - (spanDays - 1) * MS_DAY);
+  if (prevFrom >= earliest) {
+    return { spanDays, curFrom: from, curTo: to, prevFrom, prevTo, baselineComplete: true };
+  }
+
+  // Equal-length isn't fully covered — try each standard granularity
+  // shorter than spanDays (a step >= spanDays was already just tried).
+  for (const days of BASELINE_FALLBACK_DAYS) {
+    if (days >= spanDays) continue;
+    const candidateFrom = new Date(prevTo.getTime() - (days - 1) * MS_DAY);
+    if (candidateFrom >= earliest) {
+      const clippedCurrentFrom = new Date(to.getTime() - (days - 1) * MS_DAY);
+      return {
+        spanDays: days, curFrom: clippedCurrentFrom, curTo: to,
+        prevFrom: candidateFrom, prevTo, baselineComplete: true
+      };
+    }
+  }
+
+  // Nothing fits — fall back to the original equal-length window, flagged
+  // partial by the caller the same way comparisonFromDerived() already
+  // does when prev.meta.rowCount is 0.
+  return { spanDays, curFrom: from, curTo: to, prevFrom, prevTo, baselineComplete: false };
+}
+
+/** Resolve current and baseline windows from the filters and available data. */
+function resolvePeriods(allRows, filters, fallbackDays = 30) {
+  const dates = [...new Set(allRows.map(r => r.SHIFT_DATE).filter(Boolean))]
+    .sort((a, b) => toDate(a) - toDate(b));
+  if (!dates.length) return null;
+
+  let from, to;
+  if (filters?.from && filters?.to) {
+    from = toDate(filters.from); to = toDate(filters.to);
+  } else {
+    // No explicit range: most recent `fallbackDays` of shift dates present.
+    to = toDate(dates.at(-1));
+    from = new Date(Math.max(toDate(dates[0]).getTime(), to.getTime() - (fallbackDays - 1) * MS_DAY));
+  }
+  const spanDays = Math.round((to - from) / MS_DAY) + 1;
+  const prevTo = new Date(from.getTime() - MS_DAY);
+  const earliest = toDate(dates[0]);
+
+  // Primary: equal-length window, immediately preceding `current`.
+  const prevFrom = new Date(prevTo.getTime() - (spanDays - 1) * MS_DAY);
+  if (prevFrom >= earliest) {
+    return {
+      spanDays,
+      current:  { from, to },
+      previous: { from: prevFrom, to: prevTo },
+      baselineComplete: true,
+      baselineCoverage: 1,
+      baselineDays: spanDays
+    };
+  }
+
+  // Equal-length isn't fully covered — try each standard granularity that's
+  // actually shorter than spanDays (a step >= spanDays was already just
+  // tried above and failed, so re-trying it here would be redundant).
+  // BOTH windows clip to `days` here — `current` clips to its own most
+  // recent `days`, not the original (longer) span, so the two sides
+  // being compared are always the same length.
+  for (const days of BASELINE_FALLBACK_DAYS) {
+    if (days >= spanDays) continue;
+    const candidateFrom = new Date(prevTo.getTime() - (days - 1) * MS_DAY);
+    if (candidateFrom >= earliest) {
+      const clippedCurrentFrom = new Date(to.getTime() - (days - 1) * MS_DAY);
+      return {
+        spanDays: days,
+        current:  { from: clippedCurrentFrom, to },
+        previous: { from: candidateFrom, to: prevTo },
+        baselineComplete: true,
+        baselineCoverage: 1,
+        baselineDays: days
+      };
+    }
+  }
+
+  // Nothing — not the equal-length window, not 30d/7d/1d — is fully
+  // covered. Fall back to the equal-length window flagged partial, same
+  // as the original (pre-fallback) behavior, so the UI still shows
+  // *something* rather than nothing.
+  return {
+    spanDays,
+    current:  { from, to },
+    previous: { from: prevFrom, to: prevTo },
+    // Baseline is partial when the data does not reach back far enough. A 12%
+    // change measured against 4 days of history is noise, and the UI must be
+    // able to say so rather than presenting it as fact.
+    baselineComplete: false,
+    baselineCoverage: Math.max(0, Math.min(1,
+      (prevTo - Math.max(prevFrom, earliest)) / ((spanDays - 1) * MS_DAY || 1))),
+    baselineDays: spanDays
+  };
+}
+
+const inWindow = (row, w) => {
+  if (!row.SHIFT_DATE) return false;
+  const d = toDate(row.SHIFT_DATE);
+  return d >= w.from && d <= w.to;
+};
+
+const fmtRange = w => `${formatDate(w.from)} – ${formatDate(w.to)}`;
+
+/* Sum of EVENT_COUNT (units) across event codes matching one severity key
+   ('critical' = Sleep Alert, 'elevated' = Drowsiness Alert — see
+   SEVERITY_RULES/severityForCode in the CHARTS section, hoisted so it's
+   callable here despite being defined later in the file). Used by both
+   compare() and comparisonFromDerived() below to give Overview's Sleep/
+   Drowsiness KPI tiles a period-over-period delta without either path
+   duplicating the other's severity-matching logic. */
+function severityCount(eventCodeDistribution, severityKey) {
+  return eventCodeDistribution
+    .filter(c => severityForCode(c.code).key === severityKey)
+    .reduce((sum, c) => sum + c.units, 0);
+}
+
+/**
+ * Builds the shared `metrics` array (totalAlerts/alertRate/distinctAssets/
+ * distinctOperators/avgSyncSeconds/actionableRatio/sleepAlerts/
+ * drowsinessAlerts) from two already-derive()'d period results — the exact
+ * metric() / perAsset() / activeDays()/rate() logic that used to live only
+ * inside compare(), hoisted out so compare() and the two new fixed-window
+ * comparisons (computeKpiDeltas7d/computeMonthOverMonthDelta, below) share
+ * one implementation instead of three copies of the same PCT_MIN_BASELINE-
+ * guarded percent-change math. `a`/`b` are derive() results for the
+ * current/previous window; `curRows`/`prevRows` are the raw row sets each
+ * was built from (needed for activeDays(), which counts distinct
+ * SHIFT_DATE values directly rather than reading it off derive()'s output).
+ */
+function buildComparisonMetrics(a, b, curRows, prevRows) {
+  const activeDays = rows => new Set(rows.map(r => r.SHIFT_DATE)).size || 1;
+
+  /* Per-asset-per-active-day: the volume-independent risk rate. This is the
+     number that actually tells you whether drivers got drowsier. */
+  const rate = (k, rows) =>
+    k.distinctAssets ? k.totalAlerts / k.distinctAssets / activeDays(rows) : 0;
+
+  /* Plain per-asset rate (no active-days divisor) for the KPI tile
+     comparison line — "how many alerts per vehicle" rather than the
+     alertRate metric's "per vehicle per active day" risk rate. Passed to
+     metric() as opts.perAsset so kpiTile() can show the avg-alerts-per-
+     asset rate for both periods instead of raw current/previous totals for
+     alert-COUNT metrics specifically (totalAlerts, sleepAlerts,
+     drowsinessAlerts) — normalizing by fleet size the other metrics (asset
+     count itself, driver count, sync delay, actionable ratio) don't share,
+     since "assets per asset" isn't a meaningful rate. */
+  const perAssetRate = (count, assetCount) => assetCount ? count / assetCount : null;
+  const perAsset = (curCount, prevCount) => ({
+    current: perAssetRate(curCount, a.kpis.distinctAssets),
+    previous: perAssetRate(prevCount, b.kpis.distinctAssets)
+  });
+
+  const metric = (key, label, curVal, prevVal, opts = {}) => {
+    const delta = curVal - prevVal;
+    /* Percent change is meaningless against a tiny baseline — not just a zero
+       one. A baseline of 1 going to 5 is technically "+400%" but reads as an
+       alarming lie next to what actually happened (one more event). Require
+       the baseline to clear both the metric's own floor AND an absolute
+       PCT_MIN_BASELINE, so small-count metrics fall back to the plain delta
+       instead of a headline percentage. */
+    const pctUsable = Math.abs(prevVal) >= Math.max(opts.minBaseline ?? 1e-9, PCT_MIN_BASELINE);
+    return {
+      key, label,
+      current: curVal, previous: prevVal, delta,
+      pct: pctUsable ? (delta / Math.abs(prevVal)) * 100 : null,
+      /* Direction is about GOOD/BAD, not up/down. More alerts is bad; faster
+         sync is good. Colouring by arrow direction alone would paint a
+         genuine improvement red. */
+      goodWhen: opts.goodWhen ?? 'down',
+      unit: opts.unit ?? 'count',
+      significant: Math.abs(delta) > (opts.noiseFloor ?? 0),
+      // Alert-count metrics only (see perAsset arg below): current/previous
+      // each divided by that window's own distinct-asset count, so a bigger
+      // fleet reporting more raw alerts doesn't read as drivers getting
+      // worse — the fleet just grew. curAssets/prevAssets can each be 0
+      // (an empty window), which the tile guards against before dividing.
+      perAsset: opts.perAsset
+    };
+  };
+
+  return [
+    metric('totalAlerts', 'Total alerts', a.kpis.totalAlerts, b.kpis.totalAlerts,
+           { goodWhen: 'down', minBaseline: 1,
+             perAsset: perAsset(a.kpis.totalAlerts, b.kpis.totalAlerts) }),
+    metric('alertRate', 'Alerts per asset per active day',
+           rate(a.kpis, curRows), rate(b.kpis, prevRows),
+           { goodWhen: 'down', unit: 'rate', minBaseline: 0.01 }),
+    metric('distinctAssets', 'Assets reporting',
+           a.kpis.distinctAssets, b.kpis.distinctAssets,
+           { goodWhen: 'flat', minBaseline: 1 }),
+    metric('distinctOperators', 'Drivers involved',
+           a.kpis.distinctOperators, b.kpis.distinctOperators,
+           { goodWhen: 'down', minBaseline: 1 }),
+    metric('avgSyncSeconds', 'Average sync delay',
+           a.kpis.avgSyncSeconds ?? 0, b.kpis.avgSyncSeconds ?? 0,
+           { goodWhen: 'down', unit: 'duration', minBaseline: 1 }),
+    metric('actionableRatio', 'Actionable ratio',
+           a.kpis.actionableRatio, b.kpis.actionableRatio,
+           { goodWhen: 'up', unit: 'percent', minBaseline: 0.5 }),
+    // Both KPI rows now read OVERVIEW_KPI_ORDER (Sleep Alerts / Drowsiness
+    // Alerts tiles included) — computed here once regardless, since
+    // comparison.metrics is the shared source both renderOverviewKpis()
+    // and renderAnalyticsKpis() draw from.
+    metric('sleepAlerts', 'Sleep alerts',
+           severityCount(a.eventCodeDistribution, 'critical'),
+           severityCount(b.eventCodeDistribution, 'critical'),
+           { goodWhen: 'down', minBaseline: 1,
+             perAsset: perAsset(severityCount(a.eventCodeDistribution, 'critical'),
+                                 severityCount(b.eventCodeDistribution, 'critical')) }),
+    metric('drowsinessAlerts', 'Drowsiness alerts',
+           severityCount(a.eventCodeDistribution, 'elevated'),
+           severityCount(b.eventCodeDistribution, 'elevated'),
+           { goodWhen: 'down', minBaseline: 1,
+             perAsset: perAsset(severityCount(a.eventCodeDistribution, 'elevated'),
+                                 severityCount(b.eventCodeDistribution, 'elevated')) })
+  ];
+}
+
+/**
+ * Compare the selected period against the equal-length preceding period.
+ * Returns null when there is no usable baseline — the caller shows "no
+ * comparison available" rather than a fabricated 0%.
+ */
+function compare(allRows, filters) {
+  const periods = resolvePeriods(allRows, filters);
+  if (!periods) return null;
+
+  const base = applyFilters(allRows, { ...filters, from: null, to: null });
+  const cur  = base.filter(r => inWindow(r, periods.current));
+  const prev = base.filter(r => inWindow(r, periods.previous));
+  if (!prev.length) {
+    return { available: false, reason: 'No data in the preceding period',
+             periods: { current: fmtRange(periods.current),
+                        previous: fmtRange(periods.previous) } };
+  }
+
+  const a = derive(cur, null), b = derive(prev, null);
+
+  return {
+    available: true,
+    // Previous period's own day-by-day units, aligned by INDEX (day 1 of
+    // this period vs day 1 of the previous one) not calendar date — the two
+    // windows don't share dates. Source for Overview's trend-chart overlay
+    // (charts.trend's `prev` option); Analytics doesn't use this field.
+    prevTrend: b.trend,
+    periods: {
+      current: fmtRange(periods.current),
+      previous: fmtRange(periods.previous),
+      spanDays: periods.spanDays,
+      // How far back the baseline window actually reaches — 30, 7, or 1
+      // when the fallback cascade kicked in; equal to spanDays when the
+      // primary equal-length window was fully available. Lets the KPI
+      // tile say "vs last 30 days" / "vs last 7 days" / "vs yesterday"
+      // instead of a generic "vs previous period" once the baseline
+      // length no longer always matches the current period's length.
+      baselineDays: periods.baselineDays
+    },
+    baselineComplete: periods.baselineComplete,
+    baselineCoverage: periods.baselineCoverage,
+    metrics: buildComparisonMetrics(a, b, cur, prev)
+  };
+}
+
+/**
+ * Fixed trailing-7-day window vs. the 7 days immediately before it —
+ * independent of state.filters/resolvePeriods()'s equal-length-to-the-
+ * active-date-range logic. Powers kpiTile()'s primary (bold) trend line.
+ * Same "no usable baseline -> available:false" contract as compare().
+ */
+function computeKpiDeltas7d(allRows) {
+  const dated = allRows.filter(r => r.SHIFT_DATE);
+  if (!dated.length) return { available: false, reason: 'No dated rows' };
+
+  const to = new Date(Math.max(...dated.map(r => toDate(r.SHIFT_DATE))));
+  const from = new Date(to.getTime() - 6 * MS_DAY);
+  const prevTo = new Date(from.getTime() - MS_DAY);
+  const prevFrom = new Date(prevTo.getTime() - 6 * MS_DAY);
+
+  const cur  = dated.filter(r => inWindow(r, { from, to }));
+  const prev = dated.filter(r => inWindow(r, { from: prevFrom, to: prevTo }));
+  if (!prev.length) {
+    return { available: false, reason: 'No data in the preceding 7 days' };
+  }
+
+  const a = derive(cur, null), b = derive(prev, null);
+  return { available: true, metrics: buildComparisonMetrics(a, b, cur, prev) };
+}
+
+/**
+ * Current calendar month (or the latest month present in the data, if
+ * "today" has no rows) vs. the immediately preceding calendar month.
+ * Powers kpiTile()'s secondary (neutral-gray) trend line. Same
+ * available:false contract as compare()/computeKpiDeltas7d().
+ */
+function computeMonthOverMonthDelta(allRows) {
+  const dated = allRows.filter(r => r.SHIFT_DATE);
+  if (!dated.length) return { available: false, reason: 'No dated rows' };
+
+  const latest = new Date(Math.max(...dated.map(r => toDate(r.SHIFT_DATE))));
+  const monthStart = d => new Date(d.getFullYear(), d.getMonth(), 1);
+  const curStart = monthStart(latest);
+  const prevStart = new Date(curStart.getFullYear(), curStart.getMonth() - 1, 1);
+  const prevEnd = new Date(curStart.getTime() - MS_DAY);
+
+  const cur  = dated.filter(r => inWindow(r, { from: curStart, to: latest }));
+  const prev = dated.filter(r => inWindow(r, { from: prevStart, to: prevEnd }));
+  if (!prev.length) {
+    return { available: false, reason: 'No data in the preceding month',
+             monthLabel: prevStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) };
+  }
+
+  const a = derive(cur, null), b = derive(prev, null);
+  return {
+    available: true,
+    monthLabel: prevStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    metrics: buildComparisonMetrics(a, b, cur, prev)
+  };
+}
+
+const EVENT_COLORS = [
+  'var(--blue)', 'var(--teal)', 'var(--amber)',
+  'var(--purple)', 'var(--red)', 'var(--navy)'
+];
+
+/* Event-code color must be stable across imports, or an operator's learned
+   "purple = Drowsiness Alert" association silently breaks the next time a
+   file happens to sort differently. Colors were previously assigned by
+   array position (i % EVENT_COLORS.length) — whichever code sorted first
+   got blue. Hashing the code STRING itself means the same code always maps
+   to the same color, independent of how many other codes are present or
+   what order they arrived in. Not cryptographic; just needs to be stable
+   and spread reasonably across the palette. */
+function colorForCode(code) {
+  const s = String(code ?? '');
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) | 0;
+  return EVENT_COLORS[Math.abs(hash) % EVENT_COLORS.length];
+}
+
+/* ── Event severity ─────────────────────────────────────────────────────── */
+
+/* EVENT_CODE is free text from an uploaded CSV — there is no fixed enum, so
+   this is a lookup with a graceful fallback, not a hard-coded switch over
+   "the" event types. Confirmed real values seen in production data: "Sleep
+   Alert", "Drowsiness Alert". "Inattentive" and "Poor Driver Posture" are
+   anticipated (per the design brief) but not yet confirmed to appear —
+   matched defensively (case-insensitive substring) so they resolve
+   correctly if/when they do, without assuming they're the only other codes
+   that will ever show up. Anything unmatched falls back to colorForCode()'s
+   stable hash so distinct unknown codes still look distinct from each
+   other, just without a specific severity meaning attached. */
+const SEVERITY_RULES = [
+  { test: /sleep/i,                          key: 'critical', label: 'Critical' },
+  { test: /drowsi/i,                         key: 'elevated', label: 'Elevated' },
+  { test: /inattent/i,                       key: 'caution',  label: 'Caution'  },
+  { test: /posture|poor driver/i,            key: 'notice',   label: 'Notice'   }
+];
+
+const SEVERITY_TOKENS = {
+  critical: { fg: 'var(--sev-critical)', bg: 'var(--sev-critical-bg)' },
+  elevated: { fg: 'var(--sev-elevated)', bg: 'var(--sev-elevated-bg)' },
+  caution:  { fg: 'var(--sev-caution)',  bg: 'var(--sev-caution-bg)'  },
+  notice:   { fg: 'var(--sev-notice)',   bg: 'var(--sev-notice-bg)'   }
+};
+
+/** Returns { key, label, color, bg } for an EVENT_CODE. Unknown codes get a
+    stable hash-based color (via colorForCode) and a neutral badge tint, so
+    they're still visually distinguishable from each other without
+    impersonating a known severity level. */
+function severityForCode(code) {
+  const s = String(code ?? '');
+  const rule = SEVERITY_RULES.find(r => r.test.test(s));
+  if (rule) return { key: rule.key, label: rule.label, ...SEVERITY_TOKENS[rule.key] };
+  return { key: 'unknown', label: 'Other', color: colorForCode(s),
+           fg: colorForCode(s), bg: 'var(--border-light)' };
+}
+
+/* Same SEVERITY_RULES matching as severityForCode(), but resolved against
+   the Overview-only --ov-sev-* palette (see :root) instead of the shared
+   --sev-* tokens Analytics/badges depend on — keeps this redesign's colors
+   from leaking into pages the brief says not to touch. */
+const OVERVIEW_SEVERITY_TOKENS = {
+  critical: { fg: 'var(--ov-sev-sleep)',       bg: 'var(--ov-sev-sleep-bg)',       label: 'Sleep Alert' },
+  elevated: { fg: 'var(--ov-sev-drowsy)',      bg: 'var(--ov-sev-drowsy-bg)',      label: 'Drowsiness Alert' },
+  caution:  { fg: 'var(--ov-sev-inattentive)', bg: 'var(--ov-sev-inattentive-bg)', label: 'Inattentive' },
+  notice:   { fg: 'var(--ov-sev-posture)',     bg: 'var(--ov-sev-posture-bg)',     label: 'Poor Driver Posture' }
+};
+
+/* ══ WORKER MESSAGE PROTOCOL ══════════════════════════════════════════════
+   'setRows'  — sent once whenever state.rows changes (import, load, reset).
+                Cached here so a filter change never re-clones the full row
+                set — only the tiny filters object crosses the thread boundary
+                on every interaction, which is the whole point: postMessage's
+                structured-clone cost scales with payload size and runs
+                synchronously on the SENDER side, so cloning every row on every
+                filter change would eat back much of the benefit of moving
+                derive()/compare() off the main thread in the first place.
+   'filter'   — { reqId, filters }. Computes derive()+compare() against the
+                cached rows and replies { reqId, derived } (or { reqId, error }
+                on failure, so the caller can fall back rather than hang).
+   ═══════════════════════════════════════════════════════════════════════ */
+var __ddsWorkerRows = [];
+self.onmessage = function(e) {
+  var msg = e.data;
+  if (msg.type === 'setRows') { __ddsWorkerRows = msg.rows; return; }
+  if (msg.type === 'filter') {
+    try {
+      var derived = derive(__ddsWorkerRows, msg.filters);
+      derived.comparison = compare(__ddsWorkerRows, msg.filters);
+      self.postMessage({ reqId: msg.reqId, derived: derived });
+    } catch (err) {
+      self.postMessage({ reqId: msg.reqId, error: String((err && err.message) || err) });
+    }
+  }
+};
+
+</script>
 <script>
 (function(){
 'use strict';
@@ -5322,6 +6543,48 @@ function createStore(initial = createState()) {
   const listeners = new Set();
   const emit = () => listeners.forEach(fn => fn(state));
 
+  /* ── Off-main-thread filter recompute ────────────────────────────────────
+     setFilters() below used to run derive()+compare() synchronously on the
+     main thread — see its own comment for why that visibly blocks the tab
+     on a large imported set. This section moves that work into a Worker
+     built from the #ddsComputeWorkerSrc <script type="text/plain"> block
+     (see its own header comment for what it contains and why it's a
+     verbatim copy rather than a shared module).
+
+     Rows are sent to the worker ONCE per change (syncWorkerRows), not on
+     every filter — see the worker source's own comment on why re-cloning
+     every row on every filter call would eat back the benefit. Only the
+     small `filters` object crosses the boundary on each interaction.
+
+     reqId/latestReqId implement request cancellation: if a second filter
+     change arrives before the first's worker response comes back, the
+     first's response is dropped when it does arrive rather than racing to
+     overwrite the second's more current result. */
+  let worker = null;
+  let workerRowsSynced = false;
+  let nextReqId = 0;
+  let latestReqId = 0;
+
+  function getWorker() {
+    if (worker) return worker;
+    if (typeof Worker === 'undefined') return null;
+    const srcEl = document.getElementById('ddsComputeWorkerSrc');
+    if (!srcEl) return null;   // markup not mounted (e.g. a non-browser test context)
+    try {
+      const blob = new Blob([srcEl.textContent], { type: 'application/javascript' });
+      worker = new Worker(URL.createObjectURL(blob));
+    } catch (err) {
+      console.warn('Compute worker unavailable, falling back to main-thread filtering', err);
+      worker = null;
+    }
+    return worker;
+  }
+
+  function syncWorkerRows(w) {
+    w.postMessage({ type: 'setRows', rows: state.rows });
+    workerRowsSynced = true;
+  }
+
   return {
     get: () => state,
 
@@ -5330,6 +6593,7 @@ function createStore(initial = createState()) {
        to re-parse every timestamp a second time. */
     _setRows(rows, derived) {
       state = { ...state, rows, derived, status: 'ready', error: null };
+      workerRowsSynced = false;   // rows changed — the worker's cache is stale
       emit();
     },
 
@@ -5347,7 +6611,7 @@ function createStore(initial = createState()) {
        render empty charts rather than the actual "nothing imported yet"
        screen. Filters reset too — a leftover date/shift filter has nothing
        left to apply to once every row is gone. */
-    _reset() { state = createState(); emit(); },
+    _reset() { state = createState(); workerRowsSynced = false; emit(); },
     subscribe(fn) { listeners.add(fn); fn(state); return () => listeners.delete(fn); },
 
     /** Local path (today): recompute in the browser. */
@@ -5356,6 +6620,7 @@ function createStore(initial = createState()) {
       state = { ...state, rows, status: 'ready', error: null };
       state.derived = derive(rows, state.filters);
       state.derived.comparison = compare(rows, state.filters);
+      workerRowsSynced = false;   // rows changed — the worker's cache is stale
       emit();
       return { problems, rejected, accepted: rows.length };
     },
@@ -5406,21 +6671,53 @@ function createStore(initial = createState()) {
       /* derive()+compare() re-scan every row in state.rows (see derive()'s own
          comment on why aggregation, not row count, is the fixed cost) and can
          take long enough on a large imported set to visibly block the tab.
-         Flipping to 'loading' and emitting BEFORE that work runs lets the
-         browser paint the skeleton state (STATE LAYER, dds-tokens.css) on the
-         next frame; deferring the actual recompute by one tick (setTimeout 0)
-         is what buys that frame. Total compute time is unchanged — this only
-         stops a slow filter from reading as a frozen tab instead of a loading
-         one. Same status values fetchMetrics() already uses for the same
-         reason on the server path. */
+         The recompute now runs in the compute worker (see this function's own
+         section above) so it never blocks the main thread at all, regardless
+         of row count. 'loading' is still set immediately so the skeleton
+         state (STATE LAYER, dds-tokens.css) paints right away — same status
+         values fetchMetrics() already uses for the same reason on the server
+         path — and flips back to 'ready' whenever the worker actually
+         replies, however long that takes. */
       state = { ...state, filters, status: 'loading' };
       emit();
-      setTimeout(() => {
+
+      const reqId = ++nextReqId;
+      latestReqId = reqId;
+
+      const fallbackSync = () => {
         const derived = derive(state.rows, filters);
         derived.comparison = compare(state.rows, filters);
         state = { ...state, filters, derived, status: 'ready' };
         emit();
-      }, 0);
+      };
+
+      const w = getWorker();
+      if (!w) {
+        // No Worker support, or the markup/blob setup failed — degrade to the
+        // same synchronous path this replaced rather than leave the UI stuck
+        // on 'loading' forever.
+        setTimeout(() => { if (reqId === latestReqId) fallbackSync(); }, 0);
+        return;
+      }
+      if (!workerRowsSynced) syncWorkerRows(w);
+
+      const onMessage = e => {
+        if (e.data.reqId !== reqId) return;      // a response to an older request
+        w.removeEventListener('message', onMessage);
+        w.removeEventListener('error', onError);
+        if (reqId !== latestReqId) return;        // superseded before this arrived
+        if (e.data.error) { fallbackSync(); return; }
+        state = { ...state, filters, derived: e.data.derived, status: 'ready' };
+        emit();
+      };
+      const onError = () => {
+        w.removeEventListener('message', onMessage);
+        w.removeEventListener('error', onError);
+        if (reqId === latestReqId) fallbackSync();
+      };
+      w.addEventListener('message', onMessage);
+      w.addEventListener('error', onError);
+      w.postMessage({ type: 'filter', reqId, filters });
     },
 
     /* Wired at boot so the store can distinguish the two data paths without
