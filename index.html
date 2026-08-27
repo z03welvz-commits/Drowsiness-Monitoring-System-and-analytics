@@ -5403,10 +5403,24 @@ function createStore(initial = createState()) {
         return;
       }
 
-      const derived = derive(state.rows, filters);
-      derived.comparison = compare(state.rows, filters);
-      state = { ...state, filters, derived };
+      /* derive()+compare() re-scan every row in state.rows (see derive()'s own
+         comment on why aggregation, not row count, is the fixed cost) and can
+         take long enough on a large imported set to visibly block the tab.
+         Flipping to 'loading' and emitting BEFORE that work runs lets the
+         browser paint the skeleton state (STATE LAYER, dds-tokens.css) on the
+         next frame; deferring the actual recompute by one tick (setTimeout 0)
+         is what buys that frame. Total compute time is unchanged — this only
+         stops a slow filter from reading as a frozen tab instead of a loading
+         one. Same status values fetchMetrics() already uses for the same
+         reason on the server path. */
+      state = { ...state, filters, status: 'loading' };
       emit();
+      setTimeout(() => {
+        const derived = derive(state.rows, filters);
+        derived.comparison = compare(state.rows, filters);
+        state = { ...state, filters, derived, status: 'ready' };
+        emit();
+      }, 0);
     },
 
     /* Wired at boot so the store can distinguish the two data paths without
@@ -11088,11 +11102,28 @@ const store = createStore();
     /* The driver-name review queue lives on Data Management and is loaded on
        arrival rather than at startup: it is a network round trip that most
        page visits do not need, and its contents change whenever an import
-       runs — so "already loaded" would go stale silently. Guarded because the
-       handler is registered later in the file than this navigation code. */
+       runs — so a plain "already loaded, never again" flag would go stale
+       silently. Guarded because the handler is registered later in the file
+       than this navigation code.
+
+       NAV_REFRESH_WINDOW_MS below only skips the fetch when one already
+       landed within the last 30s (App._masterlistLoadedAt/_nameReviewLoadedAt,
+       stamped by load()/loadNameReview() themselves) — it exists purely to
+       stop switching tabs back and forth from re-hitting the network every
+       time, not to cache indefinitely. Any actual mutation (upload, approve/
+       reject, import) calls these functions directly at its own call site,
+       bypassing this guard entirely, so real staleness is never in play. */
+    var NAV_REFRESH_WINDOW_MS = 30000;
     if (name === 'data-mgmt'){
-      if (typeof App.loadMasterlist === 'function') App.loadMasterlist();
-      if (typeof App.loadNameReview === 'function') App.loadNameReview();
+      var _now = Date.now();
+      if (typeof App.loadMasterlist === 'function' &&
+          (!App._masterlistLoadedAt || _now - App._masterlistLoadedAt > NAV_REFRESH_WINDOW_MS)) {
+        App.loadMasterlist();
+      }
+      if (typeof App.loadNameReview === 'function' &&
+          (!App._nameReviewLoadedAt || _now - App._nameReviewLoadedAt > NAV_REFRESH_WINDOW_MS)) {
+        App.loadNameReview();
+      }
     }
   }
 
@@ -13677,6 +13708,9 @@ var NotificationSound = (function(){
 
   function load(){
     if (!Cloud.available() || !Cloud.session) return;
+    // Stamped on both outcomes so the nav-arrival guard in the v2.2
+    // navigation IIFE (App.showPage's data-mgmt branch) can skip a refetch
+    // it just did a moment ago, without needing its own copy of Cloud/roster.
     Cloud.fetchMasterlist().then(function(list){
       roster = list || [];
       render();
@@ -13687,6 +13721,8 @@ var NotificationSound = (function(){
       console.warn('Masterlist unavailable', err);
       roster = [];
       render();
+    }).finally(function(){
+      App._masterlistLoadedAt = Date.now();
     });
   }
 
@@ -14003,6 +14039,10 @@ var NotificationSound = (function(){
          card simply stays hidden rather than showing a broken panel. */
       console.warn('Name review unavailable', err);
       nameReviewCard.hidden = true;
+    }).finally(function(){
+      // See App._masterlistLoadedAt's matching comment in the masterlist
+      // IIFE's load() — same nav-arrival-guard purpose, for this queue.
+      App._nameReviewLoadedAt = Date.now();
     });
 
     if (!masterlist.length){

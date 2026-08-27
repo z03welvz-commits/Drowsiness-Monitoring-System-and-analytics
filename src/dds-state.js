@@ -965,10 +965,23 @@ export function createStore(initial = createState()) {
 
     setFilters(patch) {
       const filters = { ...state.filters, ...patch };
-      const derived = derive(state.rows, filters);
-      derived.comparison = compare(state.rows, filters);
-      state = { ...state, filters, derived };
+
+      /* derive()+compare() re-scan every row in state.rows and can take long
+         enough on a large imported set to visibly block the tab. Flipping to
+         'loading' and emitting BEFORE that work runs lets the browser paint
+         the skeleton state on the next frame; deferring the actual recompute
+         by one tick (setTimeout 0) is what buys that frame. Total compute
+         time is unchanged — this only stops a slow filter from reading as a
+         frozen tab instead of a loading one. Mirrors index.html's copy of
+         this store — keep the two in sync (see README on src/ vs index.html). */
+      state = { ...state, filters, status: 'loading' };
       emit();
+      setTimeout(() => {
+        const derived = derive(state.rows, filters);
+        derived.comparison = compare(state.rows, filters);
+        state = { ...state, filters, derived, status: 'ready' };
+        emit();
+      }, 0);
     }
   };
 }
