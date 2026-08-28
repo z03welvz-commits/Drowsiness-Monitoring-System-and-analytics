@@ -2735,9 +2735,15 @@ body {
           </div>
           <div class="chart-body">
             <svg id="anTrendSvg" viewBox="0 0 720 220" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="trend">
-              <line x1="0" y1="20" x2="720" y2="20" stroke="#F1F2F5" stroke-width="1"/>
-              <line x1="0" y1="110" x2="720" y2="110" stroke="#F1F2F5" stroke-width="1"/>
-              <line x1="0" y1="200" x2="720" y2="200" stroke="#F1F2F5" stroke-width="1"/>
+              <!-- var(--divider), not a hardcoded hex — see ovTrendSvg's own
+                   comment above (Overview's identical chart): a literal light
+                   gridline colour stays light-gray under the dark palette and
+                   reads as a harsh bright line across an otherwise-dark chart.
+                   These three Analytics charts shipped with that same bug
+                   after Overview's copy was already fixed; fixed here to match. -->
+              <line x1="0" y1="20" x2="720" y2="20" stroke="var(--divider)" stroke-width="1"/>
+              <line x1="0" y1="110" x2="720" y2="110" stroke="var(--divider)" stroke-width="1"/>
+              <line x1="0" y1="200" x2="720" y2="200" stroke="var(--divider)" stroke-width="1"/>
               <path id="anTrendFillPath" d="" fill="var(--sev-elevated)" fill-opacity=".1"/>
               <path id="anTrendAlertsPath" d="" fill="none" stroke="var(--sev-elevated)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path id="anTrendAssetsPath" d="" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -2757,9 +2763,9 @@ body {
           <div class="legend-row legend-block" id="anHourlyLegend" role="group" aria-label="Toggle months"></div>
           <div class="chart-body">
             <svg id="anHourlySvg" viewBox="0 0 720 220" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="hourlyMonthly">
-              <line x1="0" y1="15" x2="720" y2="15" stroke="#F1F2F5" stroke-width="1"/>
-              <line x1="0" y1="112" x2="720" y2="112" stroke="#F1F2F5" stroke-width="1"/>
-              <line x1="0" y1="210" x2="720" y2="210" stroke="#F1F2F5" stroke-width="1"/>
+              <line x1="0" y1="15" x2="720" y2="15" stroke="var(--divider)" stroke-width="1"/>
+              <line x1="0" y1="112" x2="720" y2="112" stroke="var(--divider)" stroke-width="1"/>
+              <line x1="0" y1="210" x2="720" y2="210" stroke="var(--divider)" stroke-width="1"/>
               <g id="anHourlyLines"></g>
               <g id="anHourlyHover"></g>
             </svg>
@@ -2778,7 +2784,7 @@ body {
           <div class="card-head"><h2>Alert Count by Sync Interval</h2></div>
           <div class="chart-body">
             <svg id="anSyncIntervalSvg" viewBox="0 0 300 130" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="syncInterval">
-              <line x1="0" y1="128" x2="300" y2="128" stroke="#E6E8EC" stroke-width="1"/>
+              <line x1="0" y1="128" x2="300" y2="128" stroke="var(--divider)" stroke-width="1"/>
               <g id="anSyncIntervalBars" fill="var(--blue)"></g>
             </svg>
             <div style="display:flex;justify-content:space-around;margin-top:3px;flex-shrink:0">
@@ -2857,7 +2863,7 @@ body {
           <div class="card-head"><h2>Alert Volume by Day of Week</h2></div>
           <div class="chart-body">
             <svg id="anDayOfWeekSvg" viewBox="0 0 300 130" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="dayOfWeek">
-              <line x1="0" y1="128" x2="300" y2="128" stroke="#E6E8EC" stroke-width="1"/>
+              <line x1="0" y1="128" x2="300" y2="128" stroke="var(--divider)" stroke-width="1"/>
               <g id="anDayOfWeekBars" fill="var(--blue-200)"></g>
             </svg>
             <div style="display:flex;justify-content:space-around;margin-top:3px;flex-shrink:0">
