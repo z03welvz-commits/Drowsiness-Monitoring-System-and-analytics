@@ -3585,6 +3585,27 @@ body {
         </div>
       </div>
 
+      <!-- Data-source toggle — Import History (DDS), the Employee
+           Masterlist and MineStat Data used to stack as three full-height
+           cards in a row, each a different size (masterlist capped at
+           320px, MineStat just a paragraph, Import History filling
+           whatever was left). Only one of the three is ever being worked
+           on at a time, so they now share one tab strip and one fixed
+           footprint — .dm-source-panel is flex:1 in all three cases, and
+           switching tabs just swaps which panel loses its `hidden`
+           attribute rather than resizing the page. -->
+      <div class="card" id="dmSourceTabCard" style="flex:0 0 auto">
+        <div class="imp-tabs" role="tablist" aria-label="Data source" id="dmSourceTabs" style="border-bottom:none">
+          <button class="imp-tab" role="tab" data-source="dds" aria-selected="true" tabindex="0">DDS Data</button>
+          <button class="imp-tab" role="tab" data-source="masterlist" aria-selected="false" tabindex="-1">Masterlist</button>
+          <button class="imp-tab" role="tab" data-source="minestat" aria-selected="false" tabindex="-1">MineStat</button>
+        </div>
+      </div>
+
+      <div id="dmSourceGroup" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px">
+
+      <div class="dm-source-panel" data-source-panel="dds" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px">
+
       <div class="dz" id="dropZone">
         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple>
         <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></div>
@@ -3656,6 +3677,8 @@ body {
         </div>
       </div>
 
+      </div><!-- /.dm-source-panel[dds] -->
+
       <!-- Employee masterlist (conso) — the identity spine, held IN the app.
            Deliberately its own visible card rather than a background lookup
            table: every alert import is scanned against it, so how many people
@@ -3664,9 +3687,12 @@ body {
            import goes unmatched, and that failure has to be legible here
            rather than only showing up as a full review queue.
 
-           Sits ABOVE the review queue because the order is causal: load the
-           conso first, then the scan has something to compare against. -->
-      <div class="card" id="masterlistCard" style="flex:0 0 auto">
+           Its own tab now rather than a card stacked under Import History
+           (see dmSourceTabs above), so it takes the full panel height —
+           no more 320px scroll cap fighting Import History for space. -->
+      <div class="dm-source-panel" data-source-panel="masterlist" style="flex:1;min-height:0;display:flex;flex-direction:column" hidden>
+
+      <div class="card" id="masterlistCard" style="flex:1;min-height:0">
         <div class="card-head">
           <div class="imp-toolbar-title">Employee Masterlist</div>
           <div class="hcontrols">
@@ -3682,12 +3708,11 @@ body {
           </div>
         </div>
 
-        <!-- Capped height with internal scroll. Without this the masterlist is
-             the longest thing on the page and pushes Import History and the
-             review queue below the fold — but this card is a confirmation
-             that the right roster is loaded, not the main event. It yields
-             the page to the things people came here to do. -->
-        <div class="imp-table-wrap" id="masterlistWrap" style="max-height:320px;overflow-y:auto">
+        <!-- Fills the panel (imp-table-wrap's own flex:1;min-height:0) now
+             that the masterlist has its own tab instead of stacking under
+             Import History — no cap needed since the two are never on
+             screen at the same time any more. -->
+        <div class="imp-table-wrap" id="masterlistWrap">
           <div class="imp-empty" id="masterlistEmpty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
             <div class="imp-empty-text" id="masterlistEmptyText">
@@ -3711,6 +3736,8 @@ body {
              Search narrows it when someone needs a specific person. -->
         <div id="masterlistMore" style="font-size:var(--fs-xs);color:var(--text-muted);padding:8px 0 0" hidden></div>
       </div>
+
+      </div><!-- /.dm-source-panel[masterlist] -->
 
       <!-- Conso upload modal. Separate from the older "driver roster" modal on
            Alert Logs, which writes the name-keyed driver_master table that
@@ -3759,8 +3786,16 @@ body {
            MineStat file runs to tens of thousands of rows and is write-only
            operational data feeding the DDS join, not something to page
            through — "MineStat names needing review" below is where its
-           identity-resolution outcome actually surfaces. -->
-      <div class="card" id="minestatCard" style="flex:0 0 auto">
+           identity-resolution outcome actually surfaces.
+
+           Its own tab now (see dmSourceTabs above), sized flex:1 like the
+           other two panels rather than the short flex:0 0 auto card it used
+           to be — the status line sits centered in that space, padded the
+           same as the empty-state text on the other two tabs, instead of
+           text flush against the card edges. -->
+      <div class="dm-source-panel" data-source-panel="minestat" style="flex:1;min-height:0;display:flex;flex-direction:column" hidden>
+
+      <div class="card" id="minestatCard" style="flex:1;min-height:0">
         <div class="card-head">
           <div class="imp-toolbar-title">MineStat Data</div>
           <div class="hcontrols">
@@ -3770,12 +3805,18 @@ body {
             </button>
           </div>
         </div>
-        <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0" id="minestatStatusLine">
-          Daily per-unit, per-shift operator and utilization records — used to attribute alerts to
-          a real employee number when the alert file itself has no operator. Names it can't match
-          land in "MineStat names needing review" below.
-        </p>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;padding:20px 24px">
+          <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0" id="minestatStatusLine">
+            Daily per-unit, per-shift operator and utilization records — used to attribute alerts to
+            a real employee number when the alert file itself has no operator. Names it can't match
+            land in "MineStat names needing review" below.
+          </p>
+        </div>
       </div>
+
+      </div><!-- /.dm-source-panel[minestat] -->
+
+      </div><!-- /#dmSourceGroup -->
 
       <!-- Upload modal — same drop-zone/confirm/error shell as the conso
            upload above. No row-count-vs-existing preview here (unlike
@@ -11453,6 +11494,38 @@ Promise.resolve().then(() => {
       });
       dmRenderTable();
       loadDmActions();
+    });
+    btn.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const next = e.key === 'ArrowRight' ? (i + 1) % tabs.length : (i - 1 + tabs.length) % tabs.length;
+      tabs[next].focus();
+      tabs[next].click();
+    });
+  });
+})();
+
+/* Data Management source toggle — DDS Data / Masterlist / MineStat used to
+   render as three stacked cards of three different heights; they now share
+   one tab strip (#dmSourceTabs) and one fixed-height slot (#dmSourceGroup),
+   each source's markup living in a .dm-source-panel that's `hidden` except
+   when its tab is active. Same roving-tabindex pattern as the tab switchers
+   above — plain hidden/show, no re-render needed since each panel already
+   renders itself independently (Import History, the masterlist card, and
+   the MineStat card each load their own data on page nav, not on tab click). */
+(function(){
+  const tabs = [...document.querySelectorAll('#dmSourceTabs .imp-tab')];
+  const panels = [...document.querySelectorAll('.dm-source-panel')];
+  if (!tabs.length || !panels.length) return;
+  tabs.forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      const source = btn.getAttribute('data-source');
+      tabs.forEach(b => {
+        const on = b === btn;
+        b.setAttribute('aria-selected', String(on));
+        b.tabIndex = on ? 0 : -1;
+      });
+      panels.forEach(p => { p.hidden = p.getAttribute('data-source-panel') !== source; });
     });
     btn.addEventListener('keydown', e => {
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
