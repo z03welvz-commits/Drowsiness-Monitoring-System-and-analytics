@@ -27,13 +27,20 @@ body.auth-pending{visibility:hidden}
 
 *{box-sizing:border-box;margin:0;padding:0}
 
-/* ═══ THEME — shared tokens (identical in both source pages) ═══ */
+/* ═══ THEME — shared tokens (identical in both source pages) ═══
+   This early block is v2.2's original :root — superseded property-by-
+   property by the fuller :root{} block further down (~line 1358, loaded
+   later in the same stylesheet, so it wins the cascade on every token both
+   define). Kept in sync anyway rather than left stale, since a future
+   editor reading top-to-bottom would otherwise hit the pre-re-step hex
+   values first and reasonably assume they're live. See the later block's
+   comment for why the hue ramp changed 2026-08-28. */
 :root{
-  --navy:#1B3A6B; --navy-dark:#0F2A50; --blue:#185FA5; --blue-50:#E6F1FB; --blue-200:#85B7EB;
-  --teal:#0F6E56; --teal-50:#E1F5EE; --teal-200:#5DCAA5;
-  --red:#A32D2D; --red-50:#FCEBEB;
-  --amber:#BA7517; --amber-50:#FAEEDA;
-  --purple:#3C3489; --purple-50:#EEEDFE;
+  --navy:#1464B7; --navy-dark:#0F2A50; --blue:#4297E3; --blue-50:#E6F1FB; --blue-200:#85B7EB;
+  --teal:#08785C; --teal-50:#E1F5EE; --teal-200:#5DCAA5;
+  --red:#C1332E; --red-50:#FCEBEB;
+  --amber:#BC7C30; --amber-50:#FAEEDA;
+  --purple:#5C5AAE; --purple-50:#EEEDFE;
   --orange:#C4531D; --orange-50:#FBE8DC;
   --text:#2C2C2A; --text-sec:#5F5E5A; --text-muted:#888780;
   --border:#D3D1C7; --border-light:#F1EFE8; --divider:#F0F4FB;
@@ -1356,18 +1363,37 @@ th[data-sort][aria-sort]{color:var(--accent)}
    ========================================================================= */
 
 :root {
-  /* ── Color: private hue ramp (unchanged from v2.2) ───────────────────── */
-  --navy: #1B3A6B;  --navy-dark: #0F2A50;
-  --blue: #185FA5;  --blue-50: #E6F1FB;  --blue-200: #85B7EB;
-  --teal: #0F6E56;  --teal-50: #E1F5EE;  --teal-200: #5DCAA5;
-  --red:  #A32D2D;  --red-50:  #FCEBEB;
-  --amber:#BA7517;  --amber-50:#FAEEDA;
-  --purple:#3C3489; --purple-50:#EEEDFE;
+  /* ── Color: private hue ramp ────────────────────────────────────────────
+     Re-stepped 2026-08-28 (dataviz skill's validate_palette.js snap-to-
+     passing method) — the v2.2 hues failed the categorical six-check gate
+     in BOTH modes: navy/purple sat below the OKLCH lightness band, navy/teal
+     read as gray (below the chroma floor), and navy vs. blue cleared only
+     ΔE 13.5 for normal color vision (below the 15 floor — even full-color
+     readers struggled to tell them apart; this is the pair used side by
+     side on "Hourly Trend by Month" and the severity legend system).
+     --red was also only 2.56:1 against the dark-mode surface (#14161B) —
+     a real WCAG mark-contrast failure for e.g. a bare severity-dot legend.
+     Each hue was nudged in L/C (occasionally a few degrees of H to
+     separate navy from blue, which were only 7° apart) — never re-hued —
+     so the palette stays the same navy/blue/teal/red/amber/purple/orange
+     identity, just re-stepped to actually pass. Verified with
+     `node scripts/validate_palette.js "<7 hexes>" --mode light` and
+     `--mode dark --surface "#14161B"`, both ALL CHECKS PASS. See
+     OVERNIGHT_AUDIT_SUMMARY.md's follow-up section for old/new hex values
+     and the full validator output. */
+  --navy: #1464B7;  --navy-dark: #0F2A50;
+  --blue: #4297E3;  --blue-50: #E6F1FB;  --blue-200: #85B7EB;
+  --teal: #08785C;  --teal-50: #E1F5EE;  --teal-200: #5DCAA5;
+  --red:  #C1332E;  --red-50:  #FCEBEB;
+  --amber:#BC7C30;  --amber-50:#FAEEDA;
+  --purple:#5C5AAE; --purple-50:#EEEDFE;
   /* Orange: sits between --red (critical) and --amber (elevated-but-lower)
      on the severity ramp used by the Analytics severity color system below.
      Distinct hue from both — not a tint of either — so a 3-step severity
      scale (critical/elevated/caution) stays tell-apart at a glance and under
-     CVD simulation, not just by adjacency in a legend. */
+     CVD simulation, not just by adjacency in a legend. Already passed the
+     six-check gate unchanged in the 2026-08-28 re-step, so its hex is the
+     same as v2.2. */
   --orange: #C4531D; --orange-50: #FBE8DC;
 
   /* Text-on-tint variants. The raw hues above are tuned for chart FILLS,
