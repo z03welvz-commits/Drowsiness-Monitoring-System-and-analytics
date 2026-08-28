@@ -15262,7 +15262,22 @@ var NotificationSound = (function(){
   /* The employee number is REQUIRED here, unlike the older roster upload where
      it was optional. That is the whole point: a conso row without a number
      cannot serve as an identity, so it is skipped and counted rather than
-     loaded as a nameless-but-present employee. */
+     loaded as a nameless-but-present employee.
+
+     Standardization + de-dup happen here rather than being left to the
+     server: a real conso export routinely carries whitespace noise (extra
+     spaces around either field) and repeat rows for the same employee
+     (re-listed after a transfer, exported twice), and neither should turn
+     into silently-wrong "new employee" counts in the confirm dialog.
+
+     Deliberately NOT case-normalized: emp_no is a case-sensitive TEXT
+     primary key server-side (0018_driver_masterlist.sql, dds_upsert_drivers'
+     `on conflict (emp_no)`), matched by exact string. Upper/lower-casing it
+     here would silently fork any existing employee whose stored ID has
+     different casing into a second row instead of updating the first —
+     exactly the kind of duplicate this pass is meant to prevent, not cause.
+     Whitespace collapse carries no such risk: no legitimate ID depends on
+     its exact run of internal spaces the way it might depend on casing. */
   function parseConso(rows){
     if (!rows.length) throw new Error('EMPTY');
     var idKey = findCol(rows[0], [
@@ -15275,17 +15290,41 @@ var NotificationSound = (function(){
     if (!idKey)   throw new Error('NO_ID_COLUMN');
     if (!nameKey) throw new Error('NO_NAME_COLUMN');
 
+    // Standardize: trim + collapse internal whitespace on both fields (a
+    // spreadsheet export routinely has stray double-spaces from manual
+    // editing) — same trim() the server does, just also applied to the name
+    // and to whitespace *within* the value, not only at the ends.
     var mapped = rows.map(function(r){
       return {
-        emp_no: String(r[idKey] == null ? '' : r[idKey]).trim(),
-        name:   String(r[nameKey] == null ? '' : r[nameKey]).trim()
+        emp_no: String(r[idKey] == null ? '' : r[idKey]).trim().replace(/\s+/g, ' '),
+        name:   String(r[nameKey] == null ? '' : r[nameKey]).trim().replace(/\s+/g, ' ')
       };
     });
-    var list = mapped.filter(function(r){ return r.emp_no && r.name; });
-    return { list: list, skipped: mapped.length - list.length };
+    var withIdentity = mapped.filter(function(r){ return r.emp_no && r.name; });
+    var skipped = mapped.length - withIdentity.length;
+
+    // De-dup by employee number, last row wins — same "last row for this ID
+    // wins" rule dds_upsert_drivers() itself applies server-side (its own
+    // `distinct on (trim(emp_no)) ... order by ord desc`), just done here
+    // too so the confirm dialog's "N employees" count is the real,
+    // post-dedup number rather than the raw row count.
+    var byId = {};
+    var order = [];
+    withIdentity.forEach(function(r){
+      if (!byId[r.emp_no]) order.push(r.emp_no);
+      byId[r.emp_no] = r;
+    });
+    var list = order.map(function(id){ return byId[id]; });
+
+    return { list: list, skipped: skipped, duplicates: withIdentity.length - list.length };
   }
 
-  var MAX_ROWS = 20000;
+  // Not a business limit — a real conso can legitimately run into the tens
+  // of thousands of rows. This is only a last-resort guard against a file
+  // that is obviously the wrong kind (e.g. a raw per-event alert export,
+  // which can run into the hundreds of thousands of rows) freezing the tab
+  // during synchronous XLSX parsing before the user ever sees an error.
+  var MAX_ROWS = 200000;
 
   function handleFile(file){
     errorEl.hidden = true;
@@ -15321,6 +15360,10 @@ var NotificationSound = (function(){
                    (missing === 1 ? '' : 's') + ' absent from this file will be marked inactive (not deleted).';
           }
         }
+        if (parsed.duplicates > 0){
+          msg += ' (' + parsed.duplicates.toLocaleString() + ' duplicate employee number' +
+                 (parsed.duplicates === 1 ? '' : 's') + ' collapsed — kept the last row for each.)';
+        }
         if (parsed.skipped > 0){
           msg += ' (' + parsed.skipped.toLocaleString() + ' row' + (parsed.skipped === 1 ? '' : 's') +
                  ' skipped — missing an employee number or a name.)';
@@ -15333,7 +15376,7 @@ var NotificationSound = (function(){
         errorEl.textContent =
           err.message === 'NO_ID_COLUMN'   ? 'Could not find an employee number column. Expected a header like "Employee ID" or "Emp No".' :
           err.message === 'NO_NAME_COLUMN' ? 'Could not find a name column in this file.' :
-          err.message === 'TOO_MANY_ROWS'  ? 'This file has more than ' + MAX_ROWS.toLocaleString() + ' rows — check it is the conso, not an alert export.' :
+          err.message === 'TOO_MANY_ROWS'  ? 'This file has more than ' + MAX_ROWS.toLocaleString() + ' rows — check it is the conso, not a raw alert export.' :
           'No usable employee rows found in this file.';
         errorEl.hidden = false;
       }
