@@ -458,8 +458,21 @@ export const charts = {
 
   /* Trend over time. `series` selects which lines to draw; the FIRST entry
      in `series` is treated as primary (drives the tooltip's lead value and
-     the fill wash) and every entry shares one scale — see the module header
-     on why this codebase never does dual-axis charts. */
+     the fill wash).
+     NOTE ON SCALING (corrected 2026-08-28 — this comment previously said
+     "every entry shares one scale," which was never true of the inlined
+     index.html version of this function and is a real, deliberate
+     dual-axis chart: Overview's "Alert Volume Over Time" plots Total
+     Alerts and Distinct Assets each on ITS OWN min/max scale, with two
+     tinted y-axes (#ovTrendYAxis / #ovTrendYAxisRight) — see index.html's
+     renderer for the full per-series-scaling rationale (alert counts in
+     the thousands vs. asset counts in the dozens can't share one axis
+     without flattening the smaller series). This is a knowing exception to
+     the dataviz skill's one-axis rule, not an oversight — flagged here so
+     the two known divergences (this file trails index.html's inlined
+     trend() on showPrev/per-series scaling/SERIES_COLOR) don't also carry
+     a false claim about what the shipped chart does. This file (src/) is
+     the older, simpler version — see README's src/ sync note. */
   trend(el, d, { refs, series = ['units'], geo = { top: 8, bottom: 168, width: 992 }, tip, insightEl } = {}) {
     const pts = d.trend;
     if (!pts.length) {

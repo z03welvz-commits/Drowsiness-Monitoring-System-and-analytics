@@ -7995,8 +7995,23 @@ const charts = {
 
   /* Trend over time. `series` selects which lines to draw; the FIRST entry
      in `series` is treated as primary (drives the tooltip's lead value and
-     the fill wash) and every entry shares one scale — see the module header
-     on why this codebase never does dual-axis charts.
+     the fill wash).
+     NOTE ON SCALING (corrected 2026-08-28 — this comment previously
+     claimed "every entry shares one scale," which was wrong: this IS a
+     dual-axis chart, a knowing exception to the dataviz skill's one-axis
+     rule, not an oversight. Overview's "Alert Volume Over Time" plots
+     Total Alerts and Distinct Assets each on ITS OWN min/max scale (see
+     the per-series-scaling block below), with two tinted y-axes
+     (#ovTrendYAxis / #ovTrendYAxisRight) so which axis belongs to which
+     line is unambiguous — alert counts in the thousands vs. asset counts
+     in the dozens can't share one axis without the smaller series
+     flattening to the baseline. The hover tooltip always shows each
+     series' real, un-rescaled value, so nothing is visually
+     misrepresented — only the line height is rescaled, never the number a
+     reader can read off it. Kept as-is rather than split into two charts
+     for this pass; a genuine split (two charts, small multiples, or an
+     indexed-to-100 view) is a bigger call than an audit-and-fix pass
+     should make unsupervised.
 
      `showPrev` (Overview only) overlays d.comparison.prevTrend — the
      PREVIOUS period's own day-by-day units, aligned by INDEX (day 1 vs day
