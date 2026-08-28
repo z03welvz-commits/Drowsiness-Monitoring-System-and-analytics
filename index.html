@@ -1277,6 +1277,16 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .saved-pill{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--success); background:var(--success-bg); border-radius:var(--r-full); padding:3px 10px; opacity:0; transition:opacity var(--dur-base) var(--ease)}
 .saved-pill.show{opacity:1}
 .saved-pill svg{width:9px;height:9px}
+/* Signed-out (Local mode) save — not persisted anywhere, so it gets the
+   amber "caution" tint instead of success-green, same as this app's other
+   not-quite-done states, rather than implying the same guarantee a real
+   server save gets. See flashSaved()'s own comment (SETTINGS PAGE section).
+   --amber-text, not --amber: this renders actual text (not an icon glyph),
+   so it needs the 4.5:1 AA text threshold, not the 3:1 non-text one —
+   --amber-text is the token this file's own tokens comment (~line 1394)
+   documents for exactly that use ("use on tint"). Verified: 4.73:1 light /
+   6.56:1 dark on --amber-50. */
+.saved-pill.local{color:var(--amber-text); background:var(--amber-50)}
 
 /* Notification sound */
 .sound-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0}
@@ -4300,7 +4310,7 @@ body {
           <div class="topbar-sub">Account details, alert sounds, and user access</div>
         </div>
         <div class="hcontrols">
-          <span class="saved-pill" id="settingsSavedPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Saved</span>
+          <span class="saved-pill" id="settingsSavedPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg><span id="settingsSavedPillText">Saved</span></span>
         </div>
       </div>
 
@@ -17414,12 +17424,22 @@ var NotificationSound = (function(){
    signed-in user's own settings. */
 (function(){
   var savedPill = document.getElementById('settingsSavedPill');
+  var savedPillText = document.getElementById('settingsSavedPillText');
   var savedPillTimer = null;
 
-  function flashSaved(){
+  // Signed-in saves genuinely persist to public.user_settings (Cloud.saveSettings,
+  // RLS-scoped to auth.uid()); signed-out (Local mode) saves are in-memory only
+  // and vanish on refresh/tab close, per this file's own comment above ("Signed-out
+  // (Local mode) falls back to today's in-memory-only behavior"). The pill used to
+  // say the same unconditional "Saved" in both cases, which is a real correctness
+  // bug — it told a signed-out user their change was saved when it wasn't going
+  // anywhere. Now the copy is honest about which one happened.
+  function flashSaved(local){
     if (savedPillTimer) clearTimeout(savedPillTimer);
+    if (savedPillText) savedPillText.textContent = local ? 'Saved to this device only' : 'Saved';
+    savedPill.classList.toggle('local', !!local);
     savedPill.classList.add('show');
-    savedPillTimer = setTimeout(function(){ savedPill.classList.remove('show'); }, 1800);
+    savedPillTimer = setTimeout(function(){ savedPill.classList.remove('show'); }, local ? 2600 : 1800);
   }
 
   function showError(el, message){
@@ -17564,7 +17584,7 @@ var NotificationSound = (function(){
     }
     clearError(personalSaveError);
     if (!Cloud.session){
-      flashSaved();
+      flashSaved(true);
       return;
     }
     savePersonalBtn.disabled = true;
@@ -17612,7 +17632,7 @@ var NotificationSound = (function(){
   saveSoundBtn.addEventListener('click', function(){
     clearError(soundSaveError);
     if (!Cloud.session){
-      flashSaved();
+      flashSaved(true);
       return;
     }
     saveSoundBtn.disabled = true;
