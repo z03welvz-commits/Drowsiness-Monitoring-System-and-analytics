@@ -3676,6 +3676,74 @@ body {
         </div>
       </div>
 
+      <!-- MineStat — daily per-unit, per-shift operator + utilization-hours
+           records (0024_minestat.sql). This is what actually carries driver
+           identity for real alert data: DDS exports have no OPERATOR column
+           in practice (it has always been optional — see OPTIONAL_COLUMNS —
+           and is simply absent from every real file), so this is the only
+           source that can say who was running a unit on a given shift.
+           Identity-only for now: the Operating/Down/Delay/Standby/Total
+           hours are stored (see the migration) but nothing in this UI reads
+           them yet — that is deliberately deferred, not forgotten. No
+           row-browsing table here (unlike the masterlist card above): a
+           MineStat file runs to tens of thousands of rows and is write-only
+           operational data feeding the DDS join, not something to page
+           through — "MineStat names needing review" below is where its
+           identity-resolution outcome actually surfaces. -->
+      <div class="card" id="minestatCard" style="flex:0 0 auto">
+        <div class="card-head">
+          <div class="imp-toolbar-title">MineStat Data</div>
+          <div class="hcontrols">
+            <button class="btn btn-outline btn-sm" id="minestatUploadBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg>
+              Upload MineStat
+            </button>
+          </div>
+        </div>
+        <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0" id="minestatStatusLine">
+          Daily per-unit, per-shift operator and utilization records — used to attribute alerts to
+          a real employee number when the alert file itself has no operator. Names it can't match
+          land in "MineStat names needing review" below.
+        </p>
+      </div>
+
+      <!-- Upload modal — same drop-zone/confirm/error shell as the conso
+           upload above. No row-count-vs-existing preview here (unlike
+           conso's "3 new, 480 already known"): a MineStat row's identity is
+           the (Unit, Date, Shift) triple, not something meaningfully
+           compared against "how many are already loaded" before the file is
+           actually parsed and validated server-side. -->
+      <div class="detail-modal" id="minestatUploadModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="minestatUploadTitle" style="max-width:520px">
+          <div class="detail-head">
+            <div>
+              <h2 id="minestatUploadTitle" class="detail-title">Upload MineStat data</h2>
+              <p class="detail-sub">Needs Unit, Date, Shift, Operating/Down/Delay/Standby/Total Hours, and Last/First/Middle Name columns.</p>
+            </div>
+            <button type="button" class="detail-close" id="minestatUploadClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="dz" id="minestatDropZone" style="margin:0">
+            <input type="file" id="minestatFileInput" accept=".xlsx,.xls,.csv">
+            <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></div>
+            <div class="dz-title">Drag &amp; drop the MineStat file, or click to browse</div>
+            <div class="dz-formats">
+              <span class="dz-chip">.XLSX</span>
+              <span class="dz-chip">.XLS</span>
+              <span class="dz-chip">.CSV</span>
+            </div>
+          </div>
+          <div class="field-error" id="minestatUploadError" hidden></div>
+          <div id="minestatUploadConfirm" hidden style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:12px"></div>
+          <div id="minestatUploadProgress" hidden style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:12px"></div>
+          <div class="detail-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="minestatUploadCancel">Cancel</button>
+            <button type="button" class="btn btn-sm" id="minestatUploadConfirmBtn" disabled>Upload</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Reset fleet data — a distinct control from "Clear data" above on
            purpose. That button only ever wipes the LOCAL/signed-out store
            (App.imports + IndexedDB factors); it has no effect once signed in,
@@ -3862,6 +3930,138 @@ body {
               <div style="display:flex;gap:8px">
                 <button type="button" class="btn btn-outline btn-sm" id="nrCancelBtn">Cancel</button>
                 <button type="button" class="btn btn-sm" id="nrConfirmBtn" disabled>Match</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MineStat names needing review — the queue from 0024_minestat's
+           minestat_name_review, a structural twin of the Driver Name Review
+           card above pointed at MineStat's own queue/RPCs (see that card's
+           own markup comment, and the IIFE's header comment, for why this is
+           a parallel card rather than a merged one). These are NOT failed
+           imports: every shift record loaded and every hours total is whole.
+           What is missing is only WHICH EMPLOYEE those records belong to.
+
+           Hidden entirely when signed out or when the queue is empty: an
+           empty review card on every page load would train people to ignore
+           it, and it is precisely the thing that must not be ignored. -->
+      <!-- flex:0 0 auto, NOT the flex:1;min-height:0 that Import History and
+           Contributing Factors use. Those two are designed to share the
+           column's leftover height and scroll internally; a third flexible
+           sibling makes all three fight for the same space, and this card
+           lost — its table was allocated ~21px of a 132px need, so the header
+           rendered and every row was clipped. This queue is short by nature
+           (one row per distinct unmatched name), so it sizes to its content
+           and lets the page scroll instead. -->
+      <div class="card" id="minestatReviewCard" style="flex:0 0 auto" hidden>
+        <div class="card-head">
+          <div class="imp-toolbar-title">MineStat names needing review</div>
+          <div class="hcontrols">
+            <span class="imp-count" id="minestatReviewCount">0 names</span>
+            <button class="btn btn-outline btn-sm" id="minestatReviewRefresh" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="imp-tabs" role="tablist" aria-label="Review states" id="minestatReviewTabs">
+          <button class="imp-tab" role="tab" data-state="open" aria-selected="true" tabindex="0">
+            Open
+            <span class="imp-tab-count" data-tone="danger" id="msCountOpen">0</span>
+          </button>
+          <button class="imp-tab" role="tab" data-state="resolved" aria-selected="false" tabindex="-1">
+            Resolved
+            <span class="imp-tab-count" data-tone="success" id="msCountResolved">0</span>
+          </button>
+          <!-- Ignored stays visible under its own tab rather than being
+               deleted, so an over-eager ignore can be found and undone. -->
+          <button class="imp-tab" role="tab" data-state="ignored" aria-selected="false" tabindex="-1">
+            Not a driver
+            <span class="imp-tab-count" id="msCountIgnored">0</span>
+          </button>
+        </div>
+
+        <div class="imp-table-wrap" id="minestatReviewWrap">
+          <div class="imp-empty" id="minestatReviewEmpty" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <div class="imp-empty-text" id="minestatReviewEmptyText">Every MineStat name in your imports matched the masterlist.</div>
+          </div>
+          <table class="imp-table" id="minestatReviewTable" hidden>
+            <thead>
+              <tr>
+                <th>Name in file</th>
+                <th>Why unmatched</th>
+                <th>Shift records waiting</th>
+                <th>Best guess</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="minestatReviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Resolve modal — same four fix routes as the Driver Name Review
+           card's own modal: pick a ranked candidate, search the masterlist by
+           name OR number, add a driver the conso has not caught up with, or
+           mark the string as not a person at all. -->
+      <div class="detail-modal" id="minestatResolveModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="minestatResolveTitle" style="max-width:560px">
+          <div class="detail-head">
+            <div>
+              <h2 id="minestatResolveTitle" class="detail-title">Match driver name</h2>
+              <p class="detail-sub" id="minestatResolveSub">Assign this spelling to an employee.</p>
+            </div>
+            <button type="button" class="detail-close" id="minestatResolveClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding-right:2px">
+            <div style="background:var(--surface-2,rgba(127,127,127,.08));border-radius:8px;padding:12px 14px">
+              <div style="font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Name as it appeared in the file</div>
+              <div id="msRawName" style="font-size:var(--fs-md);font-weight:600;margin-top:4px;word-break:break-word"></div>
+              <div id="msRowCount" style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:6px"></div>
+            </div>
+
+            <!-- Route 1: ranked candidates the resolver already found. -->
+            <div id="msCandidateBlock" hidden>
+              <div class="field-label" style="margin-bottom:6px">Suggested matches</div>
+              <div id="msCandidates" style="display:flex;flex-direction:column;gap:6px"></div>
+            </div>
+
+            <!-- Route 2: search the whole masterlist, by name or by number. -->
+            <div class="field-group" style="position:relative">
+              <label class="field-label" for="msSearch">Or search the masterlist</label>
+              <input class="field-input" id="msSearch" type="text" autocomplete="off"
+                     placeholder="Type a name or employee number…" style="width:100%">
+              <div class="menu" id="msSearchSuggest" hidden
+                   style="position:absolute;top:100%;left:0;right:0;z-index:20;max-height:220px;overflow-y:auto"></div>
+            </div>
+
+            <!-- Route 3: a real new hire the conso has not caught up with. -->
+            <details id="msAddDriverWrap">
+              <summary style="cursor:pointer;font-size:var(--fs-sm);color:var(--text-sec)">Not on the masterlist? Add them</summary>
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <input class="field-input" id="msNewEmpNo" type="text" placeholder="Employee no." style="flex:0 0 40%">
+                <input class="field-input" id="msNewName" type="text" placeholder="Full name" style="flex:1">
+              </div>
+              <button class="btn btn-outline btn-sm" id="msAddDriverBtn" type="button" style="margin-top:8px">Add and match</button>
+            </details>
+
+            <div class="field-error" id="minestatResolveError" hidden></div>
+
+            <div class="detail-actions" style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+              <!-- Route 4: not a person at all (TEST, N/A, a plate number in
+                   the wrong column). Writes no alias — an ignore says the
+                   string is not a driver, not that it maps to one. -->
+              <button type="button" class="btn btn-outline btn-sm" id="msIgnoreBtn">Not a driver</button>
+              <div style="display:flex;gap:8px">
+                <button type="button" class="btn btn-outline btn-sm" id="msCancelBtn">Cancel</button>
+                <button type="button" class="btn btn-sm" id="msConfirmBtn" disabled>Match</button>
               </div>
             </div>
           </div>
@@ -11682,6 +11882,97 @@ const Cloud = {
     return { importId: imp.id, inserted };
   },
 
+  /* MineStat — see 0024_minestat.sql. Mirrors ingest() above exactly (same
+     imports-row-first, same 2000-row chunking, same session-refresh-before-
+     expiry + retry-with-backoff, same "report how far it got" failure
+     shape), pointed at dds_minestat_ingest and kind:'minestat' instead.
+     rows are expected ALREADY canonical (UNIT, SHIFT_DATE 'YYYY-MM-DD',
+     SHIFT, LAST_NAME, FIRST_NAME, MIDDLE_NAME, and the five *_HRS numeric
+     fields) — see parseMinestatRows() in the MineStat upload IIFE, which
+     does that validation/normalization client-side before this is ever
+     called (MineStat's Date is a whole-day value with no time-of-day
+     component to re-parse for timezone, unlike DDS's toCanonical(), so no
+     separate canonicalization step is needed here). */
+  async ingestMinestat(name, rows, onProgress){
+    const uid = this.session?.user?.id;
+    if (!uid) throw new Error('NOT_SIGNED_IN');
+
+    const { data: imp, error: impErr } = await this.client
+      .from('imports')
+      .insert({ original_name: name, storage_key: `local/${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+                 status: 'processing', row_count: 0, uploaded_by: uid, kind: 'minestat' })
+      .select('id')
+      .single();
+    if (impErr) throw impErr;
+
+    const CHUNK = 2000;
+    const REFRESH_MARGIN_MS = 120000;
+    const MAX_ATTEMPTS = 3;
+
+    const freshenIfNeeded = async () => {
+      const { data } = await this.client.auth.getSession();
+      const s = data?.session;
+      if (!s) return;
+      const msLeft = (s.expires_at * 1000) - Date.now();
+      if (msLeft < REFRESH_MARGIN_MS) {
+        const { data: r } = await this.client.auth.refreshSession();
+        if (r?.session) this.session = r.session;
+      }
+    };
+
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const slice = rows.slice(i, i + CHUNK);
+
+      let lastErr = null;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        await freshenIfNeeded();
+
+        const { data, error: ingestErr } = await this.client.rpc('dds_minestat_ingest', {
+          p_import_id: imp.id, p_rows: slice
+        });
+
+        if (!ingestErr) { inserted += (data || 0); lastErr = null; break; }
+        lastErr = ingestErr;
+
+        const status = ingestErr.status ?? ingestErr.code;
+        const retryable = status === 401 || status === 403 ||
+                          status === 408 || status === 429 ||
+                          (typeof status === 'number' && status >= 500) ||
+                          ingestErr.message === 'Failed to fetch';
+        if (!retryable || attempt === MAX_ATTEMPTS) break;
+
+        try {
+          const { data: r } = await this.client.auth.refreshSession();
+          if (r?.session) this.session = r.session;
+        } catch (_) { /* fall through to the retry regardless */ }
+
+        await new Promise(res => setTimeout(res, 400 * attempt));
+      }
+
+      if (lastErr) {
+        try {
+          await this.client.rpc('dds_fail_import', {
+            p_import_id: imp.id, p_error: 'Sync interrupted'
+          });
+        } catch (_) { /* keep the original error */ }
+
+        lastErr.ddsInserted = inserted;
+        lastErr.ddsTotal = rows.length;
+        throw lastErr;
+      }
+
+      if (onProgress) onProgress(Math.min(i + CHUNK, rows.length), rows.length);
+    }
+
+    const { error: completeErr } = await this.client.rpc('dds_complete_import', {
+      p_import_id: imp.id
+    });
+    if (completeErr) throw completeErr;
+
+    return { importId: imp.id, inserted };
+  },
+
   /* Contributing factors — see 0003_contributing_factors.sql. Unlike
      ingest() above, this is a plain insert (no RPC, no annotate()-style
      validation to redo) — the table has no generated shift/actionable
@@ -11837,6 +12128,43 @@ const Cloud = {
      disagree about who a name belongs to. */
   async reopenNameReview(reviewId){
     const { error } = await this.client.rpc('dds_reopen_review', {
+      p_review_id: reviewId, p_clear_alias: true
+    });
+    if (error) throw error;
+  },
+
+  /* ── MineStat name review (0024_minestat) ──────────────────────────────
+     Structural twin of fetchNameReview()/resolveNameReview()/
+     ignoreNameReview()/reopenNameReview() above, pointed at MineStat's own
+     queue table and RPC set. See 0024_minestat.sql's header comment for why
+     this is a parallel queue rather than a merged one. */
+  async fetchMinestatNameReview(state = 'open'){
+    let q = this.client
+      .from('minestat_name_review')
+      .select('id, import_id, raw_name, norm_name, tier, distance, candidates, row_count, state, resolved_at')
+      .order('row_count', { ascending: false })
+      .limit(500);
+    if (state !== 'all') q = q.eq('state', state);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+
+  async resolveMinestatNameReview(reviewId, empNo){
+    const { data, error } = await this.client.rpc('dds_minestat_resolve_review', {
+      p_review_id: reviewId, p_emp_no: empNo
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  async ignoreMinestatNameReview(reviewId){
+    const { error } = await this.client.rpc('dds_minestat_ignore_review', { p_review_id: reviewId });
+    if (error) throw error;
+  },
+
+  async reopenMinestatNameReview(reviewId){
+    const { error } = await this.client.rpc('dds_minestat_reopen_review', {
       p_review_id: reviewId, p_clear_alias: true
     });
     if (error) throw error;
@@ -15445,6 +15773,311 @@ var NotificationSound = (function(){
   Cloud.onSignIn(function(){ load(); });
 })();
 
+/* ═══════════════════════ MINESTAT ═══════════════════════
+   Upload flow for the third data source (0024_minestat.sql) — daily
+   per-unit/per-shift operator + utilization-hours records. See minestatCard's
+   own markup comment for why this is what actually carries driver identity
+   for real alert data (DDS's OPERATOR column is always absent in practice).
+
+   Mirrors the EMPLOYEE MASTERLIST IIFE above in structure (drop zone, header
+   check before any row parsing, row-level reject list, confirm dialog,
+   MAX_ROWS as a freeze-guard rather than a business limit) but uploads via
+   Cloud.ingestMinestat()'s chunked path rather than a single RPC call, since
+   a real MineStat file runs into the tens of thousands of rows. */
+(function(){
+  var card = document.getElementById('minestatCard');
+  if (!card) return;
+
+  var uploadBtn   = document.getElementById('minestatUploadBtn');
+  var modal       = document.getElementById('minestatUploadModal');
+  var dropZone    = document.getElementById('minestatDropZone');
+  var fileInput   = document.getElementById('minestatFileInput');
+  var errorEl     = document.getElementById('minestatUploadError');
+  var confirmBox  = document.getElementById('minestatUploadConfirm');
+  var progressBox = document.getElementById('minestatUploadProgress');
+  var confirmBtn  = document.getElementById('minestatUploadConfirmBtn');
+  var cancelBtn   = document.getElementById('minestatUploadCancel');
+  var closeBtn    = document.getElementById('minestatUploadClose');
+
+  var pending      = null;   // parsed rows awaiting confirmation
+  var pendingName  = '';     // original filename, for the imports row
+
+  function openModal(){
+    pending = null;
+    pendingName = '';
+    errorEl.hidden = true;
+    confirmBox.hidden = true;
+    progressBox.hidden = true;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Upload';
+    fileInput.value = '';
+    modal.hidden = false;
+  }
+  function closeModal(){ modal.hidden = true; fileInput.value = ''; }
+
+  uploadBtn.addEventListener('click', function(){
+    if (!Cloud.available() || !Cloud.session){
+      announce('Sign in to upload MineStat data', { assertive: true });
+      return;
+    }
+    openModal();
+  });
+  cancelBtn.addEventListener('click', closeModal);
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && !modal.hidden) closeModal();
+  });
+
+  /* Column aliases — real exports vary ("Operating" vs "Operating Hours"),
+     same reasoning as the main app's own COLUMN_ALIASES for OPERATOR. */
+  var MINESTAT_COLUMNS = {
+    UNIT:        ['unit', 'asset', 'asset id', 'equipment', 'equipment id'],
+    DATE:        ['date', 'shift date'],
+    SHIFT:       ['shift'],
+    OPERATING:   ['operating', 'operating hours', 'operating hrs'],
+    DOWN:        ['down', 'down hours', 'down hrs'],
+    DELAY:       ['delay', 'delay hours', 'delay hrs'],
+    STANDBY:     ['standby', 'standby hours', 'standby hrs'],
+    TOTAL:       ['total hours', 'total hrs', 'total'],
+    LAST_NAME:   ['last name', 'lastname', 'surname'],
+    FIRST_NAME:  ['first name', 'firstname', 'given name'],
+    MIDDLE_NAME: ['middle name', 'middlename']
+  };
+
+  function msNormalizeHeader(k){ return String(k).trim().toLowerCase().replace(/[_\s]+/g, ' '); }
+  function msFindCol(row, candidates){
+    var keys = Object.keys(row);
+    for (var i = 0; i < candidates.length; i++){
+      for (var j = 0; j < keys.length; j++){
+        if (msNormalizeHeader(keys[j]) === candidates[i]) return keys[j];
+      }
+    }
+    return null;
+  }
+
+  /* Header validation BEFORE any row parsing — same "the header mismatch is
+     the whole story for that import" rule the main DDS importer's
+     checkHeader() follows. None of these are optional: every column is
+     load-bearing for the fact row (unlike DDS's OPERATOR). */
+  function checkHeaderMinestat(rows){
+    var required = Object.keys(MINESTAT_COLUMNS);
+    if (!rows || !rows.length) return { ok: false, missing: required.slice() };
+    var missing = required.filter(function(col){
+      return !msFindCol(rows[0], MINESTAT_COLUMNS[col]);
+    });
+    return { ok: missing.length === 0, missing: missing };
+  }
+
+  /* Excel's date epoch is 1899-12-30 (not 12-31 — Excel's own leap-year bug
+     is baked into every reader that has to stay compatible with it, SheetJS
+     included). Handles a raw serial number (XLSX, no cellDates option — same
+     as the rest of this app's XLSX reads), a real Date (defensive, in case a
+     future call site passes cellDates:true), or a plain date string (CSV,
+     always text). No time-of-day component is expected or parsed — MineStat's
+     Date is a whole-day value, unlike DDS's START_TIME/END_TIME. */
+  var MS_EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
+  function msParseDate(v){
+    if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
+    if (typeof v === 'number' && Number.isFinite(v)){
+      return new Date(MS_EXCEL_EPOCH_MS + v * 86400000);
+    }
+    var s = String(v == null ? '' : v).trim();
+    if (!s) return null;
+    var m = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(s);
+    if (m) return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+    m = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(s);
+    if (m) return new Date(Date.UTC(Number(m[3]), Number(m[1]) - 1, Number(m[2])));
+    return null;
+  }
+  function msFormatDateISO(d){
+    return d.getUTCFullYear() + '-' +
+      String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getUTCDate()).padStart(2, '0');
+  }
+
+  // Not a business limit — same "freeze guard, not a real cap" rationale as
+  // the masterlist's own MAX_ROWS (see that IIFE's comment; this session
+  // already had to fix that one once for being set too low from the start).
+  var MINESTAT_MAX_ROWS = 200000;
+
+  // Control character as fingerprint separator, never occurs in real cell
+  // content — same convention as the main importer's FP_SEP, keeping
+  // adjacent fields from blurring into each other.
+  var MS_FP_SEP = String.fromCharCode(1);
+
+  /* Row-level validation: every field is checked and a bad row is REJECTED
+     (counted and drillable), never silently coerced to zero/blank — hours
+     data that fails to parse is a real data-quality problem worth surfacing,
+     even though nothing reads these hours yet (see minestatCard's own
+     comment on why they're stored without being used this pass). */
+  function parseMinestatRows(rows){
+    if (!rows.length) throw new Error('EMPTY');
+    var cols = {};
+    Object.keys(MINESTAT_COLUMNS).forEach(function(col){
+      cols[col] = msFindCol(rows[0], MINESTAT_COLUMNS[col]);
+    });
+
+    var seen = {};      // fingerprint -> row (last occurrence wins)
+    var order = [];
+    var rejected = [];  // [{ rowIndex, reason, row }]
+    var duplicates = 0;
+
+    rows.forEach(function(r, i){
+      var unit   = String(r[cols.UNIT] == null ? '' : r[cols.UNIT]).trim();
+      var dateV  = msParseDate(r[cols.DATE]);
+      var shift  = String(r[cols.SHIFT] == null ? '' : r[cols.SHIFT]).trim().toUpperCase();
+      var last   = String(r[cols.LAST_NAME]   == null ? '' : r[cols.LAST_NAME]).trim().replace(/\s+/g, ' ');
+      var first  = String(r[cols.FIRST_NAME]  == null ? '' : r[cols.FIRST_NAME]).trim().replace(/\s+/g, ' ');
+      var middle = String(r[cols.MIDDLE_NAME] == null ? '' : r[cols.MIDDLE_NAME]).trim().replace(/\s+/g, ' ');
+      var operating = Number(r[cols.OPERATING]);
+      var down      = Number(r[cols.DOWN]);
+      var delay     = Number(r[cols.DELAY]);
+      var standby   = Number(r[cols.STANDBY]);
+      var total     = Number(r[cols.TOTAL]);
+
+      if (!unit){ rejected.push({ rowIndex: i, reason: 'Missing Unit', row: r }); return; }
+      if (!dateV){ rejected.push({ rowIndex: i, reason: 'Unparseable Date', row: r }); return; }
+      if (shift !== 'DAY' && shift !== 'NIGHT'){
+        rejected.push({ rowIndex: i, reason: 'Shift must be DAY or NIGHT', row: r }); return;
+      }
+      if (![operating, down, delay, standby, total].every(Number.isFinite)){
+        rejected.push({ rowIndex: i, reason: 'Non-numeric hours value', row: r }); return;
+      }
+
+      var out = {
+        UNIT: unit, SHIFT_DATE: msFormatDateISO(dateV), SHIFT: shift,
+        LAST_NAME: last, FIRST_NAME: first, MIDDLE_NAME: middle,
+        OPERATING_HRS: operating, DOWN_HRS: down, DELAY_HRS: delay,
+        STANDBY_HRS: standby, TOTAL_HRS: total
+      };
+
+      // (Unit, Date, Shift) is the confirmed real-world grain — same
+      // fingerprint convention as the main importer's FINGERPRINT_COLS.
+      var fp = unit.toLowerCase() + MS_FP_SEP + out.SHIFT_DATE + MS_FP_SEP + shift;
+      if (seen[fp] === undefined) order.push(fp); else duplicates++;
+      seen[fp] = out;
+    });
+
+    var list = order.map(function(fp){ return seen[fp]; });
+    return { list: list, rejected: rejected, duplicates: duplicates };
+  }
+
+  function handleFile(file){
+    errorEl.hidden = true;
+    confirmBox.hidden = true;
+    confirmBtn.disabled = true;
+    pendingName = file.name;
+
+    function onParsed(rows){
+      try {
+        if (rows.length > MINESTAT_MAX_ROWS) throw new Error('TOO_MANY_ROWS');
+
+        // Schema check first — a header mismatch is the whole story for
+        // this import, same rule the main DDS importer follows.
+        var headerCheck = checkHeaderMinestat(rows);
+        if (!headerCheck.ok){
+          var err = new Error('MISSING_COLUMNS');
+          err.missing = headerCheck.missing;
+          throw err;
+        }
+
+        var parsed = parseMinestatRows(rows);
+        if (!parsed.list.length) throw new Error('EMPTY');
+        pending = parsed.list;
+
+        var msg = 'This file holds ' + parsed.list.length.toLocaleString() +
+          ' shift record' + (parsed.list.length === 1 ? '' : 's') + '.';
+        if (parsed.duplicates > 0){
+          msg += ' (' + parsed.duplicates.toLocaleString() + ' duplicate unit/date/shift row' +
+                 (parsed.duplicates === 1 ? '' : 's') + ' collapsed — kept the last row for each.)';
+        }
+        if (parsed.rejected.length > 0){
+          msg += ' (' + parsed.rejected.length.toLocaleString() + ' row' +
+                 (parsed.rejected.length === 1 ? '' : 's') +
+                 ' skipped — missing a unit, an unparseable date, an invalid shift, or a non-numeric hours value.)';
+        }
+
+        confirmBox.textContent = msg;
+        confirmBox.hidden = false;
+        confirmBtn.disabled = false;
+      } catch (e){
+        errorEl.textContent =
+          e.message === 'MISSING_COLUMNS' ? 'Missing column' + (e.missing.length === 1 ? '' : 's') + ': ' + e.missing.join(', ') :
+          e.message === 'TOO_MANY_ROWS'   ? 'This file has more than ' + MINESTAT_MAX_ROWS.toLocaleString() + ' rows — check it is a MineStat export.' :
+          'No usable shift records found in this file.';
+        errorEl.hidden = false;
+      }
+    }
+
+    var ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (ext === 'csv'){
+      Papa.parse(file, { header: true, skipEmptyLines: true, complete: function(res){ onParsed(res.data); } });
+    } else if (ext === 'xlsx' || ext === 'xls'){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        try {
+          var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+          onParsed(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }));
+        } catch (err){
+          errorEl.textContent = 'Could not read that workbook.';
+          errorEl.hidden = false;
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      errorEl.textContent = 'Unsupported file type.';
+      errorEl.hidden = false;
+    }
+  }
+
+  dropZone.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(){
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+  dropZone.addEventListener('dragover', function(e){ e.preventDefault(); dropZone.dataset.state = 'drag'; });
+  dropZone.addEventListener('dragleave', function(){ delete dropZone.dataset.state; });
+  dropZone.addEventListener('drop', function(e){
+    e.preventDefault();
+    delete dropZone.dataset.state;
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  confirmBtn.addEventListener('click', function(){
+    if (!pending) return;
+    confirmBtn.disabled = true;
+    confirmBox.hidden = true;
+    progressBox.hidden = false;
+    progressBox.textContent = 'Uploading…';
+
+    Cloud.ingestMinestat(pendingName, pending, function(done, total){
+      var pct = Math.round((done / total) * 100);
+      progressBox.textContent = 'Uploading ' + pct + '%…';
+    }).then(function(result){
+      var n = result && result.inserted != null ? result.inserted : 0;
+      announce('MineStat data uploaded — ' + Number(n).toLocaleString() +
+               (n === 1 ? ' shift record processed' : ' shift records processed'));
+      closeModal();
+      // Names that did not resolve against the masterlist during ingest are
+      // exactly what the review queue exists to surface — same "an import is
+      // exactly when new names appear" reasoning the DDS importer already
+      // applies to its own review queue.
+      if (typeof App.loadMinestatNameReview === 'function') App.loadMinestatNameReview();
+    }).catch(function(err){
+      console.error('MineStat upload failed', err);
+      progressBox.hidden = true;
+      // Same "report how far it got" convention as the DDS importer's own
+      // sync failure handling — ddsInserted/ddsTotal are set by
+      // Cloud.ingestMinestat() on a mid-upload failure.
+      errorEl.textContent = (err && err.ddsInserted > 0)
+        ? 'Upload failed after ' + fmt.int(err.ddsInserted) + ' of ' + fmt.int(err.ddsTotal) + ' rows — try again to resume.'
+        : 'Upload failed. Try again.';
+      errorEl.hidden = false;
+      confirmBtn.disabled = false;
+    });
+  });
+})();
+
 /* ═══════════════════════ DRIVER NAME REVIEW ═══════════════════════
    UI over import_name_review (0019_events_emp_no). Its own IIFE rather than
    part of Alert Logs: this is a Data Management feature, and scoping it to a
@@ -15847,6 +16480,413 @@ var NotificationSound = (function(){
   document.addEventListener('click', function(e){
     if (!nrSuggest.hidden && !nrSuggest.contains(e.target) && e.target !== nrSearch){
       nrSuggest.hidden = true;
+    }
+  });
+
+})();
+
+
+/* ═══════════════════════ MINESTAT NAME REVIEW ═══════════════════════
+   UI over minestat_name_review (0024_minestat) — a structural twin of the
+   DRIVER NAME REVIEW IIFE above, pointed at MineStat's own review queue and
+   RPC set (dds_minestat_resolve_review/ignore_review/reopen_review) instead
+   of DDS's. Kept as its own IIFE/card rather than merged into the one above:
+   the two queues can disagree (a name unresolved in one may already be
+   resolved in the other), and merging them would need a "which source" flag
+   threaded through every row, button, and RPC call for no real benefit —
+   see 0024_minestat.sql's own header comment for why the SQL side made the
+   same call. Server-only, like the DDS queue — nothing to show offline.
+
+   IMPORTANT DIFFERENCE FROM THE DDS QUEUE ABOVE: resolving a name here
+   updates minestat_shifts.emp_no only — it does NOT touch events.emp_no.
+   That happens separately via dds_backfill_emp_no_from_minestat(), which is
+   deliberately console-invoked for now (see 0024_minestat.sql), not wired to
+   a button. So confirming a match here will not immediately change any
+   alert's attribution on screen — the wording below says "shift record(s)",
+   never "alert(s)", to avoid implying otherwise. */
+(function(){
+  var minestatReviewCard    = document.getElementById('minestatReviewCard');
+  if (!minestatReviewCard) return;
+
+  /* ── MineStat name review queue ────────────────────────────────────────
+     The rows here are MineStat Last/First/Middle names the resolver could
+     not attribute to an employee number — NOT failed imports. Every
+     shift record loaded and every hours total is whole; only the employee
+     attribution is missing. That distinction drives the wording throughout:
+     "shift records waiting", never "rows rejected".
+
+     Resolving is deliberately a per-name decision, not per-row: one
+     misspelling covering 30 shift records is one click, and the table is
+     sorted by how many records hang on each decision so the queue is worked
+     in impact order. */
+
+  var minestatReviewTable   = document.getElementById('minestatReviewTable');
+  var minestatReviewBody    = document.getElementById('minestatReviewBody');
+  var minestatReviewEmpty   = document.getElementById('minestatReviewEmpty');
+  var minestatReviewEmptyTx = document.getElementById('minestatReviewEmptyText');
+  var minestatReviewCountEl = document.getElementById('minestatReviewCount');
+  var minestatReviewTabs    = document.getElementById('minestatReviewTabs');
+  var msRefreshBtn      = document.getElementById('minestatReviewRefresh');
+
+  var msModal      = document.getElementById('minestatResolveModal');
+  var msRawNameEl  = document.getElementById('msRawName');
+  var msRowCountEl = document.getElementById('msRowCount');
+  var msCandBlock  = document.getElementById('msCandidateBlock');
+  var msCandsEl    = document.getElementById('msCandidates');
+  var msSearch     = document.getElementById('msSearch');
+  var msSuggest    = document.getElementById('msSearchSuggest');
+  var msError      = document.getElementById('minestatResolveError');
+  var msConfirmBtn = document.getElementById('msConfirmBtn');
+  var msIgnoreBtn  = document.getElementById('msIgnoreBtn');
+  var msCancelBtn  = document.getElementById('msCancelBtn');
+  var msCloseBtn   = document.getElementById('minestatResolveClose');
+  var msNewEmpNo   = document.getElementById('msNewEmpNo');
+  var msNewName    = document.getElementById('msNewName');
+  var msAddBtn     = document.getElementById('msAddDriverBtn');
+
+  var reviewRows    = [];     // current tab's rows
+  var reviewCounts  = { open: 0, resolved: 0, ignored: 0 };
+  var reviewState   = 'open';
+  var masterlist    = [];     // [{emp_no, full_name, status}]
+  var msEditing     = null;   // the review row open in the modal
+  var msSelectedEmp = null;   // employee chosen for it
+
+  /* Plain-language reason. The tier names are the resolver's vocabulary
+     ('fuzzy_review', 'ambiguous_exact'), not something a coordinator should
+     have to learn — and the two cases need DIFFERENT actions, so collapsing
+     them into one "no match" label would hide which is which. */
+  function reviewReason(r){
+    if (r.tier === 'fuzzy_review'){
+      var n = (r.candidates || []).length;
+      return n > 1 ? 'Close to ' + n + ' different drivers' : 'Close, but not close enough';
+    }
+    if (r.tier === 'ambiguous_exact') return 'Two people share this name';
+    return 'No one on the masterlist matches';
+  }
+
+  function renderNameReview(){
+    minestatReviewCountEl.textContent = reviewRows.length +
+      (reviewRows.length === 1 ? ' name' : ' names');
+
+    document.getElementById('msCountOpen').textContent     = reviewCounts.open;
+    document.getElementById('msCountResolved').textContent = reviewCounts.resolved;
+    document.getElementById('msCountIgnored').textContent  = reviewCounts.ignored;
+
+    /* The whole card hides when there is nothing open AND nothing ever
+       resolved — a permanently empty panel teaches people to skip past it. */
+    var everAny = reviewCounts.open + reviewCounts.resolved + reviewCounts.ignored;
+    minestatReviewCard.hidden = !everAny;
+    if (!everAny) return;
+
+    if (!reviewRows.length){
+      minestatReviewTable.hidden = true;
+      minestatReviewEmpty.hidden = false;
+      minestatReviewEmptyTx.textContent = reviewState === 'open'
+        ? 'Every MineStat name in your imports matched the masterlist.'
+        : 'Nothing in this view.';
+      return;
+    }
+
+    minestatReviewEmpty.hidden = true;
+    minestatReviewTable.hidden = false;
+
+    minestatReviewBody.innerHTML = reviewRows.map(function(r){
+      var cands = r.candidates || [];
+      var best  = cands.length ? cands[0] : null;
+      var bestTxt = best
+        ? esc(best.name) + ' <span style="color:var(--text-muted)">(' + esc(best.emp_no) + ')</span>'
+        : '<span style="color:var(--text-muted)">—</span>';
+
+      var action = r.state === 'open'
+        ? '<button class="btn btn-outline btn-sm" data-ms-open="' + r.id + '">Match</button>'
+        : '<button class="btn btn-outline btn-sm" data-ms-reopen="' + r.id + '">Undo</button>';
+
+      return '<tr>' +
+        '<td style="font-weight:600;word-break:break-word">' + esc(r.raw_name || r.norm_name) + '</td>' +
+        '<td style="color:var(--text-sec)">' + esc(reviewReason(r)) + '</td>' +
+        '<td>' + Number(r.row_count || 0).toLocaleString() + '</td>' +
+        '<td>' + bestTxt + '</td>' +
+        '<td style="text-align:right">' + action + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function loadNameReview(){
+    if (!Cloud.available() || !Cloud.session){ minestatReviewCard.hidden = true; return; }
+
+    /* Fetch every state, not just the active tab: the tab COUNTS have to be
+       right even for tabs nobody has opened, and the queue is small enough
+       (capped at 500 server-side) that one round trip beats three. */
+    Cloud.fetchMinestatNameReview('all').then(function(all){
+      reviewCounts = { open: 0, resolved: 0, ignored: 0 };
+      all.forEach(function(r){
+        if (reviewCounts[r.state] != null) reviewCounts[r.state]++;
+      });
+      reviewRows = all.filter(function(r){ return r.state === reviewState; });
+      renderNameReview();
+    }).catch(function(err){
+      /* A missing table means 0024_minestat has not been applied to this
+         project yet. That is a deployment state, not an error the user can
+         act on, so the card simply stays hidden rather than showing a
+         broken panel. */
+      console.warn('MineStat name review unavailable', err);
+      minestatReviewCard.hidden = true;
+    }).finally(function(){
+      // See App._masterlistLoadedAt's matching comment in the masterlist
+      // IIFE's load() — same nav-arrival-guard purpose, for this queue.
+      App._minestatReviewLoadedAt = Date.now();
+    });
+
+    if (!masterlist.length){
+      Cloud.fetchMasterlist().then(function(list){ masterlist = list || []; }).catch(function(){});
+    }
+  }
+
+  if (minestatReviewTabs){
+    minestatReviewTabs.addEventListener('click', function(e){
+      var tab = e.target.closest('[data-state]');
+      if (!tab) return;
+      reviewState = tab.getAttribute('data-state');
+      Array.prototype.forEach.call(minestatReviewTabs.querySelectorAll('[data-state]'), function(t){
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+      });
+      loadNameReview();
+    });
+  }
+
+  if (msRefreshBtn) msRefreshBtn.addEventListener('click', loadNameReview);
+
+  /* Published so the page router (showPage) and the import flow can refresh
+     the queue without reaching into this closure. An import is exactly when
+     new names appear, so leaving the card stale until a manual Refresh would
+     hide the thing it exists to surface. */
+  App.loadMinestatNameReview = loadNameReview;
+
+  Cloud.onSignIn(function(){ loadNameReview(); });
+
+  /* ── Resolve modal ── */
+
+  function openResolveModal(row){
+    msEditing = row;
+    msSelectedEmp = null;
+    msError.hidden = true;
+    msSearch.value = '';
+    msSuggest.hidden = true;
+    msNewEmpNo.value = '';
+    msNewName.value = row.raw_name || '';
+    msConfirmBtn.disabled = true;
+
+    msRawNameEl.textContent = row.raw_name || row.norm_name;
+    msRowCountEl.textContent = Number(row.row_count || 0).toLocaleString() +
+      (row.row_count === 1 ? ' shift record is' : ' shift records are') +
+      ' waiting on this — they are already imported, just not' +
+      ' attributed to an employee yet.';
+
+    var cands = row.candidates || [];
+    if (cands.length){
+      msCandBlock.hidden = false;
+      msCandsEl.innerHTML = cands.map(function(c){
+        var dist = (c.distance != null)
+          ? '<span style="color:var(--text-muted);font-size:var(--fs-xs)"> · ' +
+            (c.distance === 0 ? 'exact' : c.distance + ' character' + (c.distance === 1 ? '' : 's') + ' different') +
+            '</span>'
+          : '';
+        /* data-ms-name carries the clean employee name so the confirm button
+           can say "Match to <person>" without scraping this element's text,
+           which also contains the distance annotation. */
+        return '<button type="button" class="btn btn-outline btn-sm" data-ms-pick="' + esc(c.emp_no) + '" ' +
+               'data-ms-name="' + esc(c.name) + '" ' +
+               'style="justify-content:flex-start;text-align:left;width:100%">' +
+               esc(c.name) + ' <span style="color:var(--text-muted)">(' + esc(c.emp_no) + ')</span>' + dist +
+               '</button>';
+      }).join('');
+    } else {
+      msCandBlock.hidden = true;
+      msCandsEl.innerHTML = '';
+    }
+
+    msModal.hidden = false;
+    msSearch.focus();
+  }
+
+  function closeResolveModal(){
+    msModal.hidden = true;
+    msEditing = null;
+    msSelectedEmp = null;
+  }
+
+  /* The button names WHO the match will go to, so the confirming click is
+     never ambiguous between two near-identical candidates — the exact case
+     this queue exists for. Callers pass the employee's NAME only: passing the
+     candidate button's full text would drag "· 1 character different" onto
+     the button, which describes the guess rather than the decision. */
+  function selectEmployee(empNo, name){
+    msSelectedEmp = empNo;
+    msConfirmBtn.disabled = false;
+    msConfirmBtn.textContent = name ? 'Match to ' + name : 'Match';
+    msConfirmBtn.title = name ? 'Match to ' + name + ' (' + empNo + ')' : '';
+    msError.hidden = true;
+  }
+
+  minestatReviewBody.addEventListener('click', function(e){
+    var openBtn = e.target.closest('[data-ms-open]');
+    if (openBtn){
+      var id = Number(openBtn.getAttribute('data-ms-open'));
+      var row = reviewRows.filter(function(r){ return r.id === id; })[0];
+      if (row) openResolveModal(row);
+      return;
+    }
+    var undoBtn = e.target.closest('[data-ms-reopen]');
+    if (undoBtn){
+      var rid = Number(undoBtn.getAttribute('data-ms-reopen'));
+      undoBtn.disabled = true;
+      Cloud.reopenMinestatNameReview(rid).then(function(){
+        announce('Match undone — the name is back in the queue');
+        loadNameReview();
+        refreshAfterAttribution();
+      }).catch(function(err){
+        console.error('Reopen failed', err);
+        announce('Could not undo that match', { assertive: true });
+        undoBtn.disabled = false;
+      });
+    }
+  });
+
+  msCandsEl.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-ms-pick]');
+    if (!btn) return;
+    Array.prototype.forEach.call(msCandsEl.querySelectorAll('[data-ms-pick]'), function(b){
+      b.removeAttribute('data-selected');
+    });
+    btn.setAttribute('data-selected', 'true');
+    selectEmployee(btn.getAttribute('data-ms-pick'), btn.getAttribute('data-ms-name'));
+  });
+
+  /* Search matches on the employee NUMBER as well as the name: the reviewer
+     often knows the badge and not the spelling, which is the entire premise
+     of keying on the number in the first place. */
+  msSearch.addEventListener('input', function(){
+    var q = msSearch.value.trim().toLowerCase();
+    if (!q){ msSuggest.hidden = true; msSuggest.innerHTML = ''; return; }
+    var matches = masterlist.filter(function(d){
+      return (d.full_name || '').toLowerCase().indexOf(q) !== -1 ||
+             (d.emp_no || '').toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 20);
+    if (!matches.length){ msSuggest.hidden = true; msSuggest.innerHTML = ''; return; }
+    msSuggest.innerHTML = matches.map(function(d){
+      var inactive = d.status === 'inactive'
+        ? ' <span style="color:var(--text-muted);font-size:var(--fs-xs)">· inactive</span>' : '';
+      return '<div class="menu-item" data-ms-emp="' + esc(d.emp_no) + '" ' +
+        'data-ms-name="' + esc(d.full_name) + '">' +
+        esc(d.full_name) + ' <span style="color:var(--text-muted);font-size:var(--fs-xs)">(' +
+        esc(d.emp_no) + ')</span>' + inactive + '</div>';
+    }).join('');
+    msSuggest.hidden = false;
+  });
+
+  msSuggest.addEventListener('click', function(e){
+    var item = e.target.closest('[data-ms-emp]');
+    if (!item) return;
+    var pickedName = item.getAttribute('data-ms-name');
+    /* The input shows the plain name, not the row's full text — otherwise
+       "· inactive" ends up typed into the search box and the next keystroke
+       filters against a string no driver matches. */
+    msSearch.value = pickedName;
+    msSuggest.hidden = true;
+    selectEmployee(item.getAttribute('data-ms-emp'), pickedName);
+  });
+
+  /* Add a driver the conso has not caught up with. The reviewer is often the
+     first person to know about a new hire, before the next roster refresh. */
+  msAddBtn.addEventListener('click', function(){
+    var empNo = msNewEmpNo.value.trim();
+    var name  = msNewName.value.trim();
+    if (!empNo || !name){
+      msError.textContent = 'Both an employee number and a full name are needed.';
+      msError.hidden = false;
+      return;
+    }
+    msAddBtn.disabled = true;
+    Cloud.addDriver(empNo, name).then(function(){
+      masterlist = [];                       // force a refetch next open
+      return Cloud.fetchMasterlist();
+    }).then(function(list){
+      masterlist = list || [];
+      selectEmployee(empNo, name);
+      announce('Driver added to the masterlist');
+    }).catch(function(err){
+      console.error('Add driver failed', err);
+      msError.textContent = 'Could not add that driver. Check the employee number is not already in use.';
+      msError.hidden = false;
+    }).finally(function(){
+      msAddBtn.disabled = false;
+    });
+  });
+
+  msConfirmBtn.addEventListener('click', function(){
+    if (!msEditing || !msSelectedEmp) return;
+    msConfirmBtn.disabled = true;
+    Cloud.resolveMinestatNameReview(msEditing.id, msSelectedEmp).then(function(res){
+      var n = res && res.rowsUpdated != null ? res.rowsUpdated : 0;
+      // Deliberately "shift record(s)", never "alert(s)": this only updates
+      // minestat_shifts.emp_no. It does not touch events.emp_no — that only
+      // happens when dds_backfill_emp_no_from_minestat() is next run (see
+      // 0024_minestat.sql) — so no alert's visible attribution changes yet.
+      announce('Matched — ' + Number(n).toLocaleString() +
+               (n === 1 ? ' shift record linked to this employee' : ' shift records linked to this employee'));
+      closeResolveModal();
+      loadNameReview();
+      refreshAfterAttribution();
+    }).catch(function(err){
+      console.error('Resolve failed', err);
+      msError.textContent = 'Could not save that match. Try again.';
+      msError.hidden = false;
+      msConfirmBtn.disabled = false;
+    });
+  });
+
+  msIgnoreBtn.addEventListener('click', function(){
+    if (!msEditing) return;
+    msIgnoreBtn.disabled = true;
+    Cloud.ignoreMinestatNameReview(msEditing.id).then(function(){
+      announce('Marked as not a driver');
+      closeResolveModal();
+      loadNameReview();
+    }).catch(function(err){
+      console.error('Ignore failed', err);
+      msError.textContent = 'Could not save that. Try again.';
+      msError.hidden = false;
+    }).finally(function(){
+      msIgnoreBtn.disabled = false;
+    });
+  });
+
+  /* Refetches the local copy of the masterlist — an employee added
+     mid-review must appear in the next search without a page reload.
+
+     UNLIKE the DDS queue's own refreshAfterAttribution(), this deliberately
+     does NOT also call App.loadFromServer(): resolving a name here only
+     updates minestat_shifts, never events.emp_no (see the header comment on
+     this IIFE), so no KPI/chart on screen has actually changed yet — calling
+     loadFromServer() here would just be a no-op refetch that looks like it
+     did something. */
+  function refreshAfterAttribution(){
+    Cloud.fetchMasterlist()
+      .then(function(list){ masterlist = list || []; })
+      .catch(function(){});
+  }
+
+  msCancelBtn.addEventListener('click', closeResolveModal);
+  msCloseBtn.addEventListener('click', closeResolveModal);
+  msModal.addEventListener('click', function(e){ if (e.target === msModal) closeResolveModal(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && !msModal.hidden) closeResolveModal();
+  });
+  document.addEventListener('click', function(e){
+    if (!msSuggest.hidden && !msSuggest.contains(e.target) && e.target !== msSearch){
+      msSuggest.hidden = true;
     }
   });
 
