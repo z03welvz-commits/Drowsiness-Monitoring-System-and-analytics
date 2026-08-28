@@ -11639,11 +11639,12 @@ const Cloud = {
     if (error) throw error;
     // Additive fields are absent when the DEPLOYED function predates this
     // client — hourlyByMonth, for one, only exists from 0011 onward, and
-    // that gap is the normal state between a client deploy and its
-    // migration. Defaulted here, at the one boundary the payload enters
-    // through, so consumers can rely on derive()'s full shape rather than
-    // each guarding a field they have no reason to think is optional.
-    return { hourlyByMonth: [], ...data };
+    // dayOfWeek only from 0025 onward — that gap is the normal state between
+    // a client deploy and its migration. Defaulted here, at the one boundary
+    // the payload enters through, so consumers can rely on derive()'s full
+    // shape rather than each guarding a field they have no reason to think
+    // is optional.
+    return { hourlyByMonth: [], dayOfWeek: [], ...data };
   },
 
   /* Call dds_metrics_multi() (0021) — the SAME dds_metrics() result for
