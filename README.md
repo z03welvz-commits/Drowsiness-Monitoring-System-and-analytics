@@ -126,11 +126,19 @@ connection that isn't actually broken. While you're there: Authentication →
 Providers → Email → turn off public sign-ups, unless you want anyone on the
 internet to self-register into your fleet data.
 
-**2. The database is empty.**
-Signing in will work and show all zeros until data exists. The import
-pipeline currently writes to browser-local state only — connecting the
-dropzone to actually upload via `dds_ingest()` is the next real piece of
-work, not yet done.
+**2. The database is empty (until you import something while signed in).**
+Signing in will work and show all zeros until data exists. The main dropzone
+now uploads automatically: `addRecord()` writes to local/IndexedDB state
+first (so the dashboard never blocks on the network), then — if a Cloud
+session exists — fires `syncToCloud()`, which calls `Cloud.ingest()` and
+RPCs `dds_ingest()` in chunks with retry/backoff. The separate MineStat
+upload card does the same via `Cloud.ingestMinestat()` / `dds_minestat_ingest()`.
+Import while signed OUT and the data stays local-only (by design — there is
+no tenant to attribute it to); import while signed IN and it reaches the
+real database within seconds. (This paragraph used to say the dropzone only
+wrote to browser-local state and that wiring up `dds_ingest()` was still
+open work — that was true when first written but is stale now; verified
+2026-08-28 by reading `addRecord()`/`syncToCloud()`/`Cloud.ingest()` directly.)
 
 **3. Run a parity check before your next SQL or shift-logic change.**
 
@@ -164,13 +172,30 @@ an error."
 
 ## Known open items
 
-- Settings and User Management pages are still prototypes — the Save buttons
-  show a success toast without persisting anything. Nobody has decided what
-  a user record or a settings row actually contains yet, so this is
-  deliberately not modeled in the schema until those screens are built for
-  real.
-- The `activeDays` calculation in the insight panel's rate metric uses a
-  slightly different definition for server data (days-with-data-in-range)
-  than for local-import data (distinct shift dates). They usually agree but
-  can diverge on sparse date ranges — worth aligning before treating the
-  "alerts per asset per active day" figure as precise on a thin server query.
+- ~~Settings and User Management pages are still prototypes~~ — **stale as of
+  2026-08-28.** Both now persist for real when signed in: Personal
+  Information + Notification Sound save to `public.user_settings` via
+  `Cloud.saveSettings()` (RLS-scoped to `auth.uid()`), and User Management
+  reads/writes `public.profiles` with admin-gated approve/reject
+  (`profiles_update_admin` RLS policy, 0004_auth_profiles.sql). The one
+  remaining honesty gap — the "Saved" toast showed the exact same text
+  whether or not anything actually persisted, which was misleading in
+  signed-out Local mode where saves are still deliberately in-memory-only —
+  was fixed 2026-08-28: the pill now reads "Saved to this device only" (amber
+  tint) when there's no Cloud session, vs. plain "Saved" (green) when a real
+  server write succeeded. See `flashSaved()` in the SETTINGS PAGE section of
+  index.html.
+- The `activeDays` calculation: the per-entity (per-asset/per-operator)
+  definition is already aligned — both `src/dds-state.js` and
+  `dds_metrics()` (0025_dds_metrics_dow.sql) use "distinct shift_date count"
+  at that level. Not yet re-verified: whether the Analytics insight panel's
+  own fleet-wide rate metric (`src/dds-insights.js`) ever consumes a
+  differently-defined `activeDays` when driven by server data — that file is
+  itself a stale/superseded module not currently inlined into index.html
+  (index.html's own `renderAnalyticsKpis()`/`kpiTile()` replaced it — see
+  index.html's comment at the `renderAnalyticsKpis` definition), so this may
+  no longer be a live code path at all. Worth a five-minute check before
+  spending more time on it: confirm nothing still imports
+  `src/dds-insights.js`, and if nothing does, delete or clearly mark it
+  superseded rather than leaving it to mislead a future editor into thinking
+  it's live.
