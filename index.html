@@ -12867,10 +12867,30 @@ const App = {
   /* Re-apply accessible naming after content rendered post-boot. */
   rescan(){ rescan(); },
 
+  // Request-cancellation counter for loadFromServer() — same reqId/
+  // latestReqId pattern createStore()'s worker path already uses (see its
+  // own comment). loadFromServer() has FIVE independent call sites (sign-in,
+  // the filter-change 250ms debounce, the manual Refresh button, and two
+  // auto-refreshes after an import/name-review resolves) and no in-flight
+  // guard existed: two overlapping calls — e.g. a Refresh click landing
+  // while a debounced filter change is still awaiting its RPCs — would both
+  // eventually call store._setRows([], cur), and whichever round-trip
+  // happened to resolve LAST would win even if it was the older, now-stale
+  // request. That is a real "wrong data flashes in" bug, not hypothetical:
+  // dds_metrics()/dds_metrics_multi() round-trips are the slowest network
+  // calls in the app (20s timeout) and every trigger above can fire in
+  // quick succession during normal use (importing while a filter is still
+  // settling, resolving a name-review case right after changing a date
+  // range). Mirrors the worker guard: bump a counter before starting,
+  // capture it, and ignore this call's result if a newer call has since
+  // started.
+  _loadReqId: 0,
+
   /* SERVER path. Two calls: the selected window and the equal-length window
      before it. Both return the same shape derive() produces locally. */
   async loadFromServer(){
     if (!Cloud.session) return;
+    const reqId = ++this._loadReqId;
     store._setStatus('loading');
     let cur;
     try {
@@ -12881,11 +12901,15 @@ const App = {
       // Only the PRIMARY fetch failing is a real "nothing to show" error —
       // this is the one call the whole page depends on, so store._setError()
       // (-> status:'error', every render gate checks this) is the right
-      // response here.
+      // response here. Superseded requests skip even this: a newer call is
+      // already in flight and will paint its own outcome, so an older
+      // failure showing an error over it would itself be the stale flash.
+      if (reqId !== this._loadReqId) return;
       console.error('Metrics fetch failed', e);
       store._setError('Unable to load fleet data. Please retry.');
       return;
     }
+    if (reqId !== this._loadReqId) return;   // superseded while the primary fetch was in flight
 
     // Comparison/7d/MoM used to be up to 5 MORE sequential/parallel
     // dds_metrics() round-trips (see git history) — each purely
@@ -12962,6 +12986,7 @@ const App = {
     } catch (e) {
       console.warn('Comparison/delta fetch failed — showing primary data without deltas', e);
     }
+    if (reqId !== this._loadReqId) return;   // superseded during the comparison/delta round-trip
     cur.comparison = comparison;
     cur.delta7d = delta7d;
     cur.deltaMoM = deltaMoM;
