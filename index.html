@@ -1236,6 +1236,13 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .imp-empty[hidden]{display:none}
 .imp-empty svg{width:28px;height:28px; opacity:.4}
 .imp-empty-text{font-size:var(--fs-xs)}
+/* Alert Logs' fetch-failure state (set via #alEmpty's data-variant, see
+   loadPage()/render() in the ALERT LOGS section) — same --danger tokens
+   the STATE LAYER's .state-error box uses elsewhere, so a failed request
+   reads as an error consistently across the app rather than blending into
+   this page's ordinary muted "nothing here" copy. */
+.imp-empty[data-variant="error"]{color:var(--danger)}
+.imp-empty[data-variant="error"] svg{opacity:.7}
 
 /* ═══ Alert Logs — pagination footer + driver autocomplete ═══ */
 .imp-pagination{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 16px; border-top:1px solid var(--border-light)}
@@ -1764,14 +1771,28 @@ body.has-painted[data-status="loading"] .card {
   padding: var(--sp-6);
 }
 
-/* --- Error --- */
+/* --- Error ---
+   Was `body[data-status="error"] .chart-body { display: none; }` — this
+   class was defined but never once inserted into the DOM (renderErrorState()
+   didn't exist yet), so a fetch failure just blanked every chart card via
+   that display:none with nothing in its place: no message, sighted users
+   only. Fixed 2026-08-28 alongside adding renderErrorState()/
+   clearErrorState() (index.html, mirrors renderEmptyState()/
+   clearEmptyState()) — same absolute-overlay treatment .state-empty gets
+   (see that rule in this same STATE LAYER), so the card frame/axes stay in
+   layout and only the plotted content is covered by a real --danger-toned
+   message. */
 .state-error {
   display: flex; flex-direction: column; align-items: center;
   gap: var(--sp-4); padding: var(--sp-8) var(--sp-6);
   background: var(--danger-bg); border: var(--bw) solid var(--danger);
   border-radius: var(--r-lg); color: var(--danger); font-size: var(--fs-sm);
 }
-body[data-status="error"] .chart-body { display: none; }
+.chart-body > .state-error {
+  position: absolute;
+  inset: 0;
+  padding: var(--sp-6);
+}
 
 /* ══ CONSOLIDATED PILL ═══════════════════════════════════════════════════
    Replaces .badge-* (5) + .flag-* (5) + .status-* (3) + .role-* (4) +
@@ -9823,6 +9844,82 @@ function clearEmptyState(root = document) {
   });
 }
 
+/* Error state — added 2026-08-28. Before this, a fetch failure
+   (store._setError(), e.g. dds_metrics() timing out or the RPC rejecting)
+   set body[data-status="error"], and the ONLY effect anywhere in the app
+   was a CSS rule that set `.chart-body { display: none }` plus a
+   screen-reader-only announce() call. A sighted, signed-in user whose
+   fetch failed saw every chart card go blank with literally nothing in
+   its place — worse than "genuinely zero" (which at least shows real
+   axes/labels) and indistinguishable from a page that simply hadn't
+   finished a CSS transition. `.state-error` (dds-tokens.css's STATE LAYER)
+   already existed as a real --danger-toned box but was never once
+   inserted into the DOM anywhere in this file — dead CSS.
+
+   Mirrors renderEmptyState()/clearEmptyState() exactly: same insertion
+   points (.chart-body, .ev-list), same placeholder-art hiding via
+   CHART_SHAPE_SELECTOR/data-empty-hidden (reused, not duplicated — a
+   chart cannot be simultaneously "empty" and "errored" the moment this
+   runs, since setError() always follows a fetch attempt that had rows to
+   look at or didn't), so the same card frame renders in either state and
+   only the message + tone differ. Kept as a card-body-level message
+   (not a global toast — no such mechanism exists elsewhere in this file,
+   and adding one for a single call site would be new surface area this
+   pass shouldn't invent) so every affected card explains itself, and the
+   already-fixed body[data-status="error"] .chart-body{display:none} CSS
+   rule is removed in the same commit — display:none would hide this very
+   box and collapse the card's height besides.
+
+   Also flips #dmEmpty (Driver & Asset Monitoring's table) into its own
+   error copy/tint. That table is the one .imp-empty-pattern element that
+   is store-driven (dmRenderTable() reads store.get()'s derived rows, same
+   as every chart this function already handles) rather than running its
+   own independent fetch — every OTHER .imp-empty-styled empty state in
+   the file (Alert Logs, Summary, Data Management, Masterlist, Name/
+   MineStat Review, Contributing Factors) owns its own fetch/reload() and
+   is intentionally left alone here; wiring them to the STORE's error
+   status would be a false positive; wrong page. Alert Logs' independent
+   fetch got the equivalent fix separately, in its own loadPage()/render(). */
+function renderErrorState(root = document, message) {
+  root.querySelectorAll(CHART_SHAPE_SELECTOR).forEach(el => {
+    el.dataset.emptyHidden = 'true';
+    el.style.visibility = 'hidden';
+  });
+
+  root.querySelectorAll('.chart-body, .ev-list').forEach(el => {
+    if (el.querySelector('.state-error')) return;
+    el.insertAdjacentHTML('beforeend', `
+      <div class="state-error">
+        <div class="state-empty-title">Couldn't load this data</div>
+        <div>${esc(message || 'Something went wrong. Please retry.')}</div>
+      </div>`);
+  });
+
+  const dmEmpty = document.getElementById('dmEmpty');
+  const dmTable = document.getElementById('dmTable');
+  if (dmEmpty) {
+    dmEmpty.hidden = false;
+    dmEmpty.dataset.variant = 'error';
+    const t = document.getElementById('dmEmptyText');
+    if (t) t.textContent = message || 'Couldn’t load this data. Please retry.';
+    if (dmTable) dmTable.hidden = true;
+  }
+}
+
+function clearErrorState(root = document) {
+  root.querySelectorAll('.state-error').forEach(el => el.remove());
+  root.querySelectorAll('[data-empty-hidden="true"]').forEach(el => {
+    el.style.visibility = '';
+    delete el.dataset.emptyHidden;
+  });
+
+  const dmEmpty = document.getElementById('dmEmpty');
+  if (dmEmpty && dmEmpty.dataset.variant === 'error') delete dmEmpty.dataset.variant;
+  // Deliberately does NOT touch dmEmpty.hidden / dmTable.hidden — the next
+  // successful store update calls dmRenderTable() (via paint()), which
+  // already owns showing/hiding those two based on real row count.
+}
+
 /* ── Wiring ─────────────────────────────────────────────────────────────── */
 
 /**
@@ -14306,7 +14403,15 @@ var NotificationSound = (function(){
     // Sort is server-side (see Cloud.fetchAlertLogs). Defaults match
     // dds_alert_logs()'s own defaults so the first load and a reset agree.
     sort: 'start_time', dir: 'desc',
-    loaded: false
+    loaded: false,
+    // Set true only by loadPage()'s catch — added 2026-08-28. Before this,
+    // a failed Cloud.fetchAlertLogs() call set state.rows = [] and rendered
+    // through the exact same empty-table branch as a genuinely filtered-to-
+    // zero result, so "No alerts match the current filters" (false) and
+    // "the network request failed" (true) were the same message. The only
+    // signal a fetch had failed was a screen-reader-only announce() call.
+    // See render()'s own branch on this flag.
+    error: false
   };
   var drivers = [];   // [{id, name, employee_id}]
 
@@ -14610,7 +14715,15 @@ var NotificationSound = (function(){
 
     if (!state.rows.length){
       emptyEl.hidden = false;
-      emptyTextEl.textContent = state.total === 0 && !state.search && !state.from && !state.to
+      // Error takes precedence over the two "genuinely nothing here" copies
+      // below — a failed request is not the same fact as an empty filter
+      // result, and showing the wrong one sends the user to blame the wrong
+      // thing (re-importing data that was never the problem, or assuming a
+      // filter is too narrow when the request never even completed).
+      emptyEl.dataset.variant = state.error ? 'error' : '';
+      emptyTextEl.textContent = state.error
+        ? 'Couldn’t load Alert Logs. Please retry.'
+        : state.total === 0 && !state.search && !state.from && !state.to
         ? 'No alerts imported yet — import a file from Data Management, then come back here.'
         : 'No alerts match the current filters.';
       table.hidden = true;
@@ -14664,10 +14777,12 @@ var NotificationSound = (function(){
       state.total = result.total || 0;
       state.rows = result.rows || [];
       state.loaded = true;
+      state.error = false;
       render();
     }).catch(function(err){
       console.error('Alert Logs load failed', err);
       state.rows = []; state.total = 0;
+      state.error = true;
       render();
       announce('Failed to load Alert Logs', { assertive: true });
     }).finally(function(){
@@ -17960,6 +18075,15 @@ App.refreshCharts = function(){
 let lastStatus = null;
 store.subscribe(state => {
   document.body.dataset.status = state.status;
+  // Error state gets the same real on-screen box renderEmptyState() already
+  // gives "no data yet" — see renderErrorState()'s own comment for why this
+  // was previously silent for sighted users. Cleared on any non-error
+  // status so a successful retry doesn't leave a stale error box behind.
+  if (state.status === 'error') {
+    renderErrorState(document, state.error?.message);
+  } else {
+    clearErrorState();
+  }
   if (state.status === 'ready' && state.derived) {
     paint(currentPage, state.derived);
     /* Marks that real content has been on screen at least once, which

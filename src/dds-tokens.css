@@ -273,14 +273,28 @@ body[data-status="loading"] .chart-body {
   padding: var(--sp-6);
 }
 
-/* --- Error --- */
+/* --- Error ---
+   Was `body[data-status="error"] .chart-body { display: none; }` — this
+   class was defined but never once inserted into the DOM (renderErrorState()
+   didn't exist yet), so a fetch failure just blanked every chart card via
+   that display:none with nothing in its place: no message, sighted users
+   only. Fixed 2026-08-28 alongside adding renderErrorState()/
+   clearErrorState() (index.html, mirrors renderEmptyState()/
+   clearEmptyState()) — same absolute-overlay treatment .state-empty gets
+   (see that rule in this same STATE LAYER), so the card frame/axes stay in
+   layout and only the plotted content is covered by a real --danger-toned
+   message. */
 .state-error {
   display: flex; flex-direction: column; align-items: center;
   gap: var(--sp-4); padding: var(--sp-8) var(--sp-6);
   background: var(--danger-bg); border: var(--bw) solid var(--danger);
   border-radius: var(--r-lg); color: var(--danger); font-size: var(--fs-sm);
 }
-body[data-status="error"] .chart-body { display: none; }
+.chart-body > .state-error {
+  position: absolute;
+  inset: 0;
+  padding: var(--sp-6);
+}
 
 /* ══ CONSOLIDATED PILL ═══════════════════════════════════════════════════
    Replaces .badge-* (5) + .flag-* (5) + .status-* (3) + .role-* (4) +
