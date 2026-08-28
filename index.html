@@ -13585,9 +13585,28 @@ var NotificationSound = (function(){
     }).forEach(syncToCloud);
   });
 
+  // Matches the MAX_ROWS ceiling already used by the conso/roster/MineStat
+  // dropzones (see ROSTER_MAX_ROWS/MAX_ROWS/MINESTAT_MAX_ROWS elsewhere in
+  // this file) — this was the one upload path missing the same guard, even
+  // though it is the highest-volume one. Checked post-parse (PapaParse/XLSX
+  // have already run by this point), same as those three; the pre-parse
+  // MAX_FILE_BYTES check above is what protects against the tab freezing
+  // before rows even exist to count.
+  var ALERT_IMPORT_MAX_ROWS = 200000;
+
   function handleParsedRows(file, rows, parseWarnings){
     if (!rows || !rows.length){
       addRecord(file, { status:'error', flags:[{type:'error', detail:'No rows found'}], rowCount:0 });
+      return;
+    }
+
+    if (rows.length > ALERT_IMPORT_MAX_ROWS){
+      addRecord(file, {
+        status: 'error',
+        flags: [{ type:'error', detail: 'This file has more than ' + ALERT_IMPORT_MAX_ROWS.toLocaleString() +
+                  ' rows — check it is a single alert export, not several files combined.' }],
+        rowCount: rows.length
+      });
       return;
     }
 
@@ -13652,8 +13671,32 @@ var NotificationSound = (function(){
     return 'UTF-8';
   }
 
+  // Byte-size ceiling, checked BEFORE any read/parse attempt. Unlike the
+  // MAX_ROWS-style checks in the conso/roster/MineStat dropzones (which run
+  // after PapaParse/XLSX has already turned the file into rows), this is the
+  // one upload path with no ceiling at all — the DDS alert-export dropzone,
+  // the highest-volume import in the app. A malformed or accidentally huge
+  // file (a video dragged in by mistake, a multi-hundred-MB export) can
+  // still make XLSX.read()/Papa.parse() hang the tab for a long time before
+  // any row-count logic downstream ever gets a chance to run, so the guard
+  // has to sit ahead of the parse call, not after it. 100MB is well above
+  // the measured real-world sizes (dds_ingest()'s own comment: 50k rows ~
+  // 8.7MB as JSON, and a raw XLSX/CSV of that same data is the same order
+  // of magnitude) while still catching the "wrong file entirely" case fast.
+  var MAX_FILE_BYTES = 100 * 1024 * 1024;
+
   function processFile(file){
     var ext = extOf(file.name);
+
+    if (file.size > MAX_FILE_BYTES){
+      addRecord(file, {
+        status: 'error',
+        flags: [{ type:'error', detail: 'File is too large (' + (file.size / (1024*1024)).toFixed(0) +
+                  'MB) — the limit is ' + (MAX_FILE_BYTES / (1024*1024)) + 'MB. Check this is a single alert export, not a batch of files merged together.' }],
+        rowCount: null
+      });
+      return;
+    }
 
     if (ext === 'csv'){
       var sniff = new FileReader();
