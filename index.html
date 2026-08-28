@@ -10086,7 +10086,17 @@ function initControls(store, { onRefresh } = {}) {
     if (settled) hadData = hasData;
     const showData = settled ? hasData : hadData;
 
-    showData ? clearEmptyState() : renderEmptyState();
+    // 'error' gets its own dedicated box (renderErrorState(), the separate
+    // subscriber below) and must NOT also get the empty-state box here —
+    // this subscriber and that one run independently, so without this
+    // exclusion a chart that was showing "No data yet" and then failed on
+    // retry would keep its stale .state-empty box (nothing here clears it
+    // for a non-ready, non-loading status) while renderErrorState() adds
+    // .state-error alongside it, stacking both absolutely-positioned
+    // messages in the same card. clearEmptyState() still runs so a prior
+    // empty box is removed the moment status stops being ready-with-rows.
+    if (s.status === 'error') { clearEmptyState(); }
+    else { showData ? clearEmptyState() : renderEmptyState(); }
     document.querySelectorAll('button').forEach(b => {
       // Export reads store.derived directly, so it must follow the same
       // hold-during-loading rule — otherwise the button flickers disabled
@@ -11020,6 +11030,18 @@ function dmRenderTable() {
         emptyEl = $('dmEmpty'), emptyTextEl = $('dmEmptyText'), bodyEl = $('dmBody'),
         colIdEl = $('dmColId');
   if (!countEl || !tableEl || !emptyEl || !bodyEl) return;
+
+  // renderErrorState() (STATE LAYER) flips #dmEmpty into its error copy via
+  // dataset.variant='error' whenever the store's fetch has failed. A
+  // loadDmActions() promise that was already in flight when that happened
+  // resolves later and calls this function unconditionally — without this
+  // guard it would see the (stale, pre-failure) dmDriverRows/dmUnitRows
+  // still populated and silently un-hide the table over the error box,
+  // hiding the failure from a signed-in user while every other card on the
+  // page correctly still shows it. clearErrorState() removes the variant
+  // attribute on the next successful fetch, so this only skips a render
+  // while the error is actually still current.
+  if (emptyEl.dataset.variant === 'error') return;
 
   colIdEl.textContent = dmView === 'driver' ? 'Driver' : 'Unit';
   countEl.textContent = `${fmt.int(items.length)} ${noun}${items.length === 1 ? '' : 's'}`;
