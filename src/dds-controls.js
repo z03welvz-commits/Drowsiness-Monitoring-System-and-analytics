@@ -374,10 +374,18 @@ export function initControls(store, { onRefresh } = {}) {
     }
   });
 
-  /* Keep empty state and Export availability in sync with the store. */
+  /* Keep empty state and Export availability in sync with the store.
+     'error' gets its own dedicated box (renderErrorState(), wired
+     separately) and must not also get the empty-state box here — without
+     this exclusion a chart already showing "No data yet" that then fails
+     on retry would keep its stale .state-empty box stacked underneath
+     the newly-added .state-error one, since neither renderer clears the
+     other's box. clearEmptyState() still runs on 'error' so a prior empty
+     box is removed. */
   return store.subscribe(s => {
     const hasData = s.status === 'ready' && s.derived && s.derived.meta.rowCount > 0;
-    hasData ? clearEmptyState() : renderEmptyState();
+    if (s.status === 'error') { clearEmptyState(); }
+    else { hasData ? clearEmptyState() : renderEmptyState(); }
     document.querySelectorAll('button').forEach(b => {
       if (b.textContent.trim() === 'Export') b.disabled = !hasData;
     });
