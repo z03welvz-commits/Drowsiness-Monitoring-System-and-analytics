@@ -113,7 +113,13 @@
   --fs-2xl: 19px;   /* page title */
   --fs-3xl: 24px;   /* KPI values */
 
-  --fw-medium: 500; --fw-semi: 600; --fw-bold: 700; --fw-black: 800;
+  --fw-regular: 400; --fw-medium: 500; --fw-semi: 600;
+  /* --fw-semi-bold: dense numeric micro-data (day-density counts/percentages
+     in the alert-history modal) reads as too light at --fw-semi and too
+     heavy at --fw-bold when set at --fs-xs/--fs-2xs — this in-between step
+     is a deliberate 5th weight for that case, not an accidental value. */
+  --fw-semi-bold: 650;
+  --fw-bold: 700; --fw-black: 800;
   --lh-tight: 1.2;  --lh-base: 1.5;  --lh-loose: 1.6;
   --tracking-label: .06em;  /* uppercase micro-labels read better tracked out */
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;

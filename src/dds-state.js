@@ -316,6 +316,39 @@ const dateKey = mmddyyyy => {
 };
 
 
+/* HIGH-CONSISTENCY SEVERITY — a driver/unit's highDayRatio (% of active days
+   that each had more than HIGH_DAY_THRESHOLD alerts) is banded into four
+   tiers rather than a single flagged/not-flagged boolean, so the Driver &
+   Asset Monitoring page can show "why" (a bare pattern spike vs. a
+   consistently bad actor) instead of just a flag. Mirrored exactly from
+   index.html's copy of this — same bands, same rank order — because
+   App.loadFromServer() there applies this SAME function to dds_metrics()'s
+   raw highDayRatio numbers for the signed-in path. One severity
+   calculation, two data sources (local rows here, Postgres there); this
+   banding intentionally never needs to exist in SQL. */
+export const SEVERITY_BANDS = [
+  { severity: 'critical', rank: 3, min: 75 },
+  { severity: 'warning',  rank: 2, min: 50 },
+  { severity: 'caution',  rank: 1, min: 25 },
+  { severity: 'normal',   rank: 0, min: 0 }
+];
+
+export const severityFor = highDayRatio =>
+  SEVERITY_BANDS.find(b => highDayRatio >= b.min) || SEVERITY_BANDS[SEVERITY_BANDS.length - 1];
+
+/* Mutates and returns `item` — applied to an already-built consistency row
+   (asset or operator) that already carries highDayRatio. Adds
+   severity/severityRank/flagged; never recomputes highDayRatio itself.
+   flagged is derived from severity (anything above 'normal') rather than
+   its own condition, so the two can never drift apart. */
+export function applySeverity(item) {
+  const band = severityFor(item.highDayRatio);
+  item.severity = band.severity;
+  item.severityRank = band.rank;
+  item.flagged = band.severity !== 'normal';
+  return item;
+}
+
 export function applyFilters(rows, f) {
   if (!f) return rows;
   return rows.filter(r => {
@@ -352,6 +385,12 @@ export function derive(allRows, filters) {
                         NIGHT: { units: 0, assets: new Set() } };
   const syncBuckets  = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
   const alertBuckets = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
+  // Mon..Sun totals, for the Analytics "which weekday concentrates volume"
+  // view. Keyed off SHIFT_DATE (the attributed shift day), matching every
+  // other bucket in this function — NOT _startTime's raw calendar date,
+  // which can disagree with SHIFT_DATE for the night-shift tail rows
+  // classifyShift() already rolls back to the previous day.
+  const dayOfWeekUnits = Array(7).fill(0);
 
   for (const r of rows) {
     const units = num(field(r, 'EVENT_COUNT'));
@@ -422,14 +461,33 @@ export function derive(allRows, filters) {
     alertBuckets[isAct ? 'actionable' : 'nonActionable'][ai]++;
 
     if (r.SHIFT_DATE) {
-      const d = byDate.get(r.SHIFT_DATE) || { units: 0, events: 0, assets: new Set(), syncSum: 0, syncN: 0 };
+      const d = byDate.get(r.SHIFT_DATE) || { units: 0, events: 0, assets: new Set(),
+                                              operators: new Set(), sleep: 0, drowsy: 0,
+                                              syncSum: 0, syncN: 0 };
       d.units += units; d.events += 1;
       if (asset) d.assets.add(asset);
+      /* Per-day severity + driver counts, added for the Overview KPI
+         sparklines. Deliberately computed from the SAME sources the KPI
+         numbers themselves use — severityKeyForCode() (below) for the
+         sleep/drowsy split that compare()'s sleepAlerts/drowsinessAlerts
+         metrics read via severityCount(), and the same `oper` fallback the
+         operators map above uses for distinctOperators. A sparkline drawn
+         from a second, independent calculation could disagree with the
+         number printed above it. */
+      d.operators.add(oper);
+      if (code) {
+        const sev = severityKeyForCode(code);
+        if (sev === 'critical') d.sleep += units;
+        else if (sev === 'elevated') d.drowsy += units;
+      }
       // Same null-when-unmeasured convention as the whole-period
       // avgSyncSeconds below — a day with zero synced rows must not
       // silently read as a sync delay of zero.
       if (r._syncSeconds != null) { d.syncSum += r._syncSeconds; d.syncN += 1; }
       byDate.set(r.SHIFT_DATE, d);
+      // getUTCDay(): 0=Sun..6=Sat. Rotated so the array is Mon-first,
+      // matching how the chart displays the week.
+      dayOfWeekUnits[(toDate(r.SHIFT_DATE).getUTCDay() + 6) % 7] += units;
     }
   }
 
@@ -444,20 +502,17 @@ export function derive(allRows, filters) {
       .sort((a, b) => b.total - a.total || String(a.id).localeCompare(String(b.id)))
       .slice(0, n);
 
-  /* HIGH-CONSISTENCY FLAG — a driver/unit is "High" when MOST of its active
-     days (>50%) each had more than HIGH_DAY_THRESHOLD alerts, not just a
-     single bad day. A one-off spike (1 day over threshold out of 20) is
-     noise; a driver whose alerts are over threshold on 6 of 7 active days
-     is a pattern. highDays/activeDays (highDayRatio) is exposed so the UI
-     can explain the flag with real numbers ("6 of 7 active days (86%) had
-     more than 10 alerts") instead of just showing a bare label.
-     consistencyRate (alerts per active day) is kept alongside as a
-     supporting number the table already showed, not the flagging basis
-     itself anymore.
-     Unranked / uncapped (unlike topN above) — the monitoring page wants
-     every driver/unit, not just the top 10 by volume, since a low-volume
-     entity whose few days are consistently over threshold is exactly what
-     "needs attention" should surface and a volume-only top-10 would miss. */
+  /* Per-entity consistency breakdown feeding the Driver & Asset Monitoring
+     page. highDays/activeDays (highDayRatio) is exposed so the UI can
+     explain the status with real numbers instead of just a label.
+     Unranked/uncapped, unlike topN above: the monitoring page wants every
+     driver/unit, not just the top 10 by volume.
+
+     severity/severityRank/flagged come from applySeverity() (top-level,
+     above) — NOT computed here. This is the local-import counterpart to
+     App.loadFromServer()'s server path (index.html), which calls the exact
+     same applySeverity() over dds_metrics()'s raw highDayRatio numbers —
+     one severity calculation, two data sources. */
   const HIGH_DAY_THRESHOLD = 10;
 
   const withConsistency = map =>
@@ -466,17 +521,16 @@ export function derive(allRows, filters) {
         const activeDays = v.dayTotals.size;
         const highDays = [...v.dayTotals.values()].filter(day => day > HIGH_DAY_THRESHOLD).length;
         const highDayRatio = activeDays ? (highDays / activeDays) * 100 : 0;
-        return {
+        return applySeverity({
           id, total: v.total, actionable: v.actionable, nonActionable: v.nonActionable,
           activeDays,
           highDays,
           highDayRatio,
-          flagged: activeDays > 0 && highDays / activeDays > 0.5,
           consistencyRate: v.total / (activeDays || 1),
           actionableRatio: v.total ? (v.actionable / v.total) * 100 : 0
-        };
+        });
       })
-      .sort((a, b) => (b.flagged - a.flagged) || b.highDayRatio - a.highDayRatio ||
+      .sort((a, b) => (b.severityRank - a.severityRank) || b.highDayRatio - a.highDayRatio ||
         b.consistencyRate - a.consistencyRate || String(a.id).localeCompare(String(b.id)));
 
   /* Most-recent-first log. _startTime is only absent on rows whose
@@ -525,9 +579,20 @@ export function derive(allRows, filters) {
     trend: [...byDate.entries()]
       .map(([date, v]) => ({
         date, units: v.units, events: v.events, assets: v.assets.size,
+        // sleep/drowsy/operators: sparkline series only (see byDate above).
+        // No existing consumer of `trend` reads them, so adding them is
+        // additive — nothing downstream changes shape.
+        sleep: v.sleep, drowsy: v.drowsy, operators: v.operators.size,
         avgSyncSeconds: v.syncN ? v.syncSum / v.syncN : null
       }))
       .sort((a, b) => new Date(a.date) - new Date(b.date)),
+
+    // Mon..Sun totals — see dayOfWeekUnits above for why SHIFT_DATE (not
+    // _startTime) is the grouping key. Additive field; no existing consumer
+    // reads it.
+    dayOfWeek: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((day, i) => ({
+      day, units: dayOfWeekUnits[i]
+    })),
 
     shiftDistribution: {
       DAY:   { units: dayU,   assets: shiftTotals.DAY.assets.size,
@@ -965,10 +1030,23 @@ export function createStore(initial = createState()) {
 
     setFilters(patch) {
       const filters = { ...state.filters, ...patch };
-      const derived = derive(state.rows, filters);
-      derived.comparison = compare(state.rows, filters);
-      state = { ...state, filters, derived };
+
+      /* derive()+compare() re-scan every row in state.rows and can take long
+         enough on a large imported set to visibly block the tab. Flipping to
+         'loading' and emitting BEFORE that work runs lets the browser paint
+         the skeleton state on the next frame; deferring the actual recompute
+         by one tick (setTimeout 0) is what buys that frame. Total compute
+         time is unchanged — this only stops a slow filter from reading as a
+         frozen tab instead of a loading one. Mirrors index.html's copy of
+         this store — keep the two in sync (see README on src/ vs index.html). */
+      state = { ...state, filters, status: 'loading' };
       emit();
+      setTimeout(() => {
+        const derived = derive(state.rows, filters);
+        derived.comparison = compare(state.rows, filters);
+        state = { ...state, filters, derived, status: 'ready' };
+        emit();
+      }, 0);
     }
   };
 }

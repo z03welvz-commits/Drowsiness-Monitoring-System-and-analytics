@@ -59,9 +59,9 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .nav-brand-row{display:flex; align-items:center; gap:9px}
 .nav-mark{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .nav-mark svg{width:16px;height:16px;color:#fff}
-.nav-brand-title{font-size:var(--fs-xl);font-weight:800;color:#fff;letter-spacing:.03em;line-height:1.2}
-.nav-brand-sub{font-size:var(--fs-2xs);color:rgba(255,255,255,.45);letter-spacing:.04em;margin-top:1px}
-.nav-section-label{font-size:var(--fs-2xs);color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:var(--tracking-label);padding:8px 14px 3px}
+.nav-brand-title{font-size:var(--fs-xl);font-weight:var(--fw-black);color:#fff;letter-spacing:.03em;line-height:1.2}
+.nav-brand-sub{font-size:var(--fs-2xs);color:rgba(255,255,255,.6);letter-spacing:.04em;margin-top:1px}
+.nav-section-label{font-size:var(--fs-2xs);color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:var(--tracking-label);padding:8px 14px 3px}
 .nav-item{display:flex;align-items:center;gap:9px;padding:8px 14px;font-size:var(--fs-xs);color:rgba(255,255,255,.6);border:none;background:none;width:100%;text-align:left;border-left:3px solid transparent;position:relative}
 .nav-item:hover{color:#fff;background:rgba(255,255,255,.07)}
 .nav-item.active{color:#fff;background:rgba(255,255,255,.12);border-left-color:var(--decor-1)}
@@ -177,10 +177,10 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .page[hidden]{display:none}
 
 .topbar{background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border:0.5px solid rgba(27,58,107,.08); border-radius:var(--r-xl); box-shadow:var(--shadow-1); padding:10px 16px; display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0; position:relative; z-index:10}
-.topbar-title{font-size:var(--fs-2xl);font-weight:700;color:var(--navy);letter-spacing:-.01em}
+.topbar-title{font-size:var(--fs-2xl);font-weight:var(--fw-bold);color:var(--navy);letter-spacing:-.01em}
 .topbar-sub{font-size:var(--fs-xs);color:var(--text-sec);margin-top:2px}
 .hcontrols{display:flex;align-items:center;gap:8px}
-.cpill{display:flex;align-items:center;gap:5px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px;font-size:var(--fs-xs);font-weight:500;color:var(--text)}
+.cpill{display:flex;align-items:center;gap:5px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px;font-size:var(--fs-xs);font-weight:var(--fw-medium);color:var(--text)}
 
 /* ═══ Overview header ═══
    Replaces the navy gradient hero + separate white toolbar strip that used
@@ -203,7 +203,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
   display:flex; align-items:flex-start; justify-content:space-between;
   gap:var(--sp-6); flex-shrink:0; padding:2px 2px 0;
 }
-.ov-header-title{font-size:var(--fs-2xl); font-weight:700; color:var(--text); letter-spacing:-.02em; line-height:1.2}
+.ov-header-title{font-size:var(--fs-2xl); font-weight:var(--fw-bold); color:var(--text); letter-spacing:-.02em; line-height:1.2}
 .ov-header-sub{font-size:var(--fs-sm); color:var(--text-sec); margin-top:4px}
 .ov-header-meta{display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0}
 /* The controls themselves keep their existing .cpill/.btn/.al-date-range
@@ -230,7 +230,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
   .ov-header-controls{justify-content:flex-start}
 }
 .cpill svg{width:10px;height:10px;color:var(--text-sec)}
-.btn{border:none;border-radius:var(--r-md);padding:7px 14px;font-size:var(--fs-xs);font-weight:500;display:inline-flex;align-items:center;gap:6px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));box-shadow:var(--shadow-1);cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease)}
+.btn{border:none;border-radius:var(--r-md);padding:7px 14px;font-size:var(--fs-xs);font-weight:var(--fw-medium);display:inline-flex;align-items:center;gap:6px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));box-shadow:var(--shadow-1);cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease)}
 /* Interactivity: a primary action should acknowledge the cursor and the
    click. Lift on hover, settle on press -- the press state is what most
    dashboards forget, and its absence is why buttons feel dead. */
@@ -277,8 +277,8 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .kpi-ratio::before{background:var(--blue)}
 .kpi-icon{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center}
 .kpi-icon svg{width:12px;height:12px}
-.kpi-label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-label);font-weight:600}
-.kpi-val{font-size:var(--fs-3xl);font-weight:700;color:var(--text);line-height:1.15;margin:4px 0 1px;letter-spacing:-.025em;font-variant-numeric:tabular-nums;font-feature-settings:"ss01","cv01"}
+.kpi-label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-label);font-weight:var(--fw-semi)}
+.kpi-val{font-size:var(--fs-3xl);font-weight:var(--fw-bold);color:var(--text);line-height:1.15;margin:4px 0 1px;letter-spacing:-.025em;font-variant-numeric:tabular-nums;font-feature-settings:"ss01","cv01"}
 
 /* ═══ card shell ═══ */
 /* Border added alongside the shadow: with the page background now flat
@@ -303,10 +303,10 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    are close in value on the light theme (so this is a no-op there) but
    diverge correctly on dark. */
 .card-head{padding:10px 16px;background:linear-gradient(90deg,var(--surface-sunken),var(--surface-raised));border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.card-head h2{font-size:var(--fs-md);font-weight:600;color:var(--navy);display:flex;align-items:center;gap:7px}
+.card-head h2{font-size:var(--fs-md);font-weight:var(--fw-semi);color:var(--navy);display:flex;align-items:center;gap:7px}
 .card-head h2::before{content:'';display:inline-block;width:3px;height:12px;background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px}
 .legend-block{display:flex;align-items:center;gap:12px}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--text-sec);font-weight:500}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--text-sec);font-weight:var(--fw-medium)}
 .legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
 
 /* Month legend on its own row beneath the card title. With 8+ months it is
@@ -421,6 +421,17 @@ svg[data-chart="trend"]{overflow:visible}
    visually dominate. */
 .an-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;min-height:0;height:280px;flex-shrink:0}
 .an-row + .an-row{margin-top:var(--sp-5)}
+/* 2-column variant — Day of Week + Alert Volume by Top Asset both need more
+   per-card width than a 3-up row gives them; same fixed height so the row
+   still fits this page's "one screenful of small multiples" rhythm. */
+.an-row.an-row-2{grid-template-columns:repeat(2,1fr)}
+
+/* Live contributing-factor banner — same warning tint as the rest of the
+   app's "needs attention" surfaces (.badge-warn, .dm-day[data-high]), kept
+   to a single line so it never competes with the KPI row below it. */
+.an-live-banner{display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:var(--sp-4);
+  background:var(--warning-bg);color:var(--warning-text);border-radius:var(--r-md);font-size:var(--fs-sm);font-weight:var(--fw-medium)}
+.an-live-banner .ic{width:16px;height:16px;flex-shrink:0}
 
 /* ═══ Driver & Asset Monitoring ═══
    One full-height table (unlike .an-row's fixed short heights; same
@@ -459,7 +470,7 @@ svg[data-chart="trend"]{overflow:visible}
    the raw counts matters: "62%" alone is unfalsifiable, "62% · 93/150" can
    be checked against the day list in the modal. */
 .dm-hdr-cell{display:flex;flex-direction:column;gap:1px;line-height:1.25}
-.dm-hdr-pct{font-weight:650;font-variant-numeric:tabular-nums;color:var(--text-sec)}
+.dm-hdr-pct{font-weight:var(--fw-semi-bold);font-variant-numeric:tabular-nums;color:var(--text-sec)}
 /* Over half its active days breached -- the condition for the flag itself,
    so the number carries the same warning colour as the pill it explains. */
 .dm-hdr-pct[data-high="true"]{color:var(--warning-text)}
@@ -490,10 +501,10 @@ svg[data-chart="trend"]{overflow:visible}
 .dm-day-bar{height:6px;background:var(--border-light);border-radius:100px;overflow:hidden}
 .dm-day-bar i{display:block;height:100%;background:var(--text-muted);border-radius:100px}
 .dm-day[data-high="true"] .dm-day-bar i{background:var(--warning-text)}
-.dm-day-units{font-size:var(--fs-xs);font-weight:650;text-align:right;font-variant-numeric:tabular-nums}
-.dm-day-tag{font-size:var(--fs-2xs);font-weight:650;color:var(--warning-text);text-align:right}
+.dm-day-units{font-size:var(--fs-xs);font-weight:var(--fw-semi-bold);text-align:right;font-variant-numeric:tabular-nums}
+.dm-day-tag{font-size:var(--fs-2xs);font-weight:var(--fw-semi-bold);color:var(--warning-text);text-align:right}
 
-.dm-day-legend{display:flex;gap:var(--sp-3);font-weight:400}
+.dm-day-legend{display:flex;gap:var(--sp-3);font-weight:var(--fw-regular)}
 .dm-day-key{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-2xs);color:var(--text-muted)}
 .dm-day-swatch{width:8px;height:8px;border-radius:2px;background:var(--border);display:inline-block}
 .dm-day-swatch[data-high="true"]{background:var(--warning-text)}
@@ -554,11 +565,11 @@ svg[data-chart="trend"]{overflow:visible}
 }
 .ins-hero .ins-card-icon svg{width:19px;height:19px}
 .ins-hero .ins-card-body{flex:1; min-width:0}
-.ins-hero-eyebrow{font-size:var(--fs-2xs); font-weight:700; letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--danger)}
-.ins-hero .ins-card-headline{font-size:var(--fs-lg); font-weight:700; color:var(--text); line-height:1.35; margin-top:2px}
+.ins-hero-eyebrow{font-size:var(--fs-2xs); font-weight:var(--fw-bold); letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--danger)}
+.ins-hero .ins-card-headline{font-size:var(--fs-lg); font-weight:var(--fw-bold); color:var(--text); line-height:1.35; margin-top:2px}
 .ins-hero .ins-card-sub{font-size:var(--fs-sm); color:var(--text-sec); margin-top:3px}
 .ins-hero-cta{
-  flex-shrink:0; font-size:var(--fs-xs); font-weight:700; color:var(--danger);
+  flex-shrink:0; font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--danger);
   border:1px solid color-mix(in srgb, var(--danger) 35%, transparent); background:var(--surface);
   border-radius:var(--r-md); padding:8px 14px; display:inline-flex; align-items:center; gap:6px;
   transition:background var(--dur-fast) var(--ease);
@@ -595,19 +606,19 @@ svg[data-chart="trend"]{overflow:visible}
   display:flex; align-items:center; justify-content:center;
 }
 .ins-card-icon svg{width:14px;height:14px}
-.ins-card-title{font-size:var(--fs-xs); font-weight:600; color:var(--text-sec)}
+.ins-card-title{font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--text-sec)}
 .ins-card-body{width:100%; min-width:0}
-.ins-card-headline{font-size:var(--fs-lg); font-weight:700; color:var(--text); line-height:1.25; font-variant-numeric:tabular-nums}
-.ins-card-headline b{font-variant-numeric:tabular-nums; font-weight:700}
+.ins-card-headline{font-size:var(--fs-lg); font-weight:var(--fw-bold); color:var(--text); line-height:1.25; font-variant-numeric:tabular-nums}
+.ins-card-headline b{font-variant-numeric:tabular-nums; font-weight:var(--fw-bold)}
 .ins-card-sub{font-size:var(--fs-2xs); color:var(--text-muted); line-height:1.4}
 /* Text link, not a chevron — matches the mock's "View details →" pattern;
    the arrow nudges right on hover/expand instead of rotating a chevron. */
-.ins-card-cta{font-size:var(--fs-xs); font-weight:600; color:var(--accent); display:inline-flex; align-items:center; gap:4px; margin-top:2px}
+.ins-card-cta{font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--accent); display:inline-flex; align-items:center; gap:4px; margin-top:2px}
 .ins-card-cta svg{width:12px; height:12px; transition:transform var(--dur-fast) var(--ease)}
 .ins-card.expanded .ins-card-cta svg{transform:translateX(2px)}
 .ins-evidence{border-top:1px solid var(--border-light); padding:var(--sp-4); background:var(--surface-sunken)}
 .ins-evidence-label{
-  font-size:var(--fs-2xs); font-weight:700; letter-spacing:var(--tracking-label);
+  font-size:var(--fs-2xs); font-weight:var(--fw-bold); letter-spacing:var(--tracking-label);
   text-transform:uppercase; color:var(--text-muted); margin-bottom:var(--sp-3);
 }
 .ins-evidence-chart{width:100%; height:70px; display:block; overflow:visible}
@@ -680,7 +691,7 @@ svg[data-chart="trend"]{overflow:visible}
   border-bottom:1px solid var(--divider); display:flex; align-items:center; gap:7px; flex-shrink:0;
 }
 .ov-insight-head{justify-content:space-between}
-.ov-insight-head h2{font-size:var(--fs-md); font-weight:600; color:var(--navy); margin:0; display:flex; align-items:center; gap:7px}
+.ov-insight-head h2{font-size:var(--fs-md); font-weight:var(--fw-semi); color:var(--navy); margin:0; display:flex; align-items:center; gap:7px}
 /* Baseline-aligned with the title, top-right of the header. align-self
    center rather than baseline: the title carries an icon, so its text
    baseline sits lower than the chip's and true baseline alignment reads
@@ -688,7 +699,7 @@ svg[data-chart="trend"]{overflow:visible}
 .ov-insight-more{
   flex-shrink:0; border:1px solid var(--border-light); background:var(--surface);
   color:var(--accent); border-radius:var(--r-full); padding:2px 9px;
-  font-size:var(--fs-2xs); font-weight:700; font-variant-numeric:tabular-nums;
+  font-size:var(--fs-2xs); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums;
   cursor:pointer; line-height:1.5; transition:background var(--dur-fast) var(--ease);
 }
 .ov-insight-more:hover{background:var(--surface-sunken)}
@@ -697,7 +708,7 @@ svg[data-chart="trend"]{overflow:visible}
 /* Headline: one sentence naming the single most important movement, with
    the number itself carrying the only colour in the block. */
 .ov-insight-headline{font-size:var(--fs-md); color:var(--text); line-height:1.45; margin:0}
-.ov-insight-headline b{font-weight:700; font-variant-numeric:tabular-nums}
+.ov-insight-headline b{font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
 .ov-insight-list{display:flex; flex-direction:column; gap:9px; margin:0; padding:0; list-style:none}
 .ov-insight-item{display:flex; align-items:flex-start; gap:9px; font-size:var(--fs-xs); color:var(--text-sec); line-height:1.45}
 /* Round tinted icon chip, matching the KPI row's own icon language so the
@@ -707,11 +718,11 @@ svg[data-chart="trend"]{overflow:visible}
   display:flex; align-items:center; justify-content:center; margin-top:-1px;
 }
 .ov-insight-icon svg{width:11px; height:11px}
-.ov-insight-item b{color:var(--text); font-weight:700; font-variant-numeric:tabular-nums}
+.ov-insight-item b{color:var(--text); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
 .ov-insight-empty{font-size:var(--fs-xs); color:var(--text-muted)}
 .ov-insight-divider{border-top:1px solid var(--divider); margin-top:2px; padding-top:10px}
 .ov-insight-sub{
-  font-size:var(--fs-2xs); font-weight:700; color:var(--text-muted);
+  font-size:var(--fs-2xs); font-weight:var(--fw-bold); color:var(--text-muted);
   text-transform:uppercase; letter-spacing:var(--tracking-label); margin-bottom:2px;
 }
 
@@ -787,7 +798,7 @@ svg[data-chart="trend"]{overflow:visible}
    version of this card's chart, not a decorative affordance. */
 .ov-card-link{
   display:inline-flex; align-items:center; gap:5px; padding:8px 16px 10px;
-  font-size:var(--fs-xs); font-weight:600; color:var(--accent);
+  font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--accent);
   background:none; border:none; cursor:pointer; flex-shrink:0; text-align:left;
   transition:gap var(--dur-fast) var(--ease);
 }
@@ -814,25 +825,25 @@ svg[data-chart="trend"]{overflow:visible}
   display:flex; align-items:baseline; gap:8px; padding:var(--sp-2) 0;
   font-size:var(--fs-2xs); color:var(--text-sec); line-height:1.5;
 }
-.ov-rail-update b{color:var(--text); font-weight:700; font-variant-numeric:tabular-nums}
+.ov-rail-update b{color:var(--text); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
 .ov-rail-update-time{color:var(--text-muted); flex-shrink:0; font-variant-numeric:tabular-nums}
 .ov-rail-updates-empty{padding:var(--sp-2) 0; font-size:var(--fs-xs); color:var(--text-muted)}
 
 .donut-wrap{display:flex;align-items:center;gap:16px;padding:10px 16px 14px;flex:1;min-height:0}
 .donut-legend{display:flex;flex-direction:column;gap:9px;min-width:0}
 .dl-row{display:flex;align-items:center;gap:7px}
-.dl-pct{font-size:var(--fs-sm);font-weight:700;margin-left:auto;padding-left:8px;font-variant-numeric:tabular-nums}
+.dl-pct{font-size:var(--fs-sm);font-weight:var(--fw-bold);margin-left:auto;padding-left:8px;font-variant-numeric:tabular-nums}
 
 /* Table-style donut legend (Overview's Event Severity Distribution — see
    eventCodes()'s legendStyle:'table' option) — a real Severity/Alerts/%
    table with a Total footer row, per the Overview redesign mock
    (src/AALYTICS.PNG), instead of Analytics' compact .dl-row list. */
 .dl-table{width:100%; border-collapse:collapse; font-size:var(--fs-xs)}
-.dl-table th{text-align:left; font-weight:600; color:var(--text-muted); padding:0 0 var(--sp-2); border-bottom:1px solid var(--border-light)}
+.dl-table th{text-align:left; font-weight:var(--fw-semi); color:var(--text-muted); padding:0 0 var(--sp-2); border-bottom:1px solid var(--border-light)}
 .dl-table th.num, .dl-table td.num{text-align:right; font-variant-numeric:tabular-nums}
 .dl-table td{padding:var(--sp-2) 0; border-bottom:1px solid var(--border-light); color:var(--text-sec)}
 .dl-table td:first-child{display:flex; align-items:center; gap:7px; color:var(--text)}
-.dl-table tfoot td{border-bottom:none; border-top:1px solid var(--border); font-weight:700; color:var(--text); padding-top:var(--sp-3)}
+.dl-table tfoot td{border-bottom:none; border-top:1px solid var(--border); font-weight:var(--fw-bold); color:var(--text); padding-top:var(--sp-3)}
 
 /* ═══ List rows — shared by Top N Asset ID (Overview), Event Code
    Distribution (Overview), and Top Operators (Analytics) ═══ */
@@ -857,7 +868,7 @@ svg[data-chart="trend"]{overflow:visible}
 .rec-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
 .rec-table thead th{
   position:sticky; top:0; background:var(--surface); text-align:left;
-  font-size:var(--fs-2xs); font-weight:700; color:var(--text-muted);
+  font-size:var(--fs-2xs); font-weight:var(--fw-bold); color:var(--text-muted);
   text-transform:uppercase; letter-spacing:var(--tracking-label);
   padding:4px 6px; border-bottom:1px solid var(--border-light);
 }
@@ -874,7 +885,7 @@ svg[data-chart="trend"]{overflow:visible}
 .ev-row{display:grid;grid-template-columns:76px 1fr 64px;align-items:center;gap:9px;border-radius:var(--r-sm);transition:background var(--dur-fast) var(--ease)}
 /* Densest rows on Overview and previously inert to the cursor. */
 .ev-row:hover{background:var(--surface-sunken)}
-.ev-label{font-size:var(--fs-sm);color:var(--text);font-weight:500}
+.ev-label{font-size:var(--fs-sm);color:var(--text);font-weight:var(--fw-medium)}
 .ev-track{height:5px;border-radius:3px;background:var(--border-light);overflow:hidden}
 .ev-fill{height:100%;border-radius:3px;background:var(--accent)}
 .ev-val{font-size:var(--fs-xs);color:var(--text-sec);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -883,9 +894,9 @@ svg[data-chart="trend"]{overflow:visible}
    over the rest of the list. Scoped to Analytics only: `topAssets` is a
    shared chart function also used by Overview's "Top N Asset ID" list,
    which this redesign must not visually change. */
-.page[data-page-id="analytics"] .ev-row[data-rank="1"] .ev-label{color:var(--navy);font-weight:700}
+.page[data-page-id="analytics"] .ev-row[data-rank="1"] .ev-label{color:var(--navy);font-weight:var(--fw-bold)}
 .page[data-page-id="analytics"] .ev-row[data-rank="1"] .ev-fill{background:var(--accent)}
-.page[data-page-id="analytics"] .ev-row[data-rank="1"] .ev-val{color:var(--text);font-weight:700}
+.page[data-page-id="analytics"] .ev-row[data-rank="1"] .ev-val{color:var(--text);font-weight:var(--fw-bold)}
 
 /* ═══ Analytics/Overview comparison KPI cards (.akpi) ═══
    Both KPI rows (Overview's 5 and Analytics' 5) render through kpiTile()
@@ -957,7 +968,7 @@ svg[data-chart="trend"]{overflow:visible}
 .kpi-trend{margin-top:5px;display:flex;flex-direction:column;gap:2px}
 .kpi-trend-line{display:flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums}
 .kpi-trend-line:first-child{font-size:var(--fs-xs)}
-.kpi-trend-line:first-child .kpi-trend-value{font-size:var(--fs-sm);font-weight:700}
+.kpi-trend-line:first-child .kpi-trend-value{font-size:var(--fs-sm);font-weight:var(--fw-bold)}
 .kpi-trend-line:only-child{font-size:var(--fs-xs)}
 .kpi-trend-line:last-child:not(:only-child){font-size:var(--fs-2xs);color:var(--text-muted)}
 .kpi-trend-value{display:inline-flex;align-items:center;gap:2px}
@@ -965,23 +976,23 @@ svg[data-chart="trend"]{overflow:visible}
 .kpi-trend-line[data-tone="good"] .kpi-trend-value{color:var(--success)}
 .kpi-trend-line[data-tone="bad"] .kpi-trend-value{color:var(--danger)}
 .kpi-trend-line[data-tone="neutral"] .kpi-trend-value{color:var(--text-muted)}
-.kpi-trend-label{color:var(--text-muted);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-trend-label{color:var(--text-muted);font-weight:var(--fw-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .akpi-note{display:flex;align-items:flex-start;gap:4px;font-size:var(--fs-2xs);line-height:1.3;color:var(--text-sec);margin-top:6px}
 .akpi-note .ic-xs{flex-shrink:0;color:var(--warning-text);margin-top:1px}
 
 /* ═══ Data Management page ═══ */
-.dz{border:1.5px dashed var(--blue-200); border-radius:var(--r-2xl); background:linear-gradient(135deg,#fff 60%,var(--blue-50) 100%); padding:32px 24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; cursor:pointer; transition:border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); flex-shrink:0}
-.dz:hover,.dz.dz-drag{border-color:var(--blue); background:linear-gradient(135deg,#fff 40%,var(--blue-50) 100%)}
+.dz{border:1.5px dashed var(--blue-200); border-radius:var(--r-2xl); background:linear-gradient(135deg,var(--surface) 60%,var(--blue-50) 100%); padding:32px 24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; cursor:pointer; transition:border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); flex-shrink:0}
+.dz:hover,.dz.dz-drag{border-color:var(--blue); background:linear-gradient(135deg,var(--surface) 40%,var(--blue-50) 100%)}
 .dz-icon{width:40px;height:40px;border-radius:var(--r-lg);background:var(--blue-50);display:flex;align-items:center;justify-content:center;color:var(--blue)}
 .dz-icon svg{width:19px;height:19px}
-.dz-title{font-size:var(--fs-md);font-weight:600;color:var(--navy)}
+.dz-title{font-size:var(--fs-md);font-weight:var(--fw-semi);color:var(--navy)}
 .dz-sub{font-size:var(--fs-xs);color:var(--text-sec)}
 .dz-formats{display:flex;gap:6px;margin-top:2px}
-.dz-chip{font-size:var(--fs-2xs);font-weight:600;color:var(--decor-1);background:var(--decor-1-bg);border-radius:4px;padding:2px 7px;letter-spacing:.03em}
+.dz-chip{font-size:var(--fs-2xs);font-weight:var(--fw-semi);color:var(--decor-1);background:var(--decor-1-bg);border-radius:4px;padding:2px 7px;letter-spacing:.03em}
 .dz input[type="file"]{display:none}
 
 .imp-toolbar{display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.imp-toolbar-title{font-size:var(--fs-sm);font-weight:600;color:var(--navy);display:flex;align-items:center;gap:7px}
+.imp-toolbar-title{font-size:var(--fs-sm);font-weight:var(--fw-semi);color:var(--navy);display:flex;align-items:center;gap:7px}
 .imp-toolbar-title::before{content:'';display:inline-block;width:3px;height:12px;background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px}
 .imp-count{font-size:var(--fs-xs);color:var(--text-sec)}
 
@@ -991,10 +1002,10 @@ svg[data-chart="trend"]{overflow:visible}
    already reads from. Counts recompute on every render(), so a tab can never
    disagree with the row count beneath it. */
 .imp-tabs{display:flex; align-items:center; gap:4px; padding:10px 16px; border-bottom:1px solid var(--divider); flex-shrink:0; flex-wrap:wrap}
-.imp-tab{display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:none; background:none; border-radius:var(--r-lg); font-size:var(--fs-xs); font-weight:600; color:var(--text-sec); cursor:pointer; white-space:nowrap; transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.imp-tab{display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:none; background:none; border-radius:var(--r-lg); font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--text-sec); cursor:pointer; white-space:nowrap; transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
 .imp-tab:hover{background:var(--surface-sunken); color:var(--text)}
 .imp-tab[aria-selected="true"]{background:var(--accent-bg); color:var(--accent)}
-.imp-tab-count{display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:8px; background:var(--border-light); color:var(--text-sec); font-size:var(--fs-2xs); font-weight:700; font-variant-numeric:tabular-nums}
+.imp-tab-count{display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:8px; background:var(--border-light); color:var(--text-sec); font-size:var(--fs-2xs); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
 .imp-tab[aria-selected="true"] .imp-tab-count{background:var(--accent); color:var(--surface)}
 .imp-tab-count[data-tone="danger"]{background:var(--danger-bg); color:var(--danger)}
 .imp-tab[aria-selected="true"] .imp-tab-count[data-tone="danger"]{background:var(--danger); color:var(--surface)}
@@ -1044,7 +1055,7 @@ svg[data-chart="trend"]{overflow:visible}
 }
 .al-date-field:hover{border-color:var(--border)}
 .al-date-field:focus-within{border-color:var(--accent); box-shadow:var(--shadow-focus)}
-.al-date-field span{font-size:var(--fs-xs); color:var(--text-muted); font-weight:600}
+.al-date-field span{font-size:var(--fs-xs); color:var(--text-muted); font-weight:var(--fw-semi)}
 .al-date-field input{border:none; outline:none; background:none; font-size:var(--fs-xs); font-family:inherit; color:var(--text); font-variant-numeric:tabular-nums; width:112px}
 .al-date-sep{color:var(--text-muted); font-size:var(--fs-xs)}
 
@@ -1063,7 +1074,7 @@ svg[data-chart="trend"]{overflow:visible}
 .al-bulk-bar{
   display:flex; align-items:center; gap:12px;
   padding:8px 16px; background:var(--accent-bg); border-bottom:1px solid var(--border-light);
-  font-size:var(--fs-xs); font-weight:600; color:var(--accent);
+  font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--accent);
 }
 .al-bulk-bar #alBulkCount{font-variant-numeric:tabular-nums}
 #alTable thead th:first-child, #alTable tbody td:first-child{width:32px; padding-right:0}
@@ -1087,7 +1098,7 @@ svg[data-chart="trend"]{overflow:visible}
    background swap. font-variant-numeric keeps any column of digits
    (counts, durations, IDs) aligned in a column rather than jittering. */
 .imp-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
-.imp-table thead th{position:sticky; top:0; background:linear-gradient(90deg,#F8FAFF,#fff); text-align:left; font-size:var(--fs-xs); font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:var(--row-default-head); border-bottom:2px solid var(--border); z-index:1}
+.imp-table thead th{position:sticky; top:0; background:linear-gradient(90deg,var(--surface-sunken),var(--surface)); text-align:left; font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:var(--row-default-head); border-bottom:2px solid var(--border); z-index:1}
 .imp-table tbody td{padding:var(--row-default-cell); font-size:var(--fs-sm); color:var(--text); border-bottom:1px solid var(--border-light); vertical-align:middle; line-height:1.2}
 .imp-table tbody tr:last-child td{border-bottom:none}
 /* Alert Log and Driver & Asset Monitoring both run denser than Data
@@ -1127,7 +1138,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
   border:1px solid var(--border-light); border-radius:var(--r-lg);
   background:var(--surface-sunken); padding:var(--sp-4); flex-shrink:0;
 }
-.sm-bulk-title{font-size:var(--fs-xs); font-weight:700; color:var(--navy); margin-bottom:var(--sp-3)}
+.sm-bulk-title{font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--navy); margin-bottom:var(--sp-3)}
 /* auto-1fr pairs so the three label/control rows line up on one grid; wraps
    to stacked rows on a narrow viewport rather than squeezing the inputs. */
 .sm-bulk-fields{display:grid; grid-template-columns:auto 1fr auto 1fr auto 1fr; gap:var(--sp-2) var(--sp-3); align-items:center}
@@ -1171,7 +1182,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .imp-file-icon svg{width:12px;height:12px}
 .imp-file-icon.xlsx{background:var(--decor-1-bg);color:var(--decor-1)}
 .imp-file-icon.csv{background:var(--blue-50);color:var(--blue)}
-.imp-file-name{font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px}
+.imp-file-name{font-weight:var(--fw-medium); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px}
 .imp-file-rows{font-size:var(--fs-xs);color:var(--text-muted)}
 /* "Clear data" now keeps the history row but drops its row payload — this
    is what tells a reader the file isn't actually loaded anymore, so an
@@ -1179,7 +1190,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .imp-file-cleared{font-size:var(--fs-xs);color:var(--text-muted);font-style:italic}
 .imp-size,.imp-date{color:var(--text-sec); white-space:nowrap}
 
-.badge{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:600; padding:3px 9px; border-radius:var(--r-full); white-space:nowrap}
+.badge{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:var(--fw-semi); padding:3px 9px; border-radius:var(--r-full); white-space:nowrap}
 .badge svg{width:9px;height:9px}
 .badge-success{background:var(--success-bg); color:var(--success)}
 .badge-error{background:var(--danger-bg); color:var(--danger)}
@@ -1187,7 +1198,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .badge-pending{background:var(--border-light); color:var(--text-sec)}
 
 .flag-row{display:flex; flex-direction:column; gap:4px}
-.flag{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-2xs); font-weight:600; padding:2px 7px; border-radius:var(--r-sm); width:fit-content}
+.flag{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-2xs); font-weight:var(--fw-semi); padding:2px 7px; border-radius:var(--r-sm); width:fit-content}
 .flag-dup{background:var(--warning-bg); color:var(--warning-text)}
 .flag-err{background:var(--danger-bg); color:var(--danger)}
 .flag-none{font-size:var(--fs-xs); color:var(--text-muted)}
@@ -1212,7 +1223,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .imp-db.db-pending{color:var(--text-muted)}
 .imp-db.db-syncing{color:var(--accent)}
 .imp-db.db-error{color:var(--danger)}
-.imp-db-retry{border:none; background:none; color:inherit; font:inherit; font-weight:600; text-decoration:underline; cursor:pointer; padding:0}
+.imp-db-retry{border:none; background:none; color:inherit; font:inherit; font-weight:var(--fw-semi); text-decoration:underline; cursor:pointer; padding:0}
 
 .imp-empty{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:44px 20px; color:var(--text-muted); flex:1}
 .imp-empty[hidden]{display:none}
@@ -1236,41 +1247,41 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .settings-body{padding:16px; display:flex; flex-direction:column; gap:16px}
 
 .field-group{display:flex; flex-direction:column; gap:6px}
-.field-label{font-size:var(--fs-xs); font-weight:600; color:var(--text-sec); text-transform:uppercase; letter-spacing:var(--tracking-label)}
-.field-input{border:1px solid var(--border); border-radius:var(--r-lg); padding:9px 12px; font-size:var(--fs-sm); font-family:inherit; color:var(--text); background:#fff; width:100%}
+.field-label{font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--text-sec); text-transform:uppercase; letter-spacing:var(--tracking-label)}
+.field-input{border:1px solid var(--border); border-radius:var(--r-lg); padding:9px 12px; font-size:var(--fs-sm); font-family:inherit; color:var(--text); background:var(--surface); width:100%}
 .field-input:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-50)}
 .field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
 .field-hint{font-size:var(--fs-2xs); color:var(--text-muted)}
 
 .avatar-row{display:flex; align-items:center; gap:14px}
-.avatar-circle{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--navy));display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-xl);font-weight:700;flex-shrink:0}
-.avatar-meta-name{font-size:var(--fs-md);font-weight:700;color:var(--text)}
+.avatar-circle{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--navy));display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-xl);font-weight:var(--fw-bold);flex-shrink:0}
+.avatar-meta-name{font-size:var(--fs-md);font-weight:var(--fw-bold);color:var(--text)}
 .avatar-meta-role{font-size:var(--fs-xs);color:var(--text-sec);margin-top:2px}
 
 .divider-line{height:1px; background:var(--divider); margin:2px 0}
 
 .pwd-toggle-row{display:flex; align-items:center; justify-content:space-between}
-.pwd-toggle-label{font-size:var(--fs-sm); font-weight:600; color:var(--navy)}
-.link-btn{border:none; background:none; color:var(--blue); font-size:var(--fs-xs); font-weight:600; padding:0}
+.pwd-toggle-label{font-size:var(--fs-sm); font-weight:var(--fw-semi); color:var(--navy)}
+.link-btn{border:none; background:none; color:var(--blue); font-size:var(--fs-xs); font-weight:var(--fw-semi); padding:0}
 /* Alert Logs' Driver cell when no driver is on record — muted rather than
    the same weight as a real name, since it names an absence, but still a
    .link-btn so it's clearly clickable rather than reading as disabled
    filler text. Opens the same edit-case modal the row's pencil icon does. */
-.al-unassigned{color:var(--text-muted); font-style:italic; font-weight:500}
+.al-unassigned{color:var(--text-muted); font-style:italic; font-weight:var(--fw-medium)}
 .al-unassigned:hover{color:var(--accent)}
 
 .save-row{display:flex; justify-content:flex-end; gap:8px}
-.btn-outline{border:1px solid var(--border); border-radius:var(--r-md); padding:7px 14px; font-size:var(--fs-xs); font-weight:500; background:#fff; color:var(--text-sec)}
+.btn-outline{border:1px solid var(--border); border-radius:var(--r-md); padding:7px 14px; font-size:var(--fs-xs); font-weight:var(--fw-medium); background:var(--surface); color:var(--text-sec)}
 .btn-sm{padding:7px 14px; font-size:var(--fs-xs)}
 
-.saved-pill{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:600; color:var(--success); background:var(--success-bg); border-radius:var(--r-full); padding:3px 10px; opacity:0; transition:opacity var(--dur-base) var(--ease)}
+.saved-pill{display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--success); background:var(--success-bg); border-radius:var(--r-full); padding:3px 10px; opacity:0; transition:opacity var(--dur-base) var(--ease)}
 .saved-pill.show{opacity:1}
 .saved-pill svg{width:9px;height:9px}
 
 /* Notification sound */
 .sound-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0}
 .sound-row + .sound-row{border-top:1px solid var(--border-light)}
-.sound-row-label{font-size:var(--fs-sm); font-weight:600; color:var(--text)}
+.sound-row-label{font-size:var(--fs-sm); font-weight:var(--fw-semi); color:var(--text)}
 .sound-row-sub{font-size:var(--fs-xs); color:var(--text-sec); margin-top:2px}
 
 .toggle{position:relative; width:34px; height:19px; flex-shrink:0}
@@ -1281,30 +1292,30 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .toggle input:checked + .toggle-track::before{transform:translateX(15px)}
 
 .sound-select-row{display:flex; align-items:center; gap:8px}
-.sound-select{border:1px solid var(--border); border-radius:var(--r-md); padding:7px 10px; font-size:var(--fs-xs); font-family:inherit; color:var(--text); background:#fff}
-.sound-preview-btn{border:1px solid var(--border); background:#fff; border-radius:var(--r-md); width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--blue); flex-shrink:0}
+.sound-select{border:1px solid var(--border); border-radius:var(--r-md); padding:7px 10px; font-size:var(--fs-xs); font-family:inherit; color:var(--text); background:var(--surface)}
+.sound-preview-btn{border:1px solid var(--border); background:var(--surface); border-radius:var(--r-md); width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--blue); flex-shrink:0}
 .sound-preview-btn svg{width:12px;height:12px}
 .vol-slider{width:100%; accent-color:var(--blue)}
 
 /* User Management */
 .um-toolbar{display:flex; align-items:center; justify-content:space-between}
 .um-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
-.um-table thead th{text-align:left; font-size:var(--fs-xs); font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:10px 16px; border-bottom:2px solid var(--border)}
+.um-table thead th{text-align:left; font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); padding:10px 16px; border-bottom:2px solid var(--border)}
 .um-table tbody td{padding:12px 16px; font-size:var(--fs-sm); color:var(--text); border-bottom:1px solid var(--border-light); vertical-align:middle}
 .um-table tbody tr:last-child td{border-bottom:none}
 .um-table tbody tr{box-shadow:inset 2px 0 0 transparent; transition:background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease)}
 .um-table tbody tr:hover{background:var(--surface-sunken); box-shadow:inset 2px 0 0 var(--accent)}
 .um-user{display:flex; align-items:center; gap:9px}
-.um-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue-200),var(--blue));display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-xs);font-weight:700;flex-shrink:0}
-.um-name{font-weight:600}
+.um-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue-200),var(--blue));display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-xs);font-weight:var(--fw-bold);flex-shrink:0}
+.um-name{font-weight:var(--fw-semi)}
 .um-username{font-size:var(--fs-xs); color:var(--text-muted)}
 /* Role tint is a legitimate small-multiples pattern — distinguishing 3+
    roles in a scannable table column — not decoration; keep multi-color. */
-.role-badge{display:inline-flex; font-size:var(--fs-xs); font-weight:600; padding:3px 9px; border-radius:var(--r-full)}
+.role-badge{display:inline-flex; font-size:var(--fs-xs); font-weight:var(--fw-semi); padding:3px 9px; border-radius:var(--r-full)}
 .role-admin{background:var(--purple-50); color:var(--purple)}
 .role-oa{background:var(--blue-50); color:var(--blue)}
 .role-b2b{background:var(--teal-50); color:var(--teal)}
-.status-dot{display:inline-flex; align-items:center; gap:6px; font-size:var(--fs-xs); font-weight:500}
+.status-dot{display:inline-flex; align-items:center; gap:6px; font-size:var(--fs-xs); font-weight:var(--fw-medium)}
 .status-dot::before{content:''; width:6px; height:6px; border-radius:50%; flex-shrink:0}
 .status-active::before{background:var(--success)}
 .status-inactive::before{background:var(--text-muted)}
@@ -1463,7 +1474,13 @@ th[data-sort][aria-sort]{color:var(--accent)}
   --fs-2xl: 19px;   /* page title */
   --fs-3xl: 24px;   /* KPI values */
 
-  --fw-medium: 500; --fw-semi: 600; --fw-bold: 700; --fw-black: 800;
+  --fw-regular: 400; --fw-medium: 500; --fw-semi: 600;
+  /* --fw-semi-bold: dense numeric micro-data (day-density counts/percentages
+     in the alert-history modal) reads as too light at --fw-semi and too
+     heavy at --fw-bold when set at --fs-xs/--fs-2xs — this in-between step
+     is a deliberate 5th weight for that case, not an accidental value. */
+  --fw-semi-bold: 650;
+  --fw-bold: 700; --fw-black: 800;
   --lh-tight: 1.2;  --lh-base: 1.5;  --lh-loose: 1.6;
   --tracking-label: .06em;  /* uppercase micro-labels read better tracked out */
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -2161,7 +2178,7 @@ body {
 .detail-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 .detail-table thead th {
   position: sticky; top: 0; background: var(--surface-sunken); text-align: left;
-  font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted);
+  font-size: var(--fs-xs); font-weight:var(--fw-bold); color: var(--text-muted);
   text-transform: uppercase; letter-spacing: var(--tracking-label);
   padding: var(--sp-3) var(--sp-4); border-bottom: 2px solid var(--border);
 }
@@ -2592,6 +2609,19 @@ body {
         </div>
       </div>
 
+      <!-- Live contributing-factor banner — surfaces any factor logged with
+           no end time (Data Management > Contributing Factors) so a reviewer
+           looking at today's alert volume can immediately see "is something
+           active right now that could explain this?" without having to open
+           the Contributing Factors card and scan for the "Active" tag.
+           Hidden by default; renderAnalyticsFactorBanner() (RENDER section)
+           shows/fills it whenever App.factors has an active entry, same
+           refresh path (App.refreshCharts) factorImpact() already uses. -->
+      <div class="an-live-banner" id="anLiveBanner" role="status" hidden>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span id="anLiveBannerText"></span>
+      </div>
+
       <!-- Static placeholder shell — five tiles matching renderAnalyticsKpis()'s
            icon/label/tint scheme (METRIC_ICON/METRIC_TINT/METRIC_LABEL) with
            "—" values, so the row is visible on first paint instead of
@@ -2811,6 +2841,41 @@ body {
             </svg>
             <div class="donut-legend" id="anEventDonutLegend" style="flex:1"></div>
             <div class="chart-tooltip" id="anEventDonutTooltip"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 3 — Alert Volume by Day of Week / Alert Volume by Top Asset.
+           2-column (.an-row-2): both cards read better wide than squeezed
+           into a 3-up row, and neither pairs naturally with anything in
+           Row 1/2. -->
+      <div class="an-row an-row-2">
+        <!-- Alert Volume by Day of Week — new dayOfWeek() bar chart, same
+             geometry/insight/tooltip conventions as Alert Count by Sync
+             Interval above. -->
+        <div class="card">
+          <div class="card-head"><h2>Alert Volume by Day of Week</h2></div>
+          <div class="chart-body">
+            <svg id="anDayOfWeekSvg" viewBox="0 0 300 130" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="dayOfWeek">
+              <line x1="0" y1="128" x2="300" y2="128" stroke="#E6E8EC" stroke-width="1"/>
+              <g id="anDayOfWeekBars" fill="var(--blue-200)"></g>
+            </svg>
+            <div style="display:flex;justify-content:space-around;margin-top:3px;flex-shrink:0">
+              <span class="axis">Mon</span><span class="axis">Tue</span><span class="axis">Wed</span><span class="axis">Thu</span><span class="axis">Fri</span><span class="axis">Sat</span><span class="axis">Sun</span>
+            </div>
+            <div id="anDayOfWeekInsight" class="chart-insight-line"></div>
+            <div class="chart-tooltip" id="anDayOfWeekTooltip"></div>
+          </div>
+        </div>
+
+        <!-- Alert Volume by Top Asset — reuses the existing topAssets()
+             renderer (same one Overview uses), just at a higher limit since
+             this card has a full half-row to itself. -->
+        <div class="card">
+          <div class="card-head"><h2>Alert Volume by Top Asset</h2></div>
+          <div class="ev-list-wrap">
+            <div class="ev-list" id="anTopAssetsList" data-chart="topAssets"></div>
+            <div class="chart-tooltip" id="anTopAssetsTooltip"></div>
           </div>
         </div>
       </div>
@@ -3611,6 +3676,74 @@ body {
         </div>
       </div>
 
+      <!-- MineStat — daily per-unit, per-shift operator + utilization-hours
+           records (0024_minestat.sql). This is what actually carries driver
+           identity for real alert data: DDS exports have no OPERATOR column
+           in practice (it has always been optional — see OPTIONAL_COLUMNS —
+           and is simply absent from every real file), so this is the only
+           source that can say who was running a unit on a given shift.
+           Identity-only for now: the Operating/Down/Delay/Standby/Total
+           hours are stored (see the migration) but nothing in this UI reads
+           them yet — that is deliberately deferred, not forgotten. No
+           row-browsing table here (unlike the masterlist card above): a
+           MineStat file runs to tens of thousands of rows and is write-only
+           operational data feeding the DDS join, not something to page
+           through — "MineStat names needing review" below is where its
+           identity-resolution outcome actually surfaces. -->
+      <div class="card" id="minestatCard" style="flex:0 0 auto">
+        <div class="card-head">
+          <div class="imp-toolbar-title">MineStat Data</div>
+          <div class="hcontrols">
+            <button class="btn btn-outline btn-sm" id="minestatUploadBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg>
+              Upload MineStat
+            </button>
+          </div>
+        </div>
+        <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0" id="minestatStatusLine">
+          Daily per-unit, per-shift operator and utilization records — used to attribute alerts to
+          a real employee number when the alert file itself has no operator. Names it can't match
+          land in "MineStat names needing review" below.
+        </p>
+      </div>
+
+      <!-- Upload modal — same drop-zone/confirm/error shell as the conso
+           upload above. No row-count-vs-existing preview here (unlike
+           conso's "3 new, 480 already known"): a MineStat row's identity is
+           the (Unit, Date, Shift) triple, not something meaningfully
+           compared against "how many are already loaded" before the file is
+           actually parsed and validated server-side. -->
+      <div class="detail-modal" id="minestatUploadModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="minestatUploadTitle" style="max-width:520px">
+          <div class="detail-head">
+            <div>
+              <h2 id="minestatUploadTitle" class="detail-title">Upload MineStat data</h2>
+              <p class="detail-sub">Needs Unit, Date, Shift, Operating/Down/Delay/Standby/Total Hours, and Last/First/Middle Name columns.</p>
+            </div>
+            <button type="button" class="detail-close" id="minestatUploadClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="dz" id="minestatDropZone" style="margin:0">
+            <input type="file" id="minestatFileInput" accept=".xlsx,.xls,.csv">
+            <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></div>
+            <div class="dz-title">Drag &amp; drop the MineStat file, or click to browse</div>
+            <div class="dz-formats">
+              <span class="dz-chip">.XLSX</span>
+              <span class="dz-chip">.XLS</span>
+              <span class="dz-chip">.CSV</span>
+            </div>
+          </div>
+          <div class="field-error" id="minestatUploadError" hidden></div>
+          <div id="minestatUploadConfirm" hidden style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:12px"></div>
+          <div id="minestatUploadProgress" hidden style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:12px"></div>
+          <div class="detail-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="minestatUploadCancel">Cancel</button>
+            <button type="button" class="btn btn-sm" id="minestatUploadConfirmBtn" disabled>Upload</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Reset fleet data — a distinct control from "Clear data" above on
            purpose. That button only ever wipes the LOCAL/signed-out store
            (App.imports + IndexedDB factors); it has no effect once signed in,
@@ -3797,6 +3930,138 @@ body {
               <div style="display:flex;gap:8px">
                 <button type="button" class="btn btn-outline btn-sm" id="nrCancelBtn">Cancel</button>
                 <button type="button" class="btn btn-sm" id="nrConfirmBtn" disabled>Match</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MineStat names needing review — the queue from 0024_minestat's
+           minestat_name_review, a structural twin of the Driver Name Review
+           card above pointed at MineStat's own queue/RPCs (see that card's
+           own markup comment, and the IIFE's header comment, for why this is
+           a parallel card rather than a merged one). These are NOT failed
+           imports: every shift record loaded and every hours total is whole.
+           What is missing is only WHICH EMPLOYEE those records belong to.
+
+           Hidden entirely when signed out or when the queue is empty: an
+           empty review card on every page load would train people to ignore
+           it, and it is precisely the thing that must not be ignored. -->
+      <!-- flex:0 0 auto, NOT the flex:1;min-height:0 that Import History and
+           Contributing Factors use. Those two are designed to share the
+           column's leftover height and scroll internally; a third flexible
+           sibling makes all three fight for the same space, and this card
+           lost — its table was allocated ~21px of a 132px need, so the header
+           rendered and every row was clipped. This queue is short by nature
+           (one row per distinct unmatched name), so it sizes to its content
+           and lets the page scroll instead. -->
+      <div class="card" id="minestatReviewCard" style="flex:0 0 auto" hidden>
+        <div class="card-head">
+          <div class="imp-toolbar-title">MineStat names needing review</div>
+          <div class="hcontrols">
+            <span class="imp-count" id="minestatReviewCount">0 names</span>
+            <button class="btn btn-outline btn-sm" id="minestatReviewRefresh" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="imp-tabs" role="tablist" aria-label="Review states" id="minestatReviewTabs">
+          <button class="imp-tab" role="tab" data-state="open" aria-selected="true" tabindex="0">
+            Open
+            <span class="imp-tab-count" data-tone="danger" id="msCountOpen">0</span>
+          </button>
+          <button class="imp-tab" role="tab" data-state="resolved" aria-selected="false" tabindex="-1">
+            Resolved
+            <span class="imp-tab-count" data-tone="success" id="msCountResolved">0</span>
+          </button>
+          <!-- Ignored stays visible under its own tab rather than being
+               deleted, so an over-eager ignore can be found and undone. -->
+          <button class="imp-tab" role="tab" data-state="ignored" aria-selected="false" tabindex="-1">
+            Not a driver
+            <span class="imp-tab-count" id="msCountIgnored">0</span>
+          </button>
+        </div>
+
+        <div class="imp-table-wrap" id="minestatReviewWrap">
+          <div class="imp-empty" id="minestatReviewEmpty" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <div class="imp-empty-text" id="minestatReviewEmptyText">Every MineStat name in your imports matched the masterlist.</div>
+          </div>
+          <table class="imp-table" id="minestatReviewTable" hidden>
+            <thead>
+              <tr>
+                <th>Name in file</th>
+                <th>Why unmatched</th>
+                <th>Shift records waiting</th>
+                <th>Best guess</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="minestatReviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Resolve modal — same four fix routes as the Driver Name Review
+           card's own modal: pick a ranked candidate, search the masterlist by
+           name OR number, add a driver the conso has not caught up with, or
+           mark the string as not a person at all. -->
+      <div class="detail-modal" id="minestatResolveModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="minestatResolveTitle" style="max-width:560px">
+          <div class="detail-head">
+            <div>
+              <h2 id="minestatResolveTitle" class="detail-title">Match driver name</h2>
+              <p class="detail-sub" id="minestatResolveSub">Assign this spelling to an employee.</p>
+            </div>
+            <button type="button" class="detail-close" id="minestatResolveClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding-right:2px">
+            <div style="background:var(--surface-2,rgba(127,127,127,.08));border-radius:8px;padding:12px 14px">
+              <div style="font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Name as it appeared in the file</div>
+              <div id="msRawName" style="font-size:var(--fs-md);font-weight:600;margin-top:4px;word-break:break-word"></div>
+              <div id="msRowCount" style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:6px"></div>
+            </div>
+
+            <!-- Route 1: ranked candidates the resolver already found. -->
+            <div id="msCandidateBlock" hidden>
+              <div class="field-label" style="margin-bottom:6px">Suggested matches</div>
+              <div id="msCandidates" style="display:flex;flex-direction:column;gap:6px"></div>
+            </div>
+
+            <!-- Route 2: search the whole masterlist, by name or by number. -->
+            <div class="field-group" style="position:relative">
+              <label class="field-label" for="msSearch">Or search the masterlist</label>
+              <input class="field-input" id="msSearch" type="text" autocomplete="off"
+                     placeholder="Type a name or employee number…" style="width:100%">
+              <div class="menu" id="msSearchSuggest" hidden
+                   style="position:absolute;top:100%;left:0;right:0;z-index:20;max-height:220px;overflow-y:auto"></div>
+            </div>
+
+            <!-- Route 3: a real new hire the conso has not caught up with. -->
+            <details id="msAddDriverWrap">
+              <summary style="cursor:pointer;font-size:var(--fs-sm);color:var(--text-sec)">Not on the masterlist? Add them</summary>
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <input class="field-input" id="msNewEmpNo" type="text" placeholder="Employee no." style="flex:0 0 40%">
+                <input class="field-input" id="msNewName" type="text" placeholder="Full name" style="flex:1">
+              </div>
+              <button class="btn btn-outline btn-sm" id="msAddDriverBtn" type="button" style="margin-top:8px">Add and match</button>
+            </details>
+
+            <div class="field-error" id="minestatResolveError" hidden></div>
+
+            <div class="detail-actions" style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+              <!-- Route 4: not a person at all (TEST, N/A, a plate number in
+                   the wrong column). Writes no alias — an ignore says the
+                   string is not a driver, not that it maps to one. -->
+              <button type="button" class="btn btn-outline btn-sm" id="msIgnoreBtn">Not a driver</button>
+              <div style="display:flex;gap:8px">
+                <button type="button" class="btn btn-outline btn-sm" id="msCancelBtn">Cancel</button>
+                <button type="button" class="btn btn-sm" id="msConfirmBtn" disabled>Match</button>
               </div>
             </div>
           </div>
@@ -4204,6 +4469,1243 @@ body {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script type="text/plain" id="ddsComputeWorkerSrc">
+/* ============================================================================
+   DDS — Off-main-thread compute worker (generated copy, not authored here)
+   ----------------------------------------------------------------------------
+   Everything below down to the 'WORKER MESSAGE PROTOCOL' marker is a literal,
+   verbatim copy of two ranges from THIS FILE's main <script> block:
+     - annotate()/derive()/compare()/computeKpiDeltas7d()/computeMonthOverMonthDelta()
+       and their shared constants/helpers (createState() through computeMonthOverMonthDelta())
+     - severityForCode()/colorForCode() and their SEVERITY_RULES/SEVERITY_TOKENS/
+       EVENT_COLORS constants, which derive() calls for per-code severity banding
+   Both ranges are pure — no DOM, no window/document/localStorage — which is
+   exactly what a Worker's isolated global scope can and cannot reach. Verified
+   by running this exact text in an isolated Node vm context against the test
+   fixture: annotate()+derive()+compare() all run clean, no ReferenceError, and
+   meta.reconciles comes back true.
+
+   KEEP IN SYNC: if annotate()/derive()/compare()/severityForCode()/colorForCode()
+   or anything they call changes in the main script above, copy the same change
+   here. This is the same manual-sync convention this file already uses for
+   src/*.js (see README) — accepted here to keep index.html a single deployable
+   file with no build step and no second file that must ship alongside it. */
+
+/* Shared by compare() and comparisonFromDerived(): the absolute floor a
+   previous-period value must clear before a period-over-period percentage
+   is considered meaningful, regardless of what each metric's own
+   (much lower) minBaseline allows through for the plain delta. Below this,
+   a swing of even one unit produces a triple-digit "+%" that is technically
+   correct and practically misleading, so pct comes back null and callers
+   fall back to the plain delta instead. */
+const PCT_MIN_BASELINE = 10;
+
+/* ========================================================================
+   DDS v3.1 - single file, deploy ready
+
+   Two data sources share one store:
+     LOCAL   drop a CSV/XLSX - computed in the browser, nothing uploaded,
+             works signed out and offline.
+     SERVER  sign in - metrics come from dds_metrics() in Postgres.
+   Both produce the same `derived` object, so the renderer, accessibility
+   layer and insight panel are identical either way.
+
+   Changed from v2.2:
+   * OverviewCharts + AnalyticsCharts (23.3KB, already diverged) merged into
+     one renderer. The two pages silently disagreed - Shift and Event Code
+     distributions counted units on Overview and rows on Analytics.
+   * DOM-as-state replaced with a store. `derived` doubles as the API contract.
+   * Boundary gap closed: v2.2 left 17:20:00-17:20:59 in no shift window,
+     forcing NON_ACTIONABLE. DAY now runs to 17:20:59, NIGHT from 17:21:00.
+   * Rows with unreadable timestamps rejected at import, so KPI totals always
+     reconcile with the trend chart.
+   * Stored XSS fixed - uploaded asset/operator/event values were concatenated
+     into innerHTML in four places.
+   * Accessibility: roles, names, focus-visible, live region, screen-reader
+     data tables behind all 13 charts. v2.2 had zero aria.
+   * Filter pills, Refresh and Export were inert; all now work.
+   * Hardcoded placeholder KPIs replaced with a real empty state.
+   * Analytics summary rebuilt as a period-over-period insight panel.
+   ======================================================================== */
+
+/* == 1. STATE == */
+/* ============================================================================
+   DDS — State Model & Derived Metrics
+   ----------------------------------------------------------------------------
+   Single source of truth for the dashboard. Replaces DOM-ID-as-state.
+
+   Contract:
+     - `rows` is the ONLY input. Everything else is derived.
+     - `derive(rows, filters)` is pure: same input -> same output, no DOM.
+     - The shape returned by `derive()` IS the API response shape.
+       When the backend lands, swap `derive()` for `fetch()` and nothing
+       downstream changes.
+
+   TIME SEMANTICS (do not change without changing the backend):
+     All timestamps are parsed and evaluated in UTC. The existing mock is
+     internally consistent about this (parseDateTime -> Date.UTC, all readers
+     use getUTC*). The server MUST return UTC and MUST NOT localize, or shift
+     attribution will silently break for night shifts.
+   ========================================================================= */
+
+/* ── Domain constants ───────────────────────────────────────────────────── */
+
+const EXPECTED_COLUMNS = [
+  'UPDATE_TIME', 'START_TIME', 'END_TIME',
+  'ASSET_ID', 'EVENT_CODE', 'EVENT_COUNT', 'OPERATOR'
+];
+
+// OPERATOR (driver) isn't always captured at the source — some assets report
+// unmanned or the field is left blank. A file missing it is still valid;
+// those rows fall back to the UNSPECIFIED_OPERATOR label at aggregation time.
+const OPTIONAL_COLUMNS = ['OPERATOR'];
+const UNSPECIFIED_OPERATOR = 'Unspecified';
+
+const SHIFT = { DAY: 'DAY', NIGHT: 'NIGHT', UNKNOWN: '' };
+
+// Shift classification boundaries (minutes from UTC midnight)
+const DAY_START_MIN = 5 * 60 + 21;   // 05:21
+const DAY_END_MIN   = 17 * 60 + 21;  // 17:21 (exclusive)
+
+// Actionable windows. Contiguous — every second belongs to exactly one shift.
+const DAY_WINDOW   = { start: [5, 21, 0],  end: [17, 20, 59] };
+const NIGHT_WINDOW = { start: [17, 21, 0], end: [5, 20, 59] }; // end is +1 day
+
+/* BOUNDARY — resolved. v2.2 left 17:20:00–17:20:59 in no window at all, so
+   anything landing there was forced NON_ACTIONABLE. DAY now runs through
+   17:20:59 and NIGHT begins 17:21:00: contiguous, no gap, no overlap.
+   Mirrored exactly in supabase/migrations/0001_init.sql — change both or
+   neither, and re-run the parity test. */
+
+const SYNC_BUCKETS  = ['<3h', '3-6h', '6-8h', '8-10h', '10h+'];
+const ALERT_BUCKETS = ['<5', '5-10', '10-15', '15-20', '20+'];
+
+/* ── State ──────────────────────────────────────────────────────────────── */
+
+function createState() {
+  return {
+    // ---- raw ----
+    rows: [],            // annotated rows (see annotate())
+    imports: [],         // [{ id, name, size, uploadedAt, rowCount, problems }]
+
+    // ---- query ----
+    filters: {
+      from: null,        // 'MM/DD/YYYY' | null
+      to: null,
+      shift: null,       // 'DAY' | 'NIGHT' | null (= both)
+      assetIds: [],      // [] = all
+      eventCodes: [],    // [] = all
+      actionableOnly: false
+    },
+
+    // ---- derived (never written by hand; output of derive()) ----
+    derived: null,
+
+    // ---- async / UI ----
+    status: 'idle',      // 'idle' | 'loading' | 'ready' | 'error'
+    error: null          // { code, message } — never a raw stack trace
+  };
+}
+
+/* ── Time helpers (UTC-only) ────────────────────────────────────────────── */
+
+// Accepts '/' or '-' as the date separator, ':SS' and AM/PM as optional, and
+// either month-first or day-first ordering (disambiguated by detectDayFirst,
+// since real-world exports vary and a 31/07/2026 value only fails silently
+// if this is too strict).
+const DATETIME_RE =
+  /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?$/;
+
+// Year-first ISO-ish order ("2026-07-28 03:38:09" / "2026/07/28..."): the
+// leading 4-digit group makes this unambiguous on its own — no day-first/
+// month-first guessing needed, unlike DATETIME_RE above — so it's matched
+// as its own pattern rather than folded into detectDayFirst's heuristic.
+const DATETIME_YMD_RE =
+  /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?$/;
+
+/* Some exports produce a timestamp that looks identical on screen to
+   "31/07/2026 22:12:43" but is not built from plain ASCII -- a non-breaking
+   space or zero-width space instead of a regular space, a full-width digit
+   set, or an en/em dash standing in for the date separator. Normalizing to
+   plain ASCII before either regex sees the string covers that whole class.
+   Every non-ASCII code point below is written as a \u escape sequence, not
+   a literal pasted character. */
+function normalizeDateTimeStr(s) {
+  // Visible-width spaces: these separate two real tokens (date from time),
+  // so they collapse to a single ASCII space -- deleting them outright
+  // would glue two digit groups together into one unparseable run.
+  const SPACE_CODES = [
+    0x00A0, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006,
+    0x2007, 0x2008, 0x2009, 0x200A, 0x202F, 0x2028, 0x2029
+  ];
+  // Zero-width: these carry no visible width, so they're stripped to
+  // nothing rather than becoming a space -- a stray one landing MID-DIGIT
+  // ("3<ZWSP>1/07/2026...") must not turn into "3 1/07/2026...".
+  const ZERO_WIDTH_CODES = [0x200B, 0xFEFF];
+  const HYPHEN_CODES = [0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212];
+
+  const toCharClass = codes => '[' + codes.map(c => '\\u' + c.toString(16).padStart(4, '0')).join('') + ']';
+  const spaceRe = new RegExp(toCharClass(SPACE_CODES), 'g');
+  const zeroWidthRe = new RegExp(toCharClass(ZERO_WIDTH_CODES), 'g');
+  const hyphenRe = new RegExp(toCharClass(HYPHEN_CODES), 'g');
+  // Full-width digits 0xFF10-0xFF19 ('0'-'9') and full-width solidus
+  // 0xFF0F ('/'), built from code points only -- no literal non-ASCII
+  // character anywhere in this function's source.
+  const FULLWIDTH_DIGIT_CODES = [0xFF10, 0xFF11, 0xFF12, 0xFF13, 0xFF14, 0xFF15, 0xFF16, 0xFF17, 0xFF18, 0xFF19];
+  const fullWidthDigitRe = new RegExp(toCharClass(FULLWIDTH_DIGIT_CODES), 'g');
+  const fullWidthSlashRe = new RegExp('\\u' + (0xFF0F).toString(16), 'g');
+
+  return String(s)
+    .replace(zeroWidthRe, '')
+    .replace(spaceRe, ' ')
+    .replace(hyphenRe, '-')
+    .replace(fullWidthDigitRe, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(fullWidthSlashRe, '/');
+}
+
+function parseDateTime(str, opts){
+  opts = opts || {};
+  var dayFirst = !!opts.dayFirst;
+  // XLSX cellDates:true hands back real Date objects for date-formatted
+  // cells instead of a string — pass them through rather than stringifying
+  // and failing the regex.
+  if (str instanceof Date) return Number.isNaN(str.getTime()) ? null : str;
+  if (!str || !String(str).trim()) return null;
+  const normalized = normalizeDateTimeStr(str).trim();
+
+  // Year-first order is checked first and, if it matches, settles month/day
+  // unambiguously on its own — dayFirst never applies to it, since there is
+  // no day-vs-month guessing to do once the year is already pinned to the
+  // leading 4-digit group.
+  const ymd = DATETIME_YMD_RE.exec(normalized);
+  if (ymd) {
+    const yyyy = Number(ymd[1]), month = Number(ymd[2]), dd = Number(ymd[3]);
+    let HH = Number(ymd[4]);
+    const MM = Number(ymd[5]);
+    const SS = ymd[6] ? Number(ymd[6]) : 0;
+    const ampm = ymd[7];
+    if (month < 1 || month > 12 || dd < 1 || dd > 31) return null;
+    if (ampm) {
+      const pm = /p/i.test(ampm);
+      if (pm && HH < 12) HH += 12;
+      if (!pm && HH === 12) HH = 0;
+    }
+    if (HH > 23) return null;
+    return new Date(Date.UTC(yyyy, month - 1, dd, HH, MM, SS));
+  }
+
+  const m = DATETIME_RE.exec(normalized);
+  if (!m) return null;
+  const a = Number(m[1]), b = Number(m[2]), yyyy = Number(m[3]);
+  let HH = Number(m[4]);
+  const MM = Number(m[5]);
+  const SS = m[6] ? Number(m[6]) : 0;
+  const ampm = m[7];
+
+  const month = dayFirst ? b : a;
+  const dd    = dayFirst ? a : b;
+  if (month < 1 || month > 12 || dd < 1 || dd > 31) return null;
+
+  if (ampm) {
+    const pm = /p/i.test(ampm);
+    if (pm && HH < 12) HH += 12;
+    if (!pm && HH === 12) HH = 0;
+  }
+  if (HH > 23) return null;
+
+  return new Date(Date.UTC(yyyy, month - 1, dd, HH, MM, SS));
+}
+
+// A file's date convention is consistent across all its rows, so one
+// unambiguous value (a day-of-month > 12) is enough to settle it for every
+// row — including the ambiguous-looking ones the regex alone can't resolve.
+// Falls back to month-first (the documented default) when nothing disambiguates.
+function detectDayFirst(rawRows) {
+  for (const row of rawRows) {
+    for (const col of ['START_TIME', 'UPDATE_TIME', 'END_TIME']) {
+      const v = field(row, col);
+      if (!v) continue;
+      const m = /^(\d{1,2})[/-](\d{1,2})[/-]\d{4}/.exec(normalizeDateTimeStr(v).trim());
+      if (!m) continue;
+      const a = Number(m[1]), b = Number(m[2]);
+      if (a > 12 && b <= 12) return true;
+      if (b > 12 && a <= 12) return false;
+    }
+  }
+  return false;
+}
+
+const dateOnly = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+const addDays  = (d, n) => new Date(d.getTime() + n * 86400000);
+const atTime   = (d, [h, m, s]) => new Date(Date.UTC(
+  d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m, s));
+const minutesOf = d => d.getUTCHours() * 60 + d.getUTCMinutes() + d.getUTCSeconds() / 60;
+
+const formatDate = d =>
+  `${String(d.getUTCMonth() + 1).padStart(2, '0')}/` +
+  `${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
+
+/* ── Domain logic ───────────────────────────────────────────────────────── */
+
+function classifyShift(startTime) {
+  const t = minutesOf(startTime);
+  const base = dateOnly(startTime);
+  if (t >= DAY_START_MIN && t < DAY_END_MIN) {
+    return { shift: SHIFT.DAY, shiftDate: base };
+  }
+  // Early-morning tail (00:00–05:20) belongs to the PREVIOUS day's night shift.
+  return {
+    shift: SHIFT.NIGHT,
+    shiftDate: t < DAY_START_MIN ? addDays(base, -1) : base
+  };
+}
+
+function shiftWindow(shift, shiftDate) {
+  return shift === SHIFT.DAY
+    ? { start: atTime(shiftDate, DAY_WINDOW.start), end: atTime(shiftDate, DAY_WINDOW.end) }
+    : { start: atTime(shiftDate, NIGHT_WINDOW.start),
+        end:   atTime(addDays(shiftDate, 1), NIGHT_WINDOW.end) };
+}
+
+/* Column aliases. Real exports label the person behind the wheel
+   inconsistently — OPERATOR, DRIVER, "Driver Name" — and all of them mean
+   the same field here. Matching only the canonical name silently dropped
+   the column, which is how an import can look successful while every
+   Operator/Driver cell reads "—".
+
+   Keys are the canonical name used everywhere else in the code; values are
+   the accepted spellings, compared upper-cased and whitespace-trimmed (so
+   "driver name" and " Driver_Name " both match). Underscores and spaces are
+   normalised to a single space before comparison. */
+const COLUMN_ALIASES = {
+  OPERATOR: ['OPERATOR', 'DRIVER', 'DRIVER NAME', 'DRIVERNAME', 'OPERATOR NAME']
+};
+
+const normalizeHeader = k => String(k).trim().toUpperCase().replace(/[_\s]+/g, ' ');
+
+const field = (row, col) => {
+  if (row[col] !== undefined) return row[col];
+  const accepted = (COLUMN_ALIASES[col] ?? [col]).map(normalizeHeader);
+  const keys = Object.keys(row);
+  const k = keys.find(k => accepted.includes(normalizeHeader(k)));
+  return k ? row[k] : undefined;
+};
+const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
+
+/* ── Ingest: raw rows -> annotated rows ─────────────────────────────────── */
+
+/* REJECT AT IMPORT — rows whose timestamps can't be parsed never enter the
+   dataset. They are returned separately so the import UI can report them.
+   Consequence: derived totals always reconcile with the trend chart, because
+   every surviving row has a shift. meta.reconciles is therefore always true
+   for locally-loaded data; it remains in the shape as a server-side guard. */
+function annotate(rawRows) {
+  const dayFirst = detectDayFirst(rawRows);
+  const problems = [];
+  const rejected = [];
+  const rows = [];
+  rawRows.forEach((row, i) => {
+    const startTime  = parseDateTime(field(row, 'START_TIME'), { dayFirst });
+    const updateTime = parseDateTime(field(row, 'UPDATE_TIME'), { dayFirst });
+    const endTime    = parseDateTime(field(row, 'END_TIME'), { dayFirst });
+
+    if (!startTime || !updateTime) {
+      const reason = !startTime ? 'Unparseable START_TIME' : 'Unparseable UPDATE_TIME';
+      problems.push({ rowIndex: i, reason });
+      rejected.push({ rowIndex: i, reason, row });
+      return;                                   // excluded from the dataset
+    }
+
+    const { shift, shiftDate } = classifyShift(startTime);
+    const win = shiftWindow(shift, shiftDate);
+    const actionable = updateTime >= win.start && updateTime <= win.end;
+
+    // Sync lag: how long after the event ended did it reach the server.
+    const syncSeconds = endTime ? (updateTime - endTime) / 1000 : null;
+
+    rows.push({
+      ...row,
+      SHIFT: shift,
+      SHIFT_DATE: formatDate(shiftDate),
+      ACTIONABLE: actionable ? 'ACTIONABLE' : 'NON_ACTIONABLE',
+      _startHour: startTime.getUTCHours(),
+      _startTime: startTime,          // full Date — sort key for recent-alerts lists
+      _syncSeconds: syncSeconds != null && syncSeconds >= 0 ? syncSeconds : null
+    });
+  });
+  return { rows, problems, rejected };
+}
+
+/* ── Filtering ──────────────────────────────────────────────────────────── */
+
+/* MM/DD/YYYY -> sortable YYYYMMDD integer.
+
+   applyFilters() compared SHIFT_DATE against the filter bounds as plain
+   STRINGS, which is only correct while every date shares a year: as strings
+   '01/05/2027' < '12/01/2026' is true, because comparison starts at the
+   month. A range spanning a year boundary therefore returned the wrong rows,
+   and a pair like 03/01/2026 -> 02/01/2027 returned NOTHING. Measured on an
+   84,401-row set: 0 rows kept where 35,167 should have been.
+
+   A numeric key fixes the ordering and is also the fastest correct option:
+   23ms vs 71ms for constructing two Date objects per row, because it
+   allocates nothing. (The broken string compare ran in 4ms, which is exactly
+   why it was attractive -- fast and wrong.)
+
+   Padding is what makes the concatenation sortable. Both inputs are already
+   padded -- formatDate() pads explicitly and <input type="date"> always
+   yields YYYY-MM-DD -- but padStart is kept so a hand-built value like
+   '1/5/2027' cannot silently produce a 6-digit key that sorts before every
+   real date. */
+const dateKey = mmddyyyy => {
+  const p = String(mmddyyyy).split('/');
+  if (p.length !== 3) return NaN;
+  return Number(p[2] + p[0].padStart(2, '0') + p[1].padStart(2, '0'));
+};
+
+function applyFilters(rows, f) {
+  if (!f) return rows;
+  return rows.filter(r => {
+    if (f.shift && r.SHIFT !== f.shift) return false;
+    if (f.actionableOnly && r.ACTIONABLE !== 'ACTIONABLE') return false;
+    // `r.SHIFT_DATE &&` means a row with no SHIFT_DATE (an unparseable
+    // timestamp — see annotate()'s own "REJECT AT IMPORT" comment) BYPASSES
+    // date-range filtering entirely and is kept regardless of the selected
+    // from/to range, while still subject to shift/actionableOnly/asset/
+    // eventCode below. This is the deliberate flip side of derive()'s
+    // reconciliation design (meta.unclassifiedRows/unclassifiedUnits): such
+    // rows still count toward kpis.totalAlerts even though they have no
+    // date to plot on the trend chart, so a user filtering to "last 7 days"
+    // can see totals include alerts whose date is unknown and therefore
+    // outside any possible range they picked. Don't "fix" this into a
+    // strict date check without also updating meta.reconciles' contract.
+    if (f.from && r.SHIFT_DATE && dateKey(r.SHIFT_DATE) < dateKey(f.from)) return false;
+    if (f.to   && r.SHIFT_DATE && dateKey(r.SHIFT_DATE) > dateKey(f.to))   return false;
+    if (f.assetIds?.length   && !f.assetIds.includes(field(r, 'ASSET_ID'))) return false;
+    if (f.eventCodes?.length && !f.eventCodes.includes(field(r, 'EVENT_CODE'))) return false;
+    return true;
+  });
+}
+
+/* ── Driver/unit severity banding ─────────────────────────────────────────
+   HIGH-CONSISTENCY SEVERITY — how much of a driver/unit's active days each
+   had more than HIGH_DAY_THRESHOLD alerts, not just a single bad day.
+   highDays/activeDays (highDayRatio) is exposed so the UI can explain the
+   status with real numbers instead of just a label.
+
+   Graduated into four bands rather than a single >50% boolean: a fleet
+   where most drivers already run past 50% (the old cutoff) rendered every
+   one of them as the same "High" pill with nothing to separate a 53%
+   driver from an 89% one — the column carried no information once a fleet
+   was busy enough. SEVERITY_RANK gives sorting a stable numeric key
+   without re-deriving it from the label (see dmSortedItems() in the
+   Driver & Asset Monitoring section, which sorts on this same idea).
+
+   TOP-LEVEL, not local to withConsistency()/derive(): this is the ONE
+   place severity is computed, full stop — the local-import path
+   (withConsistency(), below) and the signed-in path (applySeverity()
+   called from App.loadFromServer() over Cloud.metrics()'s raw
+   highDayRatio numbers) both call THIS, rather than each carrying its own
+   copy of the threshold table. dds_metrics() in Postgres deliberately no
+   longer computes severity at all as of 0020_driver_asset_severity.sql —
+   it returns the raw highDayRatio/activeDays/highDays this reads, and
+   nothing else — so there is exactly one severity calculation in the
+   entire system instead of two that could quietly drift apart (which is
+   exactly what test/parity.sh exists to catch, and exactly the failure
+   mode collapsing to one calculation removes outright). */
+const HIGH_DAY_THRESHOLD = 10;
+const SEVERITY_BANDS = [
+  { severity: 'critical', rank: 3, min: 75 },
+  { severity: 'warning',  rank: 2, min: 50 },
+  { severity: 'caution',  rank: 1, min: 25 },
+  { severity: 'normal',   rank: 0, min: 0 }
+];
+const severityFor = highDayRatio =>
+  SEVERITY_BANDS.find(b => highDayRatio >= b.min) || SEVERITY_BANDS[SEVERITY_BANDS.length - 1];
+
+/* Mutates and returns `item` — applied to an already-built consistency row
+   (asset or operator, local or server-sourced) that already carries
+   highDayRatio. Adds severity/severityRank/flagged; never recomputes
+   highDayRatio itself, since that number comes from two different sources
+   (a client-side Map walk locally, a SQL aggregate when signed in) that
+   must each already agree with derive()'s own totals before this point —
+   this function's only job is turning that agreed-upon ratio into a band. */
+function applySeverity(item) {
+  const band = severityFor(item.highDayRatio);
+  item.severity = band.severity;
+  item.severityRank = band.rank;
+  // Derived from severity rather than its own condition, so the two can
+  // never drift apart — anything above Normal counts as needing
+  // attention, same threshold (>0%, i.e. any band above 'normal') the old
+  // boolean used to gate the "Need Attention" KPI and the flagged-first
+  // sort.
+  item.flagged = band.severity !== 'normal';
+  return item;
+}
+
+/* ── Derive: the API response shape ─────────────────────────────────────── */
+
+function derive(allRows, filters) {
+  const rows = applyFilters(allRows, filters);
+
+  let totalAlerts = 0, actionableAlerts = 0;
+  let syncSum = 0, syncN = 0;
+  let unclassifiedRows = 0, unclassifiedUnits = 0;
+
+  const assets = new Map();      // id -> { total, actionable, nonActionable }
+  const operators = new Map();   // id -> { total, codeCounts:{code:count}, lastTime:Date }
+  const eventCodes = new Map();  // code -> { units, events }
+  const byDate = new Map();      // MM/DD/YYYY -> { units, events, assets:Set, syncSum, syncN }
+  const hourly = { DAY: Array(24).fill(0), NIGHT: Array(24).fill(0) };
+  // "YYYY-MM" -> number[24] — one line per calendar month for the Hourly
+  // chart's by-month view (charts.hourlyMonthly()). Separate from `hourly`
+  // above (DAY/NIGHT split), which several other consumers still read
+  // unchanged — see that field's own comment further down.
+  const hourlyByMonth = new Map();
+  const shiftTotals = { DAY: { units: 0, assets: new Set() },
+                        NIGHT: { units: 0, assets: new Set() } };
+  const syncBuckets  = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
+  const alertBuckets = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
+  // Mon..Sun totals, for the Analytics "which weekday concentrates volume"
+  // view. Keyed off SHIFT_DATE (the attributed shift day), matching every
+  // other bucket in this function — NOT _startTime's raw calendar date,
+  // which can disagree with SHIFT_DATE for the night-shift tail rows
+  // classifyShift() already rolls back to the previous day.
+  const dayOfWeekUnits = Array(7).fill(0);
+
+  for (const r of rows) {
+    const units = num(field(r, 'EVENT_COUNT'));
+    const isAct = r.ACTIONABLE === 'ACTIONABLE';
+    const asset = field(r, 'ASSET_ID');
+    const operRaw = field(r, 'OPERATOR');
+    const oper  = (operRaw != null && String(operRaw).trim()) ? String(operRaw).trim() : UNSPECIFIED_OPERATOR;
+    const code  = field(r, 'EVENT_CODE');
+
+    totalAlerts += units;
+    if (isAct) actionableAlerts += units;
+
+    /* ⚠ RECONCILIATION — inherited from v2.2 compute().
+       Rows with an unparseable timestamp have no SHIFT, so they are excluded
+       from trend/shift/hourly but STILL counted in totalAlerts. Result:
+       kpis.totalAlerts can exceed sum(trend.units). Surfaced in meta so the
+       UI can warn instead of silently disagreeing with itself. */
+    if (!r.SHIFT) { unclassifiedRows++; unclassifiedUnits += units; }
+
+    if (asset) {
+      const a = assets.get(asset) || { total: 0, actionable: 0, nonActionable: 0, dayTotals: new Map() };
+      a.total += units;
+      isAct ? (a.actionable += units) : (a.nonActionable += units);
+      if (r.SHIFT_DATE) a.dayTotals.set(r.SHIFT_DATE, (a.dayTotals.get(r.SHIFT_DATE) || 0) + units);
+      assets.set(asset, a);
+    }
+    {
+      const o = operators.get(oper) || { total: 0, actionable: 0, nonActionable: 0, dayTotals: new Map(), codeCounts: {}, lastTime: null };
+      o.total += units;
+      isAct ? (o.actionable += units) : (o.nonActionable += units);
+      if (r.SHIFT_DATE) o.dayTotals.set(r.SHIFT_DATE, (o.dayTotals.get(r.SHIFT_DATE) || 0) + units);
+      if (code) o.codeCounts[code] = (o.codeCounts[code] || 0) + 1;
+      if (!o.lastTime || r._startTime > o.lastTime) o.lastTime = r._startTime;
+      operators.set(oper, o);
+    }
+    if (code) {
+      const c = eventCodes.get(code) || { units: 0, events: 0 };
+      c.units += units; c.events += 1;
+      eventCodes.set(code, c);
+    }
+
+    if (r._startHour != null && hourly[r.SHIFT]) hourly[r.SHIFT][r._startHour] += units;
+
+    if (r._startHour != null && r._startTime) {
+      // UTC month key, matching _startHour's own UTC convention (see
+      // annotate()'s _startHour: startTime.getUTCHours()) — "the hour" and
+      // "the month it's grouped under" must agree on which clock they're
+      // reading, or a day near a UTC month boundary could double count.
+      const mKey = `${r._startTime.getUTCFullYear()}-${String(r._startTime.getUTCMonth() + 1).padStart(2, '0')}`;
+      const bucket = hourlyByMonth.get(mKey) || Array(24).fill(0);
+      bucket[r._startHour] += units;
+      hourlyByMonth.set(mKey, bucket);
+    }
+
+    if (shiftTotals[r.SHIFT]) {
+      shiftTotals[r.SHIFT].units += units;
+      if (asset) shiftTotals[r.SHIFT].assets.add(asset);
+    }
+
+    if (r._syncSeconds != null) {
+      syncSum += r._syncSeconds; syncN++;
+      const h = r._syncSeconds / 3600;
+      const i = h < 3 ? 0 : h < 6 ? 1 : h < 8 ? 2 : h < 10 ? 3 : 4;
+      syncBuckets[isAct ? 'actionable' : 'nonActionable'][i]++;
+    }
+
+    const ai = units < 5 ? 0 : units < 10 ? 1 : units < 15 ? 2 : units < 20 ? 3 : 4;
+    alertBuckets[isAct ? 'actionable' : 'nonActionable'][ai]++;
+
+    if (r.SHIFT_DATE) {
+      const d = byDate.get(r.SHIFT_DATE) || { units: 0, events: 0, assets: new Set(),
+                                              operators: new Set(), sleep: 0, drowsy: 0,
+                                              syncSum: 0, syncN: 0 };
+      d.units += units; d.events += 1;
+      if (asset) d.assets.add(asset);
+      /* Per-day severity + driver counts, added for the Overview KPI
+         sparklines. Deliberately computed from the SAME sources the KPI
+         numbers themselves use — severityForCode() (hoisted, see the
+         CHARTS section) for the sleep/drowsy split that compare()'s
+         sleepAlerts/drowsinessAlerts metrics read via severityCount(),
+         and the same `oper` fallback the operators map above uses for
+         distinctOperators. A sparkline drawn from a second, independent
+         calculation could disagree with the number printed above it. */
+      d.operators.add(oper);
+      if (code) {
+        const sev = severityForCode(code).key;
+        if (sev === 'critical') d.sleep += units;
+        else if (sev === 'elevated') d.drowsy += units;
+      }
+      // Same null-when-unmeasured convention as the whole-period
+      // avgSyncSeconds below — a day with zero synced rows must not
+      // silently read as a sync delay of zero.
+      if (r._syncSeconds != null) { d.syncSum += r._syncSeconds; d.syncN += 1; }
+      byDate.set(r.SHIFT_DATE, d);
+      // getUTCDay(): 0=Sun..6=Sat. Rotated so the array is Mon-first,
+      // matching how the chart displays the week.
+      dayOfWeekUnits[(toDate(r.SHIFT_DATE).getUTCDay() + 6) % 7] += units;
+    }
+  }
+
+  /* Ties at the LIMIT boundary must break the same way here and in SQL, or
+     two assets with equal totals swap in and out of the top-10 depending on
+     which engine answered. Secondary sort on id makes it deterministic.
+     Mirrored by `order by total desc, asset_id` in 0002/0006_*.sql. */
+  const topN = (map, n = 10) =>
+    [...map.entries()]
+      .map(([id, v]) => ({ id, total: v.total, actionable: v.actionable,
+                            nonActionable: v.nonActionable, activeDays: v.dayTotals.size }))
+      .sort((a, b) => b.total - a.total || String(a.id).localeCompare(String(b.id)))
+      .slice(0, n);
+
+  /* Per-entity consistency breakdown feeding the Driver & Asset Monitoring
+     page. highDays/activeDays (highDayRatio) is exposed so the UI can
+     explain the status with real numbers instead of just a label.
+     Unranked/uncapped, unlike topN above: the monitoring page wants every
+     driver/unit, not just the top 10 by volume.
+
+     severity/severityRank/flagged come from applySeverity() (top-level,
+     see its own comment above derive()) — NOT computed here. This is the
+     local-import counterpart to App.loadFromServer()'s server path, which
+     calls the exact same applySeverity() over dds_metrics()'s raw
+     highDayRatio numbers — one severity calculation, two data sources. */
+  const withConsistency = map =>
+    [...map.entries()]
+      .map(([id, v]) => {
+        const activeDays = v.dayTotals.size;
+        const highDays = [...v.dayTotals.values()].filter(day => day > HIGH_DAY_THRESHOLD).length;
+        const highDayRatio = activeDays ? (highDays / activeDays) * 100 : 0;
+        return applySeverity({
+          id, total: v.total, actionable: v.actionable, nonActionable: v.nonActionable,
+          activeDays,
+          highDays,
+          highDayRatio,
+          consistencyRate: v.total / (activeDays || 1),
+          actionableRatio: v.total ? (v.actionable / v.total) * 100 : 0
+        });
+      })
+      .sort((a, b) => (b.severityRank - a.severityRank) || b.highDayRatio - a.highDayRatio ||
+        b.consistencyRate - a.consistencyRate || String(a.id).localeCompare(String(b.id)));
+
+  /* Most-recent-first log. _startTime is only absent on rows whose
+     timestamp failed to parse — annotate() already excludes those from
+     `rows` entirely, so no null guard is needed here. Ties (same
+     millisecond) break on asset id for a stable, deterministic order. */
+  const recentAlerts = [...rows]
+    .sort((a, b) => b._startTime - a._startTime ||
+      String(field(a, 'ASSET_ID')).localeCompare(String(field(b, 'ASSET_ID'))))
+    .slice(0, 8)
+    .map(r => ({
+      time: r._startTime.toISOString(),
+      operator: (() => {
+        const v = field(r, 'OPERATOR');
+        return (v != null && String(v).trim()) ? String(v).trim() : UNSPECIFIED_OPERATOR;
+      })(),
+      asset: field(r, 'ASSET_ID') ?? '—',
+      eventCode: field(r, 'EVENT_CODE') ?? '—',
+      shift: r.SHIFT || SHIFT.UNKNOWN,
+      count: num(field(r, 'EVENT_COUNT'))
+    }));
+
+  const dayU = shiftTotals.DAY.units, nightU = shiftTotals.NIGHT.units;
+  const shiftSum = dayU + nightU;
+
+  return {
+    meta: {
+      rowCount: rows.length,
+      unclassifiedRows,          // rows with unparseable timestamps
+      unclassifiedUnits,         // their EVENT_COUNT — the trend/KPI delta
+      reconciles: unclassifiedUnits === 0,
+      filters: filters ?? null,
+      generatedAt: new Date().toISOString()
+    },
+
+    // ---- KPI strip (both Overview and Analytics consume this) ----
+    kpis: {
+      totalAlerts,
+      distinctAssets: assets.size,
+      distinctOperators: operators.size,
+      avgSyncSeconds: syncN ? syncSum / syncN : null,
+      actionableRatio: totalAlerts ? (actionableAlerts / totalAlerts) * 100 : 0
+    },
+
+    // ---- charts ----
+    trend: [...byDate.entries()]
+      .map(([date, v]) => ({
+        date, units: v.units, events: v.events, assets: v.assets.size,
+        // sleep/drowsy/operators: sparkline series only (see byDate above).
+        // No existing consumer of `trend` reads them, so adding them is
+        // additive — nothing downstream changes shape.
+        sleep: v.sleep, drowsy: v.drowsy, operators: v.operators.size,
+        avgSyncSeconds: v.syncN ? v.syncSum / v.syncN : null
+      }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date)),
+
+    // Mon..Sun totals — see dayOfWeekUnits above for why SHIFT_DATE (not
+    // _startTime) is the grouping key. Additive field; no existing consumer
+    // reads it.
+    dayOfWeek: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((day, i) => ({
+      day, units: dayOfWeekUnits[i]
+    })),
+
+    shiftDistribution: {
+      DAY:   { units: dayU,   assets: shiftTotals.DAY.assets.size,
+               pct: shiftSum ? (dayU / shiftSum) * 100 : 0 },
+      NIGHT: { units: nightU, assets: shiftTotals.NIGHT.assets.size,
+               pct: shiftSum ? (nightU / shiftSum) * 100 : 0 }
+    },
+
+    eventCodeDistribution: [...eventCodes.entries()]
+      .map(([code, v]) => ({ code, units: v.units, events: v.events,
+                             pct: totalAlerts ? (v.units / totalAlerts) * 100 : 0 }))
+      .sort((a, b) => b.units - a.units || a.code.localeCompare(b.code)),
+
+    hourly,                              // { DAY: number[24], NIGHT: number[24] }
+
+    // One entry per calendar month present in the data, sorted chronologically
+    // ("YYYY-MM" sorts correctly as a plain string). Powers the Hourly chart's
+    // by-month view (charts.hourlyMonthly()) — a separate field from `hourly`
+    // above rather than a replacement, since several other consumers
+    // (insightBullets.peakHour, the a11y hourly table, CSV export) still read
+    // the DAY/NIGHT shape unchanged.
+    hourlyByMonth: [...hourlyByMonth.entries()]
+      .map(([month, hours]) => ({ month, hours }))
+      .sort((a, b) => a.month.localeCompare(b.month)),
+
+    syncBuckets:  { labels: SYNC_BUCKETS,  ...syncBuckets  },
+    alertBuckets: { labels: ALERT_BUCKETS, ...alertBuckets },
+
+    topAssets:    topN(assets),          // [{ id, total, actionable, nonActionable, activeDays }]
+
+    // [{ id, total, actionable, nonActionable, activeDays, primaryEventCode,
+    //    lastAlertTime }] — primaryEventCode is whichever code appears most
+    // often for that operator (ties broken by code string so it's
+    // deterministic); codeCounts itself isn't exposed, it's an internal
+    // tally only used to pick the winner here.
+    topOperators: topN(operators).map(o => {
+      const raw = operators.get(o.id);
+      const codes = Object.entries(raw.codeCounts);
+      const primaryEventCode = codes.length
+        ? codes.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0]
+        : null;
+      return {
+        ...o,
+        primaryEventCode,
+        lastAlertTime: raw.lastTime ? raw.lastTime.toISOString() : null
+      };
+    }),
+
+    // Full (uncapped) per-entity breakdown, sorted flagged-first — feeds
+    // the Driver & Asset Monitoring page. See withConsistency() above /
+    // 0006_driver_asset_consistency.sql for the flagging rule.
+    assetConsistency:    withConsistency(assets),    // [{ id, total, actionable, nonActionable, activeDays, highDays, highDayRatio, flagged, consistencyRate, actionableRatio }]
+    operatorConsistency: withConsistency(operators), // same shape, keyed by OPERATOR
+
+    // Most recent individual rows, newest first — a log view, not an
+    // aggregate. Respects the active filters, same as everything above.
+    recentAlerts                         // [{ time, operator, asset, eventCode, shift, count }]
+  };
+}
+
+/* ── Period comparison ──────────────────────────────────────────────────────
+   "vs last month" needs a baseline, and the honest baseline is an equal-length
+   window immediately before the selected one — not a calendar month. Imported
+   files are historical and often partial, so a calendar-month baseline
+   silently compares 31 days against 9 and reports a 70% "drop" that is really
+   just missing data.
+
+   RATE vs VOLUME. Raw totals are confounded by fleet size: if alerts rise 50%
+   while active assets rise 25%, per-asset risk only rose 20%. Both are
+   reported so the confound is visible instead of hidden. */
+
+const MS_DAY = 86400000;
+const toDate = mmddyyyy => {
+  const [m, d, y] = String(mmddyyyy).split('/').map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+};
+
+/* Baseline-window fallback. The primary rule stays "equal length to the
+   current period, immediately preceding it" (spanDays). When that window
+   isn't fully covered by the data, instead of immediately settling for a
+   caveat-flagged partial baseline, try shorter STANDARD granularities —
+   30 days, then 7, then 1 (yesterday) — skipping any step that's not
+   actually shorter than spanDays (already covered by the primary attempt).
+   Both `current` AND `previous` shrink to the SAME chosen length, clipped
+   to the most recent N days of whatever `current` originally was — never
+   just `previous`. Comparing a shrunk previous window against the
+   ORIGINAL, longer current window (e.g. 7 days of history vs a 30-day
+   current total) produced a real but wildly disproportionate percentage —
+   more alerts almost always accumulate over 30 days than over 7, so
+   "current vastly exceeds previous" was structural, not a genuine trend.
+   Every comparison here is strictly N days vs N days, for whichever N is
+   the largest granularity fully covered by the data on BOTH sides. Only
+   falls all the way back to the original partial-equal-length behavior if
+   none of 30/7/1 works either. */
+const BASELINE_FALLBACK_DAYS = [30, 7, 1];
+
+/* Same 30/7/1-day fallback cascade as resolvePeriods() above, reshaped for
+   App.loadFromServer() (the signed-in path), which has no local row array
+   to pull an exact earliest-date-with-data from the way resolvePeriods()
+   does via `dates[0]`. Instead takes `earliest` as a Date already known to
+   the caller — true earliest-with-data ONLY when the active filter is
+   unbounded (no explicit from/to), since dds_metrics() then naturally
+   returns everything and cur.trend[0].date IS that earliest date; the
+   caller is responsible for only invoking this in that case (see its call
+   site's own comment) rather than this function re-deriving that
+   distinction itself. Feasibility here is a pure DATE-RANGE check (does
+   the candidate window's start fall on/after `earliest`), same as
+   resolvePeriods()'s `candidateFrom >= earliest` — whether the window
+   actually HAS rows is still discovered by the real dds_metrics() fetch
+   the caller makes afterward, same "prev.meta.rowCount === 0" contract
+   comparisonFromDerived() already handles. */
+function resolveServerBaselineWindow(from, to, earliest) {
+  const spanDays = Math.round((to - from) / MS_DAY) + 1;
+  const prevTo = new Date(from.getTime() - MS_DAY);
+
+  // Primary: equal-length window, immediately preceding `current`.
+  const prevFrom = new Date(prevTo.getTime() - (spanDays - 1) * MS_DAY);
+  if (prevFrom >= earliest) {
+    return { spanDays, curFrom: from, curTo: to, prevFrom, prevTo, baselineComplete: true };
+  }
+
+  // Equal-length isn't fully covered — try each standard granularity
+  // shorter than spanDays (a step >= spanDays was already just tried).
+  for (const days of BASELINE_FALLBACK_DAYS) {
+    if (days >= spanDays) continue;
+    const candidateFrom = new Date(prevTo.getTime() - (days - 1) * MS_DAY);
+    if (candidateFrom >= earliest) {
+      const clippedCurrentFrom = new Date(to.getTime() - (days - 1) * MS_DAY);
+      return {
+        spanDays: days, curFrom: clippedCurrentFrom, curTo: to,
+        prevFrom: candidateFrom, prevTo, baselineComplete: true
+      };
+    }
+  }
+
+  // Nothing fits — fall back to the original equal-length window, flagged
+  // partial by the caller the same way comparisonFromDerived() already
+  // does when prev.meta.rowCount is 0.
+  return { spanDays, curFrom: from, curTo: to, prevFrom, prevTo, baselineComplete: false };
+}
+
+/** Resolve current and baseline windows from the filters and available data. */
+function resolvePeriods(allRows, filters, fallbackDays = 30) {
+  const dates = [...new Set(allRows.map(r => r.SHIFT_DATE).filter(Boolean))]
+    .sort((a, b) => toDate(a) - toDate(b));
+  if (!dates.length) return null;
+
+  let from, to;
+  if (filters?.from && filters?.to) {
+    from = toDate(filters.from); to = toDate(filters.to);
+  } else {
+    // No explicit range: most recent `fallbackDays` of shift dates present.
+    to = toDate(dates.at(-1));
+    from = new Date(Math.max(toDate(dates[0]).getTime(), to.getTime() - (fallbackDays - 1) * MS_DAY));
+  }
+  const spanDays = Math.round((to - from) / MS_DAY) + 1;
+  const prevTo = new Date(from.getTime() - MS_DAY);
+  const earliest = toDate(dates[0]);
+
+  // Primary: equal-length window, immediately preceding `current`.
+  const prevFrom = new Date(prevTo.getTime() - (spanDays - 1) * MS_DAY);
+  if (prevFrom >= earliest) {
+    return {
+      spanDays,
+      current:  { from, to },
+      previous: { from: prevFrom, to: prevTo },
+      baselineComplete: true,
+      baselineCoverage: 1,
+      baselineDays: spanDays
+    };
+  }
+
+  // Equal-length isn't fully covered — try each standard granularity that's
+  // actually shorter than spanDays (a step >= spanDays was already just
+  // tried above and failed, so re-trying it here would be redundant).
+  // BOTH windows clip to `days` here — `current` clips to its own most
+  // recent `days`, not the original (longer) span, so the two sides
+  // being compared are always the same length.
+  for (const days of BASELINE_FALLBACK_DAYS) {
+    if (days >= spanDays) continue;
+    const candidateFrom = new Date(prevTo.getTime() - (days - 1) * MS_DAY);
+    if (candidateFrom >= earliest) {
+      const clippedCurrentFrom = new Date(to.getTime() - (days - 1) * MS_DAY);
+      return {
+        spanDays: days,
+        current:  { from: clippedCurrentFrom, to },
+        previous: { from: candidateFrom, to: prevTo },
+        baselineComplete: true,
+        baselineCoverage: 1,
+        baselineDays: days
+      };
+    }
+  }
+
+  // Nothing — not the equal-length window, not 30d/7d/1d — is fully
+  // covered. Fall back to the equal-length window flagged partial, same
+  // as the original (pre-fallback) behavior, so the UI still shows
+  // *something* rather than nothing.
+  return {
+    spanDays,
+    current:  { from, to },
+    previous: { from: prevFrom, to: prevTo },
+    // Baseline is partial when the data does not reach back far enough. A 12%
+    // change measured against 4 days of history is noise, and the UI must be
+    // able to say so rather than presenting it as fact.
+    baselineComplete: false,
+    baselineCoverage: Math.max(0, Math.min(1,
+      (prevTo - Math.max(prevFrom, earliest)) / ((spanDays - 1) * MS_DAY || 1))),
+    baselineDays: spanDays
+  };
+}
+
+const inWindow = (row, w) => {
+  if (!row.SHIFT_DATE) return false;
+  const d = toDate(row.SHIFT_DATE);
+  return d >= w.from && d <= w.to;
+};
+
+const fmtRange = w => `${formatDate(w.from)} – ${formatDate(w.to)}`;
+
+/* Sum of EVENT_COUNT (units) across event codes matching one severity key
+   ('critical' = Sleep Alert, 'elevated' = Drowsiness Alert — see
+   SEVERITY_RULES/severityForCode in the CHARTS section, hoisted so it's
+   callable here despite being defined later in the file). Used by both
+   compare() and comparisonFromDerived() below to give Overview's Sleep/
+   Drowsiness KPI tiles a period-over-period delta without either path
+   duplicating the other's severity-matching logic. */
+function severityCount(eventCodeDistribution, severityKey) {
+  return eventCodeDistribution
+    .filter(c => severityForCode(c.code).key === severityKey)
+    .reduce((sum, c) => sum + c.units, 0);
+}
+
+/**
+ * Builds the shared `metrics` array (totalAlerts/alertRate/distinctAssets/
+ * distinctOperators/avgSyncSeconds/actionableRatio/sleepAlerts/
+ * drowsinessAlerts) from two already-derive()'d period results — the exact
+ * metric() / perAsset() / activeDays()/rate() logic that used to live only
+ * inside compare(), hoisted out so compare() and the two new fixed-window
+ * comparisons (computeKpiDeltas7d/computeMonthOverMonthDelta, below) share
+ * one implementation instead of three copies of the same PCT_MIN_BASELINE-
+ * guarded percent-change math. `a`/`b` are derive() results for the
+ * current/previous window; `curRows`/`prevRows` are the raw row sets each
+ * was built from (needed for activeDays(), which counts distinct
+ * SHIFT_DATE values directly rather than reading it off derive()'s output).
+ */
+function buildComparisonMetrics(a, b, curRows, prevRows) {
+  const activeDays = rows => new Set(rows.map(r => r.SHIFT_DATE)).size || 1;
+
+  /* Per-asset-per-active-day: the volume-independent risk rate. This is the
+     number that actually tells you whether drivers got drowsier. */
+  const rate = (k, rows) =>
+    k.distinctAssets ? k.totalAlerts / k.distinctAssets / activeDays(rows) : 0;
+
+  /* Plain per-asset rate (no active-days divisor) for the KPI tile
+     comparison line — "how many alerts per vehicle" rather than the
+     alertRate metric's "per vehicle per active day" risk rate. Passed to
+     metric() as opts.perAsset so kpiTile() can show the avg-alerts-per-
+     asset rate for both periods instead of raw current/previous totals for
+     alert-COUNT metrics specifically (totalAlerts, sleepAlerts,
+     drowsinessAlerts) — normalizing by fleet size the other metrics (asset
+     count itself, driver count, sync delay, actionable ratio) don't share,
+     since "assets per asset" isn't a meaningful rate. */
+  const perAssetRate = (count, assetCount) => assetCount ? count / assetCount : null;
+  const perAsset = (curCount, prevCount) => ({
+    current: perAssetRate(curCount, a.kpis.distinctAssets),
+    previous: perAssetRate(prevCount, b.kpis.distinctAssets)
+  });
+
+  const metric = (key, label, curVal, prevVal, opts = {}) => {
+    const delta = curVal - prevVal;
+    /* Percent change is meaningless against a tiny baseline — not just a zero
+       one. A baseline of 1 going to 5 is technically "+400%" but reads as an
+       alarming lie next to what actually happened (one more event). Require
+       the baseline to clear both the metric's own floor AND an absolute
+       PCT_MIN_BASELINE, so small-count metrics fall back to the plain delta
+       instead of a headline percentage. */
+    const pctUsable = Math.abs(prevVal) >= Math.max(opts.minBaseline ?? 1e-9, PCT_MIN_BASELINE);
+    return {
+      key, label,
+      current: curVal, previous: prevVal, delta,
+      pct: pctUsable ? (delta / Math.abs(prevVal)) * 100 : null,
+      /* Direction is about GOOD/BAD, not up/down. More alerts is bad; faster
+         sync is good. Colouring by arrow direction alone would paint a
+         genuine improvement red. */
+      goodWhen: opts.goodWhen ?? 'down',
+      unit: opts.unit ?? 'count',
+      significant: Math.abs(delta) > (opts.noiseFloor ?? 0),
+      // Alert-count metrics only (see perAsset arg below): current/previous
+      // each divided by that window's own distinct-asset count, so a bigger
+      // fleet reporting more raw alerts doesn't read as drivers getting
+      // worse — the fleet just grew. curAssets/prevAssets can each be 0
+      // (an empty window), which the tile guards against before dividing.
+      perAsset: opts.perAsset
+    };
+  };
+
+  return [
+    metric('totalAlerts', 'Total alerts', a.kpis.totalAlerts, b.kpis.totalAlerts,
+           { goodWhen: 'down', minBaseline: 1,
+             perAsset: perAsset(a.kpis.totalAlerts, b.kpis.totalAlerts) }),
+    metric('alertRate', 'Alerts per asset per active day',
+           rate(a.kpis, curRows), rate(b.kpis, prevRows),
+           { goodWhen: 'down', unit: 'rate', minBaseline: 0.01 }),
+    metric('distinctAssets', 'Assets reporting',
+           a.kpis.distinctAssets, b.kpis.distinctAssets,
+           { goodWhen: 'flat', minBaseline: 1 }),
+    metric('distinctOperators', 'Drivers involved',
+           a.kpis.distinctOperators, b.kpis.distinctOperators,
+           { goodWhen: 'down', minBaseline: 1 }),
+    metric('avgSyncSeconds', 'Average sync delay',
+           a.kpis.avgSyncSeconds ?? 0, b.kpis.avgSyncSeconds ?? 0,
+           { goodWhen: 'down', unit: 'duration', minBaseline: 1 }),
+    metric('actionableRatio', 'Actionable ratio',
+           a.kpis.actionableRatio, b.kpis.actionableRatio,
+           { goodWhen: 'up', unit: 'percent', minBaseline: 0.5 }),
+    // Both KPI rows now read OVERVIEW_KPI_ORDER (Sleep Alerts / Drowsiness
+    // Alerts tiles included) — computed here once regardless, since
+    // comparison.metrics is the shared source both renderOverviewKpis()
+    // and renderAnalyticsKpis() draw from.
+    metric('sleepAlerts', 'Sleep alerts',
+           severityCount(a.eventCodeDistribution, 'critical'),
+           severityCount(b.eventCodeDistribution, 'critical'),
+           { goodWhen: 'down', minBaseline: 1,
+             perAsset: perAsset(severityCount(a.eventCodeDistribution, 'critical'),
+                                 severityCount(b.eventCodeDistribution, 'critical')) }),
+    metric('drowsinessAlerts', 'Drowsiness alerts',
+           severityCount(a.eventCodeDistribution, 'elevated'),
+           severityCount(b.eventCodeDistribution, 'elevated'),
+           { goodWhen: 'down', minBaseline: 1,
+             perAsset: perAsset(severityCount(a.eventCodeDistribution, 'elevated'),
+                                 severityCount(b.eventCodeDistribution, 'elevated')) })
+  ];
+}
+
+/**
+ * Compare the selected period against the equal-length preceding period.
+ * Returns null when there is no usable baseline — the caller shows "no
+ * comparison available" rather than a fabricated 0%.
+ */
+function compare(allRows, filters) {
+  const periods = resolvePeriods(allRows, filters);
+  if (!periods) return null;
+
+  const base = applyFilters(allRows, { ...filters, from: null, to: null });
+  const cur  = base.filter(r => inWindow(r, periods.current));
+  const prev = base.filter(r => inWindow(r, periods.previous));
+  if (!prev.length) {
+    return { available: false, reason: 'No data in the preceding period',
+             periods: { current: fmtRange(periods.current),
+                        previous: fmtRange(periods.previous) } };
+  }
+
+  const a = derive(cur, null), b = derive(prev, null);
+
+  return {
+    available: true,
+    // Previous period's own day-by-day units, aligned by INDEX (day 1 of
+    // this period vs day 1 of the previous one) not calendar date — the two
+    // windows don't share dates. Source for Overview's trend-chart overlay
+    // (charts.trend's `prev` option); Analytics doesn't use this field.
+    prevTrend: b.trend,
+    periods: {
+      current: fmtRange(periods.current),
+      previous: fmtRange(periods.previous),
+      spanDays: periods.spanDays,
+      // How far back the baseline window actually reaches — 30, 7, or 1
+      // when the fallback cascade kicked in; equal to spanDays when the
+      // primary equal-length window was fully available. Lets the KPI
+      // tile say "vs last 30 days" / "vs last 7 days" / "vs yesterday"
+      // instead of a generic "vs previous period" once the baseline
+      // length no longer always matches the current period's length.
+      baselineDays: periods.baselineDays
+    },
+    baselineComplete: periods.baselineComplete,
+    baselineCoverage: periods.baselineCoverage,
+    metrics: buildComparisonMetrics(a, b, cur, prev)
+  };
+}
+
+/**
+ * Fixed trailing-7-day window vs. the 7 days immediately before it —
+ * independent of state.filters/resolvePeriods()'s equal-length-to-the-
+ * active-date-range logic. Powers kpiTile()'s primary (bold) trend line.
+ * Same "no usable baseline -> available:false" contract as compare().
+ */
+function computeKpiDeltas7d(allRows) {
+  const dated = allRows.filter(r => r.SHIFT_DATE);
+  if (!dated.length) return { available: false, reason: 'No dated rows' };
+
+  const to = new Date(Math.max(...dated.map(r => toDate(r.SHIFT_DATE))));
+  const from = new Date(to.getTime() - 6 * MS_DAY);
+  const prevTo = new Date(from.getTime() - MS_DAY);
+  const prevFrom = new Date(prevTo.getTime() - 6 * MS_DAY);
+
+  const cur  = dated.filter(r => inWindow(r, { from, to }));
+  const prev = dated.filter(r => inWindow(r, { from: prevFrom, to: prevTo }));
+  if (!prev.length) {
+    return { available: false, reason: 'No data in the preceding 7 days' };
+  }
+
+  const a = derive(cur, null), b = derive(prev, null);
+  return { available: true, metrics: buildComparisonMetrics(a, b, cur, prev) };
+}
+
+/**
+ * Current calendar month (or the latest month present in the data, if
+ * "today" has no rows) vs. the immediately preceding calendar month.
+ * Powers kpiTile()'s secondary (neutral-gray) trend line. Same
+ * available:false contract as compare()/computeKpiDeltas7d().
+ */
+function computeMonthOverMonthDelta(allRows) {
+  const dated = allRows.filter(r => r.SHIFT_DATE);
+  if (!dated.length) return { available: false, reason: 'No dated rows' };
+
+  const latest = new Date(Math.max(...dated.map(r => toDate(r.SHIFT_DATE))));
+  const monthStart = d => new Date(d.getFullYear(), d.getMonth(), 1);
+  const curStart = monthStart(latest);
+  const prevStart = new Date(curStart.getFullYear(), curStart.getMonth() - 1, 1);
+  const prevEnd = new Date(curStart.getTime() - MS_DAY);
+
+  const cur  = dated.filter(r => inWindow(r, { from: curStart, to: latest }));
+  const prev = dated.filter(r => inWindow(r, { from: prevStart, to: prevEnd }));
+  if (!prev.length) {
+    return { available: false, reason: 'No data in the preceding month',
+             monthLabel: prevStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) };
+  }
+
+  const a = derive(cur, null), b = derive(prev, null);
+  return {
+    available: true,
+    monthLabel: prevStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    metrics: buildComparisonMetrics(a, b, cur, prev)
+  };
+}
+
+const EVENT_COLORS = [
+  'var(--blue)', 'var(--teal)', 'var(--amber)',
+  'var(--purple)', 'var(--red)', 'var(--navy)'
+];
+
+/* Event-code color must be stable across imports, or an operator's learned
+   "purple = Drowsiness Alert" association silently breaks the next time a
+   file happens to sort differently. Colors were previously assigned by
+   array position (i % EVENT_COLORS.length) — whichever code sorted first
+   got blue. Hashing the code STRING itself means the same code always maps
+   to the same color, independent of how many other codes are present or
+   what order they arrived in. Not cryptographic; just needs to be stable
+   and spread reasonably across the palette. */
+function colorForCode(code) {
+  const s = String(code ?? '');
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) | 0;
+  return EVENT_COLORS[Math.abs(hash) % EVENT_COLORS.length];
+}
+
+/* ── Event severity ─────────────────────────────────────────────────────── */
+
+/* EVENT_CODE is free text from an uploaded CSV — there is no fixed enum, so
+   this is a lookup with a graceful fallback, not a hard-coded switch over
+   "the" event types. Confirmed real values seen in production data: "Sleep
+   Alert", "Drowsiness Alert". "Inattentive" and "Poor Driver Posture" are
+   anticipated (per the design brief) but not yet confirmed to appear —
+   matched defensively (case-insensitive substring) so they resolve
+   correctly if/when they do, without assuming they're the only other codes
+   that will ever show up. Anything unmatched falls back to colorForCode()'s
+   stable hash so distinct unknown codes still look distinct from each
+   other, just without a specific severity meaning attached. */
+const SEVERITY_RULES = [
+  { test: /sleep/i,                          key: 'critical', label: 'Critical' },
+  { test: /drowsi/i,                         key: 'elevated', label: 'Elevated' },
+  { test: /inattent/i,                       key: 'caution',  label: 'Caution'  },
+  { test: /posture|poor driver/i,            key: 'notice',   label: 'Notice'   }
+];
+
+const SEVERITY_TOKENS = {
+  critical: { fg: 'var(--sev-critical)', bg: 'var(--sev-critical-bg)' },
+  elevated: { fg: 'var(--sev-elevated)', bg: 'var(--sev-elevated-bg)' },
+  caution:  { fg: 'var(--sev-caution)',  bg: 'var(--sev-caution-bg)'  },
+  notice:   { fg: 'var(--sev-notice)',   bg: 'var(--sev-notice-bg)'   }
+};
+
+/** Returns { key, label, color, bg } for an EVENT_CODE. Unknown codes get a
+    stable hash-based color (via colorForCode) and a neutral badge tint, so
+    they're still visually distinguishable from each other without
+    impersonating a known severity level. */
+function severityForCode(code) {
+  const s = String(code ?? '');
+  const rule = SEVERITY_RULES.find(r => r.test.test(s));
+  if (rule) return { key: rule.key, label: rule.label, ...SEVERITY_TOKENS[rule.key] };
+  return { key: 'unknown', label: 'Other', color: colorForCode(s),
+           fg: colorForCode(s), bg: 'var(--border-light)' };
+}
+
+/* Same SEVERITY_RULES matching as severityForCode(), but resolved against
+   the Overview-only --ov-sev-* palette (see :root) instead of the shared
+   --sev-* tokens Analytics/badges depend on — keeps this redesign's colors
+   from leaking into pages the brief says not to touch. */
+const OVERVIEW_SEVERITY_TOKENS = {
+  critical: { fg: 'var(--ov-sev-sleep)',       bg: 'var(--ov-sev-sleep-bg)',       label: 'Sleep Alert' },
+  elevated: { fg: 'var(--ov-sev-drowsy)',      bg: 'var(--ov-sev-drowsy-bg)',      label: 'Drowsiness Alert' },
+  caution:  { fg: 'var(--ov-sev-inattentive)', bg: 'var(--ov-sev-inattentive-bg)', label: 'Inattentive' },
+  notice:   { fg: 'var(--ov-sev-posture)',     bg: 'var(--ov-sev-posture-bg)',     label: 'Poor Driver Posture' }
+};
+
+/* ══ WORKER MESSAGE PROTOCOL ══════════════════════════════════════════════
+   'setRows'  — sent once whenever state.rows changes (import, load, reset).
+                Cached here so a filter change never re-clones the full row
+                set — only the tiny filters object crosses the thread boundary
+                on every interaction, which is the whole point: postMessage's
+                structured-clone cost scales with payload size and runs
+                synchronously on the SENDER side, so cloning every row on every
+                filter change would eat back much of the benefit of moving
+                derive()/compare() off the main thread in the first place.
+   'filter'   — { reqId, filters }. Computes derive()+compare() against the
+                cached rows and replies { reqId, derived } (or { reqId, error }
+                on failure, so the caller can fall back rather than hang).
+   ═══════════════════════════════════════════════════════════════════════ */
+var __ddsWorkerRows = [];
+self.onmessage = function(e) {
+  var msg = e.data;
+  if (msg.type === 'setRows') { __ddsWorkerRows = msg.rows; return; }
+  if (msg.type === 'filter') {
+    try {
+      var derived = derive(__ddsWorkerRows, msg.filters);
+      derived.comparison = compare(__ddsWorkerRows, msg.filters);
+      self.postMessage({ reqId: msg.reqId, derived: derived });
+    } catch (err) {
+      self.postMessage({ reqId: msg.reqId, error: String((err && err.message) || err) });
+    }
+  }
+};
+
+</script>
 <script>
 (function(){
 'use strict';
@@ -4683,6 +6185,12 @@ function derive(allRows, filters) {
                         NIGHT: { units: 0, assets: new Set() } };
   const syncBuckets  = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
   const alertBuckets = { actionable: [0,0,0,0,0], nonActionable: [0,0,0,0,0] };
+  // Mon..Sun totals, for the Analytics "which weekday concentrates volume"
+  // view. Keyed off SHIFT_DATE (the attributed shift day), matching every
+  // other bucket in this function — NOT _startTime's raw calendar date,
+  // which can disagree with SHIFT_DATE for the night-shift tail rows
+  // classifyShift() already rolls back to the previous day.
+  const dayOfWeekUnits = Array(7).fill(0);
 
   for (const r of rows) {
     const units = num(field(r, 'EVENT_COUNT'));
@@ -4777,6 +6285,9 @@ function derive(allRows, filters) {
       // silently read as a sync delay of zero.
       if (r._syncSeconds != null) { d.syncSum += r._syncSeconds; d.syncN += 1; }
       byDate.set(r.SHIFT_DATE, d);
+      // getUTCDay(): 0=Sun..6=Sat. Rotated so the array is Mon-first,
+      // matching how the chart displays the week.
+      dayOfWeekUnits[(toDate(r.SHIFT_DATE).getUTCDay() + 6) % 7] += units;
     }
   }
 
@@ -4873,6 +6384,13 @@ function derive(allRows, filters) {
         avgSyncSeconds: v.syncN ? v.syncSum / v.syncN : null
       }))
       .sort((a, b) => new Date(a.date) - new Date(b.date)),
+
+    // Mon..Sun totals — see dayOfWeekUnits above for why SHIFT_DATE (not
+    // _startTime) is the grouping key. Additive field; no existing consumer
+    // reads it.
+    dayOfWeek: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((day, i) => ({
+      day, units: dayOfWeekUnits[i]
+    })),
 
     shiftDistribution: {
       DAY:   { units: dayU,   assets: shiftTotals.DAY.assets.size,
@@ -5316,6 +6834,48 @@ function createStore(initial = createState()) {
   const listeners = new Set();
   const emit = () => listeners.forEach(fn => fn(state));
 
+  /* ── Off-main-thread filter recompute ────────────────────────────────────
+     setFilters() below used to run derive()+compare() synchronously on the
+     main thread — see its own comment for why that visibly blocks the tab
+     on a large imported set. This section moves that work into a Worker
+     built from the #ddsComputeWorkerSrc <script type="text/plain"> block
+     (see its own header comment for what it contains and why it's a
+     verbatim copy rather than a shared module).
+
+     Rows are sent to the worker ONCE per change (syncWorkerRows), not on
+     every filter — see the worker source's own comment on why re-cloning
+     every row on every filter call would eat back the benefit. Only the
+     small `filters` object crosses the boundary on each interaction.
+
+     reqId/latestReqId implement request cancellation: if a second filter
+     change arrives before the first's worker response comes back, the
+     first's response is dropped when it does arrive rather than racing to
+     overwrite the second's more current result. */
+  let worker = null;
+  let workerRowsSynced = false;
+  let nextReqId = 0;
+  let latestReqId = 0;
+
+  function getWorker() {
+    if (worker) return worker;
+    if (typeof Worker === 'undefined') return null;
+    const srcEl = document.getElementById('ddsComputeWorkerSrc');
+    if (!srcEl) return null;   // markup not mounted (e.g. a non-browser test context)
+    try {
+      const blob = new Blob([srcEl.textContent], { type: 'application/javascript' });
+      worker = new Worker(URL.createObjectURL(blob));
+    } catch (err) {
+      console.warn('Compute worker unavailable, falling back to main-thread filtering', err);
+      worker = null;
+    }
+    return worker;
+  }
+
+  function syncWorkerRows(w) {
+    w.postMessage({ type: 'setRows', rows: state.rows });
+    workerRowsSynced = true;
+  }
+
   return {
     get: () => state,
 
@@ -5324,6 +6884,7 @@ function createStore(initial = createState()) {
        to re-parse every timestamp a second time. */
     _setRows(rows, derived) {
       state = { ...state, rows, derived, status: 'ready', error: null };
+      workerRowsSynced = false;   // rows changed — the worker's cache is stale
       emit();
     },
 
@@ -5341,7 +6902,7 @@ function createStore(initial = createState()) {
        render empty charts rather than the actual "nothing imported yet"
        screen. Filters reset too — a leftover date/shift filter has nothing
        left to apply to once every row is gone. */
-    _reset() { state = createState(); emit(); },
+    _reset() { state = createState(); workerRowsSynced = false; emit(); },
     subscribe(fn) { listeners.add(fn); fn(state); return () => listeners.delete(fn); },
 
     /** Local path (today): recompute in the browser. */
@@ -5350,6 +6911,7 @@ function createStore(initial = createState()) {
       state = { ...state, rows, status: 'ready', error: null };
       state.derived = derive(rows, state.filters);
       state.derived.comparison = compare(rows, state.filters);
+      workerRowsSynced = false;   // rows changed — the worker's cache is stale
       emit();
       return { problems, rejected, accepted: rows.length };
     },
@@ -5397,10 +6959,56 @@ function createStore(initial = createState()) {
         return;
       }
 
-      const derived = derive(state.rows, filters);
-      derived.comparison = compare(state.rows, filters);
-      state = { ...state, filters, derived };
+      /* derive()+compare() re-scan every row in state.rows (see derive()'s own
+         comment on why aggregation, not row count, is the fixed cost) and can
+         take long enough on a large imported set to visibly block the tab.
+         The recompute now runs in the compute worker (see this function's own
+         section above) so it never blocks the main thread at all, regardless
+         of row count. 'loading' is still set immediately so the skeleton
+         state (STATE LAYER, dds-tokens.css) paints right away — same status
+         values fetchMetrics() already uses for the same reason on the server
+         path — and flips back to 'ready' whenever the worker actually
+         replies, however long that takes. */
+      state = { ...state, filters, status: 'loading' };
       emit();
+
+      const reqId = ++nextReqId;
+      latestReqId = reqId;
+
+      const fallbackSync = () => {
+        const derived = derive(state.rows, filters);
+        derived.comparison = compare(state.rows, filters);
+        state = { ...state, filters, derived, status: 'ready' };
+        emit();
+      };
+
+      const w = getWorker();
+      if (!w) {
+        // No Worker support, or the markup/blob setup failed — degrade to the
+        // same synchronous path this replaced rather than leave the UI stuck
+        // on 'loading' forever.
+        setTimeout(() => { if (reqId === latestReqId) fallbackSync(); }, 0);
+        return;
+      }
+      if (!workerRowsSynced) syncWorkerRows(w);
+
+      const onMessage = e => {
+        if (e.data.reqId !== reqId) return;      // a response to an older request
+        w.removeEventListener('message', onMessage);
+        w.removeEventListener('error', onError);
+        if (reqId !== latestReqId) return;        // superseded before this arrived
+        if (e.data.error) { fallbackSync(); return; }
+        state = { ...state, filters, derived: e.data.derived, status: 'ready' };
+        emit();
+      };
+      const onError = () => {
+        w.removeEventListener('message', onMessage);
+        w.removeEventListener('error', onError);
+        if (reqId === latestReqId) fallbackSync();
+      };
+      w.addEventListener('message', onMessage);
+      w.addEventListener('error', onError);
+      w.postMessage({ type: 'filter', reqId, filters });
     },
 
     /* Wired at boot so the store can distinguish the two data paths without
@@ -6862,6 +8470,63 @@ const charts = {
       geo ?? { groupW: 130, gap: 184, baseline: 128, top: 10, offsetX: 46 });
   },
 
+  /* Alert Volume by Day of Week — same bar-geometry approach as
+     syncInterval() above (computed rects, no scaled/stretched viewBox), just
+     7 categories instead of 5. The single highest weekday is picked out in
+     --navy so a scheduling pattern (e.g. weekend volume) reads at a glance;
+     every other bar stays the neutral --blue-200 rather than a 7-step
+     gradient, which would imply an ordering (least->most) the days don't
+     actually have. */
+  dayOfWeek(el, d, { geo, tip, insightEl } = {}) {
+    const g = geo ?? { barW: 30, gap: 42, baseline: 128, top: 10, offsetX: 6 };
+    const items = d.dayOfWeek ?? [];
+    const peak = Math.max(...items.map(x => x.units), 1);
+    const peakIdx = items.length
+      ? items.reduce((best, x, i) => x.units > items[best].units ? i : best, 0)
+      : -1;
+    const bars = items.map((x, i) => {
+      const height = (x.units / peak) * (g.baseline - g.top);
+      const xPos = i * g.gap + g.offsetX, y = g.baseline - height;
+      const fill = i === peakIdx && x.units > 0 ? 'var(--navy)' : 'var(--blue-200)';
+      return { x: xPos, y, height, v: x.units, fill, day: x.day };
+    });
+    el.innerHTML = bars.map(b =>
+      `<rect x="${b.x}" y="${b.y.toFixed(1)}" width="${g.barW}"
+         height="${Math.max(b.height, 0).toFixed(1)}" fill="${b.fill}" rx="3"/>`).join('');
+
+    /* Same "only worth a line if it's non-trivial" convention as
+       syncInterval()'s insight — silent (not a placeholder) when volume is
+       too flat across the week for a peak day to mean anything. */
+    if (insightEl) {
+      const total = items.reduce((s, x) => s + x.units, 0);
+      const peakShare = total && peakIdx >= 0 ? items[peakIdx].units / total : 0;
+      insightEl.textContent = (total > 0 && peakShare >= (1 / 7) * 1.3)
+        ? `${items[peakIdx].day} concentrates ${fmt.pct(peakShare * 100)} of the week's volume.`
+        : '';
+    }
+
+    if (tip) {
+      const svg = el.ownerSVGElement || el.closest('svg');
+      if (svg) {
+        wireHover(svg, tip, {
+          toSvgPoint: svgPoint,
+          locate(pt) {
+            const i = bars.findIndex(b => pt.x >= b.x - g.gap / 2 + g.barW / 2 && pt.x < b.x + g.gap / 2 + g.barW / 2);
+            return i >= 0 ? i : null;
+          },
+          content(i) {
+            const total = items.reduce((s, x) => s + x.units, 0);
+            const pct = total ? Math.round(bars[i].v / total * 100) : 0;
+            return tooltipHTML(bars[i].day, [
+              { label: 'Alerts', value: fmt.int(bars[i].v), color: bars[i].fill },
+              { label: 'Share of week', value: `${pct}%` }
+            ], i === peakIdx ? 'Highest-volume day' : null);
+          }
+        });
+      }
+    }
+  },
+
   /* Top Units by Alert Volume — ranked bar list, single consistent blue,
      top entry subtly highlighted via .ev-row[data-rank="1"] (see index.html
      CSS). Tooltip carries only what's actually derivable from topAssets:
@@ -7040,8 +8705,14 @@ const charts = {
       // both render, but only the elevated ones use the warning color.
       const elevated = baselineRate > 0 && ratio >= 1.2;
       const fillColor = elevated ? 'var(--sev-elevated)' : 'var(--accent)';
+      // No endTime means the factor is still logged as ongoing — worth a
+      // quick visual flag since an "active now" factor is exactly what a
+      // reviewer looking at today's alert spike wants to spot fastest.
+      const active = !factor.endTime;
       return `<div class="ev-row" data-elevated="${elevated}">
-        <div class="ev-label" title="${esc(factor.factorType)}${factor.detail ? ' — ' + esc(factor.detail) : ''}">${esc(factor.factorType)}</div>
+        <div class="ev-label" title="${esc(factor.factorType)}${factor.detail ? ' — ' + esc(factor.detail) : ''}">
+          ${esc(factor.factorType)}${active ? ' <span class="status-dot status-active" title="Still active (no end time logged)">Active</span>' : ''}
+        </div>
         <div class="ev-track"><div class="ev-fill" style="width:${pct}%;background:${fillColor}"></div></div>
         <div class="ev-val">${rate.toFixed(1)}/day</div>
       </div>`;
@@ -7242,7 +8913,13 @@ const PAGES = {
       refs: () => ({
         arcs: $('anEventDonutArcs'), count: $('anEventDonutCount'),
         legend: $('anEventDonutLegend') }),
-      tip: () => $('anEventDonutTooltip') }
+      tip: () => $('anEventDonutTooltip') },
+    // Row 3 — Alert Volume by Day of Week (new) / Alert Volume by Top Asset
+    // (topAssets() reused verbatim from Overview, just a higher limit here).
+    { chart: 'dayOfWeek', el: () => $('anDayOfWeekBars'),
+      tip: () => $('anDayOfWeekTooltip'), insightEl: () => $('anDayOfWeekInsight') },
+    { chart: 'topAssets', limit: 12, el: () => $('anTopAssetsList'),
+      tip: () => $('anTopAssetsTooltip') }
   ]
 };
 
@@ -7627,6 +9304,19 @@ const describe = {
             `Most common interval is ${b.labels[peakI]} with ${fmt.int(totals[peakI])} events.`,
       table: table('Sync interval buckets', ['Delay', 'Events'],
         b.labels.map((l, i) => [l, fmt.int(totals[i])]))
+    };
+  },
+
+  dayOfWeek(d) {
+    const items = d.dayOfWeek ?? [];
+    if (!items.length) return { title: 'Alert volume by day of week', desc: 'No alert data in range.' };
+    const peakI = items.reduce((best, x, i) => x.units > items[best].units ? i : best, 0);
+    return {
+      title: 'Alert volume by day of week',
+      desc: `Alerts grouped by weekday. Highest-volume day is ${items[peakI].day} ` +
+            `with ${fmt.int(items[peakI].units)} alerts.`,
+      table: table('Alerts by weekday', ['Day', 'Alerts'],
+        items.map(x => [x.day, fmt.int(x.units)]))
     };
   },
 
@@ -8643,6 +10333,31 @@ function renderAnalyticsKpis(el, derived) {
     }))
     .filter(Boolean)
     .join('');
+}
+
+/* Live contributing-factor banner (#anLiveBanner) — reads App.factors
+   directly, same source and "no endTime = still active" rule as
+   charts.factorImpact()'s per-row "Active" tag (CHARTS section). Kept as
+   its own small function rather than folded into renderAnalyticsKpis()
+   since it doesn't depend on `derived` at all — it only needs to know
+   whether at least one factor is currently open. Called from paint()
+   alongside the KPI row, and from App.refreshCharts() (via paint()) so
+   adding/closing a factor in Data Management updates it immediately, same
+   as it already does for the Contributing Factors chart. */
+function renderAnalyticsFactorBanner() {
+  const banner = document.getElementById('anLiveBanner');
+  const textEl = document.getElementById('anLiveBannerText');
+  if (!banner || !textEl) return;
+
+  const factors = (typeof App !== 'undefined' && App.factors) || [];
+  const active = factors.filter(f => !f.endTime);
+  if (!active.length) { banner.hidden = true; return; }
+
+  const label = active.length === 1
+    ? active[0].factorType
+    : `${active.length} contributing factors`;
+  textEl.textContent = `${label} still logged as active — it may be contributing to current alert volume.`;
+  banner.hidden = false;
 }
 
 /* Overview's 5-card KPI row — same underlying comparison.metrics/kpiTile()
@@ -10167,6 +11882,97 @@ const Cloud = {
     return { importId: imp.id, inserted };
   },
 
+  /* MineStat — see 0024_minestat.sql. Mirrors ingest() above exactly (same
+     imports-row-first, same 2000-row chunking, same session-refresh-before-
+     expiry + retry-with-backoff, same "report how far it got" failure
+     shape), pointed at dds_minestat_ingest and kind:'minestat' instead.
+     rows are expected ALREADY canonical (UNIT, SHIFT_DATE 'YYYY-MM-DD',
+     SHIFT, LAST_NAME, FIRST_NAME, MIDDLE_NAME, and the five *_HRS numeric
+     fields) — see parseMinestatRows() in the MineStat upload IIFE, which
+     does that validation/normalization client-side before this is ever
+     called (MineStat's Date is a whole-day value with no time-of-day
+     component to re-parse for timezone, unlike DDS's toCanonical(), so no
+     separate canonicalization step is needed here). */
+  async ingestMinestat(name, rows, onProgress){
+    const uid = this.session?.user?.id;
+    if (!uid) throw new Error('NOT_SIGNED_IN');
+
+    const { data: imp, error: impErr } = await this.client
+      .from('imports')
+      .insert({ original_name: name, storage_key: `local/${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+                 status: 'processing', row_count: 0, uploaded_by: uid, kind: 'minestat' })
+      .select('id')
+      .single();
+    if (impErr) throw impErr;
+
+    const CHUNK = 2000;
+    const REFRESH_MARGIN_MS = 120000;
+    const MAX_ATTEMPTS = 3;
+
+    const freshenIfNeeded = async () => {
+      const { data } = await this.client.auth.getSession();
+      const s = data?.session;
+      if (!s) return;
+      const msLeft = (s.expires_at * 1000) - Date.now();
+      if (msLeft < REFRESH_MARGIN_MS) {
+        const { data: r } = await this.client.auth.refreshSession();
+        if (r?.session) this.session = r.session;
+      }
+    };
+
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const slice = rows.slice(i, i + CHUNK);
+
+      let lastErr = null;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        await freshenIfNeeded();
+
+        const { data, error: ingestErr } = await this.client.rpc('dds_minestat_ingest', {
+          p_import_id: imp.id, p_rows: slice
+        });
+
+        if (!ingestErr) { inserted += (data || 0); lastErr = null; break; }
+        lastErr = ingestErr;
+
+        const status = ingestErr.status ?? ingestErr.code;
+        const retryable = status === 401 || status === 403 ||
+                          status === 408 || status === 429 ||
+                          (typeof status === 'number' && status >= 500) ||
+                          ingestErr.message === 'Failed to fetch';
+        if (!retryable || attempt === MAX_ATTEMPTS) break;
+
+        try {
+          const { data: r } = await this.client.auth.refreshSession();
+          if (r?.session) this.session = r.session;
+        } catch (_) { /* fall through to the retry regardless */ }
+
+        await new Promise(res => setTimeout(res, 400 * attempt));
+      }
+
+      if (lastErr) {
+        try {
+          await this.client.rpc('dds_fail_import', {
+            p_import_id: imp.id, p_error: 'Sync interrupted'
+          });
+        } catch (_) { /* keep the original error */ }
+
+        lastErr.ddsInserted = inserted;
+        lastErr.ddsTotal = rows.length;
+        throw lastErr;
+      }
+
+      if (onProgress) onProgress(Math.min(i + CHUNK, rows.length), rows.length);
+    }
+
+    const { error: completeErr } = await this.client.rpc('dds_complete_import', {
+      p_import_id: imp.id
+    });
+    if (completeErr) throw completeErr;
+
+    return { importId: imp.id, inserted };
+  },
+
   /* Contributing factors — see 0003_contributing_factors.sql. Unlike
      ingest() above, this is a plain insert (no RPC, no annotate()-style
      validation to redo) — the table has no generated shift/actionable
@@ -10322,6 +12128,43 @@ const Cloud = {
      disagree about who a name belongs to. */
   async reopenNameReview(reviewId){
     const { error } = await this.client.rpc('dds_reopen_review', {
+      p_review_id: reviewId, p_clear_alias: true
+    });
+    if (error) throw error;
+  },
+
+  /* ── MineStat name review (0024_minestat) ──────────────────────────────
+     Structural twin of fetchNameReview()/resolveNameReview()/
+     ignoreNameReview()/reopenNameReview() above, pointed at MineStat's own
+     queue table and RPC set. See 0024_minestat.sql's header comment for why
+     this is a parallel queue rather than a merged one. */
+  async fetchMinestatNameReview(state = 'open'){
+    let q = this.client
+      .from('minestat_name_review')
+      .select('id, import_id, raw_name, norm_name, tier, distance, candidates, row_count, state, resolved_at')
+      .order('row_count', { ascending: false })
+      .limit(500);
+    if (state !== 'all') q = q.eq('state', state);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+
+  async resolveMinestatNameReview(reviewId, empNo){
+    const { data, error } = await this.client.rpc('dds_minestat_resolve_review', {
+      p_review_id: reviewId, p_emp_no: empNo
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  async ignoreMinestatNameReview(reviewId){
+    const { error } = await this.client.rpc('dds_minestat_ignore_review', { p_review_id: reviewId });
+    if (error) throw error;
+  },
+
+  async reopenMinestatNameReview(reviewId){
+    const { error } = await this.client.rpc('dds_minestat_reopen_review', {
       p_review_id: reviewId, p_clear_alias: true
     });
     if (error) throw error;
@@ -11082,11 +12925,28 @@ const store = createStore();
     /* The driver-name review queue lives on Data Management and is loaded on
        arrival rather than at startup: it is a network round trip that most
        page visits do not need, and its contents change whenever an import
-       runs — so "already loaded" would go stale silently. Guarded because the
-       handler is registered later in the file than this navigation code. */
+       runs — so a plain "already loaded, never again" flag would go stale
+       silently. Guarded because the handler is registered later in the file
+       than this navigation code.
+
+       NAV_REFRESH_WINDOW_MS below only skips the fetch when one already
+       landed within the last 30s (App._masterlistLoadedAt/_nameReviewLoadedAt,
+       stamped by load()/loadNameReview() themselves) — it exists purely to
+       stop switching tabs back and forth from re-hitting the network every
+       time, not to cache indefinitely. Any actual mutation (upload, approve/
+       reject, import) calls these functions directly at its own call site,
+       bypassing this guard entirely, so real staleness is never in play. */
+    var NAV_REFRESH_WINDOW_MS = 30000;
     if (name === 'data-mgmt'){
-      if (typeof App.loadMasterlist === 'function') App.loadMasterlist();
-      if (typeof App.loadNameReview === 'function') App.loadNameReview();
+      var _now = Date.now();
+      if (typeof App.loadMasterlist === 'function' &&
+          (!App._masterlistLoadedAt || _now - App._masterlistLoadedAt > NAV_REFRESH_WINDOW_MS)) {
+        App.loadMasterlist();
+      }
+      if (typeof App.loadNameReview === 'function' &&
+          (!App._nameReviewLoadedAt || _now - App._nameReviewLoadedAt > NAV_REFRESH_WINDOW_MS)) {
+        App.loadNameReview();
+      }
     }
   }
 
@@ -13671,6 +15531,9 @@ var NotificationSound = (function(){
 
   function load(){
     if (!Cloud.available() || !Cloud.session) return;
+    // Stamped on both outcomes so the nav-arrival guard in the v2.2
+    // navigation IIFE (App.showPage's data-mgmt branch) can skip a refetch
+    // it just did a moment ago, without needing its own copy of Cloud/roster.
     Cloud.fetchMasterlist().then(function(list){
       roster = list || [];
       render();
@@ -13681,6 +15544,8 @@ var NotificationSound = (function(){
       console.warn('Masterlist unavailable', err);
       roster = [];
       render();
+    }).finally(function(){
+      App._masterlistLoadedAt = Date.now();
     });
   }
 
@@ -13725,7 +15590,22 @@ var NotificationSound = (function(){
   /* The employee number is REQUIRED here, unlike the older roster upload where
      it was optional. That is the whole point: a conso row without a number
      cannot serve as an identity, so it is skipped and counted rather than
-     loaded as a nameless-but-present employee. */
+     loaded as a nameless-but-present employee.
+
+     Standardization + de-dup happen here rather than being left to the
+     server: a real conso export routinely carries whitespace noise (extra
+     spaces around either field) and repeat rows for the same employee
+     (re-listed after a transfer, exported twice), and neither should turn
+     into silently-wrong "new employee" counts in the confirm dialog.
+
+     Deliberately NOT case-normalized: emp_no is a case-sensitive TEXT
+     primary key server-side (0018_driver_masterlist.sql, dds_upsert_drivers'
+     `on conflict (emp_no)`), matched by exact string. Upper/lower-casing it
+     here would silently fork any existing employee whose stored ID has
+     different casing into a second row instead of updating the first —
+     exactly the kind of duplicate this pass is meant to prevent, not cause.
+     Whitespace collapse carries no such risk: no legitimate ID depends on
+     its exact run of internal spaces the way it might depend on casing. */
   function parseConso(rows){
     if (!rows.length) throw new Error('EMPTY');
     var idKey = findCol(rows[0], [
@@ -13738,17 +15618,41 @@ var NotificationSound = (function(){
     if (!idKey)   throw new Error('NO_ID_COLUMN');
     if (!nameKey) throw new Error('NO_NAME_COLUMN');
 
+    // Standardize: trim + collapse internal whitespace on both fields (a
+    // spreadsheet export routinely has stray double-spaces from manual
+    // editing) — same trim() the server does, just also applied to the name
+    // and to whitespace *within* the value, not only at the ends.
     var mapped = rows.map(function(r){
       return {
-        emp_no: String(r[idKey] == null ? '' : r[idKey]).trim(),
-        name:   String(r[nameKey] == null ? '' : r[nameKey]).trim()
+        emp_no: String(r[idKey] == null ? '' : r[idKey]).trim().replace(/\s+/g, ' '),
+        name:   String(r[nameKey] == null ? '' : r[nameKey]).trim().replace(/\s+/g, ' ')
       };
     });
-    var list = mapped.filter(function(r){ return r.emp_no && r.name; });
-    return { list: list, skipped: mapped.length - list.length };
+    var withIdentity = mapped.filter(function(r){ return r.emp_no && r.name; });
+    var skipped = mapped.length - withIdentity.length;
+
+    // De-dup by employee number, last row wins — same "last row for this ID
+    // wins" rule dds_upsert_drivers() itself applies server-side (its own
+    // `distinct on (trim(emp_no)) ... order by ord desc`), just done here
+    // too so the confirm dialog's "N employees" count is the real,
+    // post-dedup number rather than the raw row count.
+    var byId = {};
+    var order = [];
+    withIdentity.forEach(function(r){
+      if (!byId[r.emp_no]) order.push(r.emp_no);
+      byId[r.emp_no] = r;
+    });
+    var list = order.map(function(id){ return byId[id]; });
+
+    return { list: list, skipped: skipped, duplicates: withIdentity.length - list.length };
   }
 
-  var MAX_ROWS = 20000;
+  // Not a business limit — a real conso can legitimately run into the tens
+  // of thousands of rows. This is only a last-resort guard against a file
+  // that is obviously the wrong kind (e.g. a raw per-event alert export,
+  // which can run into the hundreds of thousands of rows) freezing the tab
+  // during synchronous XLSX parsing before the user ever sees an error.
+  var MAX_ROWS = 200000;
 
   function handleFile(file){
     errorEl.hidden = true;
@@ -13784,6 +15688,10 @@ var NotificationSound = (function(){
                    (missing === 1 ? '' : 's') + ' absent from this file will be marked inactive (not deleted).';
           }
         }
+        if (parsed.duplicates > 0){
+          msg += ' (' + parsed.duplicates.toLocaleString() + ' duplicate employee number' +
+                 (parsed.duplicates === 1 ? '' : 's') + ' collapsed — kept the last row for each.)';
+        }
         if (parsed.skipped > 0){
           msg += ' (' + parsed.skipped.toLocaleString() + ' row' + (parsed.skipped === 1 ? '' : 's') +
                  ' skipped — missing an employee number or a name.)';
@@ -13796,7 +15704,7 @@ var NotificationSound = (function(){
         errorEl.textContent =
           err.message === 'NO_ID_COLUMN'   ? 'Could not find an employee number column. Expected a header like "Employee ID" or "Emp No".' :
           err.message === 'NO_NAME_COLUMN' ? 'Could not find a name column in this file.' :
-          err.message === 'TOO_MANY_ROWS'  ? 'This file has more than ' + MAX_ROWS.toLocaleString() + ' rows — check it is the conso, not an alert export.' :
+          err.message === 'TOO_MANY_ROWS'  ? 'This file has more than ' + MAX_ROWS.toLocaleString() + ' rows — check it is the conso, not a raw alert export.' :
           'No usable employee rows found in this file.';
         errorEl.hidden = false;
       }
@@ -13863,6 +15771,311 @@ var NotificationSound = (function(){
 
   App.loadMasterlist = load;
   Cloud.onSignIn(function(){ load(); });
+})();
+
+/* ═══════════════════════ MINESTAT ═══════════════════════
+   Upload flow for the third data source (0024_minestat.sql) — daily
+   per-unit/per-shift operator + utilization-hours records. See minestatCard's
+   own markup comment for why this is what actually carries driver identity
+   for real alert data (DDS's OPERATOR column is always absent in practice).
+
+   Mirrors the EMPLOYEE MASTERLIST IIFE above in structure (drop zone, header
+   check before any row parsing, row-level reject list, confirm dialog,
+   MAX_ROWS as a freeze-guard rather than a business limit) but uploads via
+   Cloud.ingestMinestat()'s chunked path rather than a single RPC call, since
+   a real MineStat file runs into the tens of thousands of rows. */
+(function(){
+  var card = document.getElementById('minestatCard');
+  if (!card) return;
+
+  var uploadBtn   = document.getElementById('minestatUploadBtn');
+  var modal       = document.getElementById('minestatUploadModal');
+  var dropZone    = document.getElementById('minestatDropZone');
+  var fileInput   = document.getElementById('minestatFileInput');
+  var errorEl     = document.getElementById('minestatUploadError');
+  var confirmBox  = document.getElementById('minestatUploadConfirm');
+  var progressBox = document.getElementById('minestatUploadProgress');
+  var confirmBtn  = document.getElementById('minestatUploadConfirmBtn');
+  var cancelBtn   = document.getElementById('minestatUploadCancel');
+  var closeBtn    = document.getElementById('minestatUploadClose');
+
+  var pending      = null;   // parsed rows awaiting confirmation
+  var pendingName  = '';     // original filename, for the imports row
+
+  function openModal(){
+    pending = null;
+    pendingName = '';
+    errorEl.hidden = true;
+    confirmBox.hidden = true;
+    progressBox.hidden = true;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Upload';
+    fileInput.value = '';
+    modal.hidden = false;
+  }
+  function closeModal(){ modal.hidden = true; fileInput.value = ''; }
+
+  uploadBtn.addEventListener('click', function(){
+    if (!Cloud.available() || !Cloud.session){
+      announce('Sign in to upload MineStat data', { assertive: true });
+      return;
+    }
+    openModal();
+  });
+  cancelBtn.addEventListener('click', closeModal);
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && !modal.hidden) closeModal();
+  });
+
+  /* Column aliases — real exports vary ("Operating" vs "Operating Hours"),
+     same reasoning as the main app's own COLUMN_ALIASES for OPERATOR. */
+  var MINESTAT_COLUMNS = {
+    UNIT:        ['unit', 'asset', 'asset id', 'equipment', 'equipment id'],
+    DATE:        ['date', 'shift date'],
+    SHIFT:       ['shift'],
+    OPERATING:   ['operating', 'operating hours', 'operating hrs'],
+    DOWN:        ['down', 'down hours', 'down hrs'],
+    DELAY:       ['delay', 'delay hours', 'delay hrs'],
+    STANDBY:     ['standby', 'standby hours', 'standby hrs'],
+    TOTAL:       ['total hours', 'total hrs', 'total'],
+    LAST_NAME:   ['last name', 'lastname', 'surname'],
+    FIRST_NAME:  ['first name', 'firstname', 'given name'],
+    MIDDLE_NAME: ['middle name', 'middlename']
+  };
+
+  function msNormalizeHeader(k){ return String(k).trim().toLowerCase().replace(/[_\s]+/g, ' '); }
+  function msFindCol(row, candidates){
+    var keys = Object.keys(row);
+    for (var i = 0; i < candidates.length; i++){
+      for (var j = 0; j < keys.length; j++){
+        if (msNormalizeHeader(keys[j]) === candidates[i]) return keys[j];
+      }
+    }
+    return null;
+  }
+
+  /* Header validation BEFORE any row parsing — same "the header mismatch is
+     the whole story for that import" rule the main DDS importer's
+     checkHeader() follows. None of these are optional: every column is
+     load-bearing for the fact row (unlike DDS's OPERATOR). */
+  function checkHeaderMinestat(rows){
+    var required = Object.keys(MINESTAT_COLUMNS);
+    if (!rows || !rows.length) return { ok: false, missing: required.slice() };
+    var missing = required.filter(function(col){
+      return !msFindCol(rows[0], MINESTAT_COLUMNS[col]);
+    });
+    return { ok: missing.length === 0, missing: missing };
+  }
+
+  /* Excel's date epoch is 1899-12-30 (not 12-31 — Excel's own leap-year bug
+     is baked into every reader that has to stay compatible with it, SheetJS
+     included). Handles a raw serial number (XLSX, no cellDates option — same
+     as the rest of this app's XLSX reads), a real Date (defensive, in case a
+     future call site passes cellDates:true), or a plain date string (CSV,
+     always text). No time-of-day component is expected or parsed — MineStat's
+     Date is a whole-day value, unlike DDS's START_TIME/END_TIME. */
+  var MS_EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
+  function msParseDate(v){
+    if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
+    if (typeof v === 'number' && Number.isFinite(v)){
+      return new Date(MS_EXCEL_EPOCH_MS + v * 86400000);
+    }
+    var s = String(v == null ? '' : v).trim();
+    if (!s) return null;
+    var m = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(s);
+    if (m) return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+    m = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(s);
+    if (m) return new Date(Date.UTC(Number(m[3]), Number(m[1]) - 1, Number(m[2])));
+    return null;
+  }
+  function msFormatDateISO(d){
+    return d.getUTCFullYear() + '-' +
+      String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getUTCDate()).padStart(2, '0');
+  }
+
+  // Not a business limit — same "freeze guard, not a real cap" rationale as
+  // the masterlist's own MAX_ROWS (see that IIFE's comment; this session
+  // already had to fix that one once for being set too low from the start).
+  var MINESTAT_MAX_ROWS = 200000;
+
+  // Control character as fingerprint separator, never occurs in real cell
+  // content — same convention as the main importer's FP_SEP, keeping
+  // adjacent fields from blurring into each other.
+  var MS_FP_SEP = String.fromCharCode(1);
+
+  /* Row-level validation: every field is checked and a bad row is REJECTED
+     (counted and drillable), never silently coerced to zero/blank — hours
+     data that fails to parse is a real data-quality problem worth surfacing,
+     even though nothing reads these hours yet (see minestatCard's own
+     comment on why they're stored without being used this pass). */
+  function parseMinestatRows(rows){
+    if (!rows.length) throw new Error('EMPTY');
+    var cols = {};
+    Object.keys(MINESTAT_COLUMNS).forEach(function(col){
+      cols[col] = msFindCol(rows[0], MINESTAT_COLUMNS[col]);
+    });
+
+    var seen = {};      // fingerprint -> row (last occurrence wins)
+    var order = [];
+    var rejected = [];  // [{ rowIndex, reason, row }]
+    var duplicates = 0;
+
+    rows.forEach(function(r, i){
+      var unit   = String(r[cols.UNIT] == null ? '' : r[cols.UNIT]).trim();
+      var dateV  = msParseDate(r[cols.DATE]);
+      var shift  = String(r[cols.SHIFT] == null ? '' : r[cols.SHIFT]).trim().toUpperCase();
+      var last   = String(r[cols.LAST_NAME]   == null ? '' : r[cols.LAST_NAME]).trim().replace(/\s+/g, ' ');
+      var first  = String(r[cols.FIRST_NAME]  == null ? '' : r[cols.FIRST_NAME]).trim().replace(/\s+/g, ' ');
+      var middle = String(r[cols.MIDDLE_NAME] == null ? '' : r[cols.MIDDLE_NAME]).trim().replace(/\s+/g, ' ');
+      var operating = Number(r[cols.OPERATING]);
+      var down      = Number(r[cols.DOWN]);
+      var delay     = Number(r[cols.DELAY]);
+      var standby   = Number(r[cols.STANDBY]);
+      var total     = Number(r[cols.TOTAL]);
+
+      if (!unit){ rejected.push({ rowIndex: i, reason: 'Missing Unit', row: r }); return; }
+      if (!dateV){ rejected.push({ rowIndex: i, reason: 'Unparseable Date', row: r }); return; }
+      if (shift !== 'DAY' && shift !== 'NIGHT'){
+        rejected.push({ rowIndex: i, reason: 'Shift must be DAY or NIGHT', row: r }); return;
+      }
+      if (![operating, down, delay, standby, total].every(Number.isFinite)){
+        rejected.push({ rowIndex: i, reason: 'Non-numeric hours value', row: r }); return;
+      }
+
+      var out = {
+        UNIT: unit, SHIFT_DATE: msFormatDateISO(dateV), SHIFT: shift,
+        LAST_NAME: last, FIRST_NAME: first, MIDDLE_NAME: middle,
+        OPERATING_HRS: operating, DOWN_HRS: down, DELAY_HRS: delay,
+        STANDBY_HRS: standby, TOTAL_HRS: total
+      };
+
+      // (Unit, Date, Shift) is the confirmed real-world grain — same
+      // fingerprint convention as the main importer's FINGERPRINT_COLS.
+      var fp = unit.toLowerCase() + MS_FP_SEP + out.SHIFT_DATE + MS_FP_SEP + shift;
+      if (seen[fp] === undefined) order.push(fp); else duplicates++;
+      seen[fp] = out;
+    });
+
+    var list = order.map(function(fp){ return seen[fp]; });
+    return { list: list, rejected: rejected, duplicates: duplicates };
+  }
+
+  function handleFile(file){
+    errorEl.hidden = true;
+    confirmBox.hidden = true;
+    confirmBtn.disabled = true;
+    pendingName = file.name;
+
+    function onParsed(rows){
+      try {
+        if (rows.length > MINESTAT_MAX_ROWS) throw new Error('TOO_MANY_ROWS');
+
+        // Schema check first — a header mismatch is the whole story for
+        // this import, same rule the main DDS importer follows.
+        var headerCheck = checkHeaderMinestat(rows);
+        if (!headerCheck.ok){
+          var err = new Error('MISSING_COLUMNS');
+          err.missing = headerCheck.missing;
+          throw err;
+        }
+
+        var parsed = parseMinestatRows(rows);
+        if (!parsed.list.length) throw new Error('EMPTY');
+        pending = parsed.list;
+
+        var msg = 'This file holds ' + parsed.list.length.toLocaleString() +
+          ' shift record' + (parsed.list.length === 1 ? '' : 's') + '.';
+        if (parsed.duplicates > 0){
+          msg += ' (' + parsed.duplicates.toLocaleString() + ' duplicate unit/date/shift row' +
+                 (parsed.duplicates === 1 ? '' : 's') + ' collapsed — kept the last row for each.)';
+        }
+        if (parsed.rejected.length > 0){
+          msg += ' (' + parsed.rejected.length.toLocaleString() + ' row' +
+                 (parsed.rejected.length === 1 ? '' : 's') +
+                 ' skipped — missing a unit, an unparseable date, an invalid shift, or a non-numeric hours value.)';
+        }
+
+        confirmBox.textContent = msg;
+        confirmBox.hidden = false;
+        confirmBtn.disabled = false;
+      } catch (e){
+        errorEl.textContent =
+          e.message === 'MISSING_COLUMNS' ? 'Missing column' + (e.missing.length === 1 ? '' : 's') + ': ' + e.missing.join(', ') :
+          e.message === 'TOO_MANY_ROWS'   ? 'This file has more than ' + MINESTAT_MAX_ROWS.toLocaleString() + ' rows — check it is a MineStat export.' :
+          'No usable shift records found in this file.';
+        errorEl.hidden = false;
+      }
+    }
+
+    var ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (ext === 'csv'){
+      Papa.parse(file, { header: true, skipEmptyLines: true, complete: function(res){ onParsed(res.data); } });
+    } else if (ext === 'xlsx' || ext === 'xls'){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        try {
+          var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+          onParsed(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }));
+        } catch (err){
+          errorEl.textContent = 'Could not read that workbook.';
+          errorEl.hidden = false;
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      errorEl.textContent = 'Unsupported file type.';
+      errorEl.hidden = false;
+    }
+  }
+
+  dropZone.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(){
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+  dropZone.addEventListener('dragover', function(e){ e.preventDefault(); dropZone.dataset.state = 'drag'; });
+  dropZone.addEventListener('dragleave', function(){ delete dropZone.dataset.state; });
+  dropZone.addEventListener('drop', function(e){
+    e.preventDefault();
+    delete dropZone.dataset.state;
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  confirmBtn.addEventListener('click', function(){
+    if (!pending) return;
+    confirmBtn.disabled = true;
+    confirmBox.hidden = true;
+    progressBox.hidden = false;
+    progressBox.textContent = 'Uploading…';
+
+    Cloud.ingestMinestat(pendingName, pending, function(done, total){
+      var pct = Math.round((done / total) * 100);
+      progressBox.textContent = 'Uploading ' + pct + '%…';
+    }).then(function(result){
+      var n = result && result.inserted != null ? result.inserted : 0;
+      announce('MineStat data uploaded — ' + Number(n).toLocaleString() +
+               (n === 1 ? ' shift record processed' : ' shift records processed'));
+      closeModal();
+      // Names that did not resolve against the masterlist during ingest are
+      // exactly what the review queue exists to surface — same "an import is
+      // exactly when new names appear" reasoning the DDS importer already
+      // applies to its own review queue.
+      if (typeof App.loadMinestatNameReview === 'function') App.loadMinestatNameReview();
+    }).catch(function(err){
+      console.error('MineStat upload failed', err);
+      progressBox.hidden = true;
+      // Same "report how far it got" convention as the DDS importer's own
+      // sync failure handling — ddsInserted/ddsTotal are set by
+      // Cloud.ingestMinestat() on a mid-upload failure.
+      errorEl.textContent = (err && err.ddsInserted > 0)
+        ? 'Upload failed after ' + fmt.int(err.ddsInserted) + ' of ' + fmt.int(err.ddsTotal) + ' rows — try again to resume.'
+        : 'Upload failed. Try again.';
+      errorEl.hidden = false;
+      confirmBtn.disabled = false;
+    });
+  });
 })();
 
 /* ═══════════════════════ DRIVER NAME REVIEW ═══════════════════════
@@ -13997,6 +16210,10 @@ var NotificationSound = (function(){
          card simply stays hidden rather than showing a broken panel. */
       console.warn('Name review unavailable', err);
       nameReviewCard.hidden = true;
+    }).finally(function(){
+      // See App._masterlistLoadedAt's matching comment in the masterlist
+      // IIFE's load() — same nav-arrival-guard purpose, for this queue.
+      App._nameReviewLoadedAt = Date.now();
     });
 
     if (!masterlist.length){
@@ -14263,6 +16480,413 @@ var NotificationSound = (function(){
   document.addEventListener('click', function(e){
     if (!nrSuggest.hidden && !nrSuggest.contains(e.target) && e.target !== nrSearch){
       nrSuggest.hidden = true;
+    }
+  });
+
+})();
+
+
+/* ═══════════════════════ MINESTAT NAME REVIEW ═══════════════════════
+   UI over minestat_name_review (0024_minestat) — a structural twin of the
+   DRIVER NAME REVIEW IIFE above, pointed at MineStat's own review queue and
+   RPC set (dds_minestat_resolve_review/ignore_review/reopen_review) instead
+   of DDS's. Kept as its own IIFE/card rather than merged into the one above:
+   the two queues can disagree (a name unresolved in one may already be
+   resolved in the other), and merging them would need a "which source" flag
+   threaded through every row, button, and RPC call for no real benefit —
+   see 0024_minestat.sql's own header comment for why the SQL side made the
+   same call. Server-only, like the DDS queue — nothing to show offline.
+
+   IMPORTANT DIFFERENCE FROM THE DDS QUEUE ABOVE: resolving a name here
+   updates minestat_shifts.emp_no only — it does NOT touch events.emp_no.
+   That happens separately via dds_backfill_emp_no_from_minestat(), which is
+   deliberately console-invoked for now (see 0024_minestat.sql), not wired to
+   a button. So confirming a match here will not immediately change any
+   alert's attribution on screen — the wording below says "shift record(s)",
+   never "alert(s)", to avoid implying otherwise. */
+(function(){
+  var minestatReviewCard    = document.getElementById('minestatReviewCard');
+  if (!minestatReviewCard) return;
+
+  /* ── MineStat name review queue ────────────────────────────────────────
+     The rows here are MineStat Last/First/Middle names the resolver could
+     not attribute to an employee number — NOT failed imports. Every
+     shift record loaded and every hours total is whole; only the employee
+     attribution is missing. That distinction drives the wording throughout:
+     "shift records waiting", never "rows rejected".
+
+     Resolving is deliberately a per-name decision, not per-row: one
+     misspelling covering 30 shift records is one click, and the table is
+     sorted by how many records hang on each decision so the queue is worked
+     in impact order. */
+
+  var minestatReviewTable   = document.getElementById('minestatReviewTable');
+  var minestatReviewBody    = document.getElementById('minestatReviewBody');
+  var minestatReviewEmpty   = document.getElementById('minestatReviewEmpty');
+  var minestatReviewEmptyTx = document.getElementById('minestatReviewEmptyText');
+  var minestatReviewCountEl = document.getElementById('minestatReviewCount');
+  var minestatReviewTabs    = document.getElementById('minestatReviewTabs');
+  var msRefreshBtn      = document.getElementById('minestatReviewRefresh');
+
+  var msModal      = document.getElementById('minestatResolveModal');
+  var msRawNameEl  = document.getElementById('msRawName');
+  var msRowCountEl = document.getElementById('msRowCount');
+  var msCandBlock  = document.getElementById('msCandidateBlock');
+  var msCandsEl    = document.getElementById('msCandidates');
+  var msSearch     = document.getElementById('msSearch');
+  var msSuggest    = document.getElementById('msSearchSuggest');
+  var msError      = document.getElementById('minestatResolveError');
+  var msConfirmBtn = document.getElementById('msConfirmBtn');
+  var msIgnoreBtn  = document.getElementById('msIgnoreBtn');
+  var msCancelBtn  = document.getElementById('msCancelBtn');
+  var msCloseBtn   = document.getElementById('minestatResolveClose');
+  var msNewEmpNo   = document.getElementById('msNewEmpNo');
+  var msNewName    = document.getElementById('msNewName');
+  var msAddBtn     = document.getElementById('msAddDriverBtn');
+
+  var reviewRows    = [];     // current tab's rows
+  var reviewCounts  = { open: 0, resolved: 0, ignored: 0 };
+  var reviewState   = 'open';
+  var masterlist    = [];     // [{emp_no, full_name, status}]
+  var msEditing     = null;   // the review row open in the modal
+  var msSelectedEmp = null;   // employee chosen for it
+
+  /* Plain-language reason. The tier names are the resolver's vocabulary
+     ('fuzzy_review', 'ambiguous_exact'), not something a coordinator should
+     have to learn — and the two cases need DIFFERENT actions, so collapsing
+     them into one "no match" label would hide which is which. */
+  function reviewReason(r){
+    if (r.tier === 'fuzzy_review'){
+      var n = (r.candidates || []).length;
+      return n > 1 ? 'Close to ' + n + ' different drivers' : 'Close, but not close enough';
+    }
+    if (r.tier === 'ambiguous_exact') return 'Two people share this name';
+    return 'No one on the masterlist matches';
+  }
+
+  function renderNameReview(){
+    minestatReviewCountEl.textContent = reviewRows.length +
+      (reviewRows.length === 1 ? ' name' : ' names');
+
+    document.getElementById('msCountOpen').textContent     = reviewCounts.open;
+    document.getElementById('msCountResolved').textContent = reviewCounts.resolved;
+    document.getElementById('msCountIgnored').textContent  = reviewCounts.ignored;
+
+    /* The whole card hides when there is nothing open AND nothing ever
+       resolved — a permanently empty panel teaches people to skip past it. */
+    var everAny = reviewCounts.open + reviewCounts.resolved + reviewCounts.ignored;
+    minestatReviewCard.hidden = !everAny;
+    if (!everAny) return;
+
+    if (!reviewRows.length){
+      minestatReviewTable.hidden = true;
+      minestatReviewEmpty.hidden = false;
+      minestatReviewEmptyTx.textContent = reviewState === 'open'
+        ? 'Every MineStat name in your imports matched the masterlist.'
+        : 'Nothing in this view.';
+      return;
+    }
+
+    minestatReviewEmpty.hidden = true;
+    minestatReviewTable.hidden = false;
+
+    minestatReviewBody.innerHTML = reviewRows.map(function(r){
+      var cands = r.candidates || [];
+      var best  = cands.length ? cands[0] : null;
+      var bestTxt = best
+        ? esc(best.name) + ' <span style="color:var(--text-muted)">(' + esc(best.emp_no) + ')</span>'
+        : '<span style="color:var(--text-muted)">—</span>';
+
+      var action = r.state === 'open'
+        ? '<button class="btn btn-outline btn-sm" data-ms-open="' + r.id + '">Match</button>'
+        : '<button class="btn btn-outline btn-sm" data-ms-reopen="' + r.id + '">Undo</button>';
+
+      return '<tr>' +
+        '<td style="font-weight:600;word-break:break-word">' + esc(r.raw_name || r.norm_name) + '</td>' +
+        '<td style="color:var(--text-sec)">' + esc(reviewReason(r)) + '</td>' +
+        '<td>' + Number(r.row_count || 0).toLocaleString() + '</td>' +
+        '<td>' + bestTxt + '</td>' +
+        '<td style="text-align:right">' + action + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function loadNameReview(){
+    if (!Cloud.available() || !Cloud.session){ minestatReviewCard.hidden = true; return; }
+
+    /* Fetch every state, not just the active tab: the tab COUNTS have to be
+       right even for tabs nobody has opened, and the queue is small enough
+       (capped at 500 server-side) that one round trip beats three. */
+    Cloud.fetchMinestatNameReview('all').then(function(all){
+      reviewCounts = { open: 0, resolved: 0, ignored: 0 };
+      all.forEach(function(r){
+        if (reviewCounts[r.state] != null) reviewCounts[r.state]++;
+      });
+      reviewRows = all.filter(function(r){ return r.state === reviewState; });
+      renderNameReview();
+    }).catch(function(err){
+      /* A missing table means 0024_minestat has not been applied to this
+         project yet. That is a deployment state, not an error the user can
+         act on, so the card simply stays hidden rather than showing a
+         broken panel. */
+      console.warn('MineStat name review unavailable', err);
+      minestatReviewCard.hidden = true;
+    }).finally(function(){
+      // See App._masterlistLoadedAt's matching comment in the masterlist
+      // IIFE's load() — same nav-arrival-guard purpose, for this queue.
+      App._minestatReviewLoadedAt = Date.now();
+    });
+
+    if (!masterlist.length){
+      Cloud.fetchMasterlist().then(function(list){ masterlist = list || []; }).catch(function(){});
+    }
+  }
+
+  if (minestatReviewTabs){
+    minestatReviewTabs.addEventListener('click', function(e){
+      var tab = e.target.closest('[data-state]');
+      if (!tab) return;
+      reviewState = tab.getAttribute('data-state');
+      Array.prototype.forEach.call(minestatReviewTabs.querySelectorAll('[data-state]'), function(t){
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+      });
+      loadNameReview();
+    });
+  }
+
+  if (msRefreshBtn) msRefreshBtn.addEventListener('click', loadNameReview);
+
+  /* Published so the page router (showPage) and the import flow can refresh
+     the queue without reaching into this closure. An import is exactly when
+     new names appear, so leaving the card stale until a manual Refresh would
+     hide the thing it exists to surface. */
+  App.loadMinestatNameReview = loadNameReview;
+
+  Cloud.onSignIn(function(){ loadNameReview(); });
+
+  /* ── Resolve modal ── */
+
+  function openResolveModal(row){
+    msEditing = row;
+    msSelectedEmp = null;
+    msError.hidden = true;
+    msSearch.value = '';
+    msSuggest.hidden = true;
+    msNewEmpNo.value = '';
+    msNewName.value = row.raw_name || '';
+    msConfirmBtn.disabled = true;
+
+    msRawNameEl.textContent = row.raw_name || row.norm_name;
+    msRowCountEl.textContent = Number(row.row_count || 0).toLocaleString() +
+      (row.row_count === 1 ? ' shift record is' : ' shift records are') +
+      ' waiting on this — they are already imported, just not' +
+      ' attributed to an employee yet.';
+
+    var cands = row.candidates || [];
+    if (cands.length){
+      msCandBlock.hidden = false;
+      msCandsEl.innerHTML = cands.map(function(c){
+        var dist = (c.distance != null)
+          ? '<span style="color:var(--text-muted);font-size:var(--fs-xs)"> · ' +
+            (c.distance === 0 ? 'exact' : c.distance + ' character' + (c.distance === 1 ? '' : 's') + ' different') +
+            '</span>'
+          : '';
+        /* data-ms-name carries the clean employee name so the confirm button
+           can say "Match to <person>" without scraping this element's text,
+           which also contains the distance annotation. */
+        return '<button type="button" class="btn btn-outline btn-sm" data-ms-pick="' + esc(c.emp_no) + '" ' +
+               'data-ms-name="' + esc(c.name) + '" ' +
+               'style="justify-content:flex-start;text-align:left;width:100%">' +
+               esc(c.name) + ' <span style="color:var(--text-muted)">(' + esc(c.emp_no) + ')</span>' + dist +
+               '</button>';
+      }).join('');
+    } else {
+      msCandBlock.hidden = true;
+      msCandsEl.innerHTML = '';
+    }
+
+    msModal.hidden = false;
+    msSearch.focus();
+  }
+
+  function closeResolveModal(){
+    msModal.hidden = true;
+    msEditing = null;
+    msSelectedEmp = null;
+  }
+
+  /* The button names WHO the match will go to, so the confirming click is
+     never ambiguous between two near-identical candidates — the exact case
+     this queue exists for. Callers pass the employee's NAME only: passing the
+     candidate button's full text would drag "· 1 character different" onto
+     the button, which describes the guess rather than the decision. */
+  function selectEmployee(empNo, name){
+    msSelectedEmp = empNo;
+    msConfirmBtn.disabled = false;
+    msConfirmBtn.textContent = name ? 'Match to ' + name : 'Match';
+    msConfirmBtn.title = name ? 'Match to ' + name + ' (' + empNo + ')' : '';
+    msError.hidden = true;
+  }
+
+  minestatReviewBody.addEventListener('click', function(e){
+    var openBtn = e.target.closest('[data-ms-open]');
+    if (openBtn){
+      var id = Number(openBtn.getAttribute('data-ms-open'));
+      var row = reviewRows.filter(function(r){ return r.id === id; })[0];
+      if (row) openResolveModal(row);
+      return;
+    }
+    var undoBtn = e.target.closest('[data-ms-reopen]');
+    if (undoBtn){
+      var rid = Number(undoBtn.getAttribute('data-ms-reopen'));
+      undoBtn.disabled = true;
+      Cloud.reopenMinestatNameReview(rid).then(function(){
+        announce('Match undone — the name is back in the queue');
+        loadNameReview();
+        refreshAfterAttribution();
+      }).catch(function(err){
+        console.error('Reopen failed', err);
+        announce('Could not undo that match', { assertive: true });
+        undoBtn.disabled = false;
+      });
+    }
+  });
+
+  msCandsEl.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-ms-pick]');
+    if (!btn) return;
+    Array.prototype.forEach.call(msCandsEl.querySelectorAll('[data-ms-pick]'), function(b){
+      b.removeAttribute('data-selected');
+    });
+    btn.setAttribute('data-selected', 'true');
+    selectEmployee(btn.getAttribute('data-ms-pick'), btn.getAttribute('data-ms-name'));
+  });
+
+  /* Search matches on the employee NUMBER as well as the name: the reviewer
+     often knows the badge and not the spelling, which is the entire premise
+     of keying on the number in the first place. */
+  msSearch.addEventListener('input', function(){
+    var q = msSearch.value.trim().toLowerCase();
+    if (!q){ msSuggest.hidden = true; msSuggest.innerHTML = ''; return; }
+    var matches = masterlist.filter(function(d){
+      return (d.full_name || '').toLowerCase().indexOf(q) !== -1 ||
+             (d.emp_no || '').toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 20);
+    if (!matches.length){ msSuggest.hidden = true; msSuggest.innerHTML = ''; return; }
+    msSuggest.innerHTML = matches.map(function(d){
+      var inactive = d.status === 'inactive'
+        ? ' <span style="color:var(--text-muted);font-size:var(--fs-xs)">· inactive</span>' : '';
+      return '<div class="menu-item" data-ms-emp="' + esc(d.emp_no) + '" ' +
+        'data-ms-name="' + esc(d.full_name) + '">' +
+        esc(d.full_name) + ' <span style="color:var(--text-muted);font-size:var(--fs-xs)">(' +
+        esc(d.emp_no) + ')</span>' + inactive + '</div>';
+    }).join('');
+    msSuggest.hidden = false;
+  });
+
+  msSuggest.addEventListener('click', function(e){
+    var item = e.target.closest('[data-ms-emp]');
+    if (!item) return;
+    var pickedName = item.getAttribute('data-ms-name');
+    /* The input shows the plain name, not the row's full text — otherwise
+       "· inactive" ends up typed into the search box and the next keystroke
+       filters against a string no driver matches. */
+    msSearch.value = pickedName;
+    msSuggest.hidden = true;
+    selectEmployee(item.getAttribute('data-ms-emp'), pickedName);
+  });
+
+  /* Add a driver the conso has not caught up with. The reviewer is often the
+     first person to know about a new hire, before the next roster refresh. */
+  msAddBtn.addEventListener('click', function(){
+    var empNo = msNewEmpNo.value.trim();
+    var name  = msNewName.value.trim();
+    if (!empNo || !name){
+      msError.textContent = 'Both an employee number and a full name are needed.';
+      msError.hidden = false;
+      return;
+    }
+    msAddBtn.disabled = true;
+    Cloud.addDriver(empNo, name).then(function(){
+      masterlist = [];                       // force a refetch next open
+      return Cloud.fetchMasterlist();
+    }).then(function(list){
+      masterlist = list || [];
+      selectEmployee(empNo, name);
+      announce('Driver added to the masterlist');
+    }).catch(function(err){
+      console.error('Add driver failed', err);
+      msError.textContent = 'Could not add that driver. Check the employee number is not already in use.';
+      msError.hidden = false;
+    }).finally(function(){
+      msAddBtn.disabled = false;
+    });
+  });
+
+  msConfirmBtn.addEventListener('click', function(){
+    if (!msEditing || !msSelectedEmp) return;
+    msConfirmBtn.disabled = true;
+    Cloud.resolveMinestatNameReview(msEditing.id, msSelectedEmp).then(function(res){
+      var n = res && res.rowsUpdated != null ? res.rowsUpdated : 0;
+      // Deliberately "shift record(s)", never "alert(s)": this only updates
+      // minestat_shifts.emp_no. It does not touch events.emp_no — that only
+      // happens when dds_backfill_emp_no_from_minestat() is next run (see
+      // 0024_minestat.sql) — so no alert's visible attribution changes yet.
+      announce('Matched — ' + Number(n).toLocaleString() +
+               (n === 1 ? ' shift record linked to this employee' : ' shift records linked to this employee'));
+      closeResolveModal();
+      loadNameReview();
+      refreshAfterAttribution();
+    }).catch(function(err){
+      console.error('Resolve failed', err);
+      msError.textContent = 'Could not save that match. Try again.';
+      msError.hidden = false;
+      msConfirmBtn.disabled = false;
+    });
+  });
+
+  msIgnoreBtn.addEventListener('click', function(){
+    if (!msEditing) return;
+    msIgnoreBtn.disabled = true;
+    Cloud.ignoreMinestatNameReview(msEditing.id).then(function(){
+      announce('Marked as not a driver');
+      closeResolveModal();
+      loadNameReview();
+    }).catch(function(err){
+      console.error('Ignore failed', err);
+      msError.textContent = 'Could not save that. Try again.';
+      msError.hidden = false;
+    }).finally(function(){
+      msIgnoreBtn.disabled = false;
+    });
+  });
+
+  /* Refetches the local copy of the masterlist — an employee added
+     mid-review must appear in the next search without a page reload.
+
+     UNLIKE the DDS queue's own refreshAfterAttribution(), this deliberately
+     does NOT also call App.loadFromServer(): resolving a name here only
+     updates minestat_shifts, never events.emp_no (see the header comment on
+     this IIFE), so no KPI/chart on screen has actually changed yet — calling
+     loadFromServer() here would just be a no-op refetch that looks like it
+     did something. */
+  function refreshAfterAttribution(){
+    Cloud.fetchMasterlist()
+      .then(function(list){ masterlist = list || []; })
+      .catch(function(){});
+  }
+
+  msCancelBtn.addEventListener('click', closeResolveModal);
+  msCloseBtn.addEventListener('click', closeResolveModal);
+  msModal.addEventListener('click', function(e){ if (e.target === msModal) closeResolveModal(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && !msModal.hidden) closeResolveModal();
+  });
+  document.addEventListener('click', function(e){
+    if (!msSuggest.hidden && !msSuggest.contains(e.target) && e.target !== msSearch){
+      msSuggest.hidden = true;
     }
   });
 
@@ -15036,8 +17660,8 @@ var NotificationSound = (function(){
       // than disabled ones that would just fail against profiles_update_admin.
       if (isAdmin && u.status === 'pending'){
         actions =
-          '<button class="icon-btn um-approve" title="Approve">' + ICON_APPROVE + '</button>' +
-          '<button class="icon-btn um-reject" title="Reject">' + ICON_REJECT + '</button>';
+          '<button class="icon-btn um-approve" aria-label="Approve" title="Approve">' + ICON_APPROVE + '</button>' +
+          '<button class="icon-btn um-reject" aria-label="Reject" title="Reject">' + ICON_REJECT + '</button>';
       }
       return '' +
         '<tr data-user-id="' + esc(u.user_id) + '">' +
@@ -15249,6 +17873,7 @@ function paint(page, derived){
   describePage(page, derived);
   if (page === 'analytics'){
     renderAnalyticsKpis(document.getElementById('anKpiRow'), derived);
+    renderAnalyticsFactorBanner();
   }
   if (page === 'overview'){
     renderOverviewKpis(document.getElementById('ovKpiRow'), derived);
