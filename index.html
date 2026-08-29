@@ -316,6 +316,61 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .legend-item{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--text-sec);font-weight:var(--fw-medium)}
 .legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
 
+/* Data Management "Needs attention" group — 2026-08-29 redesign. Wraps the
+   review queues + Contributing Factors under one heading, visually distinct
+   from the danger-zone <details> below (.dm-danger-zone). Not a .card
+   itself — it holds cards, using the page's existing gap so nested cards'
+   own spacing is unaffected — this is a section label, not another box. */
+.dm-attention-group{display:flex;flex-direction:column;gap:10px}
+.dm-attention-head{padding:2px 2px 0}
+.dm-attention-head h3{
+  font-size:var(--fs-sm);font-weight:var(--fw-semi);color:var(--navy);
+  display:flex;align-items:center;gap:7px;margin:0 0 2px;
+  text-transform:uppercase;letter-spacing:.02em;
+}
+/* Same accent-bar technique as .card-head h2::before, at .dm-attention-head's
+   smaller (fs-sm, not fs-md) scale — a visual echo of the card-heading
+   pattern without literally being one, since this heading sits above
+   several cards rather than inside a single one. */
+.dm-attention-head h3::before{
+  content:'';display:inline-block;width:3px;height:10px;
+  background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px;
+}
+.dm-attention-head p{font-size:var(--fs-xs);color:var(--text-muted);margin:0}
+
+/* Danger zone — a closed-by-default native <details>, not a .card. Deliberately
+   quiet chrome (no border, no shadow, muted summary text) until opened, so it
+   reads as a rare, tucked-away action rather than sitting at the same visual
+   weight as routine review work above (see the html-side comment on
+   #resetFleetCard for the full reasoning). Marker/triangle handling matches
+   nrAddDriverWrap/msAddDriverWrap's plain <details> elsewhere in this page —
+   this is a styled version of the same native pattern, not a new mechanism. */
+.dm-danger-zone{margin-top:6px;padding-top:14px;border-top:1px solid var(--border-light)}
+.dm-danger-zone summary{
+  cursor:pointer;font-size:var(--fs-xs);color:var(--text-muted);font-weight:var(--fw-medium);
+  list-style:none;display:flex;align-items:center;gap:5px;user-select:none;
+}
+/* Custom marker via ::before instead of the browser-default triangle glyph —
+   ::-webkit-details-marker + list-style:none removes the native one first
+   (Firefox honors list-style:none alone; Chrome/Safari need the ::marker
+   rule too), so this is the only triangle rendered, in the app's own icon
+   style rather than each browser's own glyph. */
+.dm-danger-zone summary::-webkit-details-marker{display:none}
+.dm-danger-zone summary::before{
+  content:'';width:0;height:0;flex-shrink:0;
+  border-style:solid;border-width:4px 0 4px 5px;
+  border-color:transparent transparent transparent var(--text-muted);
+  transition:transform var(--dur-fast) var(--ease);
+}
+.dm-danger-zone[open] summary::before{transform:rotate(90deg)}
+.dm-danger-zone summary:hover{color:var(--danger)}
+.dm-danger-zone-body{
+  padding:12px 2px 2px 10px;display:flex;flex-direction:column;gap:10px;
+  border-left:2px solid var(--danger-bg);margin-left:2px;
+}
+.dm-danger-zone-body p{font-size:var(--fs-xs);color:var(--text-sec);margin:0}
+.dm-danger-zone-body .btn-danger{align-self:flex-start}
+
 /* Month legend on its own row beneath the card title. With 8+ months it is
    wider than the heading, so keeping it inside .card-head squeezed the title
    and eventually forced the two to collide. Wraps to a second line rather
@@ -3585,6 +3640,27 @@ body {
         </div>
       </div>
 
+      <!-- Data-source toggle — Import History (DDS), the Employee
+           Masterlist and MineStat Data used to stack as three full-height
+           cards in a row, each a different size (masterlist capped at
+           320px, MineStat just a paragraph, Import History filling
+           whatever was left). Only one of the three is ever being worked
+           on at a time, so they now share one tab strip and one fixed
+           footprint — .dm-source-panel is flex:1 in all three cases, and
+           switching tabs just swaps which panel loses its `hidden`
+           attribute rather than resizing the page. -->
+      <div class="card" id="dmSourceTabCard" style="flex:0 0 auto">
+        <div class="imp-tabs" role="tablist" aria-label="Data source" id="dmSourceTabs" style="border-bottom:none">
+          <button class="imp-tab" role="tab" data-source="dds" aria-selected="true" tabindex="0">DDS Data</button>
+          <button class="imp-tab" role="tab" data-source="masterlist" aria-selected="false" tabindex="-1">Masterlist</button>
+          <button class="imp-tab" role="tab" data-source="minestat" aria-selected="false" tabindex="-1">MineStat</button>
+        </div>
+      </div>
+
+      <div id="dmSourceGroup" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px">
+
+      <div class="dm-source-panel" data-source-panel="dds" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px">
+
       <div class="dz" id="dropZone">
         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple>
         <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></div>
@@ -3656,6 +3732,8 @@ body {
         </div>
       </div>
 
+      </div><!-- /.dm-source-panel[dds] -->
+
       <!-- Employee masterlist (conso) — the identity spine, held IN the app.
            Deliberately its own visible card rather than a background lookup
            table: every alert import is scanned against it, so how many people
@@ -3664,9 +3742,12 @@ body {
            import goes unmatched, and that failure has to be legible here
            rather than only showing up as a full review queue.
 
-           Sits ABOVE the review queue because the order is causal: load the
-           conso first, then the scan has something to compare against. -->
-      <div class="card" id="masterlistCard" style="flex:0 0 auto">
+           Its own tab now rather than a card stacked under Import History
+           (see dmSourceTabs above), so it takes the full panel height —
+           no more 320px scroll cap fighting Import History for space. -->
+      <div class="dm-source-panel" data-source-panel="masterlist" style="flex:1;min-height:0;display:flex;flex-direction:column" hidden>
+
+      <div class="card" id="masterlistCard" style="flex:1;min-height:0">
         <div class="card-head">
           <div class="imp-toolbar-title">Employee Masterlist</div>
           <div class="hcontrols">
@@ -3682,12 +3763,11 @@ body {
           </div>
         </div>
 
-        <!-- Capped height with internal scroll. Without this the masterlist is
-             the longest thing on the page and pushes Import History and the
-             review queue below the fold — but this card is a confirmation
-             that the right roster is loaded, not the main event. It yields
-             the page to the things people came here to do. -->
-        <div class="imp-table-wrap" id="masterlistWrap" style="max-height:320px;overflow-y:auto">
+        <!-- Fills the panel (imp-table-wrap's own flex:1;min-height:0) now
+             that the masterlist has its own tab instead of stacking under
+             Import History — no cap needed since the two are never on
+             screen at the same time any more. -->
+        <div class="imp-table-wrap" id="masterlistWrap">
           <div class="imp-empty" id="masterlistEmpty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
             <div class="imp-empty-text" id="masterlistEmptyText">
@@ -3711,6 +3791,8 @@ body {
              Search narrows it when someone needs a specific person. -->
         <div id="masterlistMore" style="font-size:var(--fs-xs);color:var(--text-muted);padding:8px 0 0" hidden></div>
       </div>
+
+      </div><!-- /.dm-source-panel[masterlist] -->
 
       <!-- Conso upload modal. Separate from the older "driver roster" modal on
            Alert Logs, which writes the name-keyed driver_master table that
@@ -3759,8 +3841,16 @@ body {
            MineStat file runs to tens of thousands of rows and is write-only
            operational data feeding the DDS join, not something to page
            through — "MineStat names needing review" below is where its
-           identity-resolution outcome actually surfaces. -->
-      <div class="card" id="minestatCard" style="flex:0 0 auto">
+           identity-resolution outcome actually surfaces.
+
+           Its own tab now (see dmSourceTabs above), sized flex:1 like the
+           other two panels rather than the short flex:0 0 auto card it used
+           to be — the status line sits centered in that space, padded the
+           same as the empty-state text on the other two tabs, instead of
+           text flush against the card edges. -->
+      <div class="dm-source-panel" data-source-panel="minestat" style="flex:1;min-height:0;display:flex;flex-direction:column" hidden>
+
+      <div class="card" id="minestatCard" style="flex:1;min-height:0">
         <div class="card-head">
           <div class="imp-toolbar-title">MineStat Data</div>
           <div class="hcontrols">
@@ -3770,12 +3860,48 @@ body {
             </button>
           </div>
         </div>
-        <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0" id="minestatStatusLine">
-          Daily per-unit, per-shift operator and utilization records — used to attribute alerts to
-          a real employee number when the alert file itself has no operator. Names it can't match
-          land in "MineStat names needing review" below.
-        </p>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;padding:20px 24px">
+          <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0" id="minestatStatusLine">
+            Daily per-unit, per-shift operator and utilization records — used to attribute alerts to
+            a real employee number when the alert file itself has no operator. Names it can't match
+            land in "MineStat names needing review" below.
+          </p>
+        </div>
       </div>
+
+      </div><!-- /.dm-source-panel[minestat] -->
+
+      </div><!-- /#dmSourceGroup -->
+
+      <!-- ══ "Needs attention" group — 2026-08-29 redesign ═══════════════════
+           Groups the review queues and Contributing Factors under one visual
+           heading, separate from the danger zone below. This is a heading +
+           spacing change ONLY: every child card keeps its own id, its own
+           hidden-when-empty/hidden-when-signed-out toggle (nameReviewCard.js,
+           minestatReviewCard's IIFE, both untouched), and — for the review
+           cards specifically — its own flex:0 0 auto sizing. That sizing is
+           NOT cosmetic: see nameReviewCard's own comment a few lines down for
+           the actual clipping bug (~21px of a 132px need) that flex:1 caused
+           here once already. This wrapper must never set flex:1 or force a
+           shared height on its children for that reason.
+
+           Reset Fleet Data intentionally does NOT live in this group — see
+           the <details> disclosure after Contributing Factors below. Routine,
+           recurring work (something to review, act on, log) belongs here;
+           a rare, destructive, whole-fleet action does not belong at the same
+           visual weight as "3 names need matching."
+
+           The group heading itself has no hide/show logic of its own — always
+           rendered when the DDS tab is showing, regardless of whether any
+           child card inside happens to be visible right now. A heading with
+           nothing under it (all three children hidden) is a real, harmless
+           state: it reads as "nothing needs attention," which is the correct
+           message on a clean day, not a bug to special-case away. -->
+      <div class="dm-attention-group">
+        <div class="dm-attention-head">
+          <h3>Needs attention</h3>
+          <p>Names to match, patterns to log — routine review, not urgent.</p>
+        </div>
 
       <!-- Upload modal — same drop-zone/confirm/error shell as the conso
            upload above. No row-count-vs-existing preview here (unlike
@@ -3810,65 +3936,6 @@ body {
           <div class="detail-actions">
             <button type="button" class="btn btn-outline btn-sm" id="minestatUploadCancel">Cancel</button>
             <button type="button" class="btn btn-sm" id="minestatUploadConfirmBtn" disabled>Upload</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Reset fleet data — a distinct control from "Clear data" above on
-           purpose. That button only ever wipes the LOCAL/signed-out store
-           (App.imports + IndexedDB factors); it has no effect once signed in,
-           because signed-in mode reads everything from Postgres instead (see
-           App.loadFromServer()). This card is the signed-in counterpart: it
-           wipes every imported alert, case, factor, and the whole driver
-           masterlist server-side via dds_reset_fleet_data() (0022), for
-           standing up a genuinely empty database before a fresh rollout.
-           Hidden while signed out — there's nothing server-side to reset. -->
-      <div class="card" id="resetFleetCard" style="flex:0 0 auto;border:1px solid var(--danger,#8A2424);display:none">
-        <div class="card-head">
-          <div class="imp-toolbar-title">Reset Fleet Data</div>
-        </div>
-        <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0 0 12px">
-          Permanently deletes every imported alert, case, contributing factor, and the entire
-          employee masterlist from the database — for everyone, not just this browser. Account
-          sign-ins and personal settings are not affected. There is no undo.
-        </p>
-        <div class="hcontrols">
-          <button class="btn btn-danger btn-sm" id="resetFleetBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-            Reset all fleet data…
-          </button>
-        </div>
-      </div>
-
-      <!-- Confirm modal — same fixed-overlay/backdrop/Escape-to-close shell
-           as the other Data Management modals. Requires typing a literal
-           phrase rather than a single click, unlike the local "Clear data"
-           modal: that one only ever destroyed in-browser data with no other
-           user affected, this one deletes shared server data for the whole
-           fleet, so the extra friction is deliberate. -->
-      <div class="detail-modal" id="resetFleetModal" hidden>
-        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="resetFleetTitle" style="max-width:460px">
-          <div class="detail-head">
-            <div>
-              <h2 id="resetFleetTitle" class="detail-title">Reset all fleet data?</h2>
-              <p class="detail-sub">
-                This deletes every import, alert, case, contributing factor, and the whole employee
-                masterlist from the database. Everyone signed in will see an empty dashboard
-                afterward. This cannot be undone.
-              </p>
-            </div>
-            <button type="button" class="detail-close" id="resetFleetClose" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="resetFleetConfirmInput">Type RESET to confirm</label>
-            <input class="field-input" id="resetFleetConfirmInput" type="text" autocomplete="off" style="width:100%">
-          </div>
-          <div class="field-error" id="resetFleetError" hidden></div>
-          <div class="detail-actions">
-            <button type="button" class="btn btn-outline btn-sm" id="resetFleetCancel">Cancel</button>
-            <button type="button" class="btn btn-danger btn-sm" id="resetFleetConfirmBtn" disabled>Reset all fleet data</button>
           </div>
         </div>
       </div>
@@ -4218,6 +4285,87 @@ body {
           <div class="detail-actions">
             <button type="button" class="btn btn-outline btn-sm" id="factorCancel">Cancel</button>
             <button type="submit" form="factorForm" class="btn btn-sm" id="factorSubmit">Add factor</button>
+          </div>
+        </div>
+      </div>
+
+      </div><!-- /.dm-attention-group -->
+
+      <!-- Reset fleet data — moved out of the flow into a quiet <details>
+           disclosure (2026-08-29 redesign), same unstyled native pattern
+           already used by nrAddDriverWrap/msAddDriverWrap above ("Not on the
+           masterlist? Add them") rather than a new collapse widget. Closed
+           by default: this used to be a full card with a permanent red
+           border sitting at the same visual weight as "3 names need
+           matching" — a rare, whole-fleet-destroying action does not belong
+           next to routine review work, see .dm-attention-group's own
+           comment above.
+
+           A distinct control from "Clear data" in the topbar on purpose —
+           that button only ever wipes the LOCAL/signed-out store
+           (App.imports + IndexedDB factors); it has no effect once signed
+           in, because signed-in mode reads everything from Postgres instead
+           (see App.loadFromServer()). This is the signed-in counterpart: it
+           wipes every imported alert, case, factor, and the whole driver
+           masterlist server-side via dds_reset_fleet_data() (0022), for
+           standing up a genuinely empty database before a fresh rollout.
+
+           id="resetFleetCard" kept on this wrapper unchanged — the existing
+           "RESET FLEET DATA (server-side)" IIFE toggles this element's
+           style.display on sign-in/sign-out by that id alone and needed no
+           changes; only what's visually inside it moved. That IIFE sets
+           display:'' (not 'block') on sign-in, which is what makes this
+           <details> safe to leave OPEN="" off by default rather than fight
+           over — a <details> with no open attribute already renders
+           collapsed regardless of its wrapper's display value, so the two
+           states don't conflict. -->
+      <details class="dm-danger-zone" id="resetFleetCard" style="display:none">
+        <summary>Reset fleet data</summary>
+        <div class="dm-danger-zone-body">
+          <p>
+            Permanently deletes every imported alert, case, contributing factor, and the entire
+            employee masterlist from the database — for everyone, not just this browser. Account
+            sign-ins and personal settings are not affected. There is no undo.
+          </p>
+          <button class="btn btn-danger btn-sm" id="resetFleetBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            Reset all fleet data…
+          </button>
+        </div>
+      </details>
+
+      <!-- Confirm modal — same fixed-overlay/backdrop/Escape-to-close shell
+           as the other Data Management modals. Requires typing a literal
+           phrase rather than a single click, unlike the local "Clear data"
+           modal: that one only ever destroyed in-browser data with no other
+           user affected, this one deletes shared server data for the whole
+           fleet, so the extra friction is deliberate. Deliberately a sibling
+           of the <details> above, not nested inside it — this is a
+           fixed-overlay dialog, unrelated to whether the disclosure is
+           open or closed when it fires. -->
+      <div class="detail-modal" id="resetFleetModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="resetFleetTitle" style="max-width:460px">
+          <div class="detail-head">
+            <div>
+              <h2 id="resetFleetTitle" class="detail-title">Reset all fleet data?</h2>
+              <p class="detail-sub">
+                This deletes every import, alert, case, contributing factor, and the whole employee
+                masterlist from the database. Everyone signed in will see an empty dashboard
+                afterward. This cannot be undone.
+              </p>
+            </div>
+            <button type="button" class="detail-close" id="resetFleetClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="resetFleetConfirmInput">Type RESET to confirm</label>
+            <input class="field-input" id="resetFleetConfirmInput" type="text" autocomplete="off" style="width:100%">
+          </div>
+          <div class="field-error" id="resetFleetError" hidden></div>
+          <div class="detail-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="resetFleetCancel">Cancel</button>
+            <button type="button" class="btn btn-danger btn-sm" id="resetFleetConfirmBtn" disabled>Reset all fleet data</button>
           </div>
         </div>
       </div>
@@ -11464,6 +11612,38 @@ Promise.resolve().then(() => {
   });
 })();
 
+/* Data Management source toggle — DDS Data / Masterlist / MineStat used to
+   render as three stacked cards of three different heights; they now share
+   one tab strip (#dmSourceTabs) and one fixed-height slot (#dmSourceGroup),
+   each source's markup living in a .dm-source-panel that's `hidden` except
+   when its tab is active. Same roving-tabindex pattern as the tab switchers
+   above — plain hidden/show, no re-render needed since each panel already
+   renders itself independently (Import History, the masterlist card, and
+   the MineStat card each load their own data on page nav, not on tab click). */
+(function(){
+  const tabs = [...document.querySelectorAll('#dmSourceTabs .imp-tab')];
+  const panels = [...document.querySelectorAll('.dm-source-panel')];
+  if (!tabs.length || !panels.length) return;
+  tabs.forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      const source = btn.getAttribute('data-source');
+      tabs.forEach(b => {
+        const on = b === btn;
+        b.setAttribute('aria-selected', String(on));
+        b.tabIndex = on ? 0 : -1;
+      });
+      panels.forEach(p => { p.hidden = p.getAttribute('data-source-panel') !== source; });
+    });
+    btn.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const next = e.key === 'ArrowRight' ? (i + 1) % tabs.length : (i - 1 + tabs.length) % tabs.length;
+      tabs[next].focus();
+      tabs[next].click();
+    });
+  });
+})();
+
 /* ══ 5b. LOCAL PERSISTENCE (IndexedDB) ══════════════════════════════════
    Import History (`imports[]` in the Data Management IIFE) has lived in a
    plain in-memory array since it was written — reload the tab and it's
@@ -12157,6 +12337,39 @@ const Cloud = {
     return { importId: imp.id, inserted };
   },
 
+  /* Closes the gap dds_minestat_ingest() and a resolved minestat_name_review
+     row both leave open: neither ever touches events.emp_no (see the
+     MINESTAT NAME REVIEW IIFE's header comment) — only
+     dds_backfill_emp_no_from_minestat() does, and until now nothing in this
+     file ever called it (console-invoked only, same as its older sibling
+     dds_backfill_emp_no() from 0019 — see that migration's comment for the
+     precedent this one intentionally followed). That left every event
+     permanently unattributed even when minestat_shifts already had the
+     answer sitting right next to it.
+
+     Loops rather than trusting one call: the RPC caps itself at p_limit
+     (2000) rows per invocation by design (see 0024_minestat.sql), so a
+     backlog larger than that needs repeat calls to actually clear — this
+     keeps calling until the server reports rowsRemaining === 0 or a call
+     updates nothing (belt-and-suspenders against an infinite loop if
+     rowsRemaining is ever wrong; forward progress is the real stop
+     condition either way). Hard cap at 25 iterations (50,000 rows) so a
+     genuinely pathological backlog fails loudly instead of hanging the
+     UI — callers already handle rejection (see both call sites below). */
+  async backfillEmpNoFromMinestat(){
+    let totalUpdated = 0, remaining = null, guard = 0;
+    do {
+      const { data, error } = await this.client.rpc('dds_backfill_emp_no_from_minestat');
+      if (error) throw error;
+      const rowsUpdated = data?.rowsUpdated ?? 0;
+      remaining = data?.rowsRemaining ?? 0;
+      totalUpdated += rowsUpdated;
+      guard++;
+      if (rowsUpdated === 0) break; // no forward progress — stop, whatever remaining says
+    } while (remaining > 0 && guard < 25);
+    return { updated: totalUpdated, remaining: remaining ?? 0 };
+  },
+
   /* Contributing factors — see 0003_contributing_factors.sql. Unlike
      ingest() above, this is a plain insert (no RPC, no annotate()-style
      validation to redo) — the table has no generated shift/actionable
@@ -12412,6 +12625,17 @@ const Cloud = {
       .upsert({
         event_id:        c.eventId,
         driver_name:     c.driverName || null,
+        // emp_no: the resolved employee number, separate from driver_name
+        // (free text). Same "|| null" pattern as every other field here —
+        // an explicit key with a null value, never omitted — because
+        // Supabase's .upsert() only touches keys present in the object, so
+        // a key silently left out on some call path would leave an
+        // existing emp_no untouched instead of clearing it, which is the
+        // wrong default for a single-row edit (see empNo's own note on
+        // the bulk variant below for why bulk edit needs the OPPOSITE of
+        // this — merge-forward, not "|| null" — and why that difference
+        // is deliberate, not an inconsistency between the two functions).
+        emp_no:          c.empNo || null,
         action_type:     c.actionType || null,
         action_is_other: !!c.actionIsOther,
         status_value:    c.statusValue || null,
@@ -12438,6 +12662,7 @@ const Cloud = {
     const rows = list.map(c => ({
       event_id:        c.eventId,
       driver_name:     c.driverName || null,
+      emp_no:          c.empNo || null,  // see upsertAlertCase()'s own comment
       action_type:     c.actionType || null,
       action_is_other: !!c.actionIsOther,
       status_value:    c.statusValue || null,
@@ -15027,7 +15252,6 @@ var NotificationSound = (function(){
   var statusOther  = document.getElementById('acStatusOther');
   var remarksInput = document.getElementById('acRemarks');
   var editingRow   = null;
-
   var historyLabel = document.getElementById('acHistoryLabel');
   var historyEl    = document.getElementById('acHistory');
 
@@ -15167,6 +15391,15 @@ var NotificationSound = (function(){
     var caseData = {
       eventId: editingRow.id,
       driverName: driverInput.value.trim(),
+      // No empNo input field exists in this modal yet (driverInput is
+      // free-text only) — this carries forward whatever dds_alert_logs()
+      // already resolved for the row being edited (editingRow.empNo, see
+      // that function's emp_no_display: case emp_no wins over the event's,
+      // so a value a previous save already set here is never clobbered by
+      // reopening and resaving the same row). A save on a row that was
+      // never linked simply carries null forward, same as before this
+      // field existed — this is additive, not a new required step.
+      empNo: editingRow.empNo || null,
       actionType: actionIsOther ? actionOther.value.trim() : (actionSelect.value || null),
       actionIsOther: actionIsOther,
       statusValue: statusIsOther ? statusOther.value.trim() : (statusSelect.value || null),
@@ -15433,7 +15666,7 @@ var NotificationSound = (function(){
     var cases = ids.map(function(id){
       var row = byId[id] || {};
       return applyPatch({
-        driverName: row.driverName, actionType: row.actionType, actionIsOther: row.actionIsOther,
+        driverName: row.driverName, empNo: row.empNo, actionType: row.actionType, actionIsOther: row.actionIsOther,
         statusValue: row.statusValue, statusIsOther: row.statusIsOther, remarks: row.remarks
       }, patch, id);
     });
@@ -15478,6 +15711,15 @@ var NotificationSound = (function(){
     return {
       eventId: eventId,
       driverName: 'driverName' in patch ? patch.driverName : (base.driverName || ''),
+      // No bulk-edit control sets empNo yet (same as the single-row modal —
+      // see caseData's own comment above), so patch.empNo is never actually
+      // present today; this branch exists so that changes purely to
+      // status/action/remarks in bulk NEVER drop an already-resolved emp_no
+      // back to null. Without this line, applyPatch's hardcoded return
+      // shape would omit empNo entirely regardless of what base holds — the
+      // exact silent-erasure failure mode flagged when this field was
+      // added (see upsertAlertCase()'s own comment on the write side).
+      empNo: 'empNo' in patch ? patch.empNo : (base.empNo || null),
       actionType: 'actionType' in patch ? patch.actionType : (base.actionType || ''),
       actionIsOther: 'actionIsOther' in patch ? patch.actionIsOther : !!base.actionIsOther,
       statusValue: 'statusValue' in patch ? patch.statusValue : (base.statusValue || ''),
@@ -16325,14 +16567,53 @@ var NotificationSound = (function(){
       progressBox.textContent = 'Uploading ' + pct + '%…';
     }).then(function(result){
       var n = result && result.inserted != null ? result.inserted : 0;
-      announce('MineStat data uploaded — ' + Number(n).toLocaleString() +
-               (n === 1 ? ' shift record processed' : ' shift records processed'));
       closeModal();
       // Names that did not resolve against the masterlist during ingest are
       // exactly what the review queue exists to surface — same "an import is
       // exactly when new names appear" reasoning the DDS importer already
       // applies to its own review queue.
       if (typeof App.loadMinestatNameReview === 'function') App.loadMinestatNameReview();
+
+      // A fresh MineStat import is exactly when new shift_date+shift+asset_id
+      // matches become available for events that were waiting on them — see
+      // Cloud.backfillEmpNoFromMinestat()'s own comment for why this call
+      // was previously missing entirely. Deliberately awaited before the
+      // upload announcement fires, not fire-and-forget: the attribution
+      // count only means something once it's the actual final result, and a
+      // stray unhandled rejection from a detached promise is worse than a
+      // few hundred ms of extra wait here. Failure here does NOT roll back
+      // or reframe the upload itself — the MineStat rows are genuinely
+      // saved regardless of whether this follow-up step succeeds, so it
+      // gets its own try/catch rather than joining the outer .catch(), which
+      // is written for upload failure and would misreport this as one.
+      Cloud.backfillEmpNoFromMinestat().then(function(bf){
+        var msg = 'MineStat data uploaded — ' + Number(n).toLocaleString() +
+                   (n === 1 ? ' shift record processed' : ' shift records processed');
+        if (bf.updated > 0) {
+          msg += '. ' + Number(bf.updated).toLocaleString() +
+                 (bf.updated === 1 ? ' alert linked to a driver' : ' alerts linked to a driver') + '.';
+          // App.loadFromServer() directly, not a local refreshAfterAttribution()
+          // — this IIFE (minestatDropZone) is a different closure from the one
+          // that name belongs to (the DRIVER NAME REVIEW IIFE, ~16808), so that
+          // identifier isn't in scope here. Same top-level entry point that
+          // helper itself calls, safe to reach from any IIFE — see its own
+          // comment for why. No-op if nothing has loaded yet or in
+          // local-import mode, same guard as everywhere else that calls it.
+          if (typeof App !== 'undefined' && typeof App.loadFromServer === 'function') {
+            App.loadFromServer();
+          }
+        }
+        announce(msg);
+      }).catch(function(bfErr){
+        console.error('Driver attribution backfill failed', bfErr);
+        // The MineStat upload itself still succeeded — say so plainly and
+        // don't let a backfill failure read as an upload failure. Attribution
+        // will simply stay pending until the next successful backfill (auto
+        // or manual) picks these events up; no data was lost either way.
+        announce('MineStat data uploaded — ' + Number(n).toLocaleString() +
+                  (n === 1 ? ' shift record processed' : ' shift records processed') +
+                  '. Driver attribution will catch up on the next sync.');
+      });
     }).catch(function(err){
       console.error('MineStat upload failed', err);
       progressBox.hidden = true;
@@ -17100,15 +17381,33 @@ var NotificationSound = (function(){
     msConfirmBtn.disabled = true;
     Cloud.resolveMinestatNameReview(msEditing.id, msSelectedEmp).then(function(res){
       var n = res && res.rowsUpdated != null ? res.rowsUpdated : 0;
-      // Deliberately "shift record(s)", never "alert(s)": this only updates
-      // minestat_shifts.emp_no. It does not touch events.emp_no — that only
-      // happens when dds_backfill_emp_no_from_minestat() is next run (see
-      // 0024_minestat.sql) — so no alert's visible attribution changes yet.
-      announce('Matched — ' + Number(n).toLocaleString() +
-               (n === 1 ? ' shift record linked to this employee' : ' shift records linked to this employee'));
       closeResolveModal();
       loadNameReview();
-      refreshAfterAttribution();
+      // A confirmed match only updates minestat_shifts.emp_no on its own
+      // (see resolveMinestatNameReview()) — it does not touch events.emp_no
+      // until the backfill below runs, same gap the MineStat upload handler
+      // closes on its own path. Confirming one name can unblock many
+      // shift records at once (msConfirmBtn resolves per-name, not per-row —
+      // see this IIFE's header comment), so this is worth running here too,
+      // not just after a fresh upload.
+      Cloud.backfillEmpNoFromMinestat().then(function(bf){
+        var msg = 'Matched — ' + Number(n).toLocaleString() +
+                   (n === 1 ? ' shift record linked to this employee' : ' shift records linked to this employee');
+        if (bf.updated > 0) {
+          msg += '. ' + Number(bf.updated).toLocaleString() +
+                 (bf.updated === 1 ? ' alert linked to a driver' : ' alerts linked to a driver') + '.';
+          refreshAfterAttribution();
+        }
+        announce(msg);
+      }).catch(function(bfErr){
+        console.error('Driver attribution backfill failed', bfErr);
+        // The name match itself still saved — say so plainly, same
+        // failure-isolation reasoning as the MineStat upload handler's
+        // equivalent catch.
+        announce('Matched — ' + Number(n).toLocaleString() +
+                  (n === 1 ? ' shift record linked to this employee' : ' shift records linked to this employee') +
+                  '. Driver attribution will catch up on the next sync.');
+      });
     }).catch(function(err){
       console.error('Resolve failed', err);
       msError.textContent = 'Could not save that match. Try again.';
@@ -17134,18 +17433,31 @@ var NotificationSound = (function(){
   });
 
   /* Refetches the local copy of the masterlist — an employee added
-     mid-review must appear in the next search without a page reload.
+     mid-review must appear in the next search without a page reload — and,
+     now, also reflects any events.emp_no rows the backfill just filled.
 
-     UNLIKE the DDS queue's own refreshAfterAttribution(), this deliberately
-     does NOT also call App.loadFromServer(): resolving a name here only
-     updates minestat_shifts, never events.emp_no (see the header comment on
-     this IIFE), so no KPI/chart on screen has actually changed yet — calling
-     loadFromServer() here would just be a no-op refetch that looks like it
-     did something. */
+     THIS USED TO DIFFER from the DDS queue's own refreshAfterAttribution()
+     (~16880) by deliberately skipping App.loadFromServer(): resolving a
+     name here only ever updated minestat_shifts, never events.emp_no, so no
+     KPI/chart on screen had actually changed and the refetch would have
+     been a no-op that looked like it did something. That's no longer true —
+     msConfirmBtn's click handler now calls Cloud.backfillEmpNoFromMinestat()
+     immediately after a resolve, which DOES write events.emp_no — so this
+     function is now the same shape as the DDS queue's. Kept as its own
+     definition rather than merged into one shared function: this IIFE's
+     variables (masterlist, etc.) are closure-local, same reason the whole
+     MINESTAT NAME REVIEW block is its own IIFE in the first place (see that
+     block's header comment) — a single cross-IIFE version would need those
+     variables threaded through as parameters for no real benefit. Only
+     called from the bf.updated > 0 branch above, matching the DDS queue's
+     own "there's something new to actually go fetch" gating. */
   function refreshAfterAttribution(){
     Cloud.fetchMasterlist()
       .then(function(list){ masterlist = list || []; })
       .catch(function(){});
+    if (typeof App !== 'undefined' && typeof App.loadFromServer === 'function') {
+      App.loadFromServer();
+    }
   }
 
   msCancelBtn.addEventListener('click', closeResolveModal);
