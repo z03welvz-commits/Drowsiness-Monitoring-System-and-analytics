@@ -4135,9 +4135,28 @@ body {
         </div>
       </div>
 
-      <div class="card" id="minestatCard" style="flex:0 0 auto">
+      <!-- Shift-records table — 2026-08-30. Previously this card was the info
+           paragraph alone with no way to see a single row of what actually
+           landed in minestat_shifts, unlike every other Data Management
+           source (Import History, Masterlist, Contributing Factors all show
+           their rows). That silence made "the DDS-to-MineStat join found
+           nothing" indistinguishable from "nothing was uploaded" — the exact
+           gap that made a real attribution failure impossible to diagnose
+           from this page alone. Driver name shown here is resolved
+           client-side against the masterlist already loaded by the Employee
+           Masterlist IIFE (App.masterlistRoster) — minestat_shifts itself
+           has no FK to drivers (see the table's own migration comment), so
+           the row only carries emp_no, not a name, until joined here. -->
+      <div class="card" id="minestatCard" style="flex:1;min-height:0">
         <div class="card-head">
           <div class="imp-toolbar-title">MineStat Data</div>
+          <div class="hcontrols">
+            <span class="imp-count" id="minestatShiftCount">0 records</span>
+            <label class="imp-search" id="minestatSearchWrap" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="minestatSearch" placeholder="Unit or driver name…" aria-label="Search MineStat shift records">
+            </label>
+          </div>
         </div>
         <div class="dm-info-row" id="minestatStatusLine">
           <span class="dm-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
@@ -4146,6 +4165,30 @@ body {
             a real employee number when the alert file itself has no operator. Names it can't match
             land in "MineStat names needing review" below.
           </p>
+        </div>
+        <div class="imp-table-wrap" id="minestatShiftWrap">
+          <div class="imp-empty" id="minestatShiftEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
+            <div class="imp-empty-text">No MineStat data uploaded yet — drop a file above to get started.</div>
+          </div>
+          <table class="imp-table" id="minestatShiftTable" hidden>
+            <thead>
+              <tr>
+                <th>Unit</th>
+                <th>Date</th>
+                <th>Shift</th>
+                <th>Driver</th>
+              </tr>
+            </thead>
+            <tbody id="minestatShiftBody"></tbody>
+          </table>
+        </div>
+        <div class="imp-pagination" id="minestatShiftPagination" hidden>
+          <span class="imp-pagination-label" id="minestatShiftPageLabel">Showing 0–0 of 0</span>
+          <div class="imp-pagination-btns">
+            <button class="btn btn-outline btn-sm" id="minestatShiftPrevBtn" type="button">Previous</button>
+            <button class="btn btn-outline btn-sm" id="minestatShiftNextBtn" type="button">Next</button>
+          </div>
         </div>
       </div>
 
@@ -12752,6 +12795,34 @@ const Cloud = {
     if (error) throw error;
   },
 
+  /* The actual shift records MineStat upload writes — added because the
+     tab that uploads this data had no way to look at what landed, unlike
+     every other Data Management source (Import History, Masterlist,
+     Contributing Factors all show their rows). That silence made it
+     impossible to tell "the join to DDS events found nothing because Unit/
+     Date/Shift don't line up" apart from "nothing was uploaded at all".
+     Paginated (range(), not .limit()) since a real file runs into the tens
+     of thousands of rows — same reason dds_alert_logs() paginates
+     server-side rather than shipping the whole table. No embedded join to
+     drivers: minestat_shifts has no FK to drivers on purpose (see this
+     table's own migration comment — a stale roster must never block
+     ingest), so the caller resolves emp_no -> name itself against whatever
+     masterlist rows it already has. */
+  async fetchMinestatShifts({ search, limit = 75, offset = 0 } = {}){
+    let q = this.client
+      .from('minestat_shifts')
+      .select('asset_id, shift_date, shift, last_name, first_name, middle_name, emp_no, tier', { count: 'exact' })
+      .order('shift_date', { ascending: false })
+      .order('asset_id', { ascending: true })
+      .range(offset, offset + limit - 1);
+    if (search) q = q.or(
+      `asset_id.ilike.%${search}%,last_name.ilike.%${search}%,first_name.ilike.%${search}%`
+    );
+    const { data, error, count } = await q;
+    if (error) throw error;
+    return { rows: data || [], total: count || 0 };
+  },
+
   /* Loads the conso. p_deactivate TRUE: the uploaded file is the authoritative
      statement of who is on staff, so anyone absent from it is marked inactive.
      Marked, not deleted — dds_upsert_drivers() never removes a row, because
@@ -13569,6 +13640,10 @@ const store = createStore();
       if (typeof App.loadFactors === 'function' &&
           (!App._factorsLoadedAt || _now - App._factorsLoadedAt > NAV_REFRESH_WINDOW_MS)) {
         App.loadFactors();
+      }
+      if (typeof App.loadMinestatShifts === 'function' &&
+          (!App._minestatShiftsLoadedAt || _now - App._minestatShiftsLoadedAt > NAV_REFRESH_WINDOW_MS)) {
+        App.loadMinestatShifts();
       }
     }
   }
@@ -16328,6 +16403,15 @@ var NotificationSound = (function(){
   var RENDER_CAP = 50;
 
   function render(){
+    /* Cross-section bridge, same convention as App.factors — the MineStat
+       shift-records table (own IIFE, further down) needs emp_no -> name
+       since minestat_shifts deliberately carries no FK to drivers (see
+       that table's migration comment). Reassigned here rather than once at
+       declaration: `roster` itself is reassigned wholesale by load() above
+       on every fetch, so App.masterlistRoster must be refreshed at the same
+       point or it would keep pointing at a stale, possibly-empty array. */
+    App.masterlistRoster = roster;
+
     var q = (searchInput.value || '').trim().toLowerCase();
     var shown = q
       ? roster.filter(function(d){
@@ -16919,6 +17003,10 @@ var NotificationSound = (function(){
       // exactly when new names appear" reasoning the DDS importer already
       // applies to its own review queue.
       if (typeof App.loadMinestatNameReview === 'function') App.loadMinestatNameReview();
+      // The shift-records table (own IIFE, further down) needs the same
+      // refresh — otherwise a file that just uploaded still shows the OLD
+      // page/count until the next nav-arrival guard's 30s window lapses.
+      if (typeof App.loadMinestatShifts === 'function') App.loadMinestatShifts();
 
       // A fresh MineStat import is exactly when new shift_date+shift+asset_id
       // matches become available for events that were waiting on them — see
@@ -16973,6 +17061,127 @@ var NotificationSound = (function(){
       confirmBtn.disabled = false;
     });
   });
+})();
+
+/* ═══════════════════════ MINESTAT SHIFT RECORDS TABLE ═══════════════════════
+   2026-08-30 — added because there was no way to see a single row of what
+   actually landed in minestat_shifts. Every other Data Management source
+   shows its rows (Import History, Masterlist, Contributing Factors); this
+   one only ever showed an upload dropzone, a static paragraph, and — only
+   for names that FAILED to resolve — the review queue. A user whose file
+   uploaded cleanly and whose driver names all matched had no page anywhere
+   confirming what those rows actually said, which made "the DDS-to-
+   MineStat join found nothing because Unit/Date/Shift don't line up"
+   indistinguishable from "nothing uploaded" or "everything's fine, just
+   invisible". Own IIFE, own guard, same pattern as every other section
+   here — not folded into the upload IIFE above, which owns the dropzone/
+   modal, a different concern from browsing what is already saved. */
+(function(){
+  var card       = document.getElementById('minestatCard');
+  if (!card) return;
+
+  var countEl     = document.getElementById('minestatShiftCount');
+  var searchWrap  = document.getElementById('minestatSearchWrap');
+  var searchInput = document.getElementById('minestatSearch');
+  var wrap        = document.getElementById('minestatShiftWrap');
+  var emptyEl     = document.getElementById('minestatShiftEmpty');
+  var table       = document.getElementById('minestatShiftTable');
+  var tbody       = document.getElementById('minestatShiftBody');
+  var pagination  = document.getElementById('minestatShiftPagination');
+  var pageLabel   = document.getElementById('minestatShiftPageLabel');
+  var prevBtn     = document.getElementById('minestatShiftPrevBtn');
+  var nextBtn     = document.getElementById('minestatShiftNextBtn');
+
+  var PAGE_SIZE = 75;
+  var offset = 0;
+  var total = 0;
+  var searchTimer = null;
+
+  function driverName(row){
+    if (!row.emp_no) {
+      // Same raw "SURNAME, Given Middle" the resolver itself builds (see
+      // dds_minestat_ingest()'s _mnamed.raw_name) — showing the file's own
+      // text rather than a bare "Unmatched" lets a reader immediately spot
+      // WHICH name failed without switching to the review tab.
+      var raw = [row.last_name, [row.first_name, row.middle_name].filter(Boolean).join(' ')]
+        .filter(Boolean).join(', ');
+      return raw ? esc(raw) + ' <span class="flag-none">(unmatched)</span>' : '<span class="flag-none">—</span>';
+    }
+    var roster = (typeof App !== 'undefined' && App.masterlistRoster) || [];
+    var match = roster.find(function(d){ return d.emp_no === row.emp_no; });
+    return match ? esc(match.full_name) : esc(row.emp_no) + ' <span class="flag-none">(not on current masterlist)</span>';
+  }
+
+  function fmtShiftDate(d){
+    // shift_date comes back from PostgREST as 'YYYY-MM-DD' (a date column,
+    // no time component) — parsed as UTC-midnight and read back via
+    // getUTC* so this never shifts a day depending on the viewer's own
+    // timezone, same rule the rest of this file's date handling follows.
+    var dt = new Date(d + 'T00:00:00Z');
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[dt.getUTCMonth()] + ' ' + dt.getUTCDate() + ', ' + dt.getUTCFullYear();
+  }
+
+  function render(rows){
+    if (!rows.length){
+      table.hidden = true;
+      pagination.hidden = true;
+      emptyEl.hidden = false;
+      return;
+    }
+    emptyEl.hidden = true;
+    table.hidden = false;
+    pagination.hidden = false;
+
+    tbody.innerHTML = rows.map(function(r){
+      return '<tr>' +
+        '<td style="font-weight:600">' + esc(r.asset_id) + '</td>' +
+        '<td class="imp-date">' + fmtShiftDate(r.shift_date) + '</td>' +
+        '<td>' + esc(r.shift) + '</td>' +
+        '<td>' + driverName(r) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    var shown = Math.min(offset + rows.length, total);
+    pageLabel.textContent = 'Showing ' + (offset + 1).toLocaleString() + '–' + shown.toLocaleString() + ' of ' + total.toLocaleString();
+    prevBtn.disabled = offset === 0;
+    nextBtn.disabled = shown >= total;
+  }
+
+  function load(){
+    if (!Cloud.available() || !Cloud.session){
+      countEl.textContent = '0 records';
+      table.hidden = true;
+      pagination.hidden = true;
+      emptyEl.hidden = false;
+      return;
+    }
+    var search = (searchInput.value || '').trim();
+    Cloud.fetchMinestatShifts({ search: search, limit: PAGE_SIZE, offset: offset }).then(function(res){
+      total = res.total;
+      countEl.textContent = total.toLocaleString() + (total === 1 ? ' record' : ' records');
+      searchWrap.hidden = total === 0 && !search;
+      render(res.rows);
+    }).catch(function(err){
+      console.warn('MineStat shift records unavailable', err);
+      countEl.textContent = 'Not loaded';
+      table.hidden = true;
+      pagination.hidden = true;
+      emptyEl.hidden = false;
+    }).finally(function(){
+      App._minestatShiftsLoadedAt = Date.now();
+    });
+  }
+
+  searchInput.addEventListener('input', function(){
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function(){ offset = 0; load(); }, 300);
+  });
+  prevBtn.addEventListener('click', function(){ offset = Math.max(0, offset - PAGE_SIZE); load(); });
+  nextBtn.addEventListener('click', function(){ offset = offset + PAGE_SIZE; load(); });
+
+  App.loadMinestatShifts = load;
+  Cloud.onSignIn(load);
 })();
 
 /* ═══════════════════════ DRIVER NAME REVIEW ═══════════════════════
@@ -17755,6 +17964,10 @@ var NotificationSound = (function(){
       var n = res && res.rowsUpdated != null ? res.rowsUpdated : 0;
       closeResolveModal();
       loadNameReview();
+      // The shift-records table shows emp_no directly, which this RPC just
+      // changed for `n` rows — without this it would keep showing those
+      // rows as "(unmatched)" until the next nav-arrival refresh.
+      if (typeof App.loadMinestatShifts === 'function') App.loadMinestatShifts();
       // A confirmed match only updates minestat_shifts.emp_no on its own
       // (see resolveMinestatNameReview()) — it does not touch events.emp_no
       // until the backfill below runs, same gap the MineStat upload handler
