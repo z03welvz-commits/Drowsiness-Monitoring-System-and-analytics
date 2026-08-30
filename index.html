@@ -8569,16 +8569,23 @@ const charts = {
      gridlines will describe a different scale than the line actually
      plots on.
 
-     left/right: 12, not 0 — the SAME zero-margin problem as top, on the
+     left/right: 36, not 12 — the SAME zero-margin problem as top, on the
      horizontal axis. linePath() put the first point at x=0 and the last at
      x=width with no inset, so the line (and its hover-marker ellipse, and
      the light fill under it) sat flush against the SVG's left/right edges
      — visible as the plotted line touching the card's own rounded corner
-     on both sides, reported live off a real render. Gridlines still span
-     the FULL width (x1=0 to x2=width in ovTrendSvg's markup) — only the
-     plotted data got inset, matching how top's fix only moved where the
-     line's own ceiling sits, not the gridlines' extent. */
-  trend(el, d, { refs, series = ['units'], geo = { top: 20, bottom: 168, width: 992, left: 12, right: 12 }, tip, insightEl, showPrev = false, hidden = new Set() } = {}) {
+     on both sides, reported live off a real render. A first attempt at 12
+     was mathematically correct (verified against the rendered path data)
+     but visually imperceptible: 12 of 992 units is only ~14 rendered
+     pixels at a realistic ~1170px-wide card — smaller than the
+     .chart-body CSS padding sitting right outside the SVG, so it read as
+     no margin at all in a real screenshot. 36 renders to roughly 40+px at
+     that same width, an amount actually visible next to the card edge.
+     Gridlines still span the FULL width (x1=0 to x2=width in ovTrendSvg's
+     markup) — only the plotted data got inset, matching how top's fix
+     only moved where the line's own ceiling sits, not the gridlines'
+     extent. */
+  trend(el, d, { refs, series = ['units'], geo = { top: 20, bottom: 168, width: 992, left: 36, right: 36 }, tip, insightEl, showPrev = false, hidden = new Set() } = {}) {
     const pts = d.trend;
     if (!pts.length) {
       if (refs.axis) refs.axis.innerHTML = '';
@@ -9586,11 +9593,16 @@ const PAGES = {
        which is why widening Overview's padding never visibly changed
        anything here: the mismatch, not the margin size, was the actual
        bug. top/bottom now match this card's own gridlines exactly;
-       left/right keep the same absolute 12px inset trend()'s default uses
-       (a slightly larger fraction of this narrower 720-wide box, which is
-       fine — the point is real margin, not an identical ratio). */
+       left/right (26) scale trend()'s own default (36 of a 992-wide box)
+       down proportionally for this narrower 720-wide one — same ~3.6% of
+       width on both, not the same absolute pixel count, so the margin
+       reads as consistent between the two charts rather than
+       proportionally smaller here. See trend()'s own left/right comment
+       for why 36 (not the original 12) was needed on Overview's copy: 12
+       was mathematically correct but rendered to only ~14px at a real
+       card width, imperceptible next to the card's own CSS padding. */
     { chart: 'trend', series: ['units', 'assets'],
-      geo: { top: 20, bottom: 200, width: 720, left: 12, right: 12 },
+      geo: { top: 20, bottom: 200, width: 720, left: 26, right: 26 },
       refs: () => ({
         unitsPath: $('anTrendAlertsPath'), assetsPath: $('anTrendAssetsPath'),
         fill: $('anTrendFillPath'), dots: $('anTrendDots'), axis: $('anTrendAxis'),
