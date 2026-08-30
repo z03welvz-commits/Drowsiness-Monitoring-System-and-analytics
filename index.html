@@ -3993,7 +3993,29 @@ body {
            Its own tab now rather than a card stacked under Import History
            (see dmSourceTabs above), so it takes the full panel height —
            no more 320px scroll cap fighting Import History for space. -->
-      <div class="dm-source-panel" data-source-panel="masterlist" style="flex:1;min-height:0;display:flex;flex-direction:column" hidden>
+      <div class="dm-source-panel" data-source-panel="masterlist" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px" hidden>
+
+      <!-- Inline drop zone — 2026-08-30, matching DDS Data's always-visible
+           #dropZone rather than hiding upload behind a button that opens a
+           blank modal. #consoDropZone/#consoFileInput keep the exact IDs
+           the Employee Masterlist IIFE already reads/writes — only the
+           physical location moved, out of #consoUploadModal and into the
+           panel itself. Dropping/choosing a file here still runs the same
+           parseConso() preview step before anything is saved; the modal
+           that used to hold this drop zone now opens ONLY to show that
+           confirm step (counts of new/updated/inactive) or a parse error,
+           same as before, just one step later in the flow. -->
+      <div class="dz" id="consoDropZone">
+        <input type="file" id="consoFileInput" accept=".xlsx,.xls,.csv">
+        <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></div>
+        <div class="dz-title">Drag & drop the conso file here, or click to browse</div>
+        <div class="dz-sub">Needs an employee number column and a name column. Existing people are updated, new ones added.</div>
+        <div class="dz-formats">
+          <span class="dz-chip">.XLSX</span>
+          <span class="dz-chip">.XLS</span>
+          <span class="dz-chip">.CSV</span>
+        </div>
+      </div>
 
       <div class="card" id="masterlistCard" style="flex:1;min-height:0">
         <div class="card-head">
@@ -4004,10 +4026,6 @@ body {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               <input type="search" id="masterlistSearch" placeholder="Name or employee no.…" aria-label="Search the employee masterlist">
             </label>
-            <button class="btn btn-outline btn-sm" id="consoUploadBtn" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg>
-              Upload conso
-            </button>
           </div>
         </div>
 
@@ -4042,33 +4060,32 @@ body {
 
       </div><!-- /.dm-source-panel[masterlist] -->
 
-      <!-- Conso upload modal. Separate from the older "driver roster" modal on
-           Alert Logs, which writes the name-keyed driver_master table that
-           still backs the alert-case name picker. This one writes `drivers`,
-           the employee-number masterlist the import scan actually reads. -->
+      <!-- Conso upload CONFIRM step — 2026-08-30: the drop zone that used to
+           live in this modal moved inline into the masterlist panel itself
+           (see #consoDropZone above), matching DDS Data's always-visible
+           entry point instead of hiding upload behind a button that opened
+           this same modal empty. This dialog now opens ONLY once a file has
+           actually been parsed, to show either the preview counts (new/
+           updated/inactive — parseConso()'s whole reason for existing: a
+           conso upload can silently deactivate people missing from the new
+           file, so it is never applied sight-unseen) or a parse error.
+           Separate from the older "driver roster" modal on Alert Logs, which
+           writes the name-keyed driver_master table that still backs the
+           alert-case name picker. This one writes `drivers`, the
+           employee-number masterlist the import scan actually reads. -->
       <div class="detail-modal" id="consoUploadModal" hidden>
         <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="consoUploadTitle" style="max-width:520px">
           <div class="detail-head">
             <div>
-              <h2 id="consoUploadTitle" class="detail-title">Upload employee masterlist</h2>
-              <p class="detail-sub">Needs an employee number column and a name column. Existing people are updated, new ones added.</p>
+              <h2 id="consoUploadTitle" class="detail-title">Update employee masterlist?</h2>
+              <p class="detail-sub" id="consoUploadFileName"></p>
             </div>
             <button type="button" class="detail-close" id="consoUploadClose" aria-label="Close">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <div class="dz" id="consoDropZone" style="margin:0">
-            <input type="file" id="consoFileInput" accept=".xlsx,.xls,.csv">
-            <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></div>
-            <div class="dz-title">Drag & drop the conso file, or click to browse</div>
-            <div class="dz-formats">
-              <span class="dz-chip">.XLSX</span>
-              <span class="dz-chip">.XLS</span>
-              <span class="dz-chip">.CSV</span>
-            </div>
-          </div>
           <div class="field-error" id="consoUploadError" hidden></div>
-          <div id="consoUploadConfirm" hidden style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:12px"></div>
+          <div id="consoUploadConfirm" hidden style="font-size:var(--fs-sm);color:var(--text-sec)"></div>
           <div class="detail-actions">
             <button type="button" class="btn btn-outline btn-sm" id="consoUploadCancel">Cancel</button>
             <button type="button" class="btn btn-sm" id="consoUploadConfirmBtn" disabled>Update masterlist</button>
@@ -4098,15 +4115,29 @@ body {
            text flush against the card edges. -->
       <div class="dm-source-panel" data-source-panel="minestat" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px" hidden>
 
+      <!-- Inline drop zone — 2026-08-30, same rationale as the masterlist
+           panel's own #consoDropZone above: matches DDS Data's always-
+           visible upload entry point instead of hiding it behind a button
+           that opened a blank modal. #minestatDropZone/#minestatFileInput
+           keep their existing IDs — only the physical location moved, out
+           of #minestatUploadModal and into the panel. The modal now opens
+           only once a file has been chosen, to show the confirm/progress/
+           error step (see the MineStat IIFE's handleFile()). -->
+      <div class="dz" id="minestatDropZone">
+        <input type="file" id="minestatFileInput" accept=".xlsx,.xls,.csv">
+        <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></div>
+        <div class="dz-title">Drag &amp; drop the MineStat file here, or click to browse</div>
+        <div class="dz-sub">Needs Unit, Date, Shift, Operating/Down/Delay/Standby/Total Hours, and Last/First/Middle Name columns.</div>
+        <div class="dz-formats">
+          <span class="dz-chip">.XLSX</span>
+          <span class="dz-chip">.XLS</span>
+          <span class="dz-chip">.CSV</span>
+        </div>
+      </div>
+
       <div class="card" id="minestatCard" style="flex:0 0 auto">
         <div class="card-head">
           <div class="imp-toolbar-title">MineStat Data</div>
-          <div class="hcontrols">
-            <button class="btn btn-outline btn-sm" id="minestatUploadBtn" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg>
-              Upload MineStat
-            </button>
-          </div>
         </div>
         <div class="dm-info-row" id="minestatStatusLine">
           <span class="dm-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
@@ -4118,35 +4149,25 @@ body {
         </div>
       </div>
 
-      <!-- Upload modal — same drop-zone/confirm/error shell as the conso
-           upload above. No row-count-vs-existing preview here (unlike
-           conso's "3 new, 480 already known"): a MineStat row's identity is
-           the (Unit, Date, Shift) triple, not something meaningfully
-           compared against "how many are already loaded" before the file is
-           actually parsed and validated server-side. -->
+      <!-- Upload CONFIRM step — same drop-zone-moved-inline pattern as the
+           conso upload modal above. No row-count-vs-existing preview here
+           (unlike conso's "3 new, 480 already known"): a MineStat row's
+           identity is the (Unit, Date, Shift) triple, not something
+           meaningfully compared against "how many are already loaded"
+           before the file is actually parsed and validated server-side. -->
       <div class="detail-modal" id="minestatUploadModal" hidden>
         <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="minestatUploadTitle" style="max-width:520px">
           <div class="detail-head">
             <div>
-              <h2 id="minestatUploadTitle" class="detail-title">Upload MineStat data</h2>
-              <p class="detail-sub">Needs Unit, Date, Shift, Operating/Down/Delay/Standby/Total Hours, and Last/First/Middle Name columns.</p>
+              <h2 id="minestatUploadTitle" class="detail-title">Upload MineStat data?</h2>
+              <p class="detail-sub" id="minestatUploadFileName"></p>
             </div>
             <button type="button" class="detail-close" id="minestatUploadClose" aria-label="Close">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <div class="dz" id="minestatDropZone" style="margin:0">
-            <input type="file" id="minestatFileInput" accept=".xlsx,.xls,.csv">
-            <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></div>
-            <div class="dz-title">Drag &amp; drop the MineStat file, or click to browse</div>
-            <div class="dz-formats">
-              <span class="dz-chip">.XLSX</span>
-              <span class="dz-chip">.XLS</span>
-              <span class="dz-chip">.CSV</span>
-            </div>
-          </div>
           <div class="field-error" id="minestatUploadError" hidden></div>
-          <div id="minestatUploadConfirm" hidden style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:12px"></div>
+          <div id="minestatUploadConfirm" hidden style="font-size:var(--fs-sm);color:var(--text-sec)"></div>
           <div id="minestatUploadProgress" hidden style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:12px"></div>
           <div class="detail-actions">
             <button type="button" class="btn btn-outline btn-sm" id="minestatUploadCancel">Cancel</button>
@@ -4505,6 +4526,38 @@ body {
           <div class="detail-actions">
             <button type="button" class="btn btn-outline btn-sm" id="rejectsDownload">Download these rows (.csv)</button>
             <button type="button" class="btn btn-sm" id="rejectsCloseBtn">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Whole-file import failure — opened by flagsMarkup()'s clickable
+           'schema' flag. Distinct from #rejectsModal above: a schema/parse/
+           size failure (missing columns, unreadable workbook, too many
+           rows, empty file) has no per-row list to show — the whole file
+           never got far enough to produce rows at all — so this is a
+           short explanation + the columns the importer actually expects,
+           plus a way to retry without hunting back up the page for the
+           drop zone. Added because a plain red "Missing columns: END_TIME,
+           ASSET_ID" flag with nothing clickable left no next step once you
+           knew something was wrong. -->
+      <div class="detail-modal" id="fileProblemModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="fileProblemTitle" style="max-width:480px">
+          <div class="detail-head">
+            <div>
+              <h2 id="fileProblemTitle" class="detail-title">This file couldn't be imported</h2>
+              <p class="detail-sub" id="fileProblemSub"></p>
+            </div>
+            <button type="button" class="detail-close" id="fileProblemClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div id="fileProblemColumns" style="background:var(--surface-2,rgba(127,127,127,.08));border-radius:8px;padding:12px 14px">
+            <div style="font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Columns this importer expects</div>
+            <div id="fileProblemColumnList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+          </div>
+          <div class="detail-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="fileProblemCloseBtn">Close</button>
+            <button type="button" class="btn btn-sm" id="fileProblemRetryBtn">Choose a different file…</button>
           </div>
         </div>
       </div>
@@ -12493,6 +12546,36 @@ const Cloud = {
     return data.id;
   },
 
+  /* Read side of ingestFactor above — added alongside it so a factor that
+     synced successfully actually reappears after a reload/new session/
+     different browser, instead of only ever coming back from this
+     browser's own IndexedDB copy (see the Contributing Factors IIFE's own
+     LocalDB.loadAll('factors') call, which was previously the only way a
+     factor was ever restored). */
+  async fetchFactors(){
+    const { data, error } = await this.client
+      .from('contributing_factors')
+      .select('id, logged_at, factor_type, detail, start_time, end_time, notes')
+      .order('start_time', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  /* Counterpart to ingestFactor/fetchFactors — the factors IIFE's delete
+     button used to only ever remove the LOCAL copy (LocalDB.delete), never
+     the server row, so a deleted factor stayed in contributing_factors
+     forever and would reappear the moment fetchFactors() above shipped.
+     RLS (0003_contributing_factors.sql) allows any signed-in user to
+     delete any row, matching the same "shared fleet context, not personal
+     data" model factors_read/insert/update already use. */
+  async deleteFactor(id){
+    const { error } = await this.client
+      .from('contributing_factors')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
   /* Alert Logs — see alert_cases: live-only, no migration file. dds_alert_logs() left-joins
      events to alert_cases and paginates server-side (never send unbounded
      rows to the client, same rule dds_metrics() already follows). Upsert is
@@ -13483,6 +13566,10 @@ const store = createStore();
           (!App._nameReviewLoadedAt || _now - App._nameReviewLoadedAt > NAV_REFRESH_WINDOW_MS)) {
         App.loadNameReview();
       }
+      if (typeof App.loadFactors === 'function' &&
+          (!App._factorsLoadedAt || _now - App._factorsLoadedAt > NAV_REFRESH_WINDOW_MS)) {
+        App.loadFactors();
+      }
     }
   }
 
@@ -13610,6 +13697,14 @@ var NotificationSound = (function(){
       // (rec.duplicates vs rec.rejected) the modal reads.
       if (f.clickable) {
         return '<button type="button" class="flag ' + cls + ' flag-clickable" data-open-detail="' + esc(recId) + '" data-detail-kind="' + f.type + '">' + text + ' — view rows</button>';
+      }
+      // Whole-file failures (missing columns, unreadable file, too many
+      // rows, empty file — see handleParsedRows()/handleFile() below) have
+      // no per-row list to open; f.schema marks these so the flag instead
+      // opens #fileProblemModal (required columns + a retry button) rather
+      // than the row-detail modal above, which would have nothing to show.
+      if (f.schema) {
+        return '<button type="button" class="flag ' + cls + ' flag-clickable" data-open-file-problem="' + esc(recId) + '">' + text + ' — what\'s needed</button>';
       }
       return '<span class="flag ' + cls + '">' + text + '</span>';
     }).join('') + '</div>';
@@ -14006,7 +14101,7 @@ var NotificationSound = (function(){
 
   function handleParsedRows(file, rows, parseWarnings){
     if (!rows || !rows.length){
-      addRecord(file, { status:'error', flags:[{type:'error', detail:'No rows found'}], rowCount:0 });
+      addRecord(file, { status:'error', flags:[{type:'error', detail:'No rows found', schema:true}], rowCount:0 });
       return;
     }
 
@@ -14014,7 +14109,7 @@ var NotificationSound = (function(){
       addRecord(file, {
         status: 'error',
         flags: [{ type:'error', detail: 'This file has more than ' + ALERT_IMPORT_MAX_ROWS.toLocaleString() +
-                  ' rows — check it is a single alert export, not several files combined.' }],
+                  ' rows — check it is a single alert export, not several files combined.', schema:true }],
         rowCount: rows.length
       });
       return;
@@ -14027,7 +14122,7 @@ var NotificationSound = (function(){
     if (!headerCheck.ok){
       addRecord(file, {
         status: 'error',
-        flags: [{ type:'error', detail: 'Missing column' + (headerCheck.missing.length===1?'':'s') + ': ' + headerCheck.missing.join(', ') }],
+        flags: [{ type:'error', detail: 'Missing column' + (headerCheck.missing.length===1?'':'s') + ': ' + headerCheck.missing.join(', '), schema:true }],
         rowCount: rows.length
       });
       return;
@@ -14102,7 +14197,7 @@ var NotificationSound = (function(){
       addRecord(file, {
         status: 'error',
         flags: [{ type:'error', detail: 'File is too large (' + (file.size / (1024*1024)).toFixed(0) +
-                  'MB) — the limit is ' + (MAX_FILE_BYTES / (1024*1024)) + 'MB. Check this is a single alert export, not a batch of files merged together.' }],
+                  'MB) — the limit is ' + (MAX_FILE_BYTES / (1024*1024)) + 'MB. Check this is a single alert export, not a batch of files merged together.', schema:true }],
         rowCount: null
       });
       return;
@@ -14121,12 +14216,12 @@ var NotificationSound = (function(){
             handleParsedRows(file, results.data, warnings);
           },
           error: function(){
-            addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not read file'}], rowCount:null });
+            addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not read file', schema:true}], rowCount:null });
           }
         });
       };
       sniff.onerror = function(){
-        addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not read file'}], rowCount:null });
+        addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not read file', schema:true}], rowCount:null });
       };
       sniff.readAsArrayBuffer(file.slice(0, 4));
       return;
@@ -14142,17 +14237,17 @@ var NotificationSound = (function(){
           var rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
           handleParsedRows(file, rows, null);
         }catch(err){
-          addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not parse workbook'}], rowCount:null });
+          addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not parse workbook', schema:true}], rowCount:null });
         }
       };
       reader.onerror = function(){
-        addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not read file'}], rowCount:null });
+        addRecord(file, { status:'error', flags:[{type:'error', detail:'Could not read file', schema:true}], rowCount:null });
       };
       reader.readAsArrayBuffer(file);
       return;
     }
 
-    addRecord(file, { status:'error', flags:[{type:'error', detail:'Unsupported file type'}], rowCount:null });
+    addRecord(file, { status:'error', flags:[{type:'error', detail:'Unsupported file type', schema:true}], rowCount:null });
   }
 
   function processFileList(fileList){
@@ -14260,12 +14355,49 @@ var NotificationSound = (function(){
   // per-row after each repaint.
   tableBody.addEventListener('click', function(e){
     var btn = e.target.closest('[data-open-detail]');
-    if (!btn) return;
-    var recId = btn.getAttribute('data-open-detail');
-    var kindName = btn.getAttribute('data-detail-kind');
+    if (btn) {
+      var recId = btn.getAttribute('data-open-detail');
+      var kindName = btn.getAttribute('data-detail-kind');
+      var rec = imports.find(function(r){ return r.id === recId; });
+      var list = rec && DETAIL_KIND[kindName] ? rec[DETAIL_KIND[kindName].key] : null;
+      if (list && list.length) openDetailModal(rec, kindName);
+      return;
+    }
+    var problemBtn = e.target.closest('[data-open-file-problem]');
+    if (problemBtn) openFileProblemModal(problemBtn.getAttribute('data-open-file-problem'));
+  });
+
+  /* Whole-file failure modal — see flagsMarkup()'s f.schema branch and the
+     #fileProblemModal markup comment for why this is a separate, simpler
+     modal from openDetailModal() above rather than a third DETAIL_KIND: a
+     schema/parse/size failure never produced a row list to show, so the
+     only useful content is the reason (already visible in the flag text)
+     plus what a valid file needs to look like, and a way to retry. */
+  var fileProblemModal   = document.getElementById('fileProblemModal');
+  var fileProblemSub     = document.getElementById('fileProblemSub');
+  var fileProblemCols    = document.getElementById('fileProblemColumnList');
+  var fileProblemClose   = document.getElementById('fileProblemClose');
+  var fileProblemCloseBtn = document.getElementById('fileProblemCloseBtn');
+  var fileProblemRetryBtn = document.getElementById('fileProblemRetryBtn');
+
+  function openFileProblemModal(recId){
     var rec = imports.find(function(r){ return r.id === recId; });
-    var list = rec && DETAIL_KIND[kindName] ? rec[DETAIL_KIND[kindName].key] : null;
-    if (list && list.length) openDetailModal(rec, kindName);
+    var reason = rec && rec.flags && rec.flags[0] ? rec.flags[0].detail : 'This file could not be imported.';
+    fileProblemSub.textContent = (rec ? rec.name + ' — ' : '') + reason;
+    fileProblemCols.innerHTML = EXPECTED_COLUMNS.map(function(col){
+      return '<span class="dz-chip">' + esc(col) + (OPTIONAL_COLUMNS.indexOf(col) !== -1 ? ' (optional)' : '') + '</span>';
+    }).join('');
+    fileProblemModal.hidden = false;
+    fileProblemClose.focus();
+  }
+  function closeFileProblemModal(){ fileProblemModal.hidden = true; }
+  fileProblemClose.addEventListener('click', closeFileProblemModal);
+  fileProblemCloseBtn.addEventListener('click', closeFileProblemModal);
+  fileProblemModal.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeFileProblemModal(); });
+  fileProblemModal.addEventListener('click', function(e){ if (e.target === fileProblemModal) closeFileProblemModal(); });
+  fileProblemRetryBtn.addEventListener('click', function(){
+    closeFileProblemModal();
+    fileInput.click();
   });
 
   // Download just the flagged rows, corrected-CSV-ready — the columns match
@@ -14615,11 +14747,24 @@ var NotificationSound = (function(){
     rec.dbStatus = 'syncing';
     render();
     LocalDB.put('factors', rec);
-    Cloud.ingestFactor(rec).then(function(){
+    Cloud.ingestFactor(rec).then(function(serverId){
+      /* Swap the client-generated local id (Date.now()+random, only ever
+         unique within this browser) for the real contributing_factors.id
+         the insert returned — without this, deleteFactor()/fetchFactors()
+         below have no way to know which server row this record actually
+         is, since the two ids were never the same value to begin with.
+         The old key must be deleted explicitly: LocalDB.put() keys on
+         rec.id (keyPath:'id'), so simply mutating it and re-putting
+         creates a SECOND local record under the new key rather than
+         renaming the existing one — the old row would then resurface as a
+         duplicate the next time this store's loadAll() runs. */
+      var oldId = rec.id;
+      rec.id = serverId;
       rec.dbStatus = 'ok';
       rec.dbError = null;
       render();
       LocalDB.put('factors', rec);
+      if (oldId !== serverId) LocalDB.delete('factors', oldId);
     }).catch(function(err){
       console.error('Cloud sync failed for factor ' + rec.id, err);
       rec.dbStatus = 'error';
@@ -14628,7 +14773,43 @@ var NotificationSound = (function(){
       LocalDB.put('factors', rec);
     });
   }
+
+  /* Read side of syncFactor above — without this, a factor that synced
+     successfully was only ever visible again via this browser's own
+     IndexedDB copy (LocalDB.loadAll below): reload in a different
+     browser, on a different device, or after clearing site data and the
+     table showed empty even though the row was sitting safely in
+     contributing_factors. Merges rather than replaces local state so an
+     entry still mid-sync (dbStatus:'syncing'/'local', not yet in the
+     database) isn't wiped out by a fetch that raced ahead of it. */
+  function load(){
+    if (!Cloud.available() || !Cloud.session) return;
+    Cloud.fetchFactors().then(function(rows){
+      var known = {};
+      factors.forEach(function(f){ known[f.id] = true; });
+      rows.forEach(function(row){
+        if (known[row.id]) return;
+        factors.push({
+          id: row.id,
+          loggedAt: new Date(row.logged_at),
+          factorType: row.factor_type,
+          detail: row.detail || '',
+          startTime: new Date(row.start_time),
+          endTime: row.end_time ? new Date(row.end_time) : null,
+          notes: row.notes || '',
+          dbStatus: 'ok', dbError: null
+        });
+        LocalDB.put('factors', factors[factors.length - 1]);
+      });
+      render();
+    }).catch(function(err){
+      console.warn('Contributing factors unavailable', err);
+    }).finally(function(){
+      App._factorsLoadedAt = Date.now();
+    });
+  }
   Cloud.onSignIn(function(){
+    load();
     factors.filter(function(rec){ return rec.dbStatus === 'local'; }).forEach(syncFactor);
   });
 
@@ -14693,6 +14874,7 @@ var NotificationSound = (function(){
     var delBtn = e.target.closest('[data-delete-factor]');
     if (delBtn){
       var id = delBtn.getAttribute('data-delete-factor');
+      var rec = factors.find(function(r){ return r.id === id; });
       // Splice in place, not `factors = factors.filter(...)` — App.factors
       // holds this same array by reference (see the App.factors = factors
       // line near the top of this IIFE); reassigning the local variable
@@ -14702,6 +14884,18 @@ var NotificationSound = (function(){
       if (idx !== -1) factors.splice(idx, 1);
       render();
       LocalDB.delete('factors', id);
+      /* dbStatus 'ok' is the only state where `id` is guaranteed to be the
+         real contributing_factors.id rather than a client-generated local
+         id syncFactor() hasn't replaced yet (see its own comment) — deleting
+         by a local-only id would either hit nothing or, worse, collide with
+         an unrelated row if the two ever coincided. A record still 'local'/
+         'error' never reached the database, so there is nothing there to
+         delete. */
+      if (rec && rec.dbStatus === 'ok' && Cloud.available() && Cloud.session){
+        Cloud.deleteFactor(id).catch(function(err){
+          console.error('Server delete failed for factor ' + id, err);
+        });
+      }
     }
   });
 
@@ -14719,6 +14913,8 @@ var NotificationSound = (function(){
     });
     render();
   });
+
+  App.loadFactors = load;
 
   // "Clear data" (App.clearAllData, Data Management topbar) — same
   // wipe-state-then-repaint contract as the imports IIFE's own listener.
@@ -16116,8 +16312,8 @@ var NotificationSound = (function(){
   var emptyText   = document.getElementById('masterlistEmptyText');
   var moreEl      = document.getElementById('masterlistMore');
 
-  var uploadBtn   = document.getElementById('consoUploadBtn');
   var modal       = document.getElementById('consoUploadModal');
+  var fileNameEl  = document.getElementById('consoUploadFileName');
   var dropZone    = document.getElementById('consoDropZone');
   var fileInput   = document.getElementById('consoFileInput');
   var errorEl     = document.getElementById('consoUploadError');
@@ -16215,13 +16411,17 @@ var NotificationSound = (function(){
   }
   function closeModal(){ modal.hidden = true; fileInput.value = ''; }
 
-  uploadBtn.addEventListener('click', function(){
-    if (!Cloud.available() || !Cloud.session){
-      announce('Sign in to upload the employee masterlist', { assertive: true });
-      return;
-    }
-    openModal();
-  });
+  /* No button anymore — the drop zone itself is the upload entry point
+     (2026-08-30, matching DDS Data's #dropZone), so the sign-in guard
+     that used to live on consoUploadBtn's click now gates the drop zone's
+     own click/drop handlers below instead of a button that no longer
+     exists. */
+  function requireSignIn(){
+    if (Cloud.available() && Cloud.session) return true;
+    announce('Sign in to upload the employee masterlist', { assertive: true });
+    return false;
+  }
+
   cancelBtn.addEventListener('click', closeModal);
   closeBtn.addEventListener('click', closeModal);
   modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
@@ -16308,7 +16508,8 @@ var NotificationSound = (function(){
   var MAX_ROWS = 200000;
 
   function handleFile(file){
-    errorEl.hidden = true;
+    openModal();
+    fileNameEl.textContent = file.name;
 
     function onParsed(rows){
       try {
@@ -16384,7 +16585,7 @@ var NotificationSound = (function(){
     }
   }
 
-  dropZone.addEventListener('click', function(){ fileInput.click(); });
+  dropZone.addEventListener('click', function(){ if (requireSignIn()) fileInput.click(); });
   fileInput.addEventListener('change', function(){
     if (fileInput.files[0]) handleFile(fileInput.files[0]);
   });
@@ -16393,6 +16594,7 @@ var NotificationSound = (function(){
   dropZone.addEventListener('drop', function(e){
     e.preventDefault();
     delete dropZone.dataset.state;
+    if (!requireSignIn()) return;
     if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
   });
 
@@ -16441,8 +16643,8 @@ var NotificationSound = (function(){
   var card = document.getElementById('minestatCard');
   if (!card) return;
 
-  var uploadBtn   = document.getElementById('minestatUploadBtn');
   var modal       = document.getElementById('minestatUploadModal');
+  var fileNameEl  = document.getElementById('minestatUploadFileName');
   var dropZone    = document.getElementById('minestatDropZone');
   var fileInput   = document.getElementById('minestatFileInput');
   var errorEl     = document.getElementById('minestatUploadError');
@@ -16463,18 +16665,21 @@ var NotificationSound = (function(){
     progressBox.hidden = true;
     confirmBtn.disabled = true;
     confirmBtn.textContent = 'Upload';
-    fileInput.value = '';
     modal.hidden = false;
   }
   function closeModal(){ modal.hidden = true; fileInput.value = ''; }
 
-  uploadBtn.addEventListener('click', function(){
-    if (!Cloud.available() || !Cloud.session){
-      announce('Sign in to upload MineStat data', { assertive: true });
-      return;
-    }
-    openModal();
-  });
+  /* No button anymore — the drop zone itself is the upload entry point
+     (2026-08-30, matching DDS Data's #dropZone), so the sign-in guard that
+     used to live on minestatUploadBtn's click now gates the drop zone's
+     own click/drop handlers below instead of a button that no longer
+     exists. */
+  function requireSignIn(){
+    if (Cloud.available() && Cloud.session) return true;
+    announce('Sign in to upload MineStat data', { assertive: true });
+    return false;
+  }
+
   cancelBtn.addEventListener('click', closeModal);
   closeBtn.addEventListener('click', closeModal);
   modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
@@ -16617,9 +16822,8 @@ var NotificationSound = (function(){
   }
 
   function handleFile(file){
-    errorEl.hidden = true;
-    confirmBox.hidden = true;
-    confirmBtn.disabled = true;
+    openModal();
+    fileNameEl.textContent = file.name;
     pendingName = file.name;
 
     function onParsed(rows){
@@ -16684,7 +16888,7 @@ var NotificationSound = (function(){
     }
   }
 
-  dropZone.addEventListener('click', function(){ fileInput.click(); });
+  dropZone.addEventListener('click', function(){ if (requireSignIn()) fileInput.click(); });
   fileInput.addEventListener('change', function(){
     if (fileInput.files[0]) handleFile(fileInput.files[0]);
   });
@@ -16693,6 +16897,7 @@ var NotificationSound = (function(){
   dropZone.addEventListener('drop', function(e){
     e.preventDefault();
     delete dropZone.dataset.state;
+    if (!requireSignIn()) return;
     if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
   });
 
