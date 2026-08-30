@@ -316,28 +316,6 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .legend-item{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--text-sec);font-weight:var(--fw-medium)}
 .legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
 
-/* Data Management "Needs attention" group — 2026-08-29 redesign. Wraps the
-   review queues + Contributing Factors under one heading, visually distinct
-   from the danger-zone <details> below (.dm-danger-zone). Not a .card
-   itself — it holds cards, using the page's existing gap so nested cards'
-   own spacing is unaffected — this is a section label, not another box. */
-.dm-attention-group{display:flex;flex-direction:column;gap:10px}
-.dm-attention-head{padding:2px 2px 0}
-.dm-attention-head h3{
-  font-size:var(--fs-sm);font-weight:var(--fw-semi);color:var(--navy);
-  display:flex;align-items:center;gap:7px;margin:0 0 2px;
-  text-transform:uppercase;letter-spacing:.02em;
-}
-/* Same accent-bar technique as .card-head h2::before, at .dm-attention-head's
-   smaller (fs-sm, not fs-md) scale — a visual echo of the card-heading
-   pattern without literally being one, since this heading sits above
-   several cards rather than inside a single one. */
-.dm-attention-head h3::before{
-  content:'';display:inline-block;width:3px;height:10px;
-  background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px;
-}
-.dm-attention-head p{font-size:var(--fs-xs);color:var(--text-muted);margin:0}
-
 /* Danger zone — a closed-by-default native <details>, not a .card. Deliberately
    quiet chrome (no border, no shadow, muted summary text) until opened, so it
    reads as a rare, tucked-away action rather than sitting at the same visual
@@ -3640,20 +3618,36 @@ body {
         </div>
       </div>
 
-      <!-- Data-source toggle — Import History (DDS), the Employee
-           Masterlist and MineStat Data used to stack as three full-height
-           cards in a row, each a different size (masterlist capped at
-           320px, MineStat just a paragraph, Import History filling
-           whatever was left). Only one of the three is ever being worked
-           on at a time, so they now share one tab strip and one fixed
-           footprint — .dm-source-panel is flex:1 in all three cases, and
-           switching tabs just swaps which panel loses its `hidden`
-           attribute rather than resizing the page. -->
+      <!-- Data-source nav bar — Import History (DDS), the Employee
+           Masterlist, MineStat Data, and Contributing Factors used to stack
+           as separate cards/sections of different sizes and scroll
+           positions on this page (masterlist capped at 320px, MineStat just
+           a paragraph, a whole separate "Needs attention" heading further
+           down for the review queues and Contributing Factors). Only one of
+           the four is ever being worked on at a time, so they now share one
+           tab strip (#dmSourceTabs) and one fixed footprint (#dmSourceGroup)
+           — .dm-source-panel is flex:1 in all four cases, and switching
+           tabs just swaps which panel loses its `hidden` attribute rather
+           than resizing or rescrolling the page. Each review queue
+           (nameReviewCard, minestatReviewCard) now lives inside the tab it's
+           actually about (DDS, MineStat) rather than a shared area below
+           the tabs — dmTabBadgeDds/dmTabBadgeMinestat on the tab buttons
+           themselves mirror each queue's open count, so "needs review" is
+           still visible without switching tabs. Reset Fleet Data stays
+           outside this group entirely, pinned at the bottom of the page —
+           see its own <details> further down for why. -->
       <div class="card" id="dmSourceTabCard" style="flex:0 0 auto">
         <div class="imp-tabs" role="tablist" aria-label="Data source" id="dmSourceTabs" style="border-bottom:none">
-          <button class="imp-tab" role="tab" data-source="dds" aria-selected="true" tabindex="0">DDS Data</button>
+          <button class="imp-tab" role="tab" data-source="dds" aria-selected="true" tabindex="0">
+            DDS Data
+            <span class="imp-tab-count" data-tone="danger" id="dmTabBadgeDds" hidden>0</span>
+          </button>
           <button class="imp-tab" role="tab" data-source="masterlist" aria-selected="false" tabindex="-1">Masterlist</button>
-          <button class="imp-tab" role="tab" data-source="minestat" aria-selected="false" tabindex="-1">MineStat</button>
+          <button class="imp-tab" role="tab" data-source="minestat" aria-selected="false" tabindex="-1">
+            MineStat
+            <span class="imp-tab-count" data-tone="danger" id="dmTabBadgeMinestat" hidden>0</span>
+          </button>
+          <button class="imp-tab" role="tab" data-source="factors" aria-selected="false" tabindex="-1">Contributing Factors</button>
         </div>
       </div>
 
@@ -3729,6 +3723,146 @@ body {
             </thead>
             <tbody id="importTableBody"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Driver names needing review — the queue from 0019's
+           import_name_review. These are NOT failed imports: every alert row
+           loaded and every total is whole. What is missing is only WHICH
+           DRIVER those rows belong to, which is why this is a separate card
+           with its own count rather than a "needs attention" flag on the
+           import row above — an import can be perfectly clean and still
+           carry names nobody has matched yet.
+
+           Lives in the DDS tab (moved here in the nav-bar redesign) rather
+           than a shared "needs attention" area below the tabs: this queue is
+           specifically about DDS alert rows, so it belongs alongside the
+           import history that produced it. dmTabBadgeDds (on the DDS tab
+           button itself) mirrors nrCountOpen so an open review item is
+           visible without switching tabs — see renderNameReview()'s own
+           comment on that mirroring.
+
+           Hidden entirely when signed out or when the queue is empty: an
+           empty review card on every page load would train people to ignore
+           it, and it is precisely the thing that must not be ignored. -->
+      <!-- flex:0 0 auto, NOT the flex:1;min-height:0 that Import History
+           uses. A third flexible sibling makes both fight for the same
+           space, and this card lost — its table was allocated ~21px of a
+           132px need, so the header rendered and every row was clipped.
+           This queue is short by nature (one row per distinct unmatched
+           name), so it sizes to its content and lets the page scroll
+           instead. -->
+      <div class="card" id="nameReviewCard" style="flex:0 0 auto" hidden>
+        <div class="card-head">
+          <div class="imp-toolbar-title">Driver names needing review</div>
+          <div class="hcontrols">
+            <span class="imp-count" id="nameReviewCount">0 names</span>
+            <button class="btn btn-outline btn-sm" id="nameReviewRefresh" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="imp-tabs" role="tablist" aria-label="Review states" id="nameReviewTabs">
+          <button class="imp-tab" role="tab" data-state="open" aria-selected="true" tabindex="0">
+            Open
+            <span class="imp-tab-count" data-tone="danger" id="nrCountOpen">0</span>
+          </button>
+          <button class="imp-tab" role="tab" data-state="resolved" aria-selected="false" tabindex="-1">
+            Resolved
+            <span class="imp-tab-count" data-tone="success" id="nrCountResolved">0</span>
+          </button>
+          <!-- Ignored stays visible under its own tab rather than being
+               deleted, so an over-eager ignore can be found and undone. -->
+          <button class="imp-tab" role="tab" data-state="ignored" aria-selected="false" tabindex="-1">
+            Not a driver
+            <span class="imp-tab-count" id="nrCountIgnored">0</span>
+          </button>
+        </div>
+
+        <div class="imp-table-wrap" id="nameReviewWrap">
+          <div class="imp-empty" id="nameReviewEmpty" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <div class="imp-empty-text" id="nameReviewEmptyText">Every driver name in your imports matched the masterlist.</div>
+          </div>
+          <table class="imp-table" id="nameReviewTable" hidden>
+            <thead>
+              <tr>
+                <th>Name in file</th>
+                <th>Why unmatched</th>
+                <th>Alerts waiting</th>
+                <th>Best guess</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="nameReviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Resolve modal. Carries all five fix routes from the plan: pick a
+           ranked candidate, search the masterlist by name OR number, add a
+           driver the conso has not caught up with, or mark the string as not
+           a person at all. Bulk-apply is on the table rows themselves, since
+           it acts on a group rather than one name. -->
+      <div class="detail-modal" id="nameResolveModal" hidden>
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="nameResolveTitle" style="max-width:560px">
+          <div class="detail-head">
+            <div>
+              <h2 id="nameResolveTitle" class="detail-title">Match driver name</h2>
+              <p class="detail-sub" id="nameResolveSub">Assign this spelling to an employee.</p>
+            </div>
+            <button type="button" class="detail-close" id="nameResolveClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding-right:2px">
+            <div style="background:var(--surface-2,rgba(127,127,127,.08));border-radius:8px;padding:12px 14px">
+              <div style="font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Name as it appeared in the file</div>
+              <div id="nrRawName" style="font-size:var(--fs-md);font-weight:600;margin-top:4px;word-break:break-word"></div>
+              <div id="nrRowCount" style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:6px"></div>
+            </div>
+
+            <!-- Route 1: ranked candidates the resolver already found. -->
+            <div id="nrCandidateBlock" hidden>
+              <div class="field-label" style="margin-bottom:6px">Suggested matches</div>
+              <div id="nrCandidates" style="display:flex;flex-direction:column;gap:6px"></div>
+            </div>
+
+            <!-- Route 2: search the whole masterlist, by name or by number. -->
+            <div class="field-group" style="position:relative">
+              <label class="field-label" for="nrSearch">Or search the masterlist</label>
+              <input class="field-input" id="nrSearch" type="text" autocomplete="off"
+                     placeholder="Type a name or employee number…" style="width:100%">
+              <div class="menu" id="nrSearchSuggest" hidden
+                   style="position:absolute;top:100%;left:0;right:0;z-index:20;max-height:220px;overflow-y:auto"></div>
+            </div>
+
+            <!-- Route 3: a real new hire the conso has not caught up with. -->
+            <details id="nrAddDriverWrap">
+              <summary style="cursor:pointer;font-size:var(--fs-sm);color:var(--text-sec)">Not on the masterlist? Add them</summary>
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <input class="field-input" id="nrNewEmpNo" type="text" placeholder="Employee no." style="flex:0 0 40%">
+                <input class="field-input" id="nrNewName" type="text" placeholder="Full name" style="flex:1">
+              </div>
+              <button class="btn btn-outline btn-sm" id="nrAddDriverBtn" type="button" style="margin-top:8px">Add and match</button>
+            </details>
+
+            <div class="field-error" id="nameResolveError" hidden></div>
+
+            <div class="detail-actions" style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+              <!-- Route 4: not a person at all (TEST, N/A, a plate number in
+                   the wrong column). Writes no alias — an ignore says the
+                   string is not a driver, not that it maps to one. -->
+              <button type="button" class="btn btn-outline btn-sm" id="nrIgnoreBtn">Not a driver</button>
+              <div style="display:flex;gap:8px">
+                <button type="button" class="btn btn-outline btn-sm" id="nrCancelBtn">Cancel</button>
+                <button type="button" class="btn btn-sm" id="nrConfirmBtn" disabled>Match</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3848,9 +3982,9 @@ body {
            to be — the status line sits centered in that space, padded the
            same as the empty-state text on the other two tabs, instead of
            text flush against the card edges. -->
-      <div class="dm-source-panel" data-source-panel="minestat" style="flex:1;min-height:0;display:flex;flex-direction:column" hidden>
+      <div class="dm-source-panel" data-source-panel="minestat" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px" hidden>
 
-      <div class="card" id="minestatCard" style="flex:1;min-height:0">
+      <div class="card" id="minestatCard" style="flex:0 0 auto">
         <div class="card-head">
           <div class="imp-toolbar-title">MineStat Data</div>
           <div class="hcontrols">
@@ -3860,7 +3994,7 @@ body {
             </button>
           </div>
         </div>
-        <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;padding:20px 24px">
+        <div style="display:flex;flex-direction:column;justify-content:center;padding:20px 24px">
           <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0" id="minestatStatusLine">
             Daily per-unit, per-shift operator and utilization records — used to attribute alerts to
             a real employee number when the alert file itself has no operator. Names it can't match
@@ -3868,40 +4002,6 @@ body {
           </p>
         </div>
       </div>
-
-      </div><!-- /.dm-source-panel[minestat] -->
-
-      </div><!-- /#dmSourceGroup -->
-
-      <!-- ══ "Needs attention" group — 2026-08-29 redesign ═══════════════════
-           Groups the review queues and Contributing Factors under one visual
-           heading, separate from the danger zone below. This is a heading +
-           spacing change ONLY: every child card keeps its own id, its own
-           hidden-when-empty/hidden-when-signed-out toggle (nameReviewCard.js,
-           minestatReviewCard's IIFE, both untouched), and — for the review
-           cards specifically — its own flex:0 0 auto sizing. That sizing is
-           NOT cosmetic: see nameReviewCard's own comment a few lines down for
-           the actual clipping bug (~21px of a 132px need) that flex:1 caused
-           here once already. This wrapper must never set flex:1 or force a
-           shared height on its children for that reason.
-
-           Reset Fleet Data intentionally does NOT live in this group — see
-           the <details> disclosure after Contributing Factors below. Routine,
-           recurring work (something to review, act on, log) belongs here;
-           a rare, destructive, whole-fleet action does not belong at the same
-           visual weight as "3 names need matching."
-
-           The group heading itself has no hide/show logic of its own — always
-           rendered when the DDS tab is showing, regardless of whether any
-           child card inside happens to be visible right now. A heading with
-           nothing under it (all three children hidden) is a real, harmless
-           state: it reads as "nothing needs attention," which is the correct
-           message on a clean day, not a bug to special-case away. -->
-      <div class="dm-attention-group">
-        <div class="dm-attention-head">
-          <h3>Needs attention</h3>
-          <p>Names to match, patterns to log — routine review, not urgent.</p>
-        </div>
 
       <!-- Upload modal — same drop-zone/confirm/error shell as the conso
            upload above. No row-count-vs-existing preview here (unlike
@@ -3940,158 +4040,27 @@ body {
         </div>
       </div>
 
-      <!-- Driver names needing review — the queue from 0019's
-           import_name_review. These are NOT failed imports: every alert row
-           loaded and every total is whole. What is missing is only WHICH
-           DRIVER those rows belong to, which is why this is a separate card
-           with its own count rather than a "needs attention" flag on the
-           import row above — an import can be perfectly clean and still
-           carry names nobody has matched yet.
-
-           Hidden entirely when signed out or when the queue is empty: an
-           empty review card on every page load would train people to ignore
-           it, and it is precisely the thing that must not be ignored. -->
-      <!-- flex:0 0 auto, NOT the flex:1;min-height:0 that Import History and
-           Contributing Factors use. Those two are designed to share the
-           column's leftover height and scroll internally; a third flexible
-           sibling makes all three fight for the same space, and this card
-           lost — its table was allocated ~21px of a 132px need, so the header
-           rendered and every row was clipped. This queue is short by nature
-           (one row per distinct unmatched name), so it sizes to its content
-           and lets the page scroll instead. -->
-      <div class="card" id="nameReviewCard" style="flex:0 0 auto" hidden>
-        <div class="card-head">
-          <div class="imp-toolbar-title">Driver names needing review</div>
-          <div class="hcontrols">
-            <span class="imp-count" id="nameReviewCount">0 names</span>
-            <button class="btn btn-outline btn-sm" id="nameReviewRefresh" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
-              Refresh
-            </button>
-          </div>
-        </div>
-
-        <div class="imp-tabs" role="tablist" aria-label="Review states" id="nameReviewTabs">
-          <button class="imp-tab" role="tab" data-state="open" aria-selected="true" tabindex="0">
-            Open
-            <span class="imp-tab-count" data-tone="danger" id="nrCountOpen">0</span>
-          </button>
-          <button class="imp-tab" role="tab" data-state="resolved" aria-selected="false" tabindex="-1">
-            Resolved
-            <span class="imp-tab-count" data-tone="success" id="nrCountResolved">0</span>
-          </button>
-          <!-- Ignored stays visible under its own tab rather than being
-               deleted, so an over-eager ignore can be found and undone. -->
-          <button class="imp-tab" role="tab" data-state="ignored" aria-selected="false" tabindex="-1">
-            Not a driver
-            <span class="imp-tab-count" id="nrCountIgnored">0</span>
-          </button>
-        </div>
-
-        <div class="imp-table-wrap" id="nameReviewWrap">
-          <div class="imp-empty" id="nameReviewEmpty" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-            <div class="imp-empty-text" id="nameReviewEmptyText">Every driver name in your imports matched the masterlist.</div>
-          </div>
-          <table class="imp-table" id="nameReviewTable" hidden>
-            <thead>
-              <tr>
-                <th>Name in file</th>
-                <th>Why unmatched</th>
-                <th>Alerts waiting</th>
-                <th>Best guess</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="nameReviewBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Resolve modal. Carries all five fix routes from the plan: pick a
-           ranked candidate, search the masterlist by name OR number, add a
-           driver the conso has not caught up with, or mark the string as not
-           a person at all. Bulk-apply is on the table rows themselves, since
-           it acts on a group rather than one name. -->
-      <div class="detail-modal" id="nameResolveModal" hidden>
-        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="nameResolveTitle" style="max-width:560px">
-          <div class="detail-head">
-            <div>
-              <h2 id="nameResolveTitle" class="detail-title">Match driver name</h2>
-              <p class="detail-sub" id="nameResolveSub">Assign this spelling to an employee.</p>
-            </div>
-            <button type="button" class="detail-close" id="nameResolveClose" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-
-          <div style="display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding-right:2px">
-            <div style="background:var(--surface-2,rgba(127,127,127,.08));border-radius:8px;padding:12px 14px">
-              <div style="font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Name as it appeared in the file</div>
-              <div id="nrRawName" style="font-size:var(--fs-md);font-weight:600;margin-top:4px;word-break:break-word"></div>
-              <div id="nrRowCount" style="font-size:var(--fs-sm);color:var(--text-sec);margin-top:6px"></div>
-            </div>
-
-            <!-- Route 1: ranked candidates the resolver already found. -->
-            <div id="nrCandidateBlock" hidden>
-              <div class="field-label" style="margin-bottom:6px">Suggested matches</div>
-              <div id="nrCandidates" style="display:flex;flex-direction:column;gap:6px"></div>
-            </div>
-
-            <!-- Route 2: search the whole masterlist, by name or by number. -->
-            <div class="field-group" style="position:relative">
-              <label class="field-label" for="nrSearch">Or search the masterlist</label>
-              <input class="field-input" id="nrSearch" type="text" autocomplete="off"
-                     placeholder="Type a name or employee number…" style="width:100%">
-              <div class="menu" id="nrSearchSuggest" hidden
-                   style="position:absolute;top:100%;left:0;right:0;z-index:20;max-height:220px;overflow-y:auto"></div>
-            </div>
-
-            <!-- Route 3: a real new hire the conso has not caught up with. -->
-            <details id="nrAddDriverWrap">
-              <summary style="cursor:pointer;font-size:var(--fs-sm);color:var(--text-sec)">Not on the masterlist? Add them</summary>
-              <div style="display:flex;gap:8px;margin-top:10px">
-                <input class="field-input" id="nrNewEmpNo" type="text" placeholder="Employee no." style="flex:0 0 40%">
-                <input class="field-input" id="nrNewName" type="text" placeholder="Full name" style="flex:1">
-              </div>
-              <button class="btn btn-outline btn-sm" id="nrAddDriverBtn" type="button" style="margin-top:8px">Add and match</button>
-            </details>
-
-            <div class="field-error" id="nameResolveError" hidden></div>
-
-            <div class="detail-actions" style="display:flex;gap:8px;justify-content:space-between;align-items:center">
-              <!-- Route 4: not a person at all (TEST, N/A, a plate number in
-                   the wrong column). Writes no alias — an ignore says the
-                   string is not a driver, not that it maps to one. -->
-              <button type="button" class="btn btn-outline btn-sm" id="nrIgnoreBtn">Not a driver</button>
-              <div style="display:flex;gap:8px">
-                <button type="button" class="btn btn-outline btn-sm" id="nrCancelBtn">Cancel</button>
-                <button type="button" class="btn btn-sm" id="nrConfirmBtn" disabled>Match</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- MineStat names needing review — the queue from 0024_minestat's
            minestat_name_review, a structural twin of the Driver Name Review
-           card above pointed at MineStat's own queue/RPCs (see that card's
-           own markup comment, and the IIFE's header comment, for why this is
-           a parallel card rather than a merged one). These are NOT failed
+           card pointed at MineStat's own queue/RPCs (see that card's own
+           markup comment, and the IIFE's header comment, for why this is a
+           parallel card rather than a merged one). These are NOT failed
            imports: every shift record loaded and every hours total is whole.
            What is missing is only WHICH EMPLOYEE those records belong to.
 
+           Lives in the MineStat tab (moved here in the nav-bar redesign)
+           rather than a shared "needs attention" area below the tabs: this
+           queue is specifically about MineStat rows, so it belongs alongside
+           the upload card that produced it. dmTabBadgeMinestat (on the
+           MineStat tab button itself) mirrors msCountOpen so an open review
+           item is visible without switching tabs.
+
            Hidden entirely when signed out or when the queue is empty: an
            empty review card on every page load would train people to ignore
            it, and it is precisely the thing that must not be ignored. -->
-      <!-- flex:0 0 auto, NOT the flex:1;min-height:0 that Import History and
-           Contributing Factors use. Those two are designed to share the
-           column's leftover height and scroll internally; a third flexible
-           sibling makes all three fight for the same space, and this card
-           lost — its table was allocated ~21px of a 132px need, so the header
-           rendered and every row was clipped. This queue is short by nature
-           (one row per distinct unmatched name), so it sizes to its content
-           and lets the page scroll instead. -->
+      <!-- flex:0 0 auto: this queue is short by nature (one row per distinct
+           unmatched name), so it sizes to its content and lets the page
+           scroll instead of fighting minestatCard above for shared height. -->
       <div class="card" id="minestatReviewCard" style="flex:0 0 auto" hidden>
         <div class="card-head">
           <div class="imp-toolbar-title">MineStat names needing review</div>
@@ -4205,12 +4174,19 @@ body {
         </div>
       </div>
 
+      </div><!-- /.dm-source-panel[minestat] -->
+
       <!-- Contributing Factors — a standalone context log ("heavy rain
            08/10 22:00–06:00", "S-031 on reduced roster"), deliberately not
            tied to any specific alert row and not fed into annotate()/
-           derive()/dds_metrics(). Same card/table/modal vocabulary as
-           Import History above, kept as its own section since the two are
-           conceptually different kinds of record. -->
+           derive()/dds_metrics(). Its own tab in the nav bar (see
+           dmSourceTabs above) rather than an always-visible section below
+           the tabs — same one-destination-at-a-time model as DDS/Masterlist/
+           MineStat, since Contributing Factors is conceptually a fourth data
+           source (context log) alongside the other three, not a sidebar to
+           them. -->
+      <div class="dm-source-panel" data-source-panel="factors" style="flex:1;min-height:0;display:flex;flex-direction:column" hidden>
+
       <div class="card" style="flex:1;min-height:0">
         <div class="card-head">
           <div class="imp-toolbar-title">Contributing Factors</div>
@@ -4289,7 +4265,15 @@ body {
         </div>
       </div>
 
-      </div><!-- /.dm-attention-group -->
+      </div><!-- /.dm-source-panel[factors] -->
+
+      </div><!-- /#dmSourceGroup -->
+
+      <!-- Reset Fleet Data stays OUTSIDE the tab group and pinned at the
+           bottom of the page, unchanged from before the nav-bar redesign —
+           see this <details>'s own comment below for why a rare,
+           whole-fleet-destroying action must never share visual weight or a
+           tab slot with routine upload/review work. -->
 
       <!-- Reset fleet data — moved out of the flow into a quiet <details>
            disclosure (2026-08-29 redesign), same unstyled native pattern
@@ -4298,8 +4282,8 @@ body {
            by default: this used to be a full card with a permanent red
            border sitting at the same visual weight as "3 names need
            matching" — a rare, whole-fleet-destroying action does not belong
-           next to routine review work, see .dm-attention-group's own
-           comment above.
+           next to routine upload/review work, see the comment immediately
+           above this one.
 
            A distinct control from "Clear data" in the topbar on purpose —
            that button only ever wipes the LOCAL/signed-out store
@@ -16742,6 +16726,19 @@ var NotificationSound = (function(){
     document.getElementById('nrCountResolved').textContent = reviewCounts.resolved;
     document.getElementById('nrCountIgnored').textContent  = reviewCounts.ignored;
 
+    /* The review card now lives inside the DDS tab panel (nav-bar redesign),
+       so an open item is invisible unless that specific tab is active. This
+       badge on the DDS tab button itself mirrors nrCountOpen so "3 names
+       need matching" is visible from any tab, not just when you happen to
+       already be on the one where the card lives. Hidden entirely at 0,
+       same reasoning as every other zero-count badge in this file — a
+       badge reading "0" trains people to stop reading it. */
+    var ddsBadge = document.getElementById('dmTabBadgeDds');
+    if (ddsBadge){
+      ddsBadge.textContent = reviewCounts.open;
+      ddsBadge.hidden = reviewCounts.open === 0;
+    }
+
     /* The whole card hides when there is nothing open AND nothing ever
        resolved — a permanently empty panel teaches people to skip past it. */
     var everAny = reviewCounts.open + reviewCounts.resolved + reviewCounts.ignored;
@@ -17161,6 +17158,19 @@ var NotificationSound = (function(){
     document.getElementById('msCountOpen').textContent     = reviewCounts.open;
     document.getElementById('msCountResolved').textContent = reviewCounts.resolved;
     document.getElementById('msCountIgnored').textContent  = reviewCounts.ignored;
+
+    /* The review card now lives inside the MineStat tab panel (nav-bar
+       redesign), so an open item is invisible unless that specific tab is
+       active. This badge on the MineStat tab button itself mirrors
+       msCountOpen so "3 names need matching" is visible from any tab —
+       same pattern as dmTabBadgeDds in the driver-name-review IIFE above.
+       Hidden entirely at 0, same reasoning as every other zero-count badge
+       in this file — a badge reading "0" trains people to stop reading it. */
+    var minestatBadge = document.getElementById('dmTabBadgeMinestat');
+    if (minestatBadge){
+      minestatBadge.textContent = reviewCounts.open;
+      minestatBadge.hidden = reviewCounts.open === 0;
+    }
 
     /* The whole card hides when there is nothing open AND nothing ever
        resolved — a permanently empty panel teaches people to skip past it. */
