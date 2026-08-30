@@ -2745,6 +2745,7 @@ body {
             <svg id="ovHourlySvg" viewBox="0 0 1012 134" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0">
               <g id="ovHourlyBars" data-chart="hourly"></g>
             </svg>
+            <div class="chart-tooltip" id="ovHourlyTooltip"></div>
             <div style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0">
               <span class="axis">12 AM</span><span class="axis">6 AM</span><span class="axis">12 PM</span><span class="axis">6 PM</span><span class="axis">11 PM</span>
             </div>
@@ -8776,12 +8777,42 @@ const charts = {
              : share >= 0.45 ? 'var(--warning)'
              : 'var(--accent)';
       };
-      el.innerHTML = totals.map((v, h) => {
+      const bars = totals.map((v, h) => {
         const height = (v / peak) * (g.baseline - g.top);
-        const fill = intensity ? ` fill="${tint(v)}"` : '';
-        return `<rect x="${h * g.gap + g.offsetX}" y="${(g.baseline - height).toFixed(1)}"
-                  width="${g.barW}" height="${height.toFixed(1)}" rx="2"${fill}/>`;
+        return { x: h * g.gap + g.offsetX, y: g.baseline - height, height, v };
+      });
+      el.innerHTML = bars.map((b, h) => {
+        const fill = intensity ? ` fill="${tint(b.v)}"` : '';
+        return `<rect x="${b.x}" y="${b.y.toFixed(1)}"
+                  width="${g.barW}" height="${b.height.toFixed(1)}" rx="2"${fill}/>`;
       }).join('');
+
+      /* Hover — was entirely absent for this variant (only the line-chart
+         branch below ever wired `tip`), the one chart on Overview with no
+         way to read an exact value off a bar. Same wireHour()/tooltipHTML()
+         shape syncInterval() already uses for its own SVG rect bars. */
+      if (tip) {
+        const svg = el.ownerSVGElement || el.closest('svg');
+        if (svg) {
+          wireHover(svg, tip, {
+            toSvgPoint: svgPoint,
+            locate(pt) {
+              const i = bars.findIndex(b =>
+                pt.x >= b.x - g.gap / 2 + g.barW / 2 && pt.x < b.x + g.gap / 2 + g.barW / 2);
+              return i >= 0 ? i : null;
+            },
+            content(h) {
+              const period = h < 12 ? 'AM' : 'PM';
+              const label = `${h % 12 === 0 ? 12 : h % 12}:00 ${period}`;
+              return tooltipHTML(label, [
+                { label: 'Day shift',   value: fmt.int(d.hourly.DAY[h]),   color: dayColor },
+                { label: 'Night shift', value: fmt.int(d.hourly.NIGHT[h]), color: nightColor },
+                { label: 'Total',       value: fmt.int(totals[h]) }
+              ]);
+            }
+          });
+        }
+      }
 
       /* Insight line — the contiguous run of hours carrying the most
          alerts, computed here rather than asserted. Omitted entirely (not
@@ -9445,7 +9476,7 @@ const PAGES = {
     { chart: 'hourly', variant: 'bars', intensity: true,
       el: () => $('ovHourlyBars'),
       geo: { barW: 30, gap: 42, baseline: 128, top: 6, offsetX: 4 },
-      insightEl: () => $('ovHourlyInsight') },
+      tip: () => $('ovHourlyTooltip'), insightEl: () => $('ovHourlyInsight') },
     { chart: 'eventCodes', variant: 'donut', measure: MEASURE, limit: 5,
       refs: () => ({ arcs: $('ovEventDonutArcs'), count: $('ovEventDonutCount'),
                      legend: $('ovEventDonutLegend') }),
