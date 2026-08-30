@@ -767,88 +767,33 @@ svg[data-chart="trend"]{overflow:visible}
    an oversized window should end in background, not stretch to hide it. */
 .ov-layout{display:flex; flex-direction:column; gap:var(--sp-5); min-height:0}
 
-/* ── Row 1: dominant trend chart + Key Insight ─────────────────────────
-   2.6fr/1fr, matching the reference. The trend chart is the page's
-   primary analytic and gets the width; the insight card is read as text
-   and needs only enough measure to avoid ragged wrapping. */
-.ov-row1{display:grid; grid-template-columns:2.6fr 1fr; gap:var(--sp-5); min-height:360px; align-items:stretch}
+/* ── Row 1: Alert Trend (dominant) + Recent Alerts, side by side ────────
+   68fr/32fr matches the reference's ~66-68% / ~32-34% split. Both cards
+   stretch to the same height (align-items:stretch) — the row's height is
+   set by whichever card's content is taller, normally the trend chart's
+   fixed-viewBox SVG, and Recent Alerts' table scrolls internally
+   (.ev-list-wrap overflow-y) rather than growing the row to fit every row. */
+.ov-row1{display:grid; grid-template-columns:2.05fr 1fr; gap:var(--sp-5); min-height:360px; align-items:stretch}
+.ov-trend-card, .ov-recent-card{display:flex; flex-direction:column; min-height:0}
+.ov-recent-card .ev-list-wrap{flex:1; min-height:0; max-height:none}
+/* Card-head subtitle under the title (e.g. "Total alerts over time") —
+   same small-muted-text language the chart-insight-line footers already
+   use elsewhere on this page, just above the chart instead of below it. */
+.ov-card-sub{font-size:var(--fs-2xs); color:var(--text-muted); margin-top:1px; font-weight:var(--fw-medium)}
+/* "View all" — same visual family as .ov-card-link (a real navigation,
+   not decoration) but sits IN the card-head next to the title instead of
+   as a footer strip, since Recent Alerts' header has room and the
+   reference places it there. */
+.ov-card-link-inline{padding:0; flex-shrink:0}
 
-/* ── Row 2: four equal secondary cards ─────────────────────────────────
+/* ── Row 2: four equal analytical cards ────────────────────────────────
    Equal columns because every card here is the same KIND of thing — one
    simple chart, one topic — so none should visually dominate. Same
    reasoning (and same grid) as the Analytics page's own .an-row. */
 .ov-row2{display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-5); min-height:270px; align-items:stretch}
 
-/* ── Key Insight card ──────────────────────────────────────────────────
-   Two stacked sections in one card: the computed insight bullets on top,
-   the session change-feed below a divider. Both were already on the page;
-   this only gives them a shared shell so they occupy one slot instead of
-   a full-height column each. */
-.ov-insight{
-  background:var(--surface); border:1px solid var(--border-light); border-radius:var(--r-2xl);
-  box-shadow:var(--shadow-2); display:flex; flex-direction:column; overflow:hidden; min-height:0;
-}
-.ov-insight-head{
-  padding:10px 16px; background:linear-gradient(90deg,var(--surface-sunken),var(--surface-raised));
-  border-bottom:1px solid var(--divider); display:flex; align-items:center; gap:7px; flex-shrink:0;
-}
-.ov-insight-head{justify-content:space-between}
-.ov-insight-head h2{font-size:var(--fs-md); font-weight:var(--fw-semi); color:var(--navy); margin:0; display:flex; align-items:center; gap:7px}
-/* Baseline-aligned with the title, top-right of the header. align-self
-   center rather than baseline: the title carries an icon, so its text
-   baseline sits lower than the chip's and true baseline alignment reads
-   as misalignment. */
-.ov-insight-more{
-  flex-shrink:0; border:1px solid var(--border-light); background:var(--surface);
-  color:var(--accent); border-radius:var(--r-full); padding:2px 9px;
-  font-size:var(--fs-2xs); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums;
-  cursor:pointer; line-height:1.5; transition:background var(--dur-fast) var(--ease);
-}
-.ov-insight-more:hover{background:var(--surface-sunken)}
-.ov-insight-head h2 svg{width:13px; height:13px; color:var(--accent)}
-.ov-insight-body{padding:12px 16px; display:flex; flex-direction:column; gap:10px; flex:1; min-height:0; overflow-y:auto}
-/* Headline: one sentence naming the single most important movement, with
-   the number itself carrying the only colour in the block. */
-.ov-insight-headline{font-size:var(--fs-md); color:var(--text); line-height:1.45; margin:0}
-.ov-insight-headline b{font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
-.ov-insight-list{display:flex; flex-direction:column; gap:9px; margin:0; padding:0; list-style:none}
-.ov-insight-item{display:flex; align-items:flex-start; gap:9px; font-size:var(--fs-xs); color:var(--text-sec); line-height:1.45}
-/* Round tinted icon chip, matching the KPI row's own icon language so the
-   two blocks read as one design system rather than two. */
-.ov-insight-icon{
-  width:22px; height:22px; border-radius:50%; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; margin-top:-1px;
-}
-.ov-insight-icon svg{width:11px; height:11px}
-.ov-insight-item b{color:var(--text); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
-.ov-insight-empty{font-size:var(--fs-xs); color:var(--text-muted)}
-.ov-insight-divider{border-top:1px solid var(--divider); margin-top:2px; padding-top:10px}
-.ov-insight-sub{
-  font-size:var(--fs-2xs); font-weight:var(--fw-bold); color:var(--text-muted);
-  text-transform:uppercase; letter-spacing:var(--tracking-label); margin-bottom:2px;
-}
-
-/* ── Row 3: operational table, full width ──────────────────────────────
-   Recent Activity used to share row 1 with the trend chart at 1fr against
-   1.15fr, which left its five nowrap columns (Time/Asset/Event/Shift/
-   Count) fighting for width — it needed a horizontal scrollbar on top of
-   the vertical one it already had, two scrollbars on a glance card. At
-   full width all five columns fit with room to spare, and the card can
-   show a useful number of rows instead of eight.
-
-   This is also the "Operational Tables" band the layout structure calls
-   for, which the page simply didn't have before: it went KPIs → charts →
-   nothing. min-height is generous because a table that shows three rows
-   is not doing the job a table is for. */
-.ov-row3{display:grid; grid-template-columns:1fr; min-height:360px}
-.ov-row3 .ev-list-wrap{max-height:420px}
-
 @media (max-width:1400px){ .ov-row2{grid-template-columns:repeat(2,1fr)} }
 @media (max-width:1200px){ .ov-row1{grid-template-columns:1fr} }
-
-/* Latest Updates feed — unchanged rules, now scoped inside .ov-insight
-   instead of the removed .ov-rail shell. */
-.ov-rail-updates-list{padding:0; max-height:170px; overflow-y:auto}
 
 /* ── Trend card: chart + axes ────────────────────────────────────────────
    The trend chart previously showed shape with no magnitude — no y-axis,
@@ -923,13 +868,6 @@ svg[data-chart="trend"]{overflow:visible}
 .ov-foot-legend{display:flex; align-items:center; gap:var(--sp-6); flex-wrap:wrap}
 .ov-foot-legend span{display:inline-flex; align-items:center; gap:6px}
 .ov-foot-legend i{width:7px; height:7px; border-radius:50%; flex-shrink:0}
-.ov-rail-update{
-  display:flex; align-items:baseline; gap:8px; padding:var(--sp-2) 0;
-  font-size:var(--fs-2xs); color:var(--text-sec); line-height:1.5;
-}
-.ov-rail-update b{color:var(--text); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
-.ov-rail-update-time{color:var(--text-muted); flex-shrink:0; font-variant-numeric:tabular-nums}
-.ov-rail-updates-empty{padding:var(--sp-2) 0; font-size:var(--fs-xs); color:var(--text-muted)}
 
 .donut-wrap{display:flex;align-items:center;gap:16px;padding:10px 16px 14px;flex:1;min-height:0}
 .donut-legend{display:flex;flex-direction:column;gap:9px;min-width:0}
@@ -1003,6 +941,15 @@ svg[data-chart="trend"]{overflow:visible}
 }
 .rec-table tbody tr:last-child td{border-bottom:none}
 .rec-table tbody tr:hover{background:var(--surface-sunken)}
+/* Recent Alerts' narrower card (row 1, ~32% width) holds the same 8
+   columns the old full-width Recent Activity row did — rather than shrink
+   every column until text clips, this variant trims padding/font one step
+   further and lets the table scroll horizontally inside its own card
+   (overflow-x on .ov-recent-card's .ev-list-wrap, set alongside this) so
+   every column stays readable instead of truncated. */
+.rec-table-compact thead th{padding:4px 5px; font-size:8.5px}
+.rec-table-compact tbody td{padding:5px 5px; font-size:10.5px}
+.ov-recent-card .ev-list-wrap{overflow-x:auto}
 .ev-row{display:grid;grid-template-columns:76px 1fr 64px;align-items:center;gap:9px;border-radius:var(--r-sm);transition:background var(--dur-fast) var(--ease)}
 /* Densest rows on Overview and previously inert to the cursor. */
 .ev-row:hover{background:var(--surface-sunken)}
@@ -2560,16 +2507,11 @@ body {
     <!-- ═══════════════════════ OVERVIEW ═══════════════════════ -->
     <section class="page" id="page-overview" data-page-id="overview">
 
-      <!-- HEADER — replaces the navy gradient hero + separate white toolbar
-           strip (two stacked bands of chrome above the first number). See
-           .ov-header's own CSS comment for why this is un-carded.
-
-           Nothing here is a placeholder: the subtitle, the clock and the
-           freshness caption are all populated by renderOverviewHero(),
-           which resolves the real signed-in name via
-           Auth.lastUsername/Cloud.myUsername() and reads the newest actual
-           alert row's timestamp. The static "—" shell matches every other
-           first-paint contract in this file. -->
+      <!-- HEADER — compact, non-hero band. Nothing here is a placeholder:
+           subtitle/clock/freshness are populated by renderOverviewHero(),
+           which resolves the signed-in name and the newest alert row's
+           timestamp. Static "—" shell matches the app's first-paint
+           contract everywhere else. -->
       <div class="ov-header">
         <div>
           <div class="ov-header-title">Overview</div>
@@ -2590,12 +2532,6 @@ body {
               </label>
             </div>
             <div class="cpill" id="ovShiftPill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
-            <!-- "All Assets" pill removed: no asset/site column exists in
-                 EXPECTED_COLUMNS to filter by, so it never had a real dropdown
-                 behind it (initControls()'s .cpill text-matcher has no 'asset'
-                 branch) — a chevron-decorated div implying a filter that did
-                 nothing on click. Restore it once the data model has an
-                 asset/site field to actually filter on. -->
             <button type="button" class="btn btn-outline" id="ovClearFiltersBtn" hidden>Clear filters</button>
             <button class="btn" id="ovRefreshBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0 0 20.5 15"/></svg>Refresh</button>
           </div>
@@ -2606,21 +2542,14 @@ body {
         </div>
       </div>
 
-      <!-- Three vertical bands: KPI row → row 1 (trend + insight) → row 2
-           (four secondary cards). See .ov-layout's own CSS comment for why
-           the old full-height right rail was dissolved into row 1's insight
-           card rather than kept as a page-level column. -->
+      <!-- Three vertical bands: KPI row → row 1 (trend + recent alerts) →
+           row 2 (four equal analytical cards). -->
       <div class="ov-layout">
 
-      <!-- SUMMARY — 5 KPI cards, each with one comparison line and a
-           sparkline of that metric's own daily series (renderOverviewKpis(),
-           reuses Analytics' kpiTile()/comparison.metrics machinery with
-           Overview's own icon/tint/label maps — see OVERVIEW_KPI_ORDER).
-           Static "—" placeholder shell shown until first real render, same
-           contract as Analytics' #anKpiRow. The shell deliberately carries
-           NO sparkline: there is no data to draw one from yet, and a
-           decorative squiggle in its place would be exactly the fabricated
-           placeholder this file avoids everywhere else. -->
+      <!-- KPI ROW — 5 cards, each icon + label + big number + vs-7d delta +
+           sparkline of that metric's own daily series. renderOverviewKpis()
+           replaces this whole shell wholesale on every paint; static "—"
+           placeholder shown until first real render. -->
       <div class="kpi-row" id="ovKpiRow">
         <div class="kpi akpi">
           <div class="akpi-head">
@@ -2669,36 +2598,23 @@ body {
         </div>
       </div>
 
-      <!-- ROW 1 — Alert Volume Over Time (dominant) / Key Insight.
-           "How are we doing" (KPIs) → "is it trending, and by how much"
-           (Trend) → "what should I look at because of it" (Key Insight). -->
+      <!-- ROW 1 — Alert Trend (dominant, ~68%) + Recent Alerts (~32%),
+           same height, side by side. -->
       <div class="ov-row1">
         <!-- Trend card — 2 series (Total Alerts / Distinct Assets), each
              independently scaled to its own min/max (see charts.trend()'s
-             per-series scaling comment) since raw counts of alerts vs.
-             assets don't share a natural scale. BOTH lines solid, uniform
-             2px, color-only differentiation backed by the legend — dashed
-             secondary lines were dropped (a dash reads as "projection" or
-             "threshold" in chart-design convention, wrong for a real
-             plotted series). The one dashed line on this chart is the
-             30-day mean reference (#ovTrendMeanLine), a real threshold.
-             Legend items are clickable (id="ovTrendLegend", wired in
-             initSeriesLegend()) to show/hide a series; the hover tooltip
-             always names each visible series' real, un-rescaled value, so
-             the rescaling is purely visual, never a misrepresentation of
-             the numbers.
-
-             y-axis tick labels (#ovTrendYAxis / #ovTrendYAxisRight) are
+             per-series scaling comment). Legend items are clickable
+             (id="ovTrendLegend", wired in initSeriesLegend()) to show/hide
+             a series. y-axis tick labels (#ovTrendYAxis/#ovTrendYAxisRight)
+             and the dashed 30-day mean reference (#ovTrendMeanLine) are
              filled by renderOverviewTrend() from the same derived.trend
-             the lines are drawn from — the chart previously showed shape
-             with no magnitude, you could see that it rose but could not
-             read a single value off it. A summary column used to sit
-             beside the chart here restating the Total Alerts KPI tile's
-             own number/delta; removed as duplication of a number already
-             on screen in the KPI row above. -->
-        <div class="card">
+             the lines are drawn from. -->
+        <div class="card ov-trend-card">
           <div class="card-head">
-            <h2>Alert Volume Over Time</h2>
+            <div>
+              <h2>Alert Trend</h2>
+              <div class="ov-card-sub">Total alerts over time</div>
+            </div>
             <div class="legend-block" id="ovTrendLegend" role="group" aria-label="Toggle trend series">
               <button type="button" class="legend-item legend-item-toggle" data-series="units" aria-pressed="true"><span class="legend-dot" style="background:var(--blue)"></span>Total Alerts</button>
               <button type="button" class="legend-item legend-item-toggle" data-series="assets" aria-pressed="true"><span class="legend-dot" style="background:var(--purple)"></span>Distinct Assets</button>
@@ -2710,40 +2626,27 @@ body {
                 <div class="ov-trend-plot">
                   <div class="ov-trend-yaxis" id="ovTrendYAxis" aria-hidden="true"></div>
                   <svg id="ovTrendSvg" viewBox="0 0 992 180" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="trend">
-                    <!-- var(--divider), not the literal #F1F2F5 these three shipped
-                         with — a hardcoded light gridline colour stayed light-gray
-                         under the dark palette and read as a harsh bright line
-                         across an otherwise-dark chart. CSS custom properties
-                         resolve fine on SVG presentation attributes here since the
-                         SVG is inline in the HTML document, same as ovTrendFillPath
-                         two lines down already relying on var(--blue). -->
+                    <!-- var(--divider), not a hardcoded hex — a literal light
+                         gridline colour stays light-gray under the dark
+                         palette and reads as a harsh bright line. -->
                     <line x1="0" y1="20" x2="992" y2="20" stroke="var(--divider)" stroke-width="1"/><line x1="0" y1="94" x2="992" y2="94" stroke="var(--divider)" stroke-width="1"/><line x1="0" y1="168" x2="992" y2="168" stroke="var(--divider)" stroke-width="1"/>
                     <path id="ovTrendFillPath" d="" fill="var(--blue)" fill-opacity=".1"/>
-                    <!-- Mean reference line, positioned by renderOverviewTrend()
-                         on the units series' own scale. Empty d until then. -->
                     <line id="ovTrendMeanLine" x1="0" y1="-10" x2="992" y2="-10" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="4 4" opacity=".7"/>
                     <path id="ovTrendUnitsPath" d="" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path id="ovTrendAssetsPath" d="" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <g id="ovTrendDots" stroke="white" stroke-width="2.5"></g>
                     <g id="ovTrendHover"></g>
                   </svg>
-                  <!-- Right-hand axis for the SECOND series. This chart scales
-                       each series to its own min/max (alerts in the thousands,
-                       distinct assets in the dozens — one shared axis would
-                       flatten the smaller series into the baseline). With only
-                       a left axis, the Distinct Assets line appeared to be
-                       reading ~2,900 off the left scale when its real value is
-                       ~110, which is what made it look like it wasn't a
-                       distinct count at all. Each axis is now tinted to match
-                       its own line so which scale belongs to which is
-                       unambiguous. -->
+                  <!-- Right-hand axis for the second series — each series
+                       scales to its own min/max (alerts in the thousands,
+                       distinct assets in the dozens), so a shared axis would
+                       flatten the smaller series into the baseline. -->
                   <div class="ov-trend-yaxis ov-trend-yaxis-right" id="ovTrendYAxisRight" aria-hidden="true"></div>
                 </div>
-                <!-- Insets match the two axis gutters (38px + 6px gap on each side) so the
-                     first and last date labels sit under the first and last plotted
-                     points rather than under the axis numbers. These three values are
-                     one alignment — changing .ov-trend-yaxis's width means changing
-                     these too. -->
+                <!-- Insets match the two axis gutters so the first/last date
+                     labels sit under the first/last plotted points, not
+                     under the axis numbers — one alignment across 3 values,
+                     see .ov-trend-yaxis's own width. -->
                 <div id="ovTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0;padding-left:44px;padding-right:44px"></div>
                 <div id="ovTrendInsight" class="chart-insight-line"></div>
               </div>
@@ -2752,46 +2655,36 @@ body {
           </div>
         </div>
 
-        <!-- Key Insight — the computed insightBullets set (the same one
-             Analytics' Key Insights card reads) rendered as a headline plus
-             compact icon rows, with the session change-feed below a divider.
-             That feed is the former .ov-rail's entire content: same markup,
-             same #ovRailUpdatesList id, same renderOverviewRail() — only its
-             position in the tree changed, from a page-height column to this
-             card's lower half. See .ov-layout's CSS comment for why. -->
-        <div class="ov-insight">
-          <div class="ov-insight-head">
-            <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2m0 14v2M5.6 5.6l1.4 1.4m10 10 1.4 1.4M3 12h2m14 0h2M5.6 18.4 7 17m10-10 1.4-1.4"/><circle cx="12" cy="12" r="3.2"/></svg>Key Insight</h2>
-            <!-- Exact count of items that exist but did not fit, written by
-                 renderOverviewInsight(). Hidden (not "+0") when everything
-                 fits — a badge showing zero is noise claiming to be news. -->
-            <button type="button" class="ov-insight-more" id="ovInsightMore" hidden></button>
+        <!-- Recent Alerts — charts.recentAlerts(), unchanged renderer/data
+             (derive()'s recentAlerts already carries Start/End/Update time —
+             see that function). Moved up beside the trend chart to match
+             the reference layout; was previously a full-width row below the
+             4 secondary cards. "View all" jumps to Alert Logs, the page that
+             owns the complete, filterable version of this same table. -->
+        <div class="card ov-recent-card">
+          <div class="card-head">
+            <h2>Recent Alerts</h2>
+            <button type="button" class="ov-card-link ov-card-link-inline" data-goto="alert-logs">View all</button>
           </div>
-          <div class="ov-insight-body">
-            <div id="ovInsightMain">
-              <div class="ov-insight-empty">No insights yet — import alert data to see what stands out.</div>
-            </div>
-            <div class="ov-insight-divider">
-              <div class="ov-insight-sub">Latest Updates</div>
-              <div class="ov-rail-updates-list" id="ovRailUpdatesList">
-                <div class="ov-rail-updates-empty">No changes yet this session.</div>
-              </div>
-            </div>
+          <div class="ev-list-wrap" style="overflow-y:auto">
+            <table class="rec-table rec-table-compact" id="ovRecentAlertsTable" data-chart="recentAlerts">
+              <thead>
+                <tr><th>Timestamp</th><th>Unit</th><th>Start time</th><th>End time</th><th>Update time</th><th>Event code</th><th>Shift</th><th>Event count</th></tr>
+              </thead>
+              <tbody id="ovRecentAlertsBody"></tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <!-- ROW 2 — four secondary cards, full page width (only possible now
-           that the right rail no longer taxes every row). Every renderer
-           here already existed and was exercised on Analytics; none is a
-           new widget. Each card ends in a link into the page that owns the
+      <!-- ROW 2 — four equal analytical cards. Every renderer here already
+           existed; each card ends in a link into the page that owns the
            fuller version of the same chart, so this row stays a summary
            rather than a second Analytics page. -->
       <div class="ov-row2">
         <!-- Alerts by Hour of Day — charts.hourly()'s bars variant, tinted
              by each bar's own value (see the intensity option on hourly()).
-             The scale legend below the chart states what the tint means;
-             without it the colour would be decoration impersonating data. -->
+             The scale legend below the chart states what the tint means. -->
         <div class="card">
           <div class="card-head"><h2>Alerts by Hour of Day</h2></div>
           <div class="chart-body">
@@ -2807,13 +2700,9 @@ body {
           </div>
         </div>
 
-        <!-- Alerts by Event Type — charts.eventCodes()'s 'bars' variant
-             (same barList()/.ev-list primitive Top Insights and Contributing
-             Factors use), each bar colored by severityFn so the severity
-             coding the donut used to carry via arc color survives as bar
-             color instead. Swapped from the donut so this card reads as one
-             visual family with its .ev-list neighbors rather than mixing a
-             circular chart into a row of bar lists. -->
+        <!-- Alerts by Event Type — charts.eventCodes()'s 'bars' variant,
+             each bar colored by severityFn so the severity coding the donut
+             used to carry via arc color survives as bar color instead. -->
         <div class="card">
           <div class="card-head"><h2>Alerts by Event Type</h2></div>
           <div class="ev-list-wrap">
@@ -2823,36 +2712,11 @@ body {
           <button type="button" class="ov-card-link" data-goto="analytics">View details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         </div>
 
-        <!-- Top Insights — NOT a new computation: renderOverviewTopInsights()
-             reuses the SAME insightBullets set the Key Insight panel above
-             already computes (volumeTrend/unactionedEntity/assetsTrend/
-             populationDrivers/syncDelay), rendered as a short icon list
-             instead of a headline + compact rows. This duplicates some
-             insight content in two places on the page — intentional: the
-             Key Insight panel leads with ONE headline + supporting rows,
-             this card gives every computable insight equal billing as a
-             scannable list, which the old Top Assets by Alerts bar list
-             (asset identity, not a takeaway) didn't offer. Replaces the
-             chart-registry 'topAssets' entry — see renderOverviewTopInsights,
-             called directly from paint() same as renderOverviewInsight(). -->
-        <div class="card">
-          <div class="card-head"><h2>Top Insights</h2></div>
-          <div class="ov-topins-wrap">
-            <ul class="ov-topins-list" id="ovTopInsightsList">
-              <li class="ov-topins-empty">No insights yet — import alert data to see what stands out.</li>
-            </ul>
-          </div>
-          <button type="button" class="ov-card-link" data-goto="analytics">View details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        </div>
-
-        <!-- Contributing Factors — factorImpact(), unchanged renderer.
-             This card is EMPTY until factors are logged in Data Management,
-             and that is deliberate: factors are hand-recorded context (power
-             interruptions, weather), not something derivable from the alert
-             feed. factorImpact()'s own empty state says so and names where
-             to add one. A confident "Strong / Moderate" strength chip with
-             no factor behind it would be a fabricated number, which this
-             file does not do anywhere. -->
+        <!-- Contributing Factors — factorImpact(), unchanged renderer. Empty
+             until factors are logged in Data Management — factors are
+             hand-recorded context (power interruptions, weather), not
+             derivable from the alert feed, so a confident strength chip
+             with no factor behind it would be a fabricated number. -->
         <div class="card">
           <div class="card-head">
             <h2>Contributing Factors</h2>
@@ -2863,33 +2727,28 @@ body {
           </div>
           <button type="button" class="ov-card-link" data-goto="data-mgmt">Manage factors <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         </div>
-      </div>
 
-      <!-- ROW 3 — Recent Activity, full width. charts.recentAlerts(),
-           unchanged PAGES entry; the card's width/position changed AND the
-           renderer grew two columns (End time / Updated, sourced from
-           derive()'s recentAlerts — see that function and charts.recentAlerts
-           for the full column list). "What just happened" belongs after
-           the analysis, not competing with the trend chart for row 1 —
-           and at full width its seven columns finally fit without the
-           horizontal scrollbar the narrow version needed. -->
-      <div class="ov-row3">
+        <!-- Top Insights — NOT a new computation: renderOverviewTopInsights()
+             reuses the SAME insightBullets set (volumeTrend/unactionedEntity/
+             assetsTrend/populationDrivers/syncDelay) as a short icon list.
+             This is now the page's ONLY insight surface — the former
+             standalone Key Insight headline card + session Latest Updates
+             feed were dropped when Recent Alerts moved into row 1, since
+             this list already covers every computed insight. -->
         <div class="card">
-          <div class="card-head"><h2>Recent Activity</h2></div>
-          <div class="ev-list-wrap" style="overflow-y:auto">
-            <table class="rec-table" id="ovRecentAlertsTable" data-chart="recentAlerts">
-              <thead>
-                <tr><th>Timestamp</th><th>Unit</th><th>Start time</th><th>End time</th><th>Update time</th><th>Event code</th><th>Shift</th><th>Event count</th></tr>
-              </thead>
-              <tbody id="ovRecentAlertsBody"></tbody>
-            </table>
+          <div class="card-head"><h2>Top Insights</h2></div>
+          <div class="ov-topins-wrap">
+            <ul class="ov-topins-list" id="ovTopInsightsList">
+              <li class="ov-topins-empty">No insights yet — import alert data to see what stands out.</li>
+            </ul>
           </div>
+          <button type="button" class="ov-card-link" data-goto="analytics">View details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         </div>
       </div>
 
-      <!-- FOOTER — two conventions the page previously relied on the reader
-           already knowing: that every timestamp on it is UTC, and that red
-           means "more alerts" (worse) rather than simply "up". -->
+      <!-- FOOTER — two conventions the page relies on the reader already
+           knowing: every timestamp is UTC, and red means "more alerts"
+           (worse) rather than simply "up". -->
       <div class="ov-foot">
         <div class="ov-foot-note">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg>
@@ -19962,13 +19821,18 @@ function paint(page, derived){
   if (page === 'overview'){
     renderOverviewKpis(document.getElementById('ovKpiRow'), derived);
     renderOverviewHero(derived);
-    renderOverviewInsight(derived);
+    // renderOverviewInsight()/renderOverviewRail() (the old standalone Key
+    // Insight headline + session Latest Updates feed) are no longer called
+    // — their markup (#ovInsightMain/#ovRailUpdatesList) was removed when
+    // Recent Alerts took that card's place in row 1; renderOverviewTopInsights
+    // below is now the page's one insight surface. Both functions still
+    // early-return safely if called (see their own `if (!el) return`
+    // guards), so leaving them defined but uncalled is not a landmine.
     renderOverviewTopInsights(derived);
     // AFTER renderPage() above has drawn the trend lines — the y-axis and
     // mean line are positioned against the scale those lines were drawn
     // on, so this has to read a chart that already exists this frame.
     renderOverviewTrend(derived);
-    renderOverviewRail(derived);
   }
   if (page === 'driver-monitoring'){
     renderDriverMonitoring(derived);
