@@ -183,6 +183,20 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .page{display:flex; flex-direction:column; gap:10px; flex:1; min-height:0}
 .page[hidden]{display:none}
 
+/* Each Data Management tab panel sets its own INLINE display:flex (each
+   panel's flex-direction/gap differs slightly, so one shared class doesn't
+   fit all four). An inline style attribute outranks any stylesheet
+   selector's specificity, including [hidden] — unlike .page above, which
+   sets display:flex via a class and so a plain [hidden]{display:none}
+   selector is enough to win. !important is the one appropriate escape valve
+   here: it exists specifically for a stylesheet author to override what an
+   inline style would otherwise force, and this is exactly that case, not a
+   specificity war being ducked. Without it, the panels the tab-switcher JS
+   marks `hidden` still render (inline display:flex wins), so all four stack
+   and show at once regardless of which tab is active — confirmed live: this
+   shipped broken on the nav-bar redesign's first render before this fix. */
+.dm-source-panel[hidden]{display:none !important}
+
 .topbar{background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border:0.5px solid rgba(27,58,107,.08); border-radius:var(--r-xl); box-shadow:var(--shadow-1); padding:10px 16px; display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0; position:relative; z-index:10}
 .topbar-title{font-size:var(--fs-2xl);font-weight:var(--fw-bold);color:var(--navy);letter-spacing:-.01em}
 .topbar-sub{font-size:var(--fs-xs);color:var(--text-sec);margin-top:2px}
