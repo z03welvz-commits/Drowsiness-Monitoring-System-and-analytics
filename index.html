@@ -1073,6 +1073,13 @@ svg[data-chart="trend"]{overflow:visible}
 .imp-tab:hover{background:var(--surface-sunken); color:var(--text)}
 .imp-tab[aria-selected="true"]{background:var(--accent-bg); color:var(--accent)}
 .imp-tab-count{display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:8px; background:var(--border-light); color:var(--text-sec); font-size:var(--fs-2xs); font-weight:var(--fw-bold); font-variant-numeric:tabular-nums}
+/* Same UA-stylesheet cascade-order tie as .card[hidden] above: this class
+   sets display via the class itself, so [hidden]{display:none} in the
+   browser's own stylesheet ties on specificity and loses on source order.
+   Surfaced here as dmTabBadgeDds/dmTabBadgeMinestat rendering "0" on the
+   Data Management source switcher despite their render functions correctly
+   setting .hidden = true at a zero count. */
+.imp-tab-count[hidden]{display:none}
 .imp-tab[aria-selected="true"] .imp-tab-count{background:var(--accent); color:var(--surface)}
 .imp-tab-count[data-tone="danger"]{background:var(--danger-bg); color:var(--danger)}
 .imp-tab[aria-selected="true"] .imp-tab-count[data-tone="danger"]{background:var(--danger); color:var(--surface)}
@@ -1083,6 +1090,13 @@ svg[data-chart="trend"]{overflow:visible}
 .imp-tab-count[data-zero="true"]{background:var(--border-light) !important; color:var(--text-muted) !important}
 
 .imp-search{margin-left:auto; display:flex; align-items:center; gap:6px; padding:7px 11px; border:1px solid var(--border); border-radius:var(--r-lg); background:var(--surface); min-width:180px; transition:border-color var(--dur-fast) var(--ease)}
+/* Same UA-stylesheet cascade-order tie as .card[hidden]/.imp-tab-count[hidden]
+   above: display set via the class ties with the browser's own
+   [hidden]{display:none} on specificity and loses on source order.
+   Surfaced here as #masterlistSearchWrap ("Name or employee no...") showing
+   even while `hidden` — the masterlist search is meant to appear only once
+   a masterlist is actually loaded (see the Employee Masterlist IIFE). */
+.imp-search[hidden]{display:none}
 .imp-search:focus-within{border-color:var(--accent); box-shadow:var(--shadow-focus)}
 .imp-search svg{width:13px; height:13px; color:var(--text-muted); flex-shrink:0}
 .imp-search input{border:none; outline:none; background:none; font-size:var(--fs-sm); font-family:inherit; color:var(--text); width:100%}
@@ -1092,6 +1106,73 @@ svg[data-chart="trend"]{overflow:visible}
   .imp-tabs{padding:8px}
   .imp-search{width:100%; margin-left:0; order:99}
 }
+
+/* ═══ Data Management — source switcher (2026-08-30 visual rebuild) ═══
+   Four equal segments (DDS / Masterlist / MineStat / Contributing Factors),
+   deliberately NOT built from .imp-tabs/.imp-table-wrap's own tab-strip
+   component (dm-*-tab review queues and Import History's own view filter
+   both use that already) — reusing it here made the single most important
+   choice on the page (which data source am I looking at) look exactly like
+   an in-panel filter row one card down, so the page read as a stack of
+   identical strips with no hierarchy. This is a distinct, page-level
+   component: a bordered strip of equal-width buttons, icon over label, so
+   it reads at a glance as "pick a section" rather than "narrow a table". */
+.dm-switcher{
+  display:flex; gap:2px; padding:4px; flex-shrink:0;
+  background:var(--surface-sunken); border:1px solid var(--border-light);
+  border-radius:var(--r-xl);
+}
+.dm-seg{
+  flex:1; display:flex; align-items:center; justify-content:center; gap:7px;
+  padding:9px 10px; border:none; border-radius:var(--r-lg); background:none;
+  font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--text-sec);
+  cursor:pointer; white-space:nowrap; position:relative;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.dm-seg:hover{color:var(--text); background:var(--surface)}
+.dm-seg[aria-selected="true"]{background:var(--surface-raised); color:var(--navy); box-shadow:var(--shadow-1)}
+.dm-seg-icon{display:flex; flex-shrink:0}
+.dm-seg-icon svg{width:14px; height:14px}
+.dm-seg[aria-selected="true"] .dm-seg-icon{color:var(--accent)}
+.dm-seg .imp-tab-count{position:relative; top:-1px}
+.dm-seg[aria-selected="true"] .imp-tab-count[data-tone="danger"]{background:var(--danger); color:var(--surface)}
+@media (max-width:820px){
+  .dm-switcher{flex-wrap:wrap}
+  .dm-seg{flex:1 1 45%}
+}
+@media (max-width:520px){
+  .dm-seg-label{display:none}
+  .dm-seg{gap:0}
+}
+
+/* ═══ Data Management — "needs attention" review queues ═══
+   Driver Name Review / MineStat Name Review are structurally identical to
+   Import History's own card (same .imp-tabs/.imp-table-wrap/.imp-table
+   language, kept as-is) but carry a different MEANING — these are open
+   action items, not a passive log — so they get a left accent bar (same
+   visual grammar as .kpi::before's identity stripe) and an amber icon
+   ahead of the title instead of the plain accent tick every other
+   .imp-toolbar-title uses. Amber (--warning), not --danger: an unmatched
+   name is routine housekeeping, not a fault condition. */
+.dm-review-card{border-left:3px solid var(--warning)}
+.dm-review-title{gap:8px}
+.dm-review-title::before{display:none}
+.dm-review-title svg{width:13px; height:13px; color:var(--warning); flex-shrink:0}
+
+/* ═══ Data Management — MineStat panel's status line ═══
+   Was a bare <p> floating in padded whitespace, the only place on the page
+   with no icon/border language at all next to cards that all have one
+   (dropzones, tables, review queues). A quiet info row — same left-icon
+   pattern as .imp-empty's own icon-over-text, just inline instead of
+   stacked — gives it the same visual grammar as everything around it. */
+.dm-info-row{display:flex; align-items:flex-start; gap:12px; padding:18px 20px}
+.dm-info-icon{
+  width:26px; height:26px; border-radius:var(--r-md); flex-shrink:0;
+  background:var(--accent-bg); color:var(--accent);
+  display:flex; align-items:center; justify-content:center;
+}
+.dm-info-icon svg{width:13px; height:13px}
+.dm-info-row p{font-size:var(--fs-sm); color:var(--text-sec); margin:0; padding-top:4px}
 
 /* ═══ Alert Log search + date range ═══
    Wider and more considered than the shared .imp-search: this is the ONLY
@@ -3645,37 +3726,40 @@ body {
         </div>
       </div>
 
-      <!-- Data-source nav bar — Import History (DDS), the Employee
-           Masterlist, MineStat Data, and Contributing Factors used to stack
-           as separate cards/sections of different sizes and scroll
-           positions on this page (masterlist capped at 320px, MineStat just
-           a paragraph, a whole separate "Needs attention" heading further
-           down for the review queues and Contributing Factors). Only one of
-           the four is ever being worked on at a time, so they now share one
-           tab strip (#dmSourceTabs) and one fixed footprint (#dmSourceGroup)
-           — .dm-source-panel is flex:1 in all four cases, and switching
-           tabs just swaps which panel loses its `hidden` attribute rather
-           than resizing or rescrolling the page. Each review queue
-           (nameReviewCard, minestatReviewCard) now lives inside the tab it's
-           actually about (DDS, MineStat) rather than a shared area below
-           the tabs — dmTabBadgeDds/dmTabBadgeMinestat on the tab buttons
-           themselves mirror each queue's open count, so "needs review" is
-           still visible without switching tabs. Reset Fleet Data stays
-           outside this group entirely, pinned at the bottom of the page —
-           see its own <details> further down for why. -->
-      <div class="card" id="dmSourceTabCard" style="flex:0 0 auto">
-        <div class="imp-tabs" role="tablist" aria-label="Data source" id="dmSourceTabs" style="border-bottom:none">
-          <button class="imp-tab" role="tab" data-source="dds" aria-selected="true" tabindex="0">
-            DDS Data
-            <span class="imp-tab-count" data-tone="danger" id="dmTabBadgeDds" hidden>0</span>
-          </button>
-          <button class="imp-tab" role="tab" data-source="masterlist" aria-selected="false" tabindex="-1">Masterlist</button>
-          <button class="imp-tab" role="tab" data-source="minestat" aria-selected="false" tabindex="-1">
-            MineStat
-            <span class="imp-tab-count" data-tone="danger" id="dmTabBadgeMinestat" hidden>0</span>
-          </button>
-          <button class="imp-tab" role="tab" data-source="factors" aria-selected="false" tabindex="-1">Contributing Factors</button>
-        </div>
+      <!-- Data-source switcher — 2026-08-30 visual rebuild. Same 4-tab /
+           single-panel-visible model as before (one #dmSourceGroup, four
+           .dm-source-panel children, exactly one ever unhidden), but the
+           tab strip itself is now a dedicated .dm-switcher rather than a
+           bare .imp-tabs list sitting inside its own .card — that made the
+           top-level "which data source" choice look identical to an
+           in-panel filter row (Import History's own All/Needs attention/
+           Clean/Pending tabs one card down use the exact same component),
+           so the page read as a wall of same-weight tab strips with no
+           sense of hierarchy. An icon + label per source, laid out as equal
+           segments, makes the top-level choice visually distinct from the
+           filters living inside whichever panel is open. dmTabBadgeDds/
+           dmTabBadgeMinestat keep mirroring each review queue's open count
+           (unchanged IDs, unchanged JS) — only now rendered as a small
+           corner counter on the segment instead of an inline pill. -->
+      <div class="dm-switcher" role="tablist" aria-label="Data source" id="dmSourceTabs">
+        <button class="dm-seg" role="tab" data-source="dds" aria-selected="true" tabindex="0">
+          <span class="dm-seg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></span>
+          <span class="dm-seg-label">DDS Data</span>
+          <span class="imp-tab-count" data-tone="danger" id="dmTabBadgeDds" hidden>0</span>
+        </button>
+        <button class="dm-seg" role="tab" data-source="masterlist" aria-selected="false" tabindex="-1">
+          <span class="dm-seg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
+          <span class="dm-seg-label">Masterlist</span>
+        </button>
+        <button class="dm-seg" role="tab" data-source="minestat" aria-selected="false" tabindex="-1">
+          <span class="dm-seg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-8"/></svg></span>
+          <span class="dm-seg-label">MineStat</span>
+          <span class="imp-tab-count" data-tone="danger" id="dmTabBadgeMinestat" hidden>0</span>
+        </button>
+        <button class="dm-seg" role="tab" data-source="factors" aria-selected="false" tabindex="-1">
+          <span class="dm-seg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></span>
+          <span class="dm-seg-label">Contributing Factors</span>
+        </button>
       </div>
 
       <div id="dmSourceGroup" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px">
@@ -3779,9 +3863,12 @@ body {
            This queue is short by nature (one row per distinct unmatched
            name), so it sizes to its content and lets the page scroll
            instead. -->
-      <div class="card" id="nameReviewCard" style="flex:0 0 auto" hidden>
+      <div class="card dm-review-card" id="nameReviewCard" style="flex:0 0 auto" hidden>
         <div class="card-head">
-          <div class="imp-toolbar-title">Driver names needing review</div>
+          <div class="imp-toolbar-title dm-review-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            Driver names needing review
+          </div>
           <div class="hcontrols">
             <span class="imp-count" id="nameReviewCount">0 names</span>
             <button class="btn btn-outline btn-sm" id="nameReviewRefresh" type="button">
@@ -4021,8 +4108,9 @@ body {
             </button>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;justify-content:center;padding:20px 24px">
-          <p style="font-size:var(--fs-sm);color:var(--text-sec);margin:0" id="minestatStatusLine">
+        <div class="dm-info-row" id="minestatStatusLine">
+          <span class="dm-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+          <p>
             Daily per-unit, per-shift operator and utilization records — used to attribute alerts to
             a real employee number when the alert file itself has no operator. Names it can't match
             land in "MineStat names needing review" below.
@@ -4088,9 +4176,12 @@ body {
       <!-- flex:0 0 auto: this queue is short by nature (one row per distinct
            unmatched name), so it sizes to its content and lets the page
            scroll instead of fighting minestatCard above for shared height. -->
-      <div class="card" id="minestatReviewCard" style="flex:0 0 auto" hidden>
+      <div class="card dm-review-card" id="minestatReviewCard" style="flex:0 0 auto" hidden>
         <div class="card-head">
-          <div class="imp-toolbar-title">MineStat names needing review</div>
+          <div class="imp-toolbar-title dm-review-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            MineStat names needing review
+          </div>
           <div class="hcontrols">
             <span class="imp-count" id="minestatReviewCount">0 names</span>
             <button class="btn btn-outline btn-sm" id="minestatReviewRefresh" type="button">
@@ -11632,7 +11723,7 @@ Promise.resolve().then(() => {
    renders itself independently (Import History, the masterlist card, and
    the MineStat card each load their own data on page nav, not on tab click). */
 (function(){
-  const tabs = [...document.querySelectorAll('#dmSourceTabs .imp-tab')];
+  const tabs = [...document.querySelectorAll('#dmSourceTabs .dm-seg')];
   const panels = [...document.querySelectorAll('.dm-source-panel')];
   if (!tabs.length || !panels.length) return;
   tabs.forEach((btn, i) => {
