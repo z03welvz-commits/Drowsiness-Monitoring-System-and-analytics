@@ -296,6 +296,13 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .page[data-page-id="analytics"] .kpi-units::before{background:var(--purple)}
 .page[data-page-id="analytics"] .kpi-sync::before{background:var(--teal)}
 .kpi-ratio::before{background:var(--blue)}
+/* Data Management's fleet-health row — same .kpi component every other page
+   uses, accented consistently with that page's own established language:
+   --decor-1 (blue) for plain counts, --warning (amber) for the one tile
+   that means "something needs a human", matching .dm-review-card's own
+   amber left-border one section down. */
+.dm-kpi-files::before,.dm-kpi-masterlist::before,.dm-kpi-shifts::before{background:var(--decor-1)}
+.dm-kpi-review::before{background:var(--warning)}
 .kpi-icon{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center}
 .kpi-icon svg{width:12px;height:12px}
 .kpi-label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-label);font-weight:var(--fw-semi)}
@@ -1173,6 +1180,36 @@ svg[data-chart="trend"]{overflow:visible}
 }
 .dm-info-icon svg{width:13px; height:13px}
 .dm-info-row p{font-size:var(--fs-sm); color:var(--text-sec); margin:0; padding-top:4px}
+
+/* ═══ Data Management — Needs Attention (2026-08-30 full rebuild) ═══
+   The router that replaced three scattered problem surfaces (DDS file
+   flags, DDS name-review card, MineStat name-review card) with one list.
+   Grouped by category — file issues, DDS names, MineStat names — each
+   group a plain heading over a stack of rows, not a .card: this is a
+   summary view of things that live in full elsewhere, not a data table of
+   its own, so it stays visually lighter than the .card-shelled tables it
+   routes into. */
+.dm-attn-group-title{
+  font-size:var(--fs-xs); font-weight:var(--fw-bold); color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:var(--tracking-label);
+  display:flex; align-items:center; gap:7px; padding:0 2px 8px;
+}
+.dm-attn-group-title::before{content:'';display:inline-block;width:3px;height:12px;background:linear-gradient(180deg,var(--blue-200),var(--blue));border-radius:2px}
+.dm-attn-rows{display:flex; flex-direction:column; gap:1px; border-radius:var(--r-lg); overflow:hidden; border:1px solid var(--border-light)}
+.dm-attn-row{
+  display:flex; align-items:center; gap:12px; padding:12px 14px;
+  background:var(--surface-raised); border-left:3px solid var(--warning);
+}
+.dm-attn-row + .dm-attn-row{border-top:1px solid var(--border-light)}
+.dm-attn-chip{
+  flex-shrink:0; font-size:var(--fs-2xs); font-weight:var(--fw-bold); text-transform:uppercase;
+  letter-spacing:var(--tracking-label); padding:3px 8px; border-radius:var(--r-full);
+  background:var(--warning-bg); color:var(--warning-text);
+}
+.dm-attn-body{flex:1; min-width:0}
+.dm-attn-title{font-size:var(--fs-sm); font-weight:var(--fw-semi); color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.dm-attn-sub{font-size:var(--fs-xs); color:var(--text-sec); margin-top:1px}
+.dm-attn-row .btn{flex-shrink:0}
 
 /* ═══ Alert Log search + date range ═══
    Wider and more considered than the shared .imp-search: this is the ONLY
@@ -3726,23 +3763,89 @@ body {
         </div>
       </div>
 
-      <!-- Data-source switcher — 2026-08-30 visual rebuild. Same 4-tab /
-           single-panel-visible model as before (one #dmSourceGroup, four
-           .dm-source-panel children, exactly one ever unhidden), but the
-           tab strip itself is now a dedicated .dm-switcher rather than a
-           bare .imp-tabs list sitting inside its own .card — that made the
-           top-level "which data source" choice look identical to an
-           in-panel filter row (Import History's own All/Needs attention/
-           Clean/Pending tabs one card down use the exact same component),
-           so the page read as a wall of same-weight tab strips with no
-           sense of hierarchy. An icon + label per source, laid out as equal
-           segments, makes the top-level choice visually distinct from the
-           filters living inside whichever panel is open. dmTabBadgeDds/
-           dmTabBadgeMinestat keep mirroring each review queue's open count
-           (unchanged IDs, unchanged JS) — only now rendered as a small
-           corner counter on the segment instead of an inline pill. -->
+      <!-- Fleet health summary — 2026-08-30 full rebuild. Every other page in
+           this app (Overview, Analytics, Driver & Asset Monitoring) opens
+           with a .kpi-row before any table; Data Management jumped straight
+           to a dropzone, which was one of the concrete reasons the page read
+           as disconnected from the rest of the app rather than one more page
+           in it. Same .kpi/.kpi-icon/.kpi-val language, not a new component —
+           deliberately reusing the vocabulary a reader already knows from
+           every other page instead of inventing a fifth one.
+
+           Sits ABOVE the tab switcher, not inside any one panel: every value
+           here is fleet-wide (files across all imports, review items across
+           both DDS and MineStat, the whole masterlist, the whole MineStat
+           table), so it stays visible and correct no matter which of the 5
+           tabs below is open — switching tabs never re-renders this row.
+           Values are populated by dmRenderKpis() (Data Management glue
+           section, near the bottom of this file), called once by each
+           source IIFE's own render()/load() whenever ITS number changes —
+           no new fetches, no polling, just reading numbers each panel
+           already has in memory the moment it changes them. -->
+      <div class="kpi-row" id="dmKpiRow" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi dm-kpi-files">
+          <div class="kpi-icon" style="background:var(--decor-1-bg);color:var(--decor-1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg>
+          </div>
+          <div class="kpi-label">Files imported</div>
+          <div class="kpi-val" id="dmKpiFiles">0</div>
+        </div>
+        <div class="kpi dm-kpi-review">
+          <div class="kpi-icon" style="background:var(--warning-bg);color:var(--warning)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+          </div>
+          <div class="kpi-label">Open review items</div>
+          <div class="kpi-val" id="dmKpiReview">0</div>
+        </div>
+        <div class="kpi dm-kpi-masterlist">
+          <div class="kpi-icon" style="background:var(--decor-1-bg);color:var(--decor-1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <div class="kpi-label">Masterlist</div>
+          <div class="kpi-val" id="dmKpiMasterlist">Not loaded</div>
+        </div>
+        <div class="kpi dm-kpi-shifts">
+          <div class="kpi-icon" style="background:var(--decor-1-bg);color:var(--decor-1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-8"/></svg>
+          </div>
+          <div class="kpi-label">MineStat records</div>
+          <div class="kpi-val" id="dmKpiShifts">0</div>
+        </div>
+      </div>
+
+      <!-- Data-source switcher — 2026-08-30 full rebuild. Same one-panel-
+           visible model as before (one #dmSourceGroup, N .dm-source-panel
+           children, exactly one ever unhidden — the existing toggle IIFE
+           iterates .dm-seg/.dm-source-panel generically and needed no
+           changes to grow from 4 segments to 5), but now opens on a 5th,
+           leftmost segment — Needs Attention — instead of DDS Data.
+
+           This exists because review/error information used to be scattered
+           three ways with no single place to see it: DDS whole-file failures
+           lived only as flag chips inside the DDS tab's own table, DDS
+           driver-name mismatches lived only in a card inside the DDS tab,
+           and MineStat driver-name mismatches lived only in a card inside
+           the MineStat tab — a user had to already suspect a problem and
+           know which tab to check. Needs Attention is a ROUTER, not a
+           second implementation of any resolution flow: it lists all three
+           categories in one place (dmRenderAttention(), Data Management
+           glue section near the end of this file) and each row's "Review"
+           button switches to the owning tab and opens that tab's own
+           existing modal — the DDS/MineStat resolve modals, the DDS detail/
+           file-problem modals, all keep living in exactly one place each.
+
+           dmTabBadgeDds/dmTabBadgeMinestat (kept, unchanged IDs/JS) still
+           mirror each review queue's count on their own source tab too —
+           deliberately redundant with the Needs Attention badge below,
+           since someone who lands directly on DDS or MineStat without going
+           through Needs Attention first still needs to see it's there. -->
       <div class="dm-switcher" role="tablist" aria-label="Data source" id="dmSourceTabs">
-        <button class="dm-seg" role="tab" data-source="dds" aria-selected="true" tabindex="0">
+        <button class="dm-seg" role="tab" data-source="attention" aria-selected="true" tabindex="0">
+          <span class="dm-seg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></span>
+          <span class="dm-seg-label">Needs Attention</span>
+          <span class="imp-tab-count" data-tone="danger" id="dmTabBadgeAttention" hidden>0</span>
+        </button>
+        <button class="dm-seg" role="tab" data-source="dds" aria-selected="false" tabindex="-1">
           <span class="dm-seg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg></span>
           <span class="dm-seg-label">DDS Data</span>
           <span class="imp-tab-count" data-tone="danger" id="dmTabBadgeDds" hidden>0</span>
@@ -3764,7 +3867,26 @@ body {
 
       <div id="dmSourceGroup" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px">
 
-      <div class="dm-source-panel" data-source-panel="dds" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px">
+      <!-- Needs Attention — the router described in the switcher's own
+           comment above. Populated entirely by dmRenderAttention() (Data
+           Management glue, near the end of this file) reading state three
+           OTHER IIFEs already hold: App.imports (DDS file-level failures,
+           via the same needsAttention() predicate the DDS tab's own "Needs
+           attention" filter uses), and the open rows of the DDS/MineStat
+           name-review queues (exposed as App.getNameReviewOpen()/
+           App.getMinestatReviewOpen() at the bottom of those two IIFEs).
+           Never holds its own copy of that data — it re-reads and re-
+           renders from those sources every time it needs to, so there is
+           exactly one place each fact lives. -->
+      <div class="dm-source-panel" data-source-panel="attention" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding:2px">
+        <div class="imp-empty" id="dmAttentionEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          <div class="imp-empty-text">Nothing needs attention — every import is clean and every name is matched.</div>
+        </div>
+        <div id="dmAttentionGroups" hidden style="display:flex;flex-direction:column;gap:14px"></div>
+      </div>
+
+      <div class="dm-source-panel" data-source-panel="dds" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px" hidden>
 
       <div class="dz" id="dropZone">
         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple>
@@ -13817,6 +13939,12 @@ var NotificationSound = (function(){
 
   function render(){
     App.syncClearButton();
+    // Both read App.imports directly (already the live array — see its own
+    // App.imports = imports line above) rather than anything computed
+    // further down in this function, so calling them here covers both of
+    // this function's early-return branches with one call instead of two.
+    if (typeof App.renderKpis === 'function') App.renderKpis();
+    if (typeof App.renderAttention === 'function') App.renderAttention();
     if (!imports.length){
       table.hidden = true;
       emptyState.hidden = false;
@@ -14474,6 +14602,18 @@ var NotificationSound = (function(){
     closeFileProblemModal();
     fileInput.click();
   });
+
+  // Open sides for Needs Attention (Data Management glue, near the end of
+  // this file) — the same lookup-by-id these modals' own delegated click
+  // handlers above already do, just reachable from outside this closure so
+  // Needs Attention can route into whichever modal a given import record
+  // actually needs without a second implementation of either one.
+  App.openImportDetail = function(recId, kindName){
+    var rec = imports.find(function(r){ return r.id === recId; });
+    var list = rec && DETAIL_KIND[kindName] ? rec[DETAIL_KIND[kindName].key] : null;
+    if (list && list.length) openDetailModal(rec, kindName);
+  };
+  App.openFileProblem = openFileProblemModal;
 
   // Download just the flagged rows, corrected-CSV-ready — the columns match
   // EXPECTED_COLUMNS so a user can fix the offending values in place and
@@ -16411,6 +16551,7 @@ var NotificationSound = (function(){
        on every fetch, so App.masterlistRoster must be refreshed at the same
        point or it would keep pointing at a stale, possibly-empty array. */
     App.masterlistRoster = roster;
+    if (typeof App.renderKpis === 'function') App.renderKpis();
 
     var q = (searchInput.value || '').trim().toLowerCase();
     var shown = q
@@ -17154,6 +17295,8 @@ var NotificationSound = (function(){
       table.hidden = true;
       pagination.hidden = true;
       emptyEl.hidden = false;
+      App._minestatShiftTotal = 0;
+      if (typeof App.renderKpis === 'function') App.renderKpis();
       return;
     }
     var search = (searchInput.value || '').trim();
@@ -17162,6 +17305,11 @@ var NotificationSound = (function(){
       countEl.textContent = total.toLocaleString() + (total === 1 ? ' record' : ' records');
       searchWrap.hidden = total === 0 && !search;
       render(res.rows);
+      // Read by the KPI row (Data Management glue, near the end of this
+      // file) rather than issuing a second fetchMinestatShifts() just to
+      // learn the same count this call already returned.
+      App._minestatShiftTotal = total;
+      if (typeof App.renderKpis === 'function') App.renderKpis();
     }).catch(function(err){
       console.warn('MineStat shift records unavailable', err);
       countEl.textContent = 'Not loaded';
@@ -17236,6 +17384,14 @@ var NotificationSound = (function(){
   var masterlist    = [];     // [{emp_no, full_name, status}]
   var nrEditing     = null;   // the review row open in the modal
   var nrSelectedEmp = null;   // employee chosen for it
+  // Every row from the last fetchNameReview('all'), regardless of which tab
+  // (Open/Resolved/Not a driver) is currently selected — reviewRows above
+  // is filtered down to just reviewState, so it can't answer "what's open"
+  // once someone has switched to another tab. Needs Attention (Data
+  // Management glue, near the end of this file) needs the open rows
+  // specifically, independent of whatever tab this card happens to be
+  // showing, hence this second copy rather than reusing reviewRows.
+  var allReviewRows = [];
 
   /* Plain-language reason. The tier names are the resolver's vocabulary
      ('fuzzy_review', 'ambiguous_exact'), not something a coordinator should
@@ -17321,8 +17477,11 @@ var NotificationSound = (function(){
       all.forEach(function(r){
         if (reviewCounts[r.state] != null) reviewCounts[r.state]++;
       });
+      allReviewRows = all;
       reviewRows = all.filter(function(r){ return r.state === reviewState; });
       renderNameReview();
+      if (typeof App.renderAttention === 'function') App.renderAttention();
+      if (typeof App.renderKpis === 'function') App.renderKpis();
     }).catch(function(err){
       /* A missing table means 0019 has not been applied to this project yet.
          That is a deployment state, not an error the user can act on, so the
@@ -17361,6 +17520,27 @@ var NotificationSound = (function(){
      new names appear, so leaving the card stale until a manual Refresh would
      hide the thing it exists to surface. */
   App.loadNameReview = loadNameReview;
+
+  // Read side for Needs Attention (Data Management glue, near the end of
+  // this file) — returns the open rows regardless of which tab this card
+  // itself is currently showing, same reasoning as allReviewRows's own
+  // comment above. A plain accessor, not a live reference: Needs Attention
+  // re-renders on every loadNameReview() completion (see that function's
+  // own App.renderAttention() call), so a snapshot is enough.
+  App.getNameReviewOpen = function(){
+    return allReviewRows.filter(function(r){ return r.state === 'open'; });
+  };
+
+  // Lets Needs Attention open the exact same resolve modal this card's own
+  // "Match" button opens, without duplicating openResolveModal()'s ~80
+  // lines (candidate ranking, masterlist search wiring, add-driver route,
+  // ignore route) a second time. Switches this card's own tab to "open"
+  // first so the row is guaranteed to be in allReviewRows/findable, then
+  // reuses the exact same lookup-by-id the in-card "Match" button uses.
+  App.openNameReviewRow = function(id){
+    var row = allReviewRows.filter(function(r){ return r.id === id; })[0];
+    if (row) openResolveModal(row);
+  };
 
   Cloud.onSignIn(function(){ loadNameReview(); });
 
@@ -17669,6 +17849,11 @@ var NotificationSound = (function(){
   var masterlist    = [];     // [{emp_no, full_name, status}]
   var msEditing     = null;   // the review row open in the modal
   var msSelectedEmp = null;   // employee chosen for it
+  // Same reasoning as the DDS Name Review IIFE's own allReviewRows: reviewRows
+  // above is filtered to whichever tab (Open/Resolved/Not a driver) this
+  // card is currently showing, so Needs Attention needs its own copy of
+  // every state to answer "what's open" independent of that.
+  var allReviewRows = [];
 
   /* Plain-language reason. The tier names are the resolver's vocabulary
      ('fuzzy_review', 'ambiguous_exact'), not something a coordinator should
@@ -17754,8 +17939,11 @@ var NotificationSound = (function(){
       all.forEach(function(r){
         if (reviewCounts[r.state] != null) reviewCounts[r.state]++;
       });
+      allReviewRows = all;
       reviewRows = all.filter(function(r){ return r.state === reviewState; });
       renderNameReview();
+      if (typeof App.renderAttention === 'function') App.renderAttention();
+      if (typeof App.renderKpis === 'function') App.renderKpis();
     }).catch(function(err){
       /* A missing table means 0024_minestat has not been applied to this
          project yet. That is a deployment state, not an error the user can
@@ -17795,6 +17983,16 @@ var NotificationSound = (function(){
      new names appear, so leaving the card stale until a manual Refresh would
      hide the thing it exists to surface. */
   App.loadMinestatNameReview = loadNameReview;
+
+  // Read/open side for Needs Attention — same pair, same reasoning, as the
+  // DDS Name Review IIFE's own App.getNameReviewOpen()/App.openNameReviewRow.
+  App.getMinestatReviewOpen = function(){
+    return allReviewRows.filter(function(r){ return r.state === 'open'; });
+  };
+  App.openMinestatReviewRow = function(id){
+    var row = allReviewRows.filter(function(r){ return r.id === id; })[0];
+    if (row) openResolveModal(row);
+  };
 
   Cloud.onSignIn(function(){ loadNameReview(); });
 
@@ -18059,6 +18257,163 @@ var NotificationSound = (function(){
 
 })();
 
+/* ═══════════════════════ DATA MANAGEMENT — GLUE ═══════════════════════
+   2026-08-30 full rebuild. Two small cross-section renderers that make the
+   KPI row and the Needs Attention tab possible without either one owning a
+   second copy of state four OTHER IIFEs already hold (DDS Import History,
+   Employee Masterlist, MineStat shift records, DDS/MineStat Name Review).
+   Each of those IIFEs calls App.renderKpis()/App.renderAttention() itself
+   whenever ITS OWN numbers change (see the App.renderKpis/renderAttention
+   call sites throughout this file) — this section only ever READS what
+   they already computed, through the small App.* surface each one exports
+   for exactly this purpose (App.imports, App.masterlistRoster,
+   App._minestatShiftTotal, App.getNameReviewOpen(),
+   App.getMinestatReviewOpen()). Deliberately last in the file, after every
+   IIFE it reads from — this guarantees every App.get.../App.open... function
+   it calls has already been assigned by the time either renderer can
+   possibly run (the earliest trigger is one of those IIFEs' own load()
+   calls, all of which happen after this script has finished executing
+   top-to-bottom once). */
+(function(){
+  var kpiFiles      = document.getElementById('dmKpiFiles');
+  var kpiReview     = document.getElementById('dmKpiReview');
+  var kpiMasterlist = document.getElementById('dmKpiMasterlist');
+  var kpiShifts     = document.getElementById('dmKpiShifts');
+  if (!kpiFiles) return;
+
+  function reviewOpenCount(){
+    var dds = typeof App.getNameReviewOpen === 'function' ? App.getNameReviewOpen().length : 0;
+    var ms  = typeof App.getMinestatReviewOpen === 'function' ? App.getMinestatReviewOpen().length : 0;
+    return dds + ms;
+  }
+
+  App.renderKpis = function(){
+    var imports = App.imports || [];
+    kpiFiles.textContent = imports.length.toLocaleString();
+
+    var openReview = reviewOpenCount();
+    kpiReview.textContent = openReview.toLocaleString();
+
+    var roster = App.masterlistRoster || [];
+    if (roster.length){
+      var active = roster.filter(function(d){ return d.status !== 'inactive'; }).length;
+      kpiMasterlist.textContent = roster.length.toLocaleString() +
+        (active !== roster.length ? ' · ' + active.toLocaleString() + ' active' : '');
+    } else {
+      kpiMasterlist.textContent = 'Not loaded';
+    }
+
+    kpiShifts.textContent = (App._minestatShiftTotal || 0).toLocaleString();
+
+    var attnBadge = document.getElementById('dmTabBadgeAttention');
+    if (attnBadge){
+      var totalAttention = imports.filter(dmImportNeedsAttention).length + openReview;
+      attnBadge.textContent = totalAttention;
+      attnBadge.hidden = totalAttention === 0;
+    }
+  };
+
+  // Same predicate as the DDS Import History IIFE's own private
+  // needsAttention() (index.html, DDS Data section) — duplicated rather
+  // than shared across the closure boundary, since it's one line and the
+  // alternative (exporting yet another App.* function for a single
+  // boolean check) adds more surface than it saves.
+  function dmImportNeedsAttention(rec){
+    return rec.status === 'error' || rec.status === 'warn' || rec.flags.length > 0 || rec.dbStatus === 'error';
+  }
+
+  var attnEmpty  = document.getElementById('dmAttentionEmpty');
+  var attnGroups = document.getElementById('dmAttentionGroups');
+
+  function attnRow(chipLabel, title, sub, onReview){
+    var id = 'dmAttnBtn' + (attnRow._n = (attnRow._n || 0) + 1);
+    var html = '<div class="dm-attn-row">' +
+      '<span class="dm-attn-chip">' + esc(chipLabel) + '</span>' +
+      '<div class="dm-attn-body">' +
+        '<div class="dm-attn-title">' + esc(title) + '</div>' +
+        '<div class="dm-attn-sub">' + esc(sub) + '</div>' +
+      '</div>' +
+      '<button type="button" class="btn btn-outline btn-sm" id="' + id + '">Review →</button>' +
+    '</div>';
+    attnRow._pending.push({ id: id, onReview: onReview });
+    return html;
+  }
+
+  App.renderAttention = function(){
+    if (!attnGroups) return;
+    attnRow._pending = [];
+
+    var fileIssues = (App.imports || []).filter(dmImportNeedsAttention);
+    var ddsNames   = typeof App.getNameReviewOpen === 'function' ? App.getNameReviewOpen() : [];
+    var msNames    = typeof App.getMinestatReviewOpen === 'function' ? App.getMinestatReviewOpen() : [];
+
+    var groups = [];
+
+    if (fileIssues.length){
+      groups.push(
+        '<div><div class="dm-attn-group-title">File issues (' + fileIssues.length + ')</div>' +
+        '<div class="dm-attn-rows">' + fileIssues.map(function(rec){
+          var flag = rec.flags && rec.flags[0];
+          var reason = flag ? flag.detail : (rec.dbStatus === 'error' ? (rec.dbError || 'Sync failed') : 'Needs review');
+          var openWhole = flag && flag.schema;
+          return attnRow('File', rec.name, reason, function(){
+            document.querySelector('#dmSourceTabs [data-source="dds"]').click();
+            if (openWhole && typeof App.openFileProblem === 'function') {
+              App.openFileProblem(rec.id);
+            } else if (flag && flag.clickable && typeof App.openImportDetail === 'function') {
+              App.openImportDetail(rec.id, flag.type);
+            }
+          });
+        }).join('') + '</div></div>'
+      );
+    }
+
+    if (ddsNames.length){
+      groups.push(
+        '<div><div class="dm-attn-group-title">DDS driver names (' + ddsNames.length + ')</div>' +
+        '<div class="dm-attn-rows">' + ddsNames.map(function(r){
+          var n = r.row_count || 0;
+          return attnRow('DDS name', r.raw_name || r.norm_name,
+            n.toLocaleString() + (n === 1 ? ' alert waiting' : ' alerts waiting'), function(){
+            document.querySelector('#dmSourceTabs [data-source="dds"]').click();
+            if (typeof App.openNameReviewRow === 'function') App.openNameReviewRow(r.id);
+          });
+        }).join('') + '</div></div>'
+      );
+    }
+
+    if (msNames.length){
+      groups.push(
+        '<div><div class="dm-attn-group-title">MineStat driver names (' + msNames.length + ')</div>' +
+        '<div class="dm-attn-rows">' + msNames.map(function(r){
+          var n = r.row_count || 0;
+          return attnRow('MineStat name', r.raw_name || r.norm_name,
+            n.toLocaleString() + (n === 1 ? ' shift record waiting' : ' shift records waiting'), function(){
+            document.querySelector('#dmSourceTabs [data-source="minestat"]').click();
+            if (typeof App.openMinestatReviewRow === 'function') App.openMinestatReviewRow(r.id);
+          });
+        }).join('') + '</div></div>'
+      );
+    }
+
+    if (!groups.length){
+      attnGroups.hidden = true;
+      attnEmpty.hidden = false;
+      return;
+    }
+
+    attnEmpty.hidden = true;
+    attnGroups.hidden = false;
+    attnGroups.innerHTML = groups.join('');
+
+    var pending = attnRow._pending;
+    attnRow._pending = [];
+    pending.forEach(function(p){
+      var btn = document.getElementById(p.id);
+      if (btn) btn.addEventListener('click', p.onReview);
+    });
+  };
+})();
 
 /* ═══════════════════════ SUMMARY ═══════════════════════
    Server-only (no local mode — same reasoning as Alert Logs: the
