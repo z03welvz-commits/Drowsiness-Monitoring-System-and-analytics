@@ -9125,9 +9125,21 @@ const charts = {
     // blank driver fields — see its own const comment): a "driver" bar
     // chart showing "Unspecified: 4,628" as its tallest bar would misread
     // as a real driver name, not a data-capture gap.
+    // Employee ID, not the masterlist name — o.id is the resolved full name
+    // (e.g. "RAGRAG, MARJUN OBEDENCIO"), which reads fine on Alert Logs'
+    // per-row Driver cell but is the wrong grain for a chart/table meant to
+    // be scanned and cross-referenced quickly; o.empNo is the same identity
+    // via the number reviewers actually key off. Falls back to o.id only for
+    // a driver whose masterlist row was since removed (0028's own
+    // defence-in-depth case — emp_no present in the data but no driver row
+    // to resolve a number FROM isn't possible; the real fallback here is
+    // "empNo is null", which UNSPECIFIED_OPERATOR already is and is filtered
+    // out below, so this fallback is unreachable in practice, not dead code
+    // removed for its own sake).
+    const driverLabel = o => o.empNo || o.id;
     if (variant === 'bars') {
       const items = d.topOperators.filter(o => o.id !== UNSPECIFIED_OPERATOR).slice(0, limit);
-      barList(el, items.map(o => ({ label: o.id, value: o.total })),
+      barList(el, items.map(o => ({ label: driverLabel(o), value: o.total })),
         { emptyText: 'No driver data — alert rows carry no driver name yet' });
       [...el.querySelectorAll('.ev-row')].forEach((row, i) => {
         row.dataset.rank = String(i + 1);
@@ -9138,7 +9150,7 @@ const charts = {
           const container = el.closest('.ev-list-wrap') || el.closest('.card') || el;
           const rect = container.getBoundingClientRect();
           showTooltip(tip, container, evt.clientX - rect.left, evt.clientY - rect.top,
-            tooltipHTML(o.id, [
+            tooltipHTML(driverLabel(o), [
               { label: 'Alerts', value: fmt.int(o.total) },
               { label: 'Share of total', value: `${pct}%` }
             ]));
@@ -9156,7 +9168,7 @@ const charts = {
       const pct = total ? (o.total / total * 100) : 0;
       return `<tr>
         <td>${i + 1}</td>
-        <td>${esc(o.id)}</td>
+        <td>${esc(driverLabel(o))}</td>
         <td>${fmt.int(o.total)}</td>
         <td>${fmt.pct(pct, 1)}</td>
       </tr>`;
@@ -11535,9 +11547,16 @@ function dmRenderTable() {
     // at Alert Logs' own per-row "Unassigned" affordance (driverCellHtml())
     // instead of pretending this aggregate has a detail view of its own.
     const isUnspecified = dmView === 'driver' && it.id === UNSPECIFIED_OPERATOR;
+    // Employee ID, not the masterlist name, for the same reason Analytics'
+    // Alert Count by Driver shows it (see topOperators()'s own comment) —
+    // this table is scanned/cross-referenced against rosters and case
+    // records that are keyed by number, not name. Units have no empNo at
+    // all (dmView === 'asset'), so it.empNo is simply undefined there and
+    // this falls through to it.id (the asset id) unchanged.
+    const driverLabel = dmView === 'driver' ? (it.empNo || it.id) : it.id;
     const idCell = isUnspecified
       ? `<span class="dm-unspecified">${esc(it.id)}</span>`
-      : esc(it.id);
+      : esc(driverLabel);
     const actionCell = isUnspecified
       ? `<button type="button" class="link-btn" data-dm-assign="1">Assign driver</button>`
       : `<button type="button" class="link-btn" data-dm-detail="${i}">See details</button>`;
