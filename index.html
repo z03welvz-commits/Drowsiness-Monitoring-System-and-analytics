@@ -7855,15 +7855,24 @@ function pearsonR(a, b) {
   return num / Math.sqrt(denA * denB);
 }
 
-/** Map values to a smooth SVG path within a plot box. */
-function linePath(values, { top, bottom, width, min = null, max = null }) {
+/** Map values to a smooth SVG path within a plot box. left/right default to
+    0 (original behaviour: first point at x=0, last at x=width) — every
+    existing caller that doesn't pass them is unaffected. Added because the
+    trend chart's first/last points sat exactly on the SVG's own left/right
+    edges with zero margin, same zero-margin problem top's own fix (see
+    linePath's caller in charts.trend()) already solved vertically — a
+    left-edge point's line/fill visibly touched the card's rounded corner,
+    and end-of-line hover markers (drawn at these exact x coordinates, see
+    trend()'s refs.dots) had nowhere to render without being clipped. */
+function linePath(values, { top, bottom, width, left = 0, right = 0, min = null, max = null }) {
   const n = values.length;
   if (!n) return { d: '', points: [] };
   const lo = min ?? Math.min(...values);
   const hi = max ?? Math.max(...values);
   const range = (hi - lo) || 1;
+  const plotWidth = width - left - right;
   const points = values.map((v, i) => ({
-    x: n === 1 ? width / 2 : (i / (n - 1)) * width,
+    x: n === 1 ? width / 2 : left + (i / (n - 1)) * plotWidth,
     y: bottom - ((v - lo) / range) * (bottom - top)
   }));
   return { d: smoothPath(points), points };
@@ -8558,8 +8567,18 @@ const charts = {
      own geo (the mean-line's identical y = bottom - (...) * (bottom-top)
      formula) — change one, change all three or the mean line and
      gridlines will describe a different scale than the line actually
-     plots on. */
-  trend(el, d, { refs, series = ['units'], geo = { top: 20, bottom: 168, width: 992 }, tip, insightEl, showPrev = false, hidden = new Set() } = {}) {
+     plots on.
+
+     left/right: 12, not 0 — the SAME zero-margin problem as top, on the
+     horizontal axis. linePath() put the first point at x=0 and the last at
+     x=width with no inset, so the line (and its hover-marker ellipse, and
+     the light fill under it) sat flush against the SVG's left/right edges
+     — visible as the plotted line touching the card's own rounded corner
+     on both sides, reported live off a real render. Gridlines still span
+     the FULL width (x1=0 to x2=width in ovTrendSvg's markup) — only the
+     plotted data got inset, matching how top's fix only moved where the
+     line's own ceiling sits, not the gridlines' extent. */
+  trend(el, d, { refs, series = ['units'], geo = { top: 20, bottom: 168, width: 992, left: 12, right: 12 }, tip, insightEl, showPrev = false, hidden = new Set() } = {}) {
     const pts = d.trend;
     if (!pts.length) {
       if (refs.axis) refs.axis.innerHTML = '';
@@ -8625,7 +8644,16 @@ const charts = {
       // curve's final on-path point), and two consecutive coordinate pairs
       // with no command between them is invalid path syntax (the browser
       // silently drops the whole `d`, so the area fill never rendered).
-      refs.fill.setAttribute('d', primary && !hidden.has(primary.key) ? `${primary.path} L${geo.width},${geo.bottom} L0,${geo.bottom} Z` : '');
+      //
+      // Closes at (geo.width - geo.right)/(geo.left), not the raw SVG edges
+      // (geo.width/0) — those used to be the same value when left/right
+      // didn't exist, but now the line's own last/first points sit inset
+      // from the edges (see linePath()'s left/right), so closing at the
+      // old hardcoded edges would draw the fill polygon's bottom corners
+      // past where the line itself actually ends, leaving a visible
+      // rectangular flare the line doesn't follow.
+      refs.fill.setAttribute('d', primary && !hidden.has(primary.key)
+        ? `${primary.path} L${geo.width - (geo.right ?? 0)},${geo.bottom} L${geo.left ?? 0},${geo.bottom} Z` : '');
     }
     /* NO permanent markers. These used to draw one filled circle per series
        at the last plotted point, on every render. Two problems, both visible
