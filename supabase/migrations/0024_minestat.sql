@@ -449,14 +449,21 @@ grant execute on function public.dds_minestat_reopen_review(bigint, boolean) to 
 grant execute on function public.dds_minestat_refresh_unresolved_counts()    to authenticated;
 
 -- ── DDS attribution from MineStat ───────────────────────────────────────────
--- Mirrors dds_backfill_emp_no()'s existing, already-shipped shape (0019):
--- batched, resumable, console-invoked (not wired to any UI button — same
--- precedent as dds_backfill_emp_no() itself, which is granted to
--- `authenticated` today but called from no client code path).
+-- Mirrors dds_backfill_emp_no()'s existing, already-shipped batched/resumable
+-- shape (0019). UPDATE (0028_dds_metrics_emp_no.sql): unlike dds_backfill_
+-- emp_no(), which really is still console-invoked only, THIS function is
+-- wired to run automatically from the client — see Cloud.
+-- backfillEmpNoFromMinestat() in index.html, called after every DDS upload,
+-- every MineStat upload, and every MineStat name-review resolution. Kept
+-- granted to `authenticated` for manual/console use too (clearing a backlog
+-- larger than one call's p_limit, or re-running after a bulk masterlist fix),
+-- but it is not solely a console tool the way its 0019 sibling still is.
 --
 -- Only ever fills emp_no where it is NULL — a value already present was
 -- either resolved from the row's own OPERATOR text or corrected by a human,
--- and neither should be silently overwritten by a MineStat join.
+-- and neither should be silently overwritten by a MineStat join. See
+-- 0032_attribution_audit_fixes.sql for what happens to that disagreement
+-- instead of it passing unrecorded.
 
 create or replace function public.dds_backfill_emp_no_from_minestat(
   p_limit integer default 2000

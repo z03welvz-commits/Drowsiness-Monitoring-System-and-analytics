@@ -32,7 +32,7 @@ body.auth-pending{visibility:hidden}
    property by the fuller :root{} block further down (~line 1358, loaded
    later in the same stylesheet, so it wins the cascade on every token both
    define). Kept in sync anyway rather than left stale, since a future
-   editor reading top-to-bottom would otherwise hit the pre-re-step hex
+   editor reading top-to-bottom would otherwisedebug hit the pre-re-step hex
    values first and reasonably assume they're live. See the later block's
    comment for why the hue ramp changed 2026-08-28. */
 :root{
@@ -12400,7 +12400,7 @@ const Cloud = {
       UPDATE_TIME: fmt(parseDateTime(field(row, 'UPDATE_TIME'), { dayFirst })),
       START_TIME:  fmt(parseDateTime(field(row, 'START_TIME'),  { dayFirst })),
       END_TIME:    fmt(parseDateTime(field(row, 'END_TIME'),    { dayFirst })),
-      ASSET_ID:    field(row, 'ASSET_ID') ?? '',
+      ASSET_ID:    String(field(row, 'ASSET_ID') ?? '').trim(),
       EVENT_CODE:  field(row, 'EVENT_CODE') ?? '',
       EVENT_COUNT: Number(field(row, 'EVENT_COUNT')) || 0,
       OPERATOR:    field(row, 'OPERATOR') ?? ''
@@ -12677,17 +12677,22 @@ const Cloud = {
      genuinely pathological backlog fails loudly instead of hanging the
      UI — callers already handle rejection (see both call sites below). */
   async backfillEmpNoFromMinestat(){
-    let totalUpdated = 0, remaining = null, guard = 0;
+    let totalUpdated = 0, totalConflicts = 0, remaining = null, guard = 0;
     do {
       const { data, error } = await this.client.rpc('dds_backfill_emp_no_from_minestat');
       if (error) throw error;
       const rowsUpdated = data?.rowsUpdated ?? 0;
       remaining = data?.rowsRemaining ?? 0;
       totalUpdated += rowsUpdated;
+      // conflictsDetected (0032_attribution_audit_fixes.sql) counts only
+      // NEWLY recorded conflicts this call (it skips ones already logged),
+      // so — unlike rowsUpdated — it does need summing across every
+      // iteration of this loop to get the true total for the whole run.
+      totalConflicts += data?.conflictsDetected ?? 0;
       guard++;
       if (rowsUpdated === 0) break; // no forward progress — stop, whatever remaining says
     } while (remaining > 0 && guard < 25);
-    return { updated: totalUpdated, remaining: remaining ?? 0 };
+    return { updated: totalUpdated, remaining: remaining ?? 0, conflicts: totalConflicts };
   },
 
   /* Contributing factors — see 0003_contributing_factors.sql. Unlike
@@ -14236,6 +14241,7 @@ var NotificationSound = (function(){
           var unresolved = stats.rows.unresolved || 0;
           var noOperator = stats.rows.noOperator || 0;
           var bfUpdated  = (bf && bf.updated) || 0;
+          var bfConflicts = (bf && bf.conflicts) || 0;
 
           var msg;
           if (noOperator === total && total > 0){
@@ -14260,6 +14266,20 @@ var NotificationSound = (function(){
           if (bfUpdated > 0){
             msg += '. ' + bfUpdated.toLocaleString() +
                    (bfUpdated === 1 ? ' additional alert linked to a driver via MineStat.' : ' additional alerts linked to a driver via MineStat.');
+          }
+          // A conflict means an alert's own OPERATOR text and MineStat's
+          // shift record for the same asset/date/shift resolved to two
+          // DIFFERENT employees. Attribution still keeps the OPERATOR-text
+          // answer (see dds_backfill_emp_no_from_minestat()'s own comment),
+          // so this never blocks or changes anything — it only makes a
+          // previously-silent disagreement visible, since one is likely a
+          // data-entry mistake worth someone's attention. See
+          // emp_no_attribution_conflicts (0032_attribution_audit_fixes.sql).
+          if (bfConflicts > 0){
+            msg += ' ' + bfConflicts.toLocaleString() +
+                   (bfConflicts === 1
+                     ? ' alert has a driver named in the file that disagrees with MineStat’s record for that shift — check Data Management.'
+                     : ' alerts have a driver named in the file that disagrees with MineStat’s record for that shift — check Data Management.');
           }
 
           announce(msg);
@@ -15340,21 +15360,34 @@ var NotificationSound = (function(){
   }
 
   /* THE ONE PLACE the Operator/Driver merge rule lives.
-     Two fields describe the same person: `operator` arrives with the
-     imported file, `driverName` is typed by a reviewer onto the alert case.
+     Three things can name the same seat: `operator` arrives with the
+     imported file (in practice always blank — DDS's real export carries no
+     driver field at all), `driverDisplayName` is the masterlist name
+     server-resolved via the case's own emp_no override or, failing that,
+     the event's emp_no attributed through the MineStat join
+     (dds_alert_logs(), 0026_alert_cases_emp_no.sql — that precedence,
+     case-emp_no > event-emp_no > raw operator text, is computed ONCE
+     server-side so this function doesn't have to re-derive it), and
+     `driverName` is free text typed by a reviewer directly onto the case.
      They used to occupy separate columns, which meant a row could show two
      different names for one seat with nothing explaining which was right.
 
-     Reviewer's entry WINS. A human looked at this alert and corrected the
-     name; a later re-import of the same file must never silently undo that.
-     The imported operator is the fallback for the (common) case where
-     nobody has reviewed the row yet.
+     Reviewer's free-text entry WINS. A human looked at this alert and
+     typed a correction; nothing automated should silently override that.
+     The masterlist/MineStat name comes next — a real resolved identity, not
+     a guess — and the raw operator string is the last-resort fallback for
+     the day a DDS export does carry one. Before driverDisplayName existed,
+     an alert with a resolved emp_no but no manual case still fell through
+     to blank here and rendered as "Unassigned" even though the system
+     already knew who it was — this ladder is what closes that gap.
 
      Every consumer — the table, search, export, the edit modal — must go
      through this, or the merge rule forks and the columns disagree again. */
   function driverOf(row){
     var reviewed = row.driverName && String(row.driverName).trim();
     if (reviewed) return reviewed;
+    var resolved = row.driverDisplayName && String(row.driverDisplayName).trim();
+    if (resolved) return resolved;
     var imported = row.operator && String(row.operator).trim();
     return imported || '';
   }
@@ -15408,12 +15441,21 @@ var NotificationSound = (function(){
      one click instead of two and one fewer column competing for width.
      Prefers the driver (a named person is the more actionable target for
      "what did you do"); falls back to the asset when no driver name is on
-     record, since ASSET_ID is always known. */
+     record, since ASSET_ID is always known.
+
+     Uses driverOf(), not row.driverName directly — a MineStat-resolved
+     driver with no manual case has a real name (driverOf() finds it) but
+     row.driverName itself is null, so checking that field alone sent every
+     such row to asset-based history even though the person is known. This
+     also keeps the entity name here consistent with what driverCellHtml()
+     just displayed in the same row: showing a driver's name in the table
+     while pulling up the ASSET's history on click would be its own quiet
+     bug even though this line never touched the display cell itself. */
   function historyEntityFor(row){
-    var hasDriver = row.driverName && row.driverName.trim();
+    var driver = driverOf(row);
     return {
-      type: hasDriver ? 'driver' : 'asset',
-      id: hasDriver ? row.driverName.trim() : row.assetId
+      type: driver ? 'driver' : 'asset',
+      id: driver || row.assetId
     };
   }
 
@@ -17178,6 +17220,15 @@ var NotificationSound = (function(){
             App.loadFromServer();
           }
         }
+        // See the DDS importer's own identical check (~14260s) for what a
+        // conflict means — attribution keeps OPERATOR-text unchanged, this
+        // just surfaces that MineStat disagreed for at least one alert.
+        if (bf.conflicts > 0){
+          msg += ' ' + Number(bf.conflicts).toLocaleString() +
+                 (bf.conflicts === 1
+                   ? ' alert has a driver named in the file that disagrees with this MineStat record — check Data Management.'
+                   : ' alerts have a driver named in the file that disagrees with this MineStat data — check Data Management.');
+        }
         announce(msg);
       }).catch(function(bfErr){
         console.error('Driver attribution backfill failed', bfErr);
@@ -18180,6 +18231,15 @@ var NotificationSound = (function(){
           msg += '. ' + Number(bf.updated).toLocaleString() +
                  (bf.updated === 1 ? ' alert linked to a driver' : ' alerts linked to a driver') + '.';
           refreshAfterAttribution();
+        }
+        // See the DDS importer's own identical check (~14260s) for what a
+        // conflict means — attribution keeps OPERATOR-text unchanged, this
+        // just surfaces that MineStat disagreed for at least one alert.
+        if (bf.conflicts > 0){
+          msg += ' ' + Number(bf.conflicts).toLocaleString() +
+                 (bf.conflicts === 1
+                   ? ' alert has a driver named in the file that disagrees with this match — check Data Management.'
+                   : ' alerts have a driver named in the file that disagrees with this match — check Data Management.');
         }
         announce(msg);
       }).catch(function(bfErr){
