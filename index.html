@@ -2536,13 +2536,14 @@ body {
                 <input type="date" id="ovDateTo" aria-label="To date">
               </label>
             </div>
-            <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+            <div class="cpill" id="ovShiftPill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
             <!-- "All Assets" pill removed: no asset/site column exists in
                  EXPECTED_COLUMNS to filter by, so it never had a real dropdown
                  behind it (initControls()'s .cpill text-matcher has no 'asset'
                  branch) — a chevron-decorated div implying a filter that did
                  nothing on click. Restore it once the data model has an
                  asset/site field to actually filter on. -->
+            <button type="button" class="btn btn-outline" id="ovClearFiltersBtn" hidden>Clear filters</button>
             <button class="btn" id="ovRefreshBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg>Refresh</button>
           </div>
           <div class="ov-header-caption">
@@ -2862,7 +2863,8 @@ body {
               <input type="date" id="anDateTo" aria-label="To date">
             </label>
           </div>
-          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill" id="anShiftPill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+          <button type="button" class="btn btn-outline" id="anClearFiltersBtn" hidden>Clear filters</button>
           <button class="btn" id="anExportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Export</button>
         </div>
       </div>
@@ -3176,6 +3178,7 @@ body {
               <input type="date" id="alDateTo" aria-label="To date">
             </label>
           </div>
+          <button type="button" class="btn btn-outline btn-sm" id="alClearFiltersBtn" hidden>Clear filters</button>
           <button class="btn btn-outline btn-sm" id="alUploadRosterBtn" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5-5 5 5"/><path d="M12 5v12"/></svg>
             Upload roster
@@ -3435,7 +3438,8 @@ body {
               <input type="date" id="dmDateTo" aria-label="To date">
             </label>
           </div>
-          <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="cpill" id="dmShiftPill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+          <button type="button" class="btn btn-outline" id="dmClearFiltersBtn" hidden>Clear filters</button>
         </div>
       </div>
 
@@ -3635,6 +3639,7 @@ body {
           <div class="cpill" id="smUnitPill" data-filter="summary-unit">All Units <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
           <div class="cpill" id="smEventCodePill" data-filter="summary-event-code">All Event Codes <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
           <div class="cpill" id="smStatusPill" data-filter="summary-status">All Statuses <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+          <button type="button" class="btn btn-outline btn-sm" id="smClearFiltersBtn" hidden>Clear filters</button>
         </div>
       </div>
 
@@ -10488,7 +10493,15 @@ function initControls(store, { onRefresh } = {}) {
 
   /* Filter pills. Each .cpill is matched by its text so this works against the
      existing markup without an edit; give them data-filter="shift|status"
-     to be explicit. */
+     to be explicit.
+
+     dropdownById tracks each pill's createDropdown() handle (setValue/
+     element) keyed by the ORIGINAL element's id (ovShiftPill/anShiftPill/
+     dmShiftPill) — createDropdown() replaces the element outright with a
+     <button>, so without capturing the handle here a Clear Filters button
+     would have no way to visually reset a pill back to "All Shifts" short
+     of re-deriving one from scratch. */
+  const dropdownById = {};
   document.querySelectorAll('.cpill').forEach(el => {
     if (el.id === 'importedCountPill') return;          // a count, not a control
     const text = el.textContent.trim().toLowerCase();
@@ -10496,28 +10509,73 @@ function initControls(store, { onRefresh } = {}) {
       ?? (text.includes('shift') ? 'shift'
         : text.includes('area') ? 'area'
         : null);
+    const originalId = el.id;
 
     if (kind === 'shift') {
-      createDropdown(el, {
+      const dd = createDropdown(el, {
         label: 'Shift', value: 'all', options: SHIFT_OPTIONS,
         onSelect: v => {
           store.setFilters({ shift: v === 'all' ? null : v });
           announce(`Shift filter: ${v === 'all' ? 'all shifts' : v.toLowerCase()}`);
         }
       });
+      if (originalId) dropdownById[originalId] = dd;
     } else if (kind === 'area') {
       /* v2.2 showed an "All Areas" filter, but no column in EXPECTED_COLUMNS
          carries an area/site. Repurposed to a status filter, which the data
          does support. Restore it as an area filter once the schema has a
          site column — see the API contract. */
-      createDropdown(el, {
+      const dd = createDropdown(el, {
         label: 'Record status', value: 'all', options: STATUS_OPTIONS,
         onSelect: v => {
           store.setFilters({ actionableOnly: v === 'actionable' });
           announce(v === 'actionable' ? 'Showing actionable only' : 'Showing all records');
         }
       });
+      if (originalId) dropdownById[originalId] = dd;
     }
+  });
+
+  /* Clear filters — one button per store-driven page (Overview/Analytics/
+     Driver & Asset Monitoring), each resetting only ITS OWN date inputs +
+     shift pill, then a single store.setFilters() call back to the
+     pristine createState() shape (from/to/shift all null, actionableOnly
+     false) rather than one call per control — setFilters() re-derives and
+     repaints on every call, so three calls would repaint the dashboard
+     three times for what the user experiences as one action.
+
+     The button starts hidden (see the HTML) and only appears once a filter
+     the store actually reads is active, mirroring how a browser's address
+     bar only shows a clear-search "×" once there's something to clear —
+     otherwise it competes for attention with Refresh/Export on every visit
+     to a page with nothing filtered. actionableOnly deliberately excluded
+     from the active-filter check on Overview/Analytics: only Driver &
+     Asset Monitoring's pill can set it (the 'area' branch above), so
+     checking it on pages that can never set it would just be dead code
+     that always reads false. */
+  [
+    { prefix: 'ov', pillId: 'ovShiftPill', checkActionable: false },
+    { prefix: 'an', pillId: 'anShiftPill', checkActionable: false },
+    { prefix: 'dm', pillId: 'dmShiftPill', checkActionable: true }
+  ].forEach(({ prefix, pillId, checkActionable }) => {
+    const clearBtn = document.getElementById(prefix + 'ClearFiltersBtn');
+    const fromInput = document.getElementById(prefix + 'DateFrom');
+    const toInput = document.getElementById(prefix + 'DateTo');
+    if (!clearBtn) return;
+
+    clearBtn.addEventListener('click', () => {
+      if (fromInput) fromInput.value = '';
+      if (toInput) toInput.value = '';
+      dropdownById[pillId]?.setValue('all');
+      store.setFilters({ from: null, to: null, shift: null, actionableOnly: false });
+      announce('Filters cleared');
+    });
+
+    store.subscribe(s => {
+      const f = s.filters;
+      const active = !!(f.from || f.to || f.shift || (checkActionable && f.actionableOnly));
+      clearBtn.hidden = !active;
+    });
   });
 
   /* Refresh/Export — SCOPED by id, not a document-wide text match.
@@ -15704,6 +15762,12 @@ var NotificationSound = (function(){
     }
     signedOutEl.hidden = true;
 
+    // Clear-filters button visibility — computed here rather than in each
+    // input's own change handler, since render() already runs after every
+    // filter change (via reload()) and after every load, so this can't
+    // drift out of sync with whichever handler last touched state.
+    if (clearFiltersBtn) clearFiltersBtn.hidden = !(state.from || state.to || state.search);
+
     if (!state.rows.length){
       emptyEl.hidden = false;
       // Error takes precedence over the two "genuinely nothing here" copies
@@ -15857,6 +15921,7 @@ var NotificationSound = (function(){
   // instead of only the four canned windows.
   var fromInput = document.getElementById('alDateFrom');
   var toInput   = document.getElementById('alDateTo');
+  var clearFiltersBtn = document.getElementById('alClearFiltersBtn');
 
   fromInput.addEventListener('change', function(){
     state.from = fromInput.value || null;
@@ -15875,6 +15940,23 @@ var NotificationSound = (function(){
       reload();
     }, 300);
   });
+
+  // Deliberately leaves state.sort/state.dir untouched — sorting is a
+  // separate axis from filtering (see the header comment on 0016's own
+  // driver-sort rationale), and a user who sorted by Driver before
+  // filtering by date has no reason to have that undone by "Clear filters".
+  if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', function(){
+      fromInput.value = '';
+      toInput.value = '';
+      searchInput.value = '';
+      state.from = null;
+      state.to = null;
+      state.search = '';
+      reload();
+      announce('Filters cleared');
+    });
+  }
 
   /* Paging returns you to the top of the table.
 
@@ -18879,6 +18961,14 @@ var NotificationSound = (function(){
   }
 
   function render(){
+    // Same "computed in render(), not in each filter's own handler" reasoning
+    // as Alert Logs' clearFiltersBtn — render() already runs after every
+    // filter change (via reload()) and can't drift out of sync.
+    if (clearFiltersBtn) {
+      clearFiltersBtn.hidden = !(fromInput.value || toInput.value ||
+        filters.shift || filters.unit || filters.eventCode || filters.status);
+    }
+
     if (!Cloud.available() || !Cloud.session){
       signedOutEl.hidden = false;
       emptyEl.hidden = true;
@@ -18963,7 +19053,11 @@ var NotificationSound = (function(){
   var unitHost = document.getElementById('smUnitPill');
   var codeHost = document.getElementById('smEventCodePill');
 
-  createDropdown(document.getElementById('smShiftPill'), {
+  // Handles kept for Clear Filters (below) to reset each pill's visible
+  // label back to "All ___" — createDropdown() returns {setValue, element}
+  // but discarded it here before Clear Filters existed, since nothing else
+  // needed to reach back into an already-mounted pill.
+  var shiftDd = createDropdown(document.getElementById('smShiftPill'), {
     label: 'Shift', value: 'all',
     options: [
       { value: 'all', label: 'All Shifts' },
@@ -18973,7 +19067,7 @@ var NotificationSound = (function(){
     onSelect: function(v){ filters.shift = v === 'all' ? null : v; reload(); }
   });
 
-  createDropdown(document.getElementById('smStatusPill'), {
+  var statusDd = createDropdown(document.getElementById('smStatusPill'), {
     label: 'Action status', value: 'all',
     options: [
       { value: 'all', label: 'All Statuses' },
@@ -18982,6 +19076,15 @@ var NotificationSound = (function(){
     ],
     onSelect: function(v){ filters.status = v === 'all' ? null : v; reload(); }
   });
+
+  // unitDd/codeDd hold the LIVE dropdown handle (not just .element like
+  // unitHost/codeHost above) so Clear Filters can call .setValue('all') on
+  // whichever instance is currently mounted — mountUnitDropdown()/
+  // mountEventCodeDropdown() replace the element (and therefore the handle)
+  // every time the option list rebuilds, so a Clear Filters button written
+  // against the FIRST handle would silently stop working after the first
+  // loadFilterOptions() re-mount.
+  var unitDd = null, codeDd = null;
 
   function mountUnitDropdown(values){
     var options = [{ value: 'all', label: 'All Units' }]
@@ -18996,6 +19099,7 @@ var NotificationSound = (function(){
       onSelect: function(v){ filters.unit = v === 'all' ? null : v; reload(); }
     });
     unitHost = dd.element;
+    unitDd = dd;
   }
 
   function mountEventCodeDropdown(values){
@@ -19008,6 +19112,7 @@ var NotificationSound = (function(){
       onSelect: function(v){ filters.eventCode = v === 'all' ? null : v; reload(); }
     });
     codeHost = dd.element;
+    codeDd = dd;
   }
 
   /* Unit/event-code option VALUES come from whatever's already loaded in
@@ -19040,6 +19145,26 @@ var NotificationSound = (function(){
 
   fromInput.addEventListener('change', reload);
   toInput.addEventListener('change', reload);
+
+  var clearFiltersBtn = document.getElementById('smClearFiltersBtn');
+  if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', function(){
+      fromInput.value = '';
+      toInput.value = '';
+      filters = { shift: null, unit: null, eventCode: null, status: null };
+      // Reset each pill's own visible label back to "All ___" — setting
+      // `filters` above only changes what the NEXT fetch requests; the
+      // dropdown UI itself is separate DOM state createDropdown() closes
+      // over (see that function's own `current` var), so it needs its own
+      // reset via the handle each pill's onSelect already returned.
+      shiftDd.setValue('all');
+      statusDd.setValue('all');
+      if (unitDd) unitDd.setValue('all');
+      if (codeDd) codeDd.setValue('all');
+      reload();
+      announce('Filters cleared');
+    });
+  }
 
   /* Same reasoning as Alert Logs' pager — the controls now sit below 100
      rows rather than being pinned in an inner scroll box, so paging without
