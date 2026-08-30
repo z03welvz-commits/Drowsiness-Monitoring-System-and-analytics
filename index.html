@@ -57,24 +57,33 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 
 /* App shell: sidebar never scrolls; each page controls its own .main
    scroll behavior independently (Overview = locked/fits-viewport,
-   Analytics = scrolls), matching each source file's own rule. */
-.app{height:100vh; overflow:hidden; display:grid; grid-template-columns:190px 1fr}
+   Analytics = scrolls), matching each source file's own rule.
+   Width comes from --sidebar-w (defined in the token block below) so
+   there is a single source of truth instead of a duplicated literal. */
+.app{height:100vh; overflow:hidden; display:grid; grid-template-columns:var(--sidebar-w) 1fr}
 
-/* ═══ SIDEBAR ═══ */
-.sidenav{background:linear-gradient(180deg,var(--navy) 0%,var(--navy-dark) 100%); display:flex; flex-direction:column; padding:14px 0; overflow:hidden}
-.nav-brand{padding:0 14px 12px; border-bottom:0.5px solid rgba(255,255,255,.15); margin-bottom:8px}
-.nav-brand-row{display:flex; align-items:center; gap:9px}
-.nav-mark{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.nav-mark svg{width:16px;height:16px;color:#fff}
+/* ═══ SIDEBAR ═══
+   Padding/gap bumped up one notch on the --sp-* scale (14px->16px shell
+   padding, 8px->9px item padding, 9px->10px icon gap) to match --sidebar-w
+   going 190px->280px — at the old, tighter spacing the wider rail read as
+   the same cramped nav with empty space tacked on the right, rather than
+   an intentionally roomier one. Every value below is still a token off the
+   existing --sp-* scale or a small hand-picked constant in the same family
+   the original rule used, not a new scale. */
+.sidenav{background:linear-gradient(180deg,var(--navy) 0%,var(--navy-dark) 100%); display:flex; flex-direction:column; padding:var(--sp-6) 0; overflow:hidden}
+.nav-brand{padding:0 var(--sp-6) var(--sp-5); border-bottom:0.5px solid rgba(255,255,255,.15); margin-bottom:var(--sp-4)}
+.nav-brand-row{display:flex; align-items:center; gap:var(--sp-5)}
+.nav-mark{width:32px;height:32px;border-radius:var(--r-lg);background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-mark svg{width:17px;height:17px;color:#fff}
 .nav-brand-title{font-size:var(--fs-xl);font-weight:var(--fw-black);color:#fff;letter-spacing:.03em;line-height:1.2}
 .nav-brand-sub{font-size:var(--fs-2xs);color:rgba(255,255,255,.6);letter-spacing:.04em;margin-top:1px}
-.nav-section-label{font-size:var(--fs-2xs);color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:var(--tracking-label);padding:8px 14px 3px}
-.nav-item{display:flex;align-items:center;gap:9px;padding:8px 14px;font-size:var(--fs-xs);color:rgba(255,255,255,.6);border:none;background:none;width:100%;text-align:left;border-left:3px solid transparent;position:relative}
+.nav-section-label{font-size:var(--fs-2xs);color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:var(--tracking-label);padding:var(--sp-4) var(--sp-6) 3px}
+.nav-item{display:flex;align-items:center;gap:var(--sp-5);padding:9px var(--sp-6);font-size:var(--fs-xs);color:rgba(255,255,255,.6);border:none;background:none;width:100%;text-align:left;border-left:3px solid transparent;position:relative;border-radius:0 var(--r-sm) var(--r-sm) 0;transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
 .nav-item:hover{color:#fff;background:rgba(255,255,255,.07)}
 .nav-item.active{color:#fff;background:rgba(255,255,255,.12);border-left-color:var(--decor-1)}
-.nav-item svg{width:14px;height:14px;flex-shrink:0;opacity:.7}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.7}
 .nav-item.active svg{opacity:1}
-.nav-item.active::after{content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--decor-1)}
+.nav-item.active::after{content:'';position:absolute;right:14px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--decor-1)}
 
 /* Theme toggle — pinned to the bottom of the sidebar (margin-top:auto in a
    flex column) rather than sitting inline with the page nav items, since
@@ -326,7 +335,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    rather than --surface itself: cards need to read as a distinct layer
    above the page background, and --surface-raised is the token that
    carries that "one step up" meaning on both themes. */
-.card{background:var(--surface-raised);border:1px solid var(--border-light);border-radius:var(--r-2xl);box-shadow:var(--shadow-2);overflow:hidden;display:flex;flex-direction:column;min-height:0;transition:border-color var(--dur-fast) var(--ease)}
+.card{background:var(--surface-raised);border:1px solid var(--border-light);border-radius:var(--r-2xl);box-shadow:var(--shadow-2);overflow:hidden;display:flex;flex-direction:column;min-height:0;transition:border-color var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease)}
 /* .card sets display:flex via the CLASS (not inline), so at first glance the
    UA stylesheet's [hidden]{display:none} should already win here the same
    way it does for a plain element — but the two rules are equal specificity
@@ -343,7 +352,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 /* Chart cards had no hover state, so a card holding a clickable legend
    looked identical to a static one. A hairline border shift says "this
    responds" without competing with the KPI row above. */
-.card:hover{border-color:var(--border)}
+.card:hover{border-color:var(--border);box-shadow:var(--shadow-3)}
 /* var(--surface-sunken) -> var(--surface-raised), not the literal
    #F8FAFF -> #fff this shipped with — same reasoning as .card's own fix:
    a hardcoded light gradient stayed light under the dark palette,
@@ -946,6 +955,25 @@ svg[data-chart="trend"]{overflow:visible}
    tooltip node can't live inside .ev-list or it would be wiped out on the
    next repaint, so it sits beside it in this relative-positioned wrapper. */
 .ev-list-wrap{position:relative;display:flex;flex-direction:column;flex:1;min-height:0}
+
+/* ═══ Top Insights (Overview) — icon list replacing the old Top Assets by
+   Alerts bar list. Same tinted circular icon-chip language as
+   .ov-insight-icon (Key Insight panel) at a slightly larger size since
+   this card has no headline competing for vertical space above it — see
+   renderOverviewTopInsights(). ═══ */
+.ov-topins-wrap{flex:1;min-height:0;overflow-y:auto;padding:10px 16px}
+.ov-topins-list{display:flex;flex-direction:column;gap:13px;margin:0;padding:0;list-style:none}
+.ov-topins-item{display:flex;align-items:flex-start;gap:11px}
+.ov-topins-icon{
+  width:31px;height:31px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.ov-topins-icon svg{width:15px;height:15px}
+.ov-topins-text{flex:1;min-width:0;padding-top:1px}
+.ov-topins-primary{font-size:var(--fs-xs);color:var(--text);font-weight:var(--fw-medium);line-height:1.4}
+.ov-topins-primary b{font-weight:var(--fw-bold);font-variant-numeric:tabular-nums}
+.ov-topins-secondary{font-size:var(--fs-2xs);color:var(--text-muted);line-height:1.4;margin-top:2px}
+.ov-topins-empty{font-size:var(--fs-xs);color:var(--text-muted)}
 
 /* ═══ Recent Alerts (Overview) — compact real <table>, not a div-row list ═══
    Deliberately a real table with <thead>/<th>, not .ev-row markup: this
@@ -1753,7 +1781,7 @@ th[data-sort][aria-sort]{color:var(--accent)}
   --ease: cubic-bezier(.4, 0, .2, 1);
 
   /* ── Layout ──────────────────────────────────────────────────────────── */
-  --sidebar-w: 190px;
+  --sidebar-w: 280px;
   --sidebar-w-collapsed: 56px;
 }
 
@@ -2505,14 +2533,14 @@ body {
       </div>
     </div>
     <div class="nav-section-label">Monitoring</div>
-    <button class="nav-item active" data-nav="overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14H10v-3H6v3H2z"/></svg>Overview</button>
-    <button class="nav-item" data-nav="analytics"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="2,12 5,8 8,10 11,5 14,7"/><path d="M2 14h12"/></svg>Analytics</button>
-    <button class="nav-item" data-nav="alert-logs"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h12M2 13h8"/><circle cx="13" cy="13" r="2"/></svg>Alert Logs</button>
-    <button class="nav-item" data-nav="driver-monitoring"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.3"/><path d="M2 14v-1.2c0-1.7 1.8-3 4-3s4 1.3 4 3V14"/><rect x="10.3" y="6.5" width="4.7" height="4" rx=".6"/><path d="M11 6.5V5.3a1.7 1.7 0 0 1 3.4 0v1.2"/></svg>Driver &amp; Asset Monitoring</button>
-    <button class="nav-item" data-nav="summary"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12M5.5 6v8"/></svg>Summary</button>
+    <button class="nav-item active" data-nav="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V10"/></svg>Overview</button>
+    <button class="nav-item" data-nav="analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>Analytics</button>
+    <button class="nav-item" data-nav="alert-logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>Alert Logs</button>
+    <button class="nav-item" data-nav="driver-monitoring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg>Driver &amp; Asset Monitoring</button>
+    <button class="nav-item" data-nav="summary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>Summary</button>
     <div class="nav-section-label">Management</div>
-    <button class="nav-item" data-nav="data-mgmt"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="8" cy="4" rx="6" ry="2"/><path d="M2 4v4c0 1.1 2.7 2 6 2s6-.9 6-2V4"/><path d="M2 8v4c0 1.1 2.7 2 6 2s6-.9 6-2V8"/></svg>Data Management</button>
-    <button class="nav-item" data-nav="settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>Settings</button>
+    <button class="nav-item" data-nav="data-mgmt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>Data Management</button>
+    <button class="nav-item" data-nav="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
 
     <!-- Theme toggle — minimal, verification-scoped (see ThemeToggle, script
          section, for the full rationale): flips data-theme between 'light'
@@ -2520,8 +2548,8 @@ body {
          bottom of the nav, its own section so it doesn't read as a 6th page. -->
     <div class="nav-theme">
       <button class="nav-item" id="themeToggleBtn" type="button" aria-pressed="false">
-        <svg id="themeToggleIconDark" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 9.5A6 6 0 016.5 2.5a6.5 6.5 0 106.99 7z"/></svg>
-        <svg id="themeToggleIconLight" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" hidden><circle cx="8" cy="8" r="3.2"/><path d="M8 1.3v1.6M8 13v1.6M2.7 8H1.3M14.7 8h-1.4M3.7 3.7l1 1M11.3 11.3l1 1M12.3 3.7l-1 1M4.7 11.3l-1 1"/></svg>
+        <svg id="themeToggleIconDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg id="themeToggleIconLight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden><circle cx="12" cy="12" r="4"/><path d="M12 3v1M12 20v1M3 12h1M20 12h1M5.6 5.6l.7.7M17.7 17.7l.7.7M5.6 18.4l.7-.7M17.7 6.3l.7-.7"/></svg>
         <span id="themeToggleLabel">Dark mode</span>
       </button>
     </div>
@@ -2550,6 +2578,7 @@ body {
         <div class="ov-header-meta">
           <div class="ov-header-controls">
             <div class="al-date-range" role="group" aria-label="Date range">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;color:var(--text-muted);flex-shrink:0" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>
               <label class="al-date-field">
                 <span>From</span>
                 <input type="date" id="ovDateFrom" aria-label="From date">
@@ -2568,7 +2597,7 @@ body {
                  nothing on click. Restore it once the data model has an
                  asset/site field to actually filter on. -->
             <button type="button" class="btn btn-outline" id="ovClearFiltersBtn" hidden>Clear filters</button>
-            <button class="btn" id="ovRefreshBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg>Refresh</button>
+            <button class="btn" id="ovRefreshBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0 0 20.5 15"/></svg>Refresh</button>
           </div>
           <div class="ov-header-caption">
             <span class="ov-clock" id="ovHeroClock">—<span id="ovHeroDate"></span></span>
@@ -2622,7 +2651,7 @@ body {
         </div>
         <div class="kpi akpi">
           <div class="akpi-head">
-            <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+            <div class="kpi-icon" style="background:var(--blue-50);color:var(--blue)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20a6 6 0 0 0-12 0"/><circle cx="12" cy="10" r="4"/><circle cx="12" cy="12" r="10"/></svg></div>
             <div class="kpi-label">Drivers Involved</div>
           </div>
           <div class="akpi-body"><div class="akpi-figure"><span class="kpi-val">—</span>
@@ -2778,34 +2807,42 @@ body {
           </div>
         </div>
 
-        <!-- Alerts by Event Type — charts.eventCodes()'s donut variant with
-             the compact 'rows' legend. A small donut paired with a legend is
-             the readable form of this chart; the design skill's caution is
-             against LARGE donuts standing alone, which this is not. -->
+        <!-- Alerts by Event Type — charts.eventCodes()'s 'bars' variant
+             (same barList()/.ev-list primitive Top Insights and Contributing
+             Factors use), each bar colored by severityFn so the severity
+             coding the donut used to carry via arc color survives as bar
+             color instead. Swapped from the donut so this card reads as one
+             visual family with its .ev-list neighbors rather than mixing a
+             circular chart into a row of bar lists. -->
         <div class="card">
           <div class="card-head"><h2>Alerts by Event Type</h2></div>
-          <div class="donut-wrap" style="position:relative;align-items:center">
-            <svg viewBox="0 0 160 160" style="width:auto;height:auto;max-width:108px;flex-shrink:0;aspect-ratio:1" data-chart="eventCodes">
-              <g id="ovEventDonutArcs"></g>
-              <text id="ovEventDonutCount" x="80" y="76" text-anchor="middle" font-size="18" font-weight="700" fill="var(--text)">—</text>
-              <text x="80" y="94" text-anchor="middle" font-size="9" fill="var(--text-sec)">Total</text>
-            </svg>
-            <div class="donut-legend" id="ovEventDonutLegend" style="flex:1"></div>
-            <div class="chart-tooltip" id="ovEventDonutTooltip"></div>
+          <div class="ev-list-wrap">
+            <div class="ev-list" id="ovEventBarList" data-chart="eventCodes"></div>
+            <div class="chart-tooltip" id="ovEventBarTooltip"></div>
           </div>
           <button type="button" class="ov-card-link" data-goto="analytics">View details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         </div>
 
-        <!-- Top Assets by Alerts — charts.topAssets(), unchanged renderer.
-             showPct:false because the card is narrow here; the exact share
-             is in the row's own hover tooltip. -->
+        <!-- Top Insights — NOT a new computation: renderOverviewTopInsights()
+             reuses the SAME insightBullets set the Key Insight panel above
+             already computes (volumeTrend/unactionedEntity/assetsTrend/
+             populationDrivers/syncDelay), rendered as a short icon list
+             instead of a headline + compact rows. This duplicates some
+             insight content in two places on the page — intentional: the
+             Key Insight panel leads with ONE headline + supporting rows,
+             this card gives every computable insight equal billing as a
+             scannable list, which the old Top Assets by Alerts bar list
+             (asset identity, not a takeaway) didn't offer. Replaces the
+             chart-registry 'topAssets' entry — see renderOverviewTopInsights,
+             called directly from paint() same as renderOverviewInsight(). -->
         <div class="card">
-          <div class="card-head"><h2>Top Assets by Alerts</h2></div>
-          <div class="ev-list-wrap">
-            <div class="ev-list" id="ovTopAssetList" data-chart="topAssets"></div>
-            <div class="chart-tooltip" id="ovTopAssetTooltip"></div>
+          <div class="card-head"><h2>Top Insights</h2></div>
+          <div class="ov-topins-wrap">
+            <ul class="ov-topins-list" id="ovTopInsightsList">
+              <li class="ov-topins-empty">No insights yet — import alert data to see what stands out.</li>
+            </ul>
           </div>
-          <button type="button" class="ov-card-link" data-goto="driver-monitoring">View all assets <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <button type="button" class="ov-card-link" data-goto="analytics">View details <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         </div>
 
         <!-- Contributing Factors — factorImpact(), unchanged renderer.
@@ -2829,10 +2866,12 @@ body {
       </div>
 
       <!-- ROW 3 — Recent Activity, full width. charts.recentAlerts(),
-           unchanged renderer and unchanged PAGES entry; only the card's
-           width and position changed. "What just happened" belongs after
+           unchanged PAGES entry; the card's width/position changed AND the
+           renderer grew two columns (End time / Updated, sourced from
+           derive()'s recentAlerts — see that function and charts.recentAlerts
+           for the full column list). "What just happened" belongs after
            the analysis, not competing with the trend chart for row 1 —
-           and at full width its five columns finally fit without the
+           and at full width its seven columns finally fit without the
            horizontal scrollbar the narrow version needed. -->
       <div class="ov-row3">
         <div class="card">
@@ -2840,7 +2879,7 @@ body {
           <div class="ev-list-wrap" style="overflow-y:auto">
             <table class="rec-table" id="ovRecentAlertsTable" data-chart="recentAlerts">
               <thead>
-                <tr><th>Time</th><th>Asset</th><th>Event</th><th>Shift</th><th>Count</th></tr>
+                <tr><th>Timestamp</th><th>Unit</th><th>Start time</th><th>End time</th><th>Update time</th><th>Event code</th><th>Shift</th><th>Event count</th></tr>
               </thead>
               <tbody id="ovRecentAlertsBody"></tbody>
             </table>
@@ -5414,6 +5453,8 @@ function annotate(rawRows) {
       ACTIONABLE: actionable ? 'ACTIONABLE' : 'NON_ACTIONABLE',
       _startHour: startTime.getUTCHours(),
       _startTime: startTime,          // full Date — sort key for recent-alerts lists
+      _updateTime: updateTime,        // full Date — when the row actually reached the server
+      _endTime: endTime,              // full Date or null — see _syncSeconds above for why it can be absent
       _syncSeconds: syncSeconds != null && syncSeconds >= 0 ? syncSeconds : null
     });
   });
@@ -5706,6 +5747,14 @@ function derive(allRows, filters) {
     .slice(0, 8)
     .map(r => ({
       time: r._startTime.toISOString(),
+      // updateTime/endTime — when the row reached the server and when the
+      // underlying event ended, same Date fields annotate() computes
+      // _syncSeconds from. Both can be null: endTime is genuinely optional
+      // in the source data (see annotate()'s own _syncSeconds comment),
+      // updateTime never is in practice (rows with no UPDATE_TIME are
+      // rejected at import) but is guarded the same way for symmetry.
+      updateTime: r._updateTime ? r._updateTime.toISOString() : null,
+      endTime: r._endTime ? r._endTime.toISOString() : null,
       operator: (() => {
         const v = field(r, 'OPERATOR');
         return (v != null && String(v).trim()) ? String(v).trim() : UNSPECIFIED_OPERATOR;
@@ -6633,6 +6682,8 @@ function annotate(rawRows) {
       ACTIONABLE: actionable ? 'ACTIONABLE' : 'NON_ACTIONABLE',
       _startHour: startTime.getUTCHours(),
       _startTime: startTime,          // full Date — sort key for recent-alerts lists
+      _updateTime: updateTime,        // full Date — when the row actually reached the server
+      _endTime: endTime,              // full Date or null — see _syncSeconds above for why it can be absent
       _syncSeconds: syncSeconds != null && syncSeconds >= 0 ? syncSeconds : null
     });
   });
@@ -6925,6 +6976,14 @@ function derive(allRows, filters) {
     .slice(0, 8)
     .map(r => ({
       time: r._startTime.toISOString(),
+      // updateTime/endTime — when the row reached the server and when the
+      // underlying event ended, same Date fields annotate() computes
+      // _syncSeconds from. Both can be null: endTime is genuinely optional
+      // in the source data (see annotate()'s own _syncSeconds comment),
+      // updateTime never is in practice (rows with no UPDATE_TIME are
+      // rejected at import) but is guarded the same way for symmetry.
+      updateTime: r._updateTime ? r._updateTime.toISOString() : null,
+      endTime: r._endTime ? r._endTime.toISOString() : null,
       operator: (() => {
         const v = field(r, 'OPERATOR');
         return (v != null && String(v).trim()) ? String(v).trim() : UNSPECIFIED_OPERATOR;
@@ -7762,15 +7821,19 @@ const NEUTRAL = '#B4B2A9';
 
 /* ── Primitives ─────────────────────────────────────────────────────────── */
 
-/** Horizontal labelled bar list. Used by event codes, top assets, top operators. */
+/** Horizontal labelled bar list. Used by event codes, top assets, top
+    operators. Each item may carry its own `color` (e.g. severity coding for
+    event-type bars) — applied to that row's .ev-fill inline, same technique
+    factorImpact() already used to color its "elevated" rows; when an item
+    has no color the CSS default (var(--accent), see .ev-fill) applies. */
 function barList(el, items, { max, showPct = true, emptyText = 'No data' } = {}) {
   if (!items.length) { el.innerHTML = `<div class="ev-empty">${esc(emptyText)}</div>`; return; }
   const peak = max ?? Math.max(...items.map(i => i.value), 1);
-  el.innerHTML = items.map(({ label, value }) => {
+  el.innerHTML = items.map(({ label, value, color }) => {
     const pct = Math.round((value / peak) * 100);
     return `<div class="ev-row">
       <div class="ev-label" title="${esc(label)}">${esc(label)}</div>
-      <div class="ev-track"><div class="ev-fill" style="width:${pct}%"></div></div>
+      <div class="ev-track"><div class="ev-fill" style="width:${pct}%${color ? `;background:${color}` : ''}"></div></div>
       <div class="ev-val">${fmt.int(value)}${showPct ? ` (${pct}%)` : ''}</div>
     </div>`;
   }).join('');
@@ -8464,8 +8527,28 @@ const charts = {
 
     if (variant === 'bars') {
       const total = codes.reduce((s, c) => s + val(c), 0);
-      barList(el, codes.map(c => ({ label: c.code, value: val(c) })),
+      // Each bar carries its own severity color via severityFn — same
+      // function (and same `fg` field) the donut variant below colors its
+      // arcs with, so a code reads the same color whichever variant is on
+      // screen. barList() applies `color` to that row's .ev-fill when
+      // present (see barList's own comment).
+      barList(el, codes.map(c => ({ label: c.code, value: val(c), color: severityFn(c.code).fg })),
         { max: total, emptyText: 'No event codes' });
+      if (tip) {
+        [...el.querySelectorAll('.ev-row')].forEach((row, i) => {
+          const c = codes[i];
+          if (!c) return;
+          const pct = total ? Math.round(val(c) / total * 100) : 0;
+          row.addEventListener('mousemove', evt => {
+            const container = el.closest('.ev-list-wrap') || el.closest('.card') || el;
+            const rect = container.getBoundingClientRect();
+            showTooltip(tip, container, evt.clientX - rect.left, evt.clientY - rect.top,
+              tooltipHTML(c.code, [{ label: measure === 'units' ? 'Alerts' : 'Events', value: fmt.int(val(c)) },
+                                    { label: 'Share', value: `${pct}%` }]));
+          });
+          row.addEventListener('mouseleave', () => hideTooltip(tip));
+        });
+      }
       return;
     }
     const segs = codes.map(c => ({ value: val(c), color: severityFn(c.code).fg }));
@@ -9481,13 +9564,29 @@ const charts = {
      layer above. Deliberately no status/acknowledgment column: the data
      model has no such field, and a decorative one would be
      indistinguishable from a real one to anyone reading the table. Event
-     column carries a severity badge (severityForCode) instead of plain
-     text. Currently unused by any PAGES entry — see topOperators' comment
-     above for why it's left in place rather than deleted. */
+     code column carries a severity badge (severityForCode) instead of
+     plain text.
+
+     8 columns: Timestamp / Unit / Start time / End time / Update time /
+     Event code / Shift / Event count. Timestamp and Start time both read
+     r.time (i.e. _startTime) — shown twice on purpose: Timestamp is "when
+     this row happened" for a quick newest-first scan (matches every other
+     timestamp column in this app), while Start time sits grouped with its
+     End time / Update time siblings so the three raw START_TIME/END_TIME/
+     UPDATE_TIME fields annotate() parses read as one group. All three use
+     fmt.dateTime for consistency. End time and Update time render '—'
+     when the underlying field is null (End time is genuinely optional in
+     the source data — see annotate()'s _syncSeconds comment; Update time
+     is guarded the same way for symmetry even though rows with no
+     UPDATE_TIME are rejected at import and so never reach this table).
+     Shift kept as its own column rather than dropped — this table has
+     shown day/night at a glance since before this redesign, and the
+     full-width row it renders into now has room for it alongside the
+     three new time columns. */
   recentAlerts(el, d) {
     const rows = d.recentAlerts ?? [];
     if (!rows.length) {
-      el.innerHTML = `<tr><td colspan="5"><div class="ev-empty">No alerts in range</div></td></tr>`;
+      el.innerHTML = `<tr><td colspan="8"><div class="ev-empty">No alerts in range</div></td></tr>`;
       return;
     }
     // Driver column dropped — Recent Activity is meant as a fast asset/
@@ -9500,6 +9599,9 @@ const charts = {
       <tr>
         <td>${esc(fmt.dateTime(r.time))}</td>
         <td>${esc(r.asset)}</td>
+        <td>${esc(fmt.dateTime(r.time))}</td>
+        <td>${r.endTime ? esc(fmt.dateTime(r.endTime)) : '—'}</td>
+        <td>${r.updateTime ? esc(fmt.dateTime(r.updateTime)) : '—'}</td>
         <td><span class="pill" style="background:${sev.bg};color:${sev.fg}">${esc(r.eventCode)}</span></td>
         <td>${r.shift === 'DAY' ? '<span class="pill" data-variant="info">Day Shift</span>'
               : r.shift === 'NIGHT' ? '<span class="pill" data-variant="warning">Night Shift</span>'
@@ -9554,15 +9656,15 @@ const PAGES = {
       el: () => $('ovHourlyBars'),
       geo: { barW: 30, gap: 42, baseline: 128, top: 6, offsetX: 4 },
       tip: () => $('ovHourlyTooltip'), insightEl: () => $('ovHourlyInsight') },
-    { chart: 'eventCodes', variant: 'donut', measure: MEASURE, limit: 5,
-      refs: () => ({ arcs: $('ovEventDonutArcs'), count: $('ovEventDonutCount'),
-                     legend: $('ovEventDonutLegend') }),
-      centerText: 'total', severityFn: overviewSeverityForCode,
-      tip: () => $('ovEventDonutTooltip') },
-    // showPct:false — the card is narrow in a 4-up row; the exact share is
-    // in each row's own hover tooltip instead of crowding the value cell.
-    { chart: 'topAssets', limit: 6, showPct: false, el: () => $('ovTopAssetList'),
-      tip: () => $('ovTopAssetTooltip') },
+    { chart: 'eventCodes', variant: 'bars', measure: MEASURE, limit: 5,
+      el: () => $('ovEventBarList'), severityFn: overviewSeverityForCode,
+      tip: () => $('ovEventBarTooltip') },
+    // Top Assets by Alerts' chart-registry entry removed: that card is now
+    // Top Insights, rendered by renderOverviewTopInsights() directly from
+    // paint() (same reasoning Key Insight / renderOverviewInsight() isn't
+    // a PAGES entry either — see this array's own head comment). No
+    // #ovTopAssetList/#ovTopAssetTooltip elements exist in the markup any
+    // more for a leftover entry here to resolve to.
     { chart: 'factorImpact', el: () => $('ovFactorImpactList'),
       tip: () => $('ovFactorImpactTooltip') },
     /* ROW 3 — Recent Activity. Unchanged renderer and unchanged target id;
@@ -11454,6 +11556,43 @@ function renderOverviewInsight(derived) {
       : `${hiddenUpdates} more update${hiddenUpdates === 1 ? '' : 's'}`;
     moreBtn.onclick = () => { if (App?.showPage) App.showPage('analytics'); };
   }
+}
+
+/* Top Insights card — ROW 2's replacement for the old Top Assets by Alerts
+   bar list. Deliberately NOT a new computation: every bullet here comes
+   from the SAME insightBullets set renderOverviewInsight() above already
+   evaluates, so the two cards can never disagree about a number. The Key
+   Insight panel promotes its first bullet to a headline and shows the
+   rest as compact rows fitted to whatever vertical space survives after
+   the Latest Updates feed; this card has no headline and no feed
+   competing for room, so it simply lists every bullet that computed, in
+   the same priority order, one icon row each — a second, equal-billing
+   presentation of the same source, not a second opinion. */
+function renderOverviewTopInsights(derived) {
+  const el = $('ovTopInsightsList');
+  if (!el) return;
+
+  const bullets = [
+    insightBullets.volumeTrend(derived),
+    insightBullets.unactionedEntity(derived),
+    insightBullets.assetsTrend(derived),
+    insightBullets.populationDrivers(derived),
+    insightBullets.syncDelay(derived)
+  ].filter(Boolean);
+
+  if (!bullets.length) {
+    el.innerHTML = `<li class="ov-topins-empty">No insights yet — import alert data to see what stands out.</li>`;
+    return;
+  }
+
+  el.innerHTML = bullets.map(b => `
+    <li class="ov-topins-item">
+      <span class="ov-topins-icon" style="background:${b.tint};color:${b.fg}">${svg(b.icon, 'ic')}</span>
+      <div class="ov-topins-text">
+        <div class="ov-topins-primary">${b.headline ?? `${esc(b.title)} ${b.value ?? ''}`}</div>
+        ${b.sub ? `<div class="ov-topins-secondary">${b.sub}</div>` : ''}
+      </div>
+    </li>`).join('');
 }
 
 /* Trend card's y-axis and mean reference line. Reads the same derived.trend
@@ -19824,6 +19963,7 @@ function paint(page, derived){
     renderOverviewKpis(document.getElementById('ovKpiRow'), derived);
     renderOverviewHero(derived);
     renderOverviewInsight(derived);
+    renderOverviewTopInsights(derived);
     // AFTER renderPage() above has drawn the trend lines — the y-axis and
     // mean line are positioned against the scale those lines were drawn
     // on, so this has to read a chart that already exists this frame.
