@@ -54,7 +54,15 @@ insert into public.drivers (emp_no, full_name) values
   ('T0004', 'REYES, PEDRO JR'),
   ('T0005', 'MARIANO, ROBERTO'),
   ('T0006', 'MARIANO, ROBERTA'),
-  ('T0007', 'BAUTISTA, ANTONIO');
+  ('T0007', 'BAUTISTA, ANTONIO'),
+  -- 0029: diacritics-beyond-Ñ and hyphenated-surname-prefix coverage.
+  ('T0008', 'JOSÉ, MARIA'),
+  ('T0009', 'DE LA CRUZ, PEDRO'),
+  -- Same given name, different surname prefix — isolates the surname-prefix
+  -- collapse from any other tier so a false merge would show up here and
+  -- nowhere else.
+  ('T0010', 'SAN JUAN, ANA'),
+  ('T0011', 'SAN PEDRO, ANA');
 
 insert into public.driver_aliases (norm_name, raw_name, emp_no, tier, source)
 select public.dds_norm_name(full_name), full_name, emp_no, 'seed', 'seed'
@@ -107,6 +115,17 @@ begin
 
   -- Spacing around the comma varies freely between typists and must not
   -- change the key.
+  --
+  -- 0029: this assertion was silently wrong before that migration — the
+  -- comma-spacing regex was written with a bare 's*'/'s+' (a literal
+  -- lowercase "s") instead of '\s*'/'\s+' (whitespace), so the live function
+  -- actually returned 'SANTOS ,   MARIA' here, not 'SANTOS, MARIA'. Nothing
+  -- caught it because the bug was symmetric (any two inputs that matched
+  -- each other before the fix still matched each other after), so the tier
+  -- ladder never surfaced a wrong answer — only a direct string-equality
+  -- check against the literal expected form like this one could catch it.
+  -- Fixed in 0029; this assertion now reflects the actually-correct,
+  -- actually-verified output.
   if public.dds_norm_name('SANTOS ,  MARIA') <> 'SANTOS, MARIA' then
     raise exception 'FAIL: comma spacing not normalized';
   end if;
@@ -153,6 +172,23 @@ select pg_temp.expect('TOTALLY UNKNOWN PERSON', null,    'none',
 
 select pg_temp.expect('   ',                    null,    'blank',
   'blank input');
+
+-- ── 0029: diacritics and hyphenated-surname-prefix gaps ────────────────────
+
+select pg_temp.expect('JOSE, MARIA',             'T0008', 'alias',
+  '0029 — plain E resolves against an accented É roster entry');
+
+select pg_temp.expect('DELA CRUZ, PEDRO',        'T0009', 'surname_first',
+  '0029 — collapsed surname spelling resolves against a two-word "DE LA" roster entry');
+
+-- The false-positive guard: SAN JUAN and SAN PEDRO share a given name and a
+-- surname PREFIX, but are not the same surname. The collapse must never
+-- confuse the two.
+select pg_temp.expect('SANJUAN, ANA',            'T0010', 'skeleton',
+  '0029 — SAN JUAN must resolve to itself, never to SAN PEDRO');
+
+select pg_temp.expect('SANPEDRO, ANA',           'T0011', 'skeleton',
+  '0029 — SAN PEDRO must resolve to itself, never to SAN JUAN');
 
 -- The review path must still hand the reviewer both candidates to choose
 -- between — refusing to guess is only useful if the options come with it.

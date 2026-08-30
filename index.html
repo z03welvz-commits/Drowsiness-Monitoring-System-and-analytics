@@ -13801,30 +13801,69 @@ var NotificationSound = (function(){
          a scan that matched nothing (an empty masterlist, or an export with
          no driver-name column at all) otherwise looks identical to a clean
          import, and the user would have no reason to suspect their alerts
-         are unattributed until they wonder why a driver has no data. */
+         are unattributed until they wonder why a driver has no data.
+
+         A DDS alert file almost never carries an OPERATOR column at all in
+         practice (see 0024_minestat.sql's own header) — the real identity
+         source is a MineStat shift record joined by (asset, date, shift),
+         resolved via Cloud.backfillEmpNoFromMinestat(). That RPC previously
+         only ran after a MineStat upload or a MineStat review resolution,
+         never after a DDS upload — meaning every DDS-only upload, no matter
+         how good the masterlist or the resolver, left every event
+         permanently unattributed until someone happened to touch MineStat
+         afterward. Run it here too, every time, so the two attribution
+         paths (inline operator-name resolution and the MineStat join) both
+         fire on the one event a user actually takes: uploading alerts.
+
+         announce() REPLACES the live-region text, it does not queue two
+         messages — so resolutionStats() (inline name resolution) and
+         backfillEmpNoFromMinestat() (the MineStat join) are awaited
+         together and folded into ONE announce() call, not two competing
+         ones that would race to have the last word. */
       if (Cloud.available() && Cloud.session){
-        Cloud.resolutionStats().then(function(stats){
+        Promise.all([
+          Cloud.resolutionStats().catch(function(){ return null; }),
+          Cloud.backfillEmpNoFromMinestat().catch(function(){ return null; })
+        ]).then(function(results){
+          var stats = results[0];
+          var bf    = results[1];
+
+          if (bf && bf.updated > 0) App.loadFromServer();
+
           if (!stats || !stats.rows) return;
           var total      = stats.rows.total || 0;
           var resolved   = stats.rows.resolved || 0;
           var unresolved = stats.rows.unresolved || 0;
           var noOperator = stats.rows.noOperator || 0;
+          var bfUpdated  = (bf && bf.updated) || 0;
 
+          var msg;
           if (noOperator === total && total > 0){
             /* Not a matching failure — the file simply carried no driver
-               names, so there was nothing for the scan to compare. Saying
-               "0 matched" here would blame the masterlist for the wrong
-               thing and send someone to re-upload a conso that is fine. */
-            announce('Imported — this file carried no driver names, so no employee numbers were attached');
+               names, so there was nothing for the inline scan to compare.
+               Saying "0 matched" here would blame the masterlist for the
+               wrong thing and send someone to re-upload a conso that is
+               fine — the MineStat-join count (bfUpdated) is the real
+               attribution story for this file shape and is appended below. */
+            msg = 'Imported — this file carried no driver names, so no employee numbers were attached from the file itself';
           } else if (unresolved > 0){
-            announce('Imported — ' + resolved.toLocaleString() + ' of ' +
-                     (resolved + unresolved).toLocaleString() +
-                     ' alerts matched to an employee number; ' +
-                     unresolved.toLocaleString() + ' need review');
+            msg = 'Imported — ' + resolved.toLocaleString() + ' of ' +
+                  (resolved + unresolved).toLocaleString() +
+                  ' alerts matched to an employee number; ' +
+                  unresolved.toLocaleString() + ' need review';
           } else if (resolved > 0){
-            announce('Imported — every driver name matched the masterlist');
+            msg = 'Imported — every driver name matched the masterlist';
+          } else {
+            msg = 'Imported';
           }
-        }).catch(function(){ /* stats are informational; never block an import */ });
+
+          if (bfUpdated > 0){
+            msg += '. ' + bfUpdated.toLocaleString() +
+                   (bfUpdated === 1 ? ' additional alert linked to a driver via MineStat.' : ' additional alerts linked to a driver via MineStat.');
+          }
+
+          announce(msg);
+        }).catch(function(){ /* stats/backfill are informational; never block an import */ });
       }
     }).catch(function(err){
       console.error('Cloud sync failed for import ' + rec.id, err);
