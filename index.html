@@ -252,6 +252,13 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 }
 .cpill svg{width:10px;height:10px;color:var(--text-sec)}
 .btn{border:none;border-radius:var(--r-md);padding:7px 14px;font-size:var(--fs-xs);font-weight:var(--fw-medium);display:inline-flex;align-items:center;gap:6px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));box-shadow:var(--shadow-1);cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease)}
+/* Same UA-stylesheet cascade-order tie as .card[hidden] above (see that
+   rule's own comment for the full explanation): .btn sets display via the
+   class, so a plain [hidden] attribute alone doesn't hide it. Never
+   mattered before nothing conditionally hid a .btn — confirmed live: the
+   new Clear Filters buttons rendered fully visible with hidden="" already
+   correctly set, on every page, until this rule was added. */
+.btn[hidden]{display:none}
 /* Interactivity: a primary action should acknowledge the cursor and the
    click. Lift on hover, settle on press -- the press state is what most
    dashboards forget, and its absence is why buttons feel dead. */
@@ -2037,6 +2044,11 @@ body.has-painted[data-status="loading"] .card {
 }
 .btn:hover  { background: var(--primary); }
 .btn:active { transform: translateY(1px); }
+/* This is the SECOND .btn block in the file (see the earlier one's own
+   [hidden] override comment, ~line 254) — both set display via the class,
+   so both independently need this override; whichever block wins the
+   general cascade, [hidden] must still be respected either way. */
+.btn[hidden] { display: none; }
 
 .btn-outline {
   background: var(--surface); color: var(--text);
