@@ -9577,7 +9577,21 @@ const PAGES = {
   // removed; their chart functions stay in CHARTS, unmounted.
   analytics: [
     { chart: 'insightsAnalytics', el: () => $('anInsights') },
-    { chart: 'trend', series: ['units', 'assets'], refs: () => ({
+    /* geo REQUIRED here, not left to trend()'s own default — that default
+       (top:20/bottom:168/width:992/left:12/right:12) is sized for
+       Overview's ovTrendSvg viewBox (992x180). This card's own anTrendSvg
+       is a DIFFERENT viewBox, 720x220, with its own gridlines already
+       drawn at y=20/110/200 (see that markup) — plotting with Overview's
+       geo meant the line was scaled for a box this chart doesn't have,
+       which is why widening Overview's padding never visibly changed
+       anything here: the mismatch, not the margin size, was the actual
+       bug. top/bottom now match this card's own gridlines exactly;
+       left/right keep the same absolute 12px inset trend()'s default uses
+       (a slightly larger fraction of this narrower 720-wide box, which is
+       fine — the point is real margin, not an identical ratio). */
+    { chart: 'trend', series: ['units', 'assets'],
+      geo: { top: 20, bottom: 200, width: 720, left: 12, right: 12 },
+      refs: () => ({
         unitsPath: $('anTrendAlertsPath'), assetsPath: $('anTrendAssetsPath'),
         fill: $('anTrendFillPath'), dots: $('anTrendDots'), axis: $('anTrendAxis'),
         hover: $('anTrendHover') }),
