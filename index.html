@@ -413,7 +413,19 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .legend-item-toggle[aria-pressed="false"]{opacity:.4; text-decoration:line-through}
 .legend-item-toggle[aria-pressed="false"] .legend-dot{background:transparent !important; box-shadow:inset 0 0 0 1.5px currentColor}
 
-.chart-body{padding:8px 16px 12px;flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+/* padding: 12px 16px 12px (--sp-5 --sp-6 --sp-5), not the original 8px top.
+   The Overview page carried its own [data-page-id="overview"] .chart-body
+   override widening exactly this top value, on record (see that rule's own
+   comment, ~line 456) as a fix for chart content sitting flush against the
+   card's rounded corner — but its override had numerically converged back
+   to the same 8px this rule sets, some time after it was written, silently
+   undoing the fix it documents. Raised HERE instead of re-widening only
+   Overview's copy: every page's chart cards share this one rule already
+   (nothing else overrides it), so widening it once keeps every page's
+   padding equal rather than reintroducing the exact "one page has more
+   breathing room than the rest" inconsistency that override was trying to
+   avoid in the first place. */
+.chart-body{padding:12px 16px 12px;flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
 /* End-of-line markers (trend()'s refs.dots — see its own comment) sit
    exactly at the viewBox's right edge, since linePath() maps the last
    point to x=width with no inset. A <circle> centered there has half its
@@ -454,14 +466,14 @@ svg[data-chart="trend"]{overflow:visible}
    applies here too — this override now only sets what's genuinely
    Overview-specific (the 5-column grid and its gap). */
 .page[data-page-id="overview"] .card-head{padding:var(--sp-4) var(--sp-5)}
-/* --sp-4/--sp-6/--sp-5, not --sp-3/--sp-5/--sp-4 — the tighter padding put
-   the trend chart's y-axis labels and plotted lines almost flush against
-   the card's rounded corners once the redundant summary column (removed
-   separately) stopped sharing the card's right edge with them. Widened
-   for every Overview chart card, not just Alert Volume Over Time, so the
-   page reads as one consistent amount of breathing room rather than one
-   card standing out. */
-.page[data-page-id="overview"] .chart-body{padding:var(--sp-4) var(--sp-6) var(--sp-5)}
+/* An Overview-only .chart-body override used to live here, widening its top
+   padding for the same "chart content flush against the card's rounded
+   corner" reason the base .chart-body rule itself is now widened for (see
+   that rule's own comment, ~line 416) — this page-specific copy is gone
+   because the base rule now already provides the wider padding it used to
+   add on top of, and keeping both would have meant Overview's cards got
+   MORE padding than every other page's chart cards again, the exact
+   inconsistency a shared base rule is supposed to prevent. */
 .page[data-page-id="overview"] .ev-list{padding:var(--sp-4) var(--sp-5)}
 
 /* Severity donut — vertical layout (ring on top, legend below), donut
@@ -2676,7 +2688,7 @@ body {
                          resolve fine on SVG presentation attributes here since the
                          SVG is inline in the HTML document, same as ovTrendFillPath
                          two lines down already relying on var(--blue). -->
-                    <line x1="0" y1="8" x2="992" y2="8" stroke="var(--divider)" stroke-width="1"/><line x1="0" y1="88" x2="992" y2="88" stroke="var(--divider)" stroke-width="1"/><line x1="0" y1="168" x2="992" y2="168" stroke="var(--divider)" stroke-width="1"/>
+                    <line x1="0" y1="20" x2="992" y2="20" stroke="var(--divider)" stroke-width="1"/><line x1="0" y1="94" x2="992" y2="94" stroke="var(--divider)" stroke-width="1"/><line x1="0" y1="168" x2="992" y2="168" stroke="var(--divider)" stroke-width="1"/>
                     <path id="ovTrendFillPath" d="" fill="var(--blue)" fill-opacity=".1"/>
                     <!-- Mean reference line, positioned by renderOverviewTrend()
                          on the units series' own scale. Empty d until then. -->
@@ -8529,7 +8541,25 @@ const charts = {
      series so it stays a comparison, not a second axis. Silently omitted
      if no comparison is available (e.g. no baseline period yet), same
      never-a-placeholder convention as insightEl below. */
-  trend(el, d, { refs, series = ['units'], geo = { top: 8, bottom: 168, width: 992 }, tip, insightEl, showPrev = false, hidden = new Set() } = {}) {
+  /* top: 20, not 8 — a peak sitting exactly at the coordinate math's own
+     ceiling (linePath() maps the series max to y=top with zero margin)
+     rendered right against it with no headroom of its own. Two things eat
+     into that margin even before overshoot: the 2px stroke extends 1px
+     past the mathematical point on either side, and smoothPath()'s
+     Catmull-Rom spline can bulge ABOVE a sharp local peak's own y — a
+     cubic Bezier through three points does not pass straight through the
+     middle one, it can overshoot past it. Confirmed live: Overview's
+     Alert Volume Over Time peak visibly crossed into the card header at
+     top:8. 20 matches the ratio Analytics' own trend chart already uses
+     (20 of a 220-tall viewBox) — this was the one place still on the
+     tighter original number. bottom/width unchanged; only headroom above
+     the tallest point was the reported problem. Kept in sync with the
+     three gridlines in ovTrendSvg's markup and renderOverviewTrend()'s
+     own geo (the mean-line's identical y = bottom - (...) * (bottom-top)
+     formula) — change one, change all three or the mean line and
+     gridlines will describe a different scale than the line actually
+     plots on. */
+  trend(el, d, { refs, series = ['units'], geo = { top: 20, bottom: 168, width: 992 }, tip, insightEl, showPrev = false, hidden = new Set() } = {}) {
     const pts = d.trend;
     if (!pts.length) {
       if (refs.axis) refs.axis.innerHTML = '';
@@ -11438,7 +11468,11 @@ function renderOverviewTrend(derived) {
 
   const vals = pts.map(p => p.units);
   const min = Math.min(...vals), max = Math.max(...vals);
-  const geo = { top: 8, bottom: 168 };
+  // Must match charts.trend()'s own default geo (top:20, not 8 — see that
+  // function's own comment) and ovTrendSvg's three gridlines, or the
+  // dashed mean-reference line drawn below would sit on a different scale
+  // than the line it's meant to reference.
+  const geo = { top: 20, bottom: 168 };
 
   if (axisEl) {
     // 4 ticks, top-to-bottom, matching the SVG's own three gridlines plus
