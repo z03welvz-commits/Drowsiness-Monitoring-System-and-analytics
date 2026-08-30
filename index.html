@@ -1928,6 +1928,22 @@ body.has-painted[data-status="loading"] .card {
   transition: opacity var(--dur-base) var(--ease);
 }
 
+/* Same restrained dim, PAGE-scoped rather than body[data-status]-driven —
+   for Alert Logs and Summary, whose filters/pagination deliberately do NOT
+   go through the shared store (see initControls()'s STORE_DATE_INPUTS
+   comment on why: those two pages self-fetch their own state.rows and must
+   not repaint Overview/Analytics/Driver&Asset on every keystroke). Without
+   this, the only pages with ANY visual loading feedback were the
+   store-driven ones — a filter change or Next/Previous page click on Alert
+   Logs or Summary showed nothing at all while the request was in flight.
+   Toggled via .card[data-loading="true"] on the specific card, set/cleared
+   by each page's own loadPage()/reload(), not a global attribute. */
+.card[data-loading="true"] {
+  opacity: .72;
+  pointer-events: none;
+  transition: opacity var(--dur-base) var(--ease);
+}
+
 .btn[data-loading="true"] { position: relative; color: transparent; }
 .btn[data-loading="true"]::after {
   content: ""; position: absolute; inset: 0; margin: auto;
@@ -2527,7 +2543,7 @@ body {
                  branch) — a chevron-decorated div implying a filter that did
                  nothing on click. Restore it once the data model has an
                  asset/site field to actually filter on. -->
-            <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg>Refresh</button>
+            <button class="btn" id="ovRefreshBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0020.5 15"/></svg>Refresh</button>
           </div>
           <div class="ov-header-caption">
             <span class="ov-clock" id="ovHeroClock">—<span id="ovHeroDate"></span></span>
@@ -2847,7 +2863,7 @@ body {
             </label>
           </div>
           <div class="cpill">All Shifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
-          <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Export</button>
+          <button class="btn" id="anExportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Export</button>
         </div>
       </div>
 
@@ -10504,36 +10520,51 @@ function initControls(store, { onRefresh } = {}) {
     }
   });
 
-  /* Refresh — was inert. */
-  document.querySelectorAll('button').forEach(btn => {
-    const label = btn.textContent.trim();
+  /* Refresh/Export — SCOPED by id, not a document-wide text match.
+     Used to be `document.querySelectorAll('button')` matched against
+     textContent === 'Refresh'/'Export' — the same class of bug
+     STORE_DATE_INPUTS above already exists to prevent for date inputs, just
+     never applied here. Alert Logs' own Export button (#alExportBtn) also
+     has the literal text "Export" and its own dedicated handler (see that
+     IIFE) bound BEFORE this function runs; the text match fired a SECOND,
+     unrelated handler on every click — store.get().derived is the
+     Overview/Analytics dashboard's data, not Alert Logs' table, so clicking
+     Export on Alert Logs silently downloaded two files, one of them the
+     wrong one, and the button's disabled state tracked the wrong store too.
+     An explicit id list is immune to a future page reusing the word
+     "Export" or "Refresh" on a button of its own. */
+  const STORE_REFRESH_BTN_IDS = ['ovRefreshBtn'];
+  const STORE_EXPORT_BTN_IDS = ['anExportBtn'];
 
-    if (label === 'Refresh') {
-      btn.addEventListener('click', async () => {
-        btn.dataset.loading = 'true';
-        btn.disabled = true;
-        try {
-          await (onRefresh ? onRefresh() : store.fetchMetrics?.());
-          announce('Data refreshed');
-        } catch {
-          announce('Refresh failed', { assertive: true });
-        } finally {
-          delete btn.dataset.loading;
-          btn.disabled = false;
-        }
-      });
-    }
+  STORE_REFRESH_BTN_IDS.forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      btn.dataset.loading = 'true';
+      btn.disabled = true;
+      try {
+        await (onRefresh ? onRefresh() : store.fetchMetrics?.());
+        announce('Data refreshed');
+      } catch {
+        announce('Refresh failed', { assertive: true });
+      } finally {
+        delete btn.dataset.loading;
+        btn.disabled = false;
+      }
+    });
+  });
 
-    if (label === 'Export') {
-      btn.addEventListener('click', () => {
-        const { derived, filters } = store.get();
-        if (!derived) { announce('Nothing to export yet', { assertive: true }); return; }
-        exportDerived(derived, filters);
-        announce('Export downloaded');
-      });
-      // Nothing to export until data exists.
-      btn.disabled = !store.get().derived;
-    }
+  STORE_EXPORT_BTN_IDS.forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const { derived, filters } = store.get();
+      if (!derived) { announce('Nothing to export yet', { assertive: true }); return; }
+      exportDerived(derived, filters);
+      announce('Export downloaded');
+    });
+    // Nothing to export until data exists.
+    btn.disabled = !store.get().derived;
   });
 
   /* Keep empty state and Export availability in sync with the store.
@@ -10577,11 +10608,16 @@ function initControls(store, { onRefresh } = {}) {
     // empty box is removed the moment status stops being ready-with-rows.
     if (s.status === 'error') { clearEmptyState(); }
     else { showData ? clearEmptyState() : renderEmptyState(); }
-    document.querySelectorAll('button').forEach(b => {
-      // Export reads store.derived directly, so it must follow the same
-      // hold-during-loading rule — otherwise the button flickers disabled
-      // mid-fetch while perfectly good data is still on screen.
-      if (b.textContent.trim() === 'Export') b.disabled = !showData;
+    // Export reads store.derived directly, so it must follow the same
+    // hold-during-loading rule — otherwise the button flickers disabled
+    // mid-fetch while perfectly good data is still on screen. Scoped to
+    // STORE_EXPORT_BTN_IDS, not a textContent sweep — see that const's own
+    // comment above for why a global match caught Alert Logs' unrelated
+    // #alExportBtn (also literally "Export") and disabled it based on THIS
+    // store's data instead of its own.
+    STORE_EXPORT_BTN_IDS.forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.disabled = !showData;
     });
   });
 }
@@ -15038,6 +15074,10 @@ var NotificationSound = (function(){
      database) isn't wiped out by a fetch that raced ahead of it. */
   function load(){
     if (!Cloud.available() || !Cloud.session) return;
+    // Same page-scoped dim as masterlist's load() above — see that
+    // function's own comment on why a nav-arrival fetch needs this.
+    var factorCard = tableWrap && tableWrap.closest('.card');
+    if (factorCard) factorCard.dataset.loading = 'true';
     Cloud.fetchFactors().then(function(rows){
       var known = {};
       factors.forEach(function(f){ known[f.id] = true; });
@@ -15060,6 +15100,7 @@ var NotificationSound = (function(){
       console.warn('Contributing factors unavailable', err);
     }).finally(function(){
       App._factorsLoadedAt = Date.now();
+      if (factorCard) delete factorCard.dataset.loading;
     });
   }
   Cloud.onSignIn(function(){
@@ -15715,6 +15756,15 @@ var NotificationSound = (function(){
       return;
     }
     tableWrap.setAttribute('aria-busy', 'true');
+    // Visual counterpart to aria-busy above — that attribute alone has no
+    // CSS hook anywhere in this app, so a filter change or Next/Previous
+    // click showed screen readers "busy" while sighted users saw nothing
+    // happen until rows swapped in. Same restrained dim the store-driven
+    // pages get automatically (body.has-painted[data-status="loading"]
+    // .card), applied here via the page-scoped .card[data-loading] rule
+    // since this page deliberately isn't wired to that shared store.
+    var alCard = tableWrap.closest('.card');
+    if (alCard) alCard.dataset.loading = 'true';
     // shift/status are no longer separate RPC params — those filters were
     // folded into the free-text search box (see searchHaystack() above), so
     // whatever the user typed ("night", "ongoing", etc.) rides along as
@@ -15737,6 +15787,7 @@ var NotificationSound = (function(){
       announce('Failed to load Alert Logs', { assertive: true });
     }).finally(function(){
       tableWrap.removeAttribute('aria-busy');
+      if (alCard) delete alCard.dataset.loading;
     });
   }
 
@@ -16666,6 +16717,12 @@ var NotificationSound = (function(){
 
   function load(){
     if (!Cloud.available() || !Cloud.session) return;
+    // Same page-scoped dim Alert Logs/Summary use (.card[data-loading]) — a
+    // nav-arrival load here previously showed nothing while the request was
+    // in flight, so switching to Data Management right after an import
+    // could sit on stale/empty content with zero feedback for however long
+    // this round trip takes.
+    card.dataset.loading = 'true';
     // Stamped on both outcomes so the nav-arrival guard in the v2.2
     // navigation IIFE (App.showPage's data-mgmt branch) can skip a refetch
     // it just did a moment ago, without needing its own copy of Cloud/roster.
@@ -16681,6 +16738,7 @@ var NotificationSound = (function(){
       render();
     }).finally(function(){
       App._masterlistLoadedAt = Date.now();
+      delete card.dataset.loading;
     });
   }
 
@@ -17370,6 +17428,10 @@ var NotificationSound = (function(){
       return;
     }
     var search = (searchInput.value || '').trim();
+    // Same page-scoped dim as masterlist's load() — covers both the
+    // nav-arrival load and this function's own Prev/Next/search callers
+    // below, none of which had any loading feedback before.
+    card.dataset.loading = 'true';
     Cloud.fetchMinestatShifts({ search: search, limit: PAGE_SIZE, offset: offset }).then(function(res){
       total = res.total;
       countEl.textContent = total.toLocaleString() + (total === 1 ? ' record' : ' records');
@@ -17388,6 +17450,7 @@ var NotificationSound = (function(){
       emptyEl.hidden = false;
     }).finally(function(){
       App._minestatShiftsLoadedAt = Date.now();
+      delete card.dataset.loading;
     });
   }
 
@@ -17539,6 +17602,11 @@ var NotificationSound = (function(){
   function loadNameReview(){
     if (!Cloud.available() || !Cloud.session){ nameReviewCard.hidden = true; return; }
 
+    // Same page-scoped dim as masterlist's load() — see that function's own
+    // comment. Guarded by the hidden check above/below since a hidden card
+    // has nothing visible to dim anyway.
+    if (!nameReviewCard.hidden) nameReviewCard.dataset.loading = 'true';
+
     /* Fetch every state, not just the active tab: the tab COUNTS have to be
        right even for tabs nobody has opened, and the queue is small enough
        (capped at 500 server-side) that one round trip beats three. */
@@ -17562,6 +17630,7 @@ var NotificationSound = (function(){
       // See App._masterlistLoadedAt's matching comment in the masterlist
       // IIFE's load() — same nav-arrival-guard purpose, for this queue.
       App._nameReviewLoadedAt = Date.now();
+      delete nameReviewCard.dataset.loading;
     });
 
     if (!masterlist.length){
@@ -18845,6 +18914,13 @@ var NotificationSound = (function(){
 
   function loadPage(){
     if (!Cloud.available() || !Cloud.session){ render(); return; }
+    // Same page-scoped dim Alert Logs' loadPage() uses (.card[data-loading],
+    // see that rule's own comment) — this page had NO loading feedback at
+    // all before this: not even the (visually inert) aria-busy Alert Logs
+    // at least set. A filter change or Next/Previous click sat frozen with
+    // zero indication a request was in flight.
+    var smCard = table.closest('.card');
+    if (smCard) smCard.dataset.loading = 'true';
     Cloud.fetchAlertSummary({
       from: fromInput.value || null,
       to: toInput.value || null,
@@ -18863,6 +18939,8 @@ var NotificationSound = (function(){
       state.rows = []; state.total = 0;
       render();
       announce('Failed to load Summary', { assertive: true });
+    }).finally(function(){
+      if (smCard) delete smCard.dataset.loading;
     });
   }
 
