@@ -313,6 +313,19 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    above the page background, and --surface-raised is the token that
    carries that "one step up" meaning on both themes. */
 .card{background:var(--surface-raised);border:1px solid var(--border-light);border-radius:var(--r-2xl);box-shadow:var(--shadow-2);overflow:hidden;display:flex;flex-direction:column;min-height:0;transition:border-color var(--dur-fast) var(--ease)}
+/* .card sets display:flex via the CLASS (not inline), so at first glance the
+   UA stylesheet's [hidden]{display:none} should already win here the same
+   way it does for a plain element — but the two rules are equal specificity
+   (0-1-0 each), and CSS resolves an exact tie by cascade order: this
+   author-stylesheet .card rule loads after the browser's own UA stylesheet,
+   so it wins the tie and a hidden .card renders anyway. Confirmed live:
+   nameReviewCard/minestatReviewCard both showed "0 names" fully rendered
+   with their hidden attribute correctly set by the render function — this
+   rule, not the JS, was the gap. Every other hide-on-empty element in this
+   file (.page, .imp-empty, .dm-source-panel, .detail-modal) already has its
+   own explicit [hidden] override for exactly this reason; .card was the one
+   left without one. */
+.card[hidden]{display:none}
 /* Chart cards had no hover state, so a card holding a clickable legend
    looked identical to a static one. A hairline border shift says "this
    responds" without competing with the KPI row above. */
