@@ -107,6 +107,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 .main[data-page="overview"]{overflow-y:auto}
 .main[data-page="analytics"]{overflow-y:auto}
 .main[data-page="data-mgmt"]{overflow-y:auto}
+.main[data-page="summary"]{overflow-y:auto}
 .main[data-page="settings"]{overflow:hidden}
 
 /* ═══ ONE SCROLL on table pages ═══
@@ -127,19 +128,19 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    that needs virtualization, not a CSS change. */
 .main[data-page="alert-logs"],
 .main[data-page="driver-monitoring"],
-.main[data-page="summary"]{overflow-y:auto}
+.main[data-page="alert-summary"]{overflow-y:auto}
 
 /* The page section must size to its content rather than being squeezed to
    the viewport, or the table is clipped instead of extending the page. */
 .main[data-page="alert-logs"] .page,
 .main[data-page="driver-monitoring"] .page,
-.main[data-page="summary"] .page{flex:0 0 auto; min-height:0}
+.main[data-page="alert-summary"] .page{flex:0 0 auto; min-height:0}
 
 /* .card is display:flex/min-height:0 and would otherwise compress the table;
    on these pages it grows with its rows instead. */
 .main[data-page="alert-logs"] .page > .card,
 .main[data-page="driver-monitoring"] .page > .card,
-.main[data-page="summary"] .page > .card{flex:0 0 auto; overflow:visible}
+.main[data-page="alert-summary"] .page > .card{flex:0 0 auto; overflow:visible}
 
 /* Vertical scrolling handed back to the page.
 
@@ -157,7 +158,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    that is not also the sticky ancestor. */
 .main[data-page="alert-logs"] .imp-table-wrap,
 .main[data-page="driver-monitoring"] .imp-table-wrap,
-.main[data-page="summary"] .imp-table-wrap{
+.main[data-page="alert-summary"] .imp-table-wrap{
   flex:0 0 auto; overflow:visible; min-height:0;
 }
 
@@ -177,14 +178,14 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
 
    SCOPED TO .imp-table-wrap, not to any .imp-table on the page. The Summary
    detail modal's table also carries .imp-table (class="imp-table
-   detail-table"), so a bare `.main[data-page="summary"] .imp-table thead th`
+   detail-table"), so a bare `.main[data-page="alert-summary"] .imp-table thead th`
    matched it too, outranking .detail-table's own styling. Inside the modal
    there is no 12px page padding to cancel, so top:-12px clipped the header
    and rows scrolled through the gap. The wrap ancestor is what distinguishes
    a page table from a modal one. */
 .main[data-page="alert-logs"] .imp-table-wrap .imp-table thead th,
 .main[data-page="driver-monitoring"] .imp-table-wrap .imp-table thead th,
-.main[data-page="summary"] .imp-table-wrap .imp-table thead th{
+.main[data-page="alert-summary"] .imp-table-wrap .imp-table thead th{
   top:-12px; z-index:3; background:#F8FAFF;
   box-shadow:0 -12px 0 #F8FAFF, 0 1px 0 var(--border);
 }
@@ -1017,6 +1018,27 @@ svg[data-chart="trend"]{overflow:visible}
    the plain non-comparison tiles elsewhere) into the head row inline with
    its label, so nothing overlaps and the card reads top-to-bottom. */
 .page[data-page-id="analytics"] .kpi-row{grid-template-columns:repeat(5,1fr);align-items:stretch}
+/* Summary (executive report) reuses the exact same 5-tile kpiTile()
+   component as Analytics' own row — same grid. */
+.page[data-page-id="summary"] .kpi-row{grid-template-columns:repeat(5,1fr);align-items:stretch}
+
+/* ── Summary (executive report) page-only layout — su- prefix, this page
+   only. Two columns: insights + flagged-entities risk table (dominant)
+   beside Open Items + Actions Logged. Same card/table components as every
+   other page (.card, .imp-table, .ov-topins-list) — only the two-column
+   shell and the Open Items rows below are new. ── */
+.su-grid{display:grid; grid-template-columns:1.6fr 1fr; gap:var(--sp-5); align-items:start; margin-top:var(--sp-5)}
+.su-col{display:flex; flex-direction:column; gap:var(--sp-5); min-width:0}
+@media (max-width:1200px){ .su-grid{grid-template-columns:1fr} }
+
+.su-open-list{display:flex; flex-direction:column; padding:2px var(--sp-6) var(--sp-5)}
+.su-open-row{display:flex; align-items:center; gap:var(--sp-5); padding:10px 0; border-top:1px solid var(--divider)}
+.su-open-row:first-child{border-top:none}
+.su-open-label{flex:1; min-width:0; font-size:var(--fs-md); color:var(--text-sec); font-weight:var(--fw-medium)}
+.su-open-value{font-size:var(--fs-xl); font-weight:var(--fw-bold); color:var(--text); flex-shrink:0; font-variant-numeric:tabular-nums}
+.su-open-value.warn{color:var(--danger)}
+.su-open-value.good{color:var(--success)}
+.su-open-cta{margin:2px var(--sp-6) var(--sp-5); padding-top:var(--sp-4); border-top:1px solid var(--border); display:flex; justify-content:center}
 .akpi{height:auto;min-height:104px;padding:14px 16px;gap:0;justify-content:flex-start}
 .akpi::before{background:var(--kpi-accent, var(--blue))}
 .akpi-head{display:flex;align-items:center;gap:8px}
@@ -1976,6 +1998,16 @@ body.has-painted[data-status="loading"] .card {
   gap: var(--sp-3); padding: var(--sp-9) var(--sp-6);
   color: var(--text-muted); font-size: var(--fs-sm); text-align: center;
 }
+/* Same UA-stylesheet cascade-order tie as .card[hidden]/.btn[hidden] above
+   (see those rules' own comments): .state-empty sets display via the CLASS,
+   so a plain [hidden] attribute alone doesn't win the tie and renders
+   anyway. Every other .state-empty in this file is inserted/removed
+   wholesale (renderEmptyState()/clearEmptyState()) rather than toggled via
+   [hidden], so this was never hit until Summary's Top Flagged Drivers &
+   Assets card (#exsRiskEmpty) used the [hidden] pattern instead — confirmed
+   live: it rendered "Nothing flagged" fully visible underneath a table that
+   already had 8 real flagged rows, hidden="" correctly set the whole time. */
+.state-empty[hidden] { display: none; }
 .state-empty-title { font-weight: var(--fw-semi); color: var(--text-sec); }
 
 /* Charts with an x-axis row (trend/hourly/bucket bars) append .state-empty
@@ -2178,7 +2210,7 @@ body {
      than a nested horizontal swipe inside a vertically scrolling page. */
   .main[data-page="alert-logs"] .imp-table,
   .main[data-page="driver-monitoring"] .imp-table,
-  .main[data-page="summary"] .imp-table { display: table; overflow-x: visible; }
+  .main[data-page="alert-summary"] .imp-table { display: table; overflow-x: visible; }
 }
 
 /* ── Overview page — responsive reflow ────────────────────────────────────
@@ -2263,6 +2295,13 @@ body {
   .sidenav, .topbar, .btn, .icon-btn { display: none !important; }
   .app { grid-template-columns: 1fr; }
   .card { break-inside: avoid; box-shadow: none; border: var(--bw) solid var(--border); }
+  /* Summary (executive report) is the one page with a real Print/Export
+     button — printing it with no visible title/date-range context (the
+     blanket .topbar rule above hides every page's title bar, in-page ones
+     included) would defeat the button's own purpose. Its Print/Export
+     button itself stays hidden (nothing to click on paper). */
+  #page-summary .topbar { display: flex !important; }
+  #page-summary .topbar .hcontrols { display: none !important; }
 }
 
 /* ══ MIGRATION MAP ═══════════════════════════════════════════════════════
@@ -2506,8 +2545,19 @@ body {
     <button class="nav-item active" data-nav="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V10"/></svg>Overview</button>
     <button class="nav-item" data-nav="analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>Analytics</button>
     <button class="nav-item" data-nav="alert-logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>Alert Logs</button>
+    <!-- Renamed from "Summary" (was this page's original nav slot/label) to
+         make room for the reference design's own Summary page below — a
+         7-day executive report, a different feature from this grouped
+         alert table with bulk-edit drill-down. Nothing here changed except
+         the nav id/label/icon; see #page-alert-summary for the untouched
+         page itself. -->
+    <button class="nav-item" data-nav="alert-summary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>Alert Summary</button>
     <button class="nav-item" data-nav="driver-monitoring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg>Driver &amp; Asset Monitoring</button>
-    <button class="nav-item" data-nav="summary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>Summary</button>
+    <!-- New: takes over the "Summary" name/nav-slot per the reference
+         design — a 7-day executive report (KPI row, trend, insights, top
+         flagged drivers & assets, open items, actions logged). See
+         #page-summary and renderExecutiveSummary(). -->
+    <button class="nav-item" data-nav="summary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h6"/></svg>Summary</button>
     <div class="nav-section-label">Management</div>
     <button class="nav-item" data-nav="data-mgmt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>Data Management</button>
     <button class="nav-item" data-nav="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
@@ -3574,7 +3624,156 @@ body {
       </div>
     </div>
 
-    <!-- ═══════════════════════ SUMMARY ═══════════════════════
+    <!-- ═══════════════════════ SUMMARY (executive report) ═══════════════════════
+         Reference-design page: a 7-day-flavored snapshot report, not a new
+         computation. Every number/list here is read straight from the SAME
+         `derived` object Overview/Analytics already paint from (KPI row via
+         kpiTile()/OVERVIEW_KPI_ORDER, trend via charts.trend(), Top Insights
+         via the same insightBullets set, flagged drivers/assets via
+         derived.assetConsistency/operatorConsistency) — no separate fetch,
+         so this page can never show a number the rest of the app doesn't
+         already agree with. Painted by renderExecutiveSummary(), called
+         from paint() alongside the other per-page renderers. Print/Export
+         uses window.print(); the existing @media print rules (STATE LAYER,
+         dds-tokens.css) already hide the sidebar/topbar and keep cards from
+         breaking across pages. -->
+    <section class="page" id="page-summary" data-page-id="summary" hidden>
+
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Summary</div>
+          <div class="topbar-sub">Running 7-day report across alerts, insights, and flagged drivers &amp; assets</div>
+        </div>
+        <div class="hcontrols">
+          <button type="button" class="btn btn-outline btn-sm" id="exsPrintBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            Print / Export
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI row — identical component/data source to Overview's #ovKpiRow
+           and Analytics' #anKpiRow (kpiTile() over OVERVIEW_KPI_ORDER,
+           reading derived.comparison + delta7d) — same 5 metrics, same
+           sparkline, same "vs 7d" line, just a 3rd place this exact tile
+           renders. See renderOverviewKpis() for the shared implementation;
+           renderExecutiveSummary() calls the same kpiTile() directly. -->
+      <div class="kpi-row" id="exsKpiRow" aria-label="7-day totals"></div>
+
+      <!-- Trend — charts.trend()'s single-series ('units' only) rendering,
+           reusing the exact derived.trend series the Overview trend chart
+           and every KPI sparkline are also drawn from. -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Total Alerts — Trend</h2>
+            <div class="ov-card-sub">Same alert-volume series as Overview, over the currently selected range</div>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div class="ov-trend-layout">
+            <div class="ov-trend-chart">
+              <div class="ov-trend-plot">
+                <div class="ov-trend-yaxis" id="exsTrendYAxis" aria-hidden="true"></div>
+                <svg id="exsTrendSvg" viewBox="0 0 992 180" preserveAspectRatio="none" style="width:100%;flex:1;min-height:0" data-chart="trend">
+                  <line x1="0" y1="20" x2="992" y2="20" stroke="var(--divider)" stroke-width="1"/><line x1="0" y1="94" x2="992" y2="94" stroke="var(--divider)" stroke-width="1"/><line x1="0" y1="168" x2="992" y2="168" stroke="var(--divider)" stroke-width="1"/>
+                  <path id="exsTrendFillPath" d="" fill="var(--blue)" fill-opacity=".1"/>
+                  <line id="exsTrendMeanLine" x1="0" y1="-10" x2="992" y2="-10" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="4 4" opacity=".7"/>
+                  <path id="exsTrendUnitsPath" d="" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <g id="exsTrendDots" stroke="white" stroke-width="2.5"></g>
+                  <g id="exsTrendHover"></g>
+                </svg>
+              </div>
+              <div id="exsTrendAxis" style="display:flex;justify-content:space-between;margin-top:3px;flex-shrink:0;padding-left:44px"></div>
+              <div id="exsTrendInsight" class="chart-insight-line"></div>
+            </div>
+          </div>
+          <div class="chart-tooltip" id="exsTrendTooltip"></div>
+        </div>
+      </div>
+
+      <div class="su-grid">
+        <div class="su-col">
+          <!-- Top Increases & Key Insights — same insightBullets set as
+               Overview's Top Insights / Analytics' Key Insights, just its
+               own render target so this page never drifts from either. -->
+          <div class="card">
+            <div class="card-head"><h2>Top Increases &amp; Key Insights</h2></div>
+            <div class="ov-topins-wrap">
+              <ul class="ov-topins-list" id="exsInsightsList">
+                <li class="ov-topins-empty">No insights yet — import alert data to see what stands out.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Top Flagged Drivers & Assets — the SAME flagged rows Driver &
+               Asset Monitoring's own Needs Attention view lists
+               (derived.assetConsistency/operatorConsistency, severity !=
+               'normal'), just the top few by severity here. "Recommended"
+               is a plain-language restatement of that already-computed
+               severity band (critical/warning/caution), not a new
+               judgment — see recommendationForSeverity(). -->
+          <div class="card">
+            <div class="card-head">
+              <h2>Top Flagged Drivers &amp; Assets</h2>
+              <button type="button" class="ov-card-link ov-card-link-inline" data-goto="driver-monitoring">Open Driver &amp; Asset Monitoring</button>
+            </div>
+            <div class="imp-table-wrap">
+              <table class="imp-table" id="exsRiskTable">
+                <thead>
+                  <tr><th>Name</th><th>Type</th><th>Risk</th><th>Alerts in period</th><th>Recommended</th></tr>
+                </thead>
+                <tbody id="exsRiskBody"></tbody>
+              </table>
+              <div class="state-empty" id="exsRiskEmpty" hidden>
+                <div class="state-empty-title">Nothing flagged</div>
+                <div>No drivers or assets are above the normal severity band in the current range.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="su-col">
+          <!-- Open Items — four real, already-computed fleet numbers.
+               Intentionally NOT the reference mock's exact four labels
+               ("Pending review"/"Actioned %"): this app has no per-alert
+               review-status aggregate wired yet (alert_cases.status is
+               paginated per-row on Alert Logs, never summed fleet-wide), so
+               rather than approximate that number this row uses four
+               metrics the app already computes with confidence. -->
+          <div class="card">
+            <div class="card-head"><h2>Open Items</h2></div>
+            <div class="su-open-list" id="exsOpenList">
+              <div class="su-open-row"><span class="su-open-label">Events in view</span><span class="su-open-value" id="exsOpenEvents">—</span></div>
+              <div class="su-open-row"><span class="su-open-label">Critical severity</span><span class="su-open-value warn" id="exsOpenCritical">—</span></div>
+              <div class="su-open-row"><span class="su-open-label">Flagged drivers &amp; assets</span><span class="su-open-value warn" id="exsOpenFlagged">—</span></div>
+              <div class="su-open-row"><span class="su-open-label">Actionable alerts</span><span class="su-open-value good" id="exsOpenActionable">—</span></div>
+            </div>
+            <div class="su-open-cta">
+              <button type="button" class="ov-card-link" data-goto="alert-logs">Review alert logs</button>
+            </div>
+          </div>
+
+          <!-- Actions Logged — the most recent driver_asset_actions rows
+               fleet-wide, within the currently selected range. Same
+               action-history data Driver & Asset Monitoring's own per-
+               entity timeline drawer reads (see loadHistoryFor() there);
+               renderExecutiveSummary() asks for it fleet-wide instead of
+               scoped to one entity. -->
+          <div class="card">
+            <div class="card-head"><h2>Actions Logged</h2></div>
+            <div class="ov-topins-wrap">
+              <ul class="ov-topins-list" id="exsActionsList">
+                <li class="ov-topins-empty">No actions logged in this range.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════ ALERT SUMMARY ═══════════════════════
          One row per (shift date, shift, unit, event code) — the sum of
          alerts in that group, and whether every alert in it has been
          closed out (status = Completed on every underlying alert_cases
@@ -3582,11 +3781,11 @@ body {
          0009_alert_summary.sql for the grouping. Requires sign-in, same
          as Alert Logs — the grouping is computed server-side from
          events+alert_cases, no local-mode fallback. -->
-    <section class="page" id="page-summary" data-page-id="summary" hidden>
+    <section class="page" id="page-alert-summary" data-page-id="alert-summary" hidden>
 
       <div class="topbar">
         <div>
-          <div class="topbar-title">Summary</div>
+          <div class="topbar-title">Alert Summary</div>
           <div class="topbar-sub">Alerts grouped by shift, unit, and event code — with what's closed vs. still pending.</div>
         </div>
         <div class="hcontrols">
@@ -9648,6 +9847,18 @@ const PAGES = {
       tip: () => $('anDayOfWeekTooltip'), insightEl: () => $('anDayOfWeekInsight') },
     { chart: 'topAssets', limit: 12, el: () => $('anTopAssetsList'),
       tip: () => $('anTopAssetsTooltip') }
+  ],
+
+  /* Summary (executive report) — single-series ('units' only, trend()'s
+     own default) reuse of the exact same trend chart Overview/Analytics
+     plot, just this page's own <svg> and axis refs. No 'kpis' entry, same
+     reasoning as Overview/Analytics above: renderExecutiveSummary() (called
+     directly from paint()) owns #exsKpiRow via kpiTile(). */
+  summary: [
+    { chart: 'trend', refs: () => ({
+        unitsPath: $('exsTrendUnitsPath'), fill: $('exsTrendFillPath'),
+        dots: $('exsTrendDots'), axis: $('exsTrendAxis'), hover: $('exsTrendHover') }),
+      tip: () => $('exsTrendTooltip'), insightEl: () => $('exsTrendInsight') }
   ]
 };
 
@@ -11483,10 +11694,11 @@ function renderOverviewInsight(derived) {
    competing for room, so it simply lists every bullet that computed, in
    the same priority order, one icon row each — a second, equal-billing
    presentation of the same source, not a second opinion. */
-function renderOverviewTopInsights(derived) {
-  const el = $('ovTopInsightsList');
-  if (!el) return;
-
+/* Shared by renderOverviewTopInsights() and the Summary (executive report)
+   page's Top Increases & Key Insights card — same insightBullets set, same
+   markup, two render targets. Pulled out so the two pages read this list
+   identically rather than each keeping its own copy that could drift. */
+function buildTopInsightsHtml(derived) {
   const bullets = [
     insightBullets.volumeTrend(derived),
     insightBullets.unactionedEntity(derived),
@@ -11496,11 +11708,10 @@ function renderOverviewTopInsights(derived) {
   ].filter(Boolean);
 
   if (!bullets.length) {
-    el.innerHTML = `<li class="ov-topins-empty">No insights yet — import alert data to see what stands out.</li>`;
-    return;
+    return `<li class="ov-topins-empty">No insights yet — import alert data to see what stands out.</li>`;
   }
 
-  el.innerHTML = bullets.map(b => `
+  return bullets.map(b => `
     <li class="ov-topins-item">
       <span class="ov-topins-icon" style="background:${b.tint};color:${b.fg}">${svg(b.icon, 'ic')}</span>
       <div class="ov-topins-text">
@@ -11508,6 +11719,12 @@ function renderOverviewTopInsights(derived) {
         ${b.sub ? `<div class="ov-topins-secondary">${b.sub}</div>` : ''}
       </div>
     </li>`).join('');
+}
+
+function renderOverviewTopInsights(derived) {
+  const el = $('ovTopInsightsList');
+  if (!el) return;
+  el.innerHTML = buildTopInsightsHtml(derived);
 }
 
 /* Peak Time / Peak Count / Active Hours (#ovHourStats) — reads
@@ -11651,6 +11868,215 @@ function renderOverviewTrend(derived) {
     meanLine.setAttribute('y1', y.toFixed(1));
     meanLine.setAttribute('y2', y.toFixed(1));
   }
+}
+
+/* ═══════════════════════ SUMMARY (executive report) ═══════════════════════
+   Nothing computed here is new: every number/list reuses the exact source
+   Overview/Analytics/Driver & Asset Monitoring already read off `derived`
+   (or, for Actions Logged, the same dds_latest_entity_actions RPC Data
+   Management's own action column already calls) — this page is a second
+   presentation of already-real data, never a second calculation. See the
+   #page-summary markup's own comment for the page-level rationale. */
+
+/* Plain-language restatement of an already-computed severity band — not a
+   new judgment. Vocabulary matches SEVERITY_BANDS itself
+   (critical/warning/caution/normal). */
+function recommendationForSeverity(severity) {
+  switch (severity) {
+    case 'critical': return 'Needs review';
+    case 'warning':  return 'Monitor closely';
+    case 'caution':  return 'Monitor';
+    default:         return 'On track';
+  }
+}
+
+/* Same 5-metric KPI row as Overview (#ovKpiRow) and Analytics (#anKpiRow) —
+   same kpiTile() call, same OVERVIEW_METRIC_* maps, just #exsKpiRow as the
+   third render target. See renderOverviewKpis() for the shared shape. */
+function renderExecutiveSummaryKpis(derived) {
+  const el = $('exsKpiRow');
+  if (!el) return;
+  const c = derived?.comparison;
+
+  if (!c || c.available === false) {
+    el.innerHTML = `
+      <div class="state-empty">
+        <div class="state-empty-title">No comparison available</div>
+        <div>${esc(c?.reason ?? 'Import at least two periods to see how things are trending.')}</div>
+      </div>`;
+    return;
+  }
+
+  const byKey = Object.fromEntries(c.metrics.map(m => [m.key, m]));
+  el.innerHTML = OVERVIEW_KPI_ORDER
+    .map(key => byKey[key] && kpiTile(byKey[key], c, {
+      icons: OVERVIEW_METRIC_ICON, tints: OVERVIEW_METRIC_TINT, labels: OVERVIEW_METRIC_LABEL,
+      delta7d: derived.delta7d, deltaMoM: derived.deltaMoM,
+      spark: kpiSparkSeries(derived, key)
+    }))
+    .filter(Boolean)
+    .join('');
+}
+
+/* Trend card's y-axis + mean line — the single-series (units-only) twin of
+   renderOverviewTrend()'s left-axis branch. No legend/series-toggle exists
+   on this page, so the axis is always the units axis, always drawn when
+   there's data — same ticksFor()/mean-line math, just without the
+   assets-visible branching Overview's own version needs. */
+function renderExecutiveSummaryTrendAxis(derived) {
+  const axisEl = $('exsTrendYAxis');
+  const meanLine = $('exsTrendMeanLine');
+  const pts = derived?.trend ?? [];
+  if (!axisEl) return;
+
+  if (!pts.length) {
+    axisEl.innerHTML = '';
+    if (meanLine) { meanLine.setAttribute('y1', '-10'); meanLine.setAttribute('y2', '-10'); }
+    return;
+  }
+
+  const vals = pts.map(p => p.units);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const geo = { top: 20, bottom: 168 };   // must match charts.trend()'s own default geo
+  const ticks = [max, min + (max - min) * 2 / 3, min + (max - min) / 3, min];
+  axisEl.innerHTML = ticks.map(v => `<span>${esc(fmt.compact(v))}</span>`).join('');
+
+  const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+  if (meanLine) {
+    const range = (max - min) || 1;
+    const y = geo.bottom - ((mean - min) / range) * (geo.bottom - geo.top);
+    meanLine.setAttribute('y1', y.toFixed(1));
+    meanLine.setAttribute('y2', y.toFixed(1));
+  }
+}
+
+/* Top Flagged Drivers & Assets — the exact rows Driver & Asset Monitoring's
+   own Needs Attention view lists (severity != 'normal', same sort as that
+   page's default: severityRank desc, then highDayRatio desc), capped to a
+   handful for this summary card. */
+function renderExecutiveSummaryRisk(derived) {
+  const body = $('exsRiskBody');
+  const empty = $('exsRiskEmpty');
+  if (!body) return;
+
+  const rows = [
+    ...(derived?.assetConsistency    || []).map(r => ({ ...r, entityType: 'asset'  })),
+    ...(derived?.operatorConsistency || []).map(r => ({ ...r, entityType: 'driver' }))
+  ]
+    .filter(r => r.severity && r.severity !== 'normal' && r.id !== UNSPECIFIED_OPERATOR)
+    .sort((a, b) => (b.severityRank - a.severityRank) || (b.highDayRatio - a.highDayRatio))
+    .slice(0, 8);
+
+  if (!rows.length) {
+    body.innerHTML = '';
+    if (empty) empty.hidden = false;
+    return;
+  }
+  if (empty) empty.hidden = true;
+
+  body.innerHTML = rows.map(r => {
+    const badgeVariant = r.severity === 'critical' ? 'danger' : r.severity === 'warning' ? 'warning' : 'info';
+    return `<tr>
+      <td>${esc(r.id)}</td>
+      <td>${r.entityType === 'asset' ? 'Asset' : 'Driver'}</td>
+      <td><span class="pill" data-variant="${badgeVariant}">${esc(r.severity)}</span></td>
+      <td>${fmt.int(r.total ?? 0)}</td>
+      <td>${esc(recommendationForSeverity(r.severity))}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* Open Items — four already-computed fleet numbers. Deliberately NOT the
+   reference mock's exact four labels ("Pending review" / "Actioned %"):
+   this app has no fleet-wide alert-review-status aggregate wired yet
+   (alert_cases.status is paginated per-row on Alert Logs, never summed
+   fleet-wide), so rather than approximate that number this row uses four
+   metrics the app already computes with confidence. Critical severity is
+   summed from the same derived.eventCodeDistribution the Alerts by Event
+   Type chart reads, banded by the same severityForCode() every other
+   severity color in this app already uses. */
+function renderExecutiveSummaryOpenItems(derived) {
+  const eventsEl = $('exsOpenEvents');
+  if (!eventsEl) return;
+
+  eventsEl.textContent = fmt.int(derived?.kpis?.totalAlerts ?? 0);
+
+  const criticalUnits = (derived?.eventCodeDistribution || [])
+    .filter(c => severityForCode(c.code).key === 'critical')
+    .reduce((s, c) => s + (c.units || 0), 0);
+  $('exsOpenCritical').textContent = fmt.int(criticalUnits);
+
+  const flagged = (derived?.assetConsistency ?? []).concat(derived?.operatorConsistency ?? [])
+    .filter(r => r.severity && r.severity !== 'normal' && r.id !== UNSPECIFIED_OPERATOR).length;
+  $('exsOpenFlagged').textContent = fmt.int(flagged);
+
+  $('exsOpenActionable').textContent = fmt.pct(derived?.kpis?.actionableRatio ?? 0, 1);
+}
+
+/* Actions Logged — reuses Cloud.fetchLatestEntityActions(), the same RPC
+   Data Management's own action column already calls per entity type; this
+   card merges both types' results and takes the most recent handful
+   fleet-wide. Server-only (driver_asset_actions has no local-mode
+   equivalent — same reasoning as Alert Logs/Alert Summary), so a
+   signed-out or local-only session keeps the honest empty state instead of
+   a fabricated list. Cached per NAV_REFRESH_WINDOW-style interval (same
+   30s pattern showPage() already uses for Data Management's own tabs) so
+   switching back to this page repeatedly doesn't refetch every time. */
+let exsActionsLoadedAt = 0;
+async function renderExecutiveSummaryActions() {
+  const el = $('exsActionsList');
+  if (!el) return;
+  if (!Cloud.available() || !Cloud.session) {
+    el.innerHTML = `<li class="ov-topins-empty">Sign in to see actions logged across the fleet.</li>`;
+    return;
+  }
+  const now = Date.now();
+  if (now - exsActionsLoadedAt < 30000) return;
+  exsActionsLoadedAt = now;
+
+  try {
+    const [driverMap, assetMap] = await Promise.all([
+      Cloud.fetchLatestEntityActions('driver'),
+      Cloud.fetchLatestEntityActions('asset')
+    ]);
+    const rows = [
+      ...Object.entries(driverMap || {}).map(([id, a]) => ({ id, type: 'Driver', ...a })),
+      ...Object.entries(assetMap  || {}).map(([id, a]) => ({ id, type: 'Asset',  ...a }))
+    ]
+      .filter(r => r.actionType)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 6);
+
+    if (!rows.length) {
+      el.innerHTML = `<li class="ov-topins-empty">No actions logged yet.</li>`;
+      return;
+    }
+    el.innerHTML = rows.map(r => `
+      <li class="ov-topins-item">
+        <span class="ov-topins-icon" style="background:var(--success-bg);color:var(--success)">${svg('check', 'ic')}</span>
+        <div class="ov-topins-text">
+          <div class="ov-topins-primary">${esc(r.type)} ${esc(r.id)} — ${esc(r.actionType)}</div>
+          <div class="ov-topins-secondary">${esc(fmt.dateTime(r.createdAt))} UTC${r.actorUsername ? ` · ${esc(r.actorUsername)}` : ''}</div>
+        </div>
+      </li>`).join('');
+  } catch (err) {
+    console.error('Failed to load fleet-wide actions for Summary', err);
+    el.innerHTML = `<li class="ov-topins-empty">Couldn't load actions right now.</li>`;
+  }
+}
+
+/* Entry point, called from paint() for page === 'summary'. renderPage()
+   (PAGES.summary, the trend chart) runs first via the normal chart-registry
+   pass; renderExecutiveSummaryTrendAxis() is called separately afterward,
+   same "axis reads a chart that already exists this frame" ordering
+   renderOverviewTrend() follows. */
+function renderExecutiveSummary(derived) {
+  renderExecutiveSummaryKpis(derived);
+  const insightsEl = $('exsInsightsList');
+  if (insightsEl) insightsEl.innerHTML = buildTopInsightsHtml(derived);
+  renderExecutiveSummaryRisk(derived);
+  renderExecutiveSummaryOpenItems(derived);
+  renderExecutiveSummaryActions();
 }
 
 /* Session-memory baseline for the Latest Updates feed — NOT persisted (no
@@ -14075,6 +14501,7 @@ const store = createStore();
     overview: document.getElementById('page-overview'),
     analytics: document.getElementById('page-analytics'),
     'alert-logs': document.getElementById('page-alert-logs'),
+    'alert-summary': document.getElementById('page-alert-summary'),
     'driver-monitoring': document.getElementById('page-driver-monitoring'),
     summary: document.getElementById('page-summary'),
     'data-mgmt': document.getElementById('page-data-mgmt'),
@@ -18884,14 +19311,19 @@ var NotificationSound = (function(){
   };
 })();
 
-/* ═══════════════════════ SUMMARY ═══════════════════════
+/* ═══════════════════════ ALERT SUMMARY ═══════════════════════
    Server-only (no local mode — same reasoning as Alert Logs: the
    action-status column depends on alert_cases, which only exists in
    Supabase), grouped and paginated server-side via dds_alert_summary()
    (0009_alert_summary.sql). No KPI row, no search box — just the table and
-   its filters (date range, shift, unit, event code, action status). */
+   its filters (date range, shift, unit, event code, action status).
+
+   Renamed from "Summary" to "Alert Summary" (nav id/label only — every id
+   below still starts with `sm`, unchanged) to free the "Summary" name for
+   the reference design's own Summary page (a 7-day executive report —
+   see the EXECUTIVE SUMMARY section). */
 (function(){
-  var page        = document.getElementById('page-summary');
+  var page        = document.getElementById('page-alert-summary');
   if (!page) return;
 
   var signedOutEl = document.getElementById('smSignedOutEmpty');
@@ -19424,7 +19856,7 @@ var NotificationSound = (function(){
     scrollTableToTop();
   });
 
-  document.querySelectorAll('.nav-item[data-nav="summary"]').forEach(function(btn){
+  document.querySelectorAll('.nav-item[data-nav="alert-summary"]').forEach(function(btn){
     btn.addEventListener('click', function(){
       loadFilterOptions();
       loadPage();
@@ -19948,6 +20380,13 @@ function paint(page, derived){
   if (page === 'driver-monitoring'){
     renderDriverMonitoring(derived);
   }
+  if (page === 'summary'){
+    renderExecutiveSummary(derived);
+    // AFTER renderPage() above has drawn the trend line — same "axis reads
+    // a chart that already exists this frame" ordering renderOverviewTrend()
+    // follows for the identical reason.
+    renderExecutiveSummaryTrendAxis(derived);
+  }
 }
 
 /* Contributing Factors changes (add/delete/sync) don't touch the store —
@@ -20006,27 +20445,43 @@ App.showPage = function(name){
   if (s.status === 'ready' && s.derived) paint(name, s.derived);
 };
 
-/* Overview card-footer links ("View details →" etc). Delegated on the
-   page section rather than bound per button, since two of these cards
-   have their bodies replaced wholesale on every render — a directly-bound
-   listener would survive on a detached node and silently stop working
-   after the first repaint. The buttons themselves are static markup
-   outside the re-rendered region, but delegation keeps that a layout
-   detail rather than a load-bearing assumption.
+/* Card-footer links ("View details →" etc). Delegated on the document
+   rather than bound per button, since several of these cards have their
+   bodies replaced wholesale on every render — a directly-bound listener
+   would survive on a detached node and silently stop working after the
+   first repaint. The buttons themselves are static markup outside the
+   re-rendered region, but delegation keeps that a layout detail rather
+   than a load-bearing assumption.
+
+   Delegated on document (was scoped to #page-overview only) once Summary
+   (executive report) started using the same .ov-card-link[data-goto]
+   convention for its own "Open Driver & Asset Monitoring"/"Review alert
+   logs" links — the contract was already page-agnostic (any page can host
+   one of these), only the listener's scope hadn't caught up.
 
    data-goto carries a real page id from the nav (analytics /
-   driver-monitoring / data-mgmt), routed through the same App.showPage()
-   the sidebar uses so nav highlight, page visibility and repaint all stay
-   consistent with a normal navigation. */
+   driver-monitoring / data-mgmt / alert-logs), routed through the same
+   App.showPage() the sidebar uses so nav highlight, page visibility and
+   repaint all stay consistent with a normal navigation. */
 (function(){
-  var page = document.getElementById('page-overview');
-  if (!page) return;
-  page.addEventListener('click', function(evt){
+  document.addEventListener('click', function(evt){
     var btn = evt.target.closest('.ov-card-link[data-goto]');
-    if (!btn || !page.contains(btn)) return;
+    if (!btn) return;
     var target = btn.getAttribute('data-goto');
     if (target && typeof App !== 'undefined' && App.showPage) App.showPage(target);
   });
+})();
+
+/* Summary page's Print / Export button — window.print(), same as any other
+   "export this view" affordance in the app that doesn't need a generated
+   file. The existing @media print rules (STATE LAYER, dds-tokens.css)
+   already hide the sidebar/topbar/buttons and keep .card from breaking
+   across printed pages, so nothing page-specific is needed here beyond
+   triggering the browser's own print dialog. */
+(function(){
+  var btn = document.getElementById('exsPrintBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function(){ window.print(); });
 })();
 
 /* ═══════════════════════ THEME TOGGLE ═══════════════════════
