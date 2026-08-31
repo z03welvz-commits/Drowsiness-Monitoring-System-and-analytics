@@ -320,6 +320,9 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;cursor:pointer}
    amber left-border one section down. */
 .dm-kpi-files::before,.dm-kpi-masterlist::before,.dm-kpi-shifts::before{background:var(--decor-1)}
 .dm-kpi-review::before{background:var(--warning)}
+.al-kpi-events::before,.al-kpi-groups::before{background:var(--decor-1)}
+.al-kpi-pending::before{background:var(--warning)}
+.al-kpi-reviewed::before{background:var(--success)}
 .kpi-icon{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center}
 .kpi-icon svg{width:12px;height:12px}
 .kpi-label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-label);font-weight:var(--fw-semi)}
@@ -1300,6 +1303,13 @@ svg[data-chart="trend"]{overflow:visible}
   padding:8px 16px; background:var(--accent-bg); border-bottom:1px solid var(--border-light);
   font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--accent);
 }
+/* Same UA-stylesheet cascade-order tie as .card/.btn/.state-empty above
+   (see those rules' own comments): .al-bulk-bar sets display via the
+   class, so [hidden] alone doesn't win the tie. Found live while
+   screenshot-testing the new #alKpiRow above — the bulk-edit bar rendered
+   fully visible ("0 selected") on a page with zero rows and no selection,
+   hidden="" correctly set the whole time. */
+.al-bulk-bar[hidden]{display:none}
 .al-bulk-bar #alBulkCount{font-variant-numeric:tabular-nums}
 #alTable thead th:first-child, #alTable tbody td:first-child{width:32px; padding-right:0}
 /* The 24px shared .icon-btn (used app-wide, including Contributing Factors
@@ -3238,6 +3248,55 @@ body {
             Upload roster
           </button>
           <button class="btn btn-sm" id="alExportBtn" type="button">Export</button>
+        </div>
+      </div>
+
+      <!-- Summary row — the reference design's own al-summary strip, which
+           this page never had. Same .kpi/.kpi-icon/.kpi-val component every
+           other page uses (see Data Management's #dmKpiRow for the
+           precedent this follows), populated by alRenderSummary() below.
+           "Events in view" is the SAME state.total this page already fetches
+           for pagination (#alPageLabel) — zero extra network cost. The other
+           three come from dds_alert_summary() (already used by the Alert
+           Summary page) called with just this page's from/to — that RPC has
+           no free-text search param, so these three intentionally reflect
+           the DATE RANGE only, not whatever's typed in the search box; the
+           subcaptions say so rather than implying they track the search.
+           Deliberately NOT the reference mock's exact "Critical severity" /
+           "Actioned %" tiles: no fleet-wide per-alert severity or
+           review-status aggregate is wired at this page's row-level grain
+           (alert_cases.status is a per-row column, not something either RPC
+           sums), so this uses four numbers the app can back with
+           confidence — group-level pending/reviewed counts — instead of
+           approximating ones it can't. -->
+      <div class="kpi-row" id="alKpiRow" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi al-kpi-events">
+          <div class="kpi-icon" style="background:var(--decor-1-bg);color:var(--decor-1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="kpi-label">Events in view</div>
+          <div class="kpi-val" id="alKpiEvents">0</div>
+        </div>
+        <div class="kpi al-kpi-groups">
+          <div class="kpi-icon" style="background:var(--decor-1-bg);color:var(--decor-1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg>
+          </div>
+          <div class="kpi-label">Groups (by shift/unit/event)</div>
+          <div class="kpi-val" id="alKpiGroups">0</div>
+        </div>
+        <div class="kpi al-kpi-pending">
+          <div class="kpi-icon" style="background:var(--warning-bg);color:var(--warning)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+          </div>
+          <div class="kpi-label">Groups pending review</div>
+          <div class="kpi-val" id="alKpiPending">0</div>
+        </div>
+        <div class="kpi al-kpi-reviewed">
+          <div class="kpi-icon" style="background:var(--success-bg);color:var(--success)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div class="kpi-label">Groups reviewed</div>
+          <div class="kpi-val" id="alKpiReviewed">0</div>
         </div>
       </div>
 
@@ -16196,6 +16255,10 @@ var NotificationSound = (function(){
   var bulkCountEl   = document.getElementById('alBulkCount');
   var bulkEditBtn   = document.getElementById('alBulkEditBtn');
   var bulkClearBtn  = document.getElementById('alBulkClearBtn');
+  var kpiEventsEl   = document.getElementById('alKpiEvents');
+  var kpiGroupsEl   = document.getElementById('alKpiGroups');
+  var kpiPendingEl  = document.getElementById('alKpiPending');
+  var kpiReviewedEl = document.getElementById('alKpiReviewed');
 
   var PAGE_SIZE = 75;
   var state = {
@@ -16528,6 +16591,11 @@ var NotificationSound = (function(){
   }
 
   function render(){
+    // Always in sync with whatever state.total currently is (server fetch,
+    // local slice, or an error's reset-to-0) — one line here beats updating
+    // it separately at every call site that can change state.total.
+    if (kpiEventsEl) kpiEventsEl.textContent = fmt.int(state.total || 0);
+
     if (localMode() && !state.loaded){
       // Haven't attempted a local load yet this page-view — try it instead
       // of immediately showing "sign in", since local rows may exist.
@@ -16629,9 +16697,38 @@ var NotificationSound = (function(){
     });
   }
 
+  /* Summary row (#alKpiRow) — independent of loadPage()'s row fetch and the
+     pagination offset, so Prev/Next never re-fires it; only an actual
+     filter change (reload()) does. "Events in view" comes from state.total
+     once loadPage() resolves (see render()), not from here — this only
+     owns the three group-level counts from dds_alert_summary(), matched on
+     from/to (that RPC has no search param — see the markup's own comment
+     on why these three reflect the date range only). Local/signed-out mode
+     gets zeros, same as the row table itself in that mode. */
+  function loadSummaryCounts(){
+    if (!kpiGroupsEl) return;
+    if (localMode() || !Cloud.available() || !Cloud.session){
+      kpiGroupsEl.textContent = '0'; kpiPendingEl.textContent = '0'; kpiReviewedEl.textContent = '0';
+      return;
+    }
+    var params = { from: state.from, to: state.to, limit: 1 };
+    Promise.all([
+      Cloud.fetchAlertSummary(params),
+      Cloud.fetchAlertSummary(Object.assign({}, params, { status: 'pending' })),
+      Cloud.fetchAlertSummary(Object.assign({}, params, { status: 'closed' }))
+    ]).then(function(results){
+      kpiGroupsEl.textContent = fmt.int(results[0].total || 0);
+      kpiPendingEl.textContent = fmt.int(results[1].total || 0);
+      kpiReviewedEl.textContent = fmt.int(results[2].total || 0);
+    }).catch(function(err){
+      console.error('Alert Logs summary counts failed', err);
+    });
+  }
+
   function reload(){
     state.offset = 0;
     if (localMode()) loadLocal(); else loadPage();
+    loadSummaryCounts();
   }
 
   /* ── Sorting ─────────────────────────────────────────────────────────────
@@ -17435,6 +17532,7 @@ var NotificationSound = (function(){
 
   /* ── Load on view / sign-in ──────────────────────────────────────────── */
 
+  var alSummaryLoadedOnce = false;
   document.querySelectorAll('.nav-item[data-nav="alert-logs"]').forEach(function(btn){
     btn.addEventListener('click', function(){
       // Always reload in local mode — store.get().rows can change any time
@@ -17444,12 +17542,17 @@ var NotificationSound = (function(){
       // Reloading every visit is cheap (in-memory rows, no network call).
       if (!state.loaded || localMode()) loadPage();
       if (!drivers.length) loadDrivers();
+      // Summary counts don't depend on state.loaded (that guard is about
+      // the ROW page, not these fleet-wide group counts) — just load once
+      // per visit; reload() (filter changes) refreshes them after that.
+      if (!alSummaryLoadedOnce){ alSummaryLoadedOnce = true; loadSummaryCounts(); }
     });
   });
 
   Cloud.onSignIn(function(){
     loadDrivers();
     if (page && !page.hidden) loadPage();
+    loadSummaryCounts();
   });
 
   // Do NOT eagerly render()/loadLocal() at script-load time — this used to
