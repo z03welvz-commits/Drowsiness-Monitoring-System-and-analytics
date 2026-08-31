@@ -1471,11 +1471,38 @@ th[data-sort][aria-sort]{color:var(--accent)}
 .ac-suggest[hidden]{display:none}
 .ac-suggest .menu-item{cursor:pointer}
 
-/* ═══ Settings page ═══ */
-.settings-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; flex:1; min-height:0; overflow-y:auto; align-content:start}
+/* ═══ Settings page ═══
+   .settings-grid is no longer used as the page's own wrapper (see
+   .se-pane below, which took over its flex:1/overflow-y:auto role for the
+   reference design's 4-tab layout) — kept defined in case a future pane
+   still wants a 2-up card grid inside itself. */
+.settings-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; align-content:start}
 .settings-card{grid-column:span 1}
 .settings-card.wide{grid-column:1 / -1}
 .settings-body{padding:var(--sp-6); display:flex; flex-direction:column; gap:var(--sp-6)}
+
+/* Tab panes — same flex:1/min-height:0/overflow-y:auto role
+   .settings-grid used to own directly, now on whichever pane is visible.
+   Panes stack vertically (one .settings-card per concern, same as the
+   grid layout), just under a tab instead of side-by-side in a 2-col grid. */
+.se-pane{display:flex; flex-direction:column; gap:12px; flex:1; min-height:0; overflow-y:auto}
+.se-pane[hidden]{display:none}
+
+/* Personalization > Display — Light/Dark segmented control. */
+.se-theme-group{display:inline-flex; border:var(--bw) solid var(--border); border-radius:var(--r-lg); overflow:hidden; flex-shrink:0}
+.se-theme-opt{all:unset; box-sizing:border-box; cursor:pointer; padding:var(--sp-3) var(--sp-6); font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--text-sec)}
+.se-theme-opt:hover{background:var(--surface-sunken)}
+.se-theme-opt.on{background:var(--accent-bg); color:var(--accent)}
+.se-theme-opt + .se-theme-opt{border-left:var(--bw) solid var(--border)}
+
+/* System Management tiles. */
+.se-sys-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp-5)}
+.se-sys-tile{border:var(--bw) solid var(--border); border-radius:var(--r-xl); padding:var(--sp-6)}
+.se-sys-tile-title{font-size:var(--fs-sm); font-weight:var(--fw-bold); color:var(--text-sec); margin-bottom:var(--sp-2)}
+.se-sys-row{display:flex; align-items:center; justify-content:space-between; padding:6px 0; font-size:var(--fs-xs); color:var(--text-sec)}
+.se-sys-row strong{color:var(--text); font-weight:var(--fw-bold)}
+.se-sys-note{font-size:var(--fs-xs); color:var(--text-muted); line-height:1.6}
+@media (max-width:900px){ .se-sys-grid{grid-template-columns:1fr} }
 
 .field-group{display:flex; flex-direction:column; gap:6px}
 .field-label{font-size:var(--fs-xs); font-weight:var(--fw-semi); color:var(--text-sec); text-transform:uppercase; letter-spacing:var(--tracking-label)}
@@ -5033,9 +5060,23 @@ body {
         </div>
       </div>
 
-      <div class="settings-grid">
+      <!-- Reference design's 4-tab layout (Personal Info / Personalization /
+           Access Management / System Management), replacing the earlier
+           4-card grid — same .imp-tabs/.imp-tab component every other
+           tabbed page (Alert Logs, Data Management, Driver & Asset
+           Monitoring) already uses, not a new tab widget. Every field/
+           id/handler below is byte-identical to the grid version; only
+           which cards are grouped under which tab, and which tab is
+           visible, changed. -->
+      <div class="imp-tabs" role="tablist" aria-label="Settings sections" id="seTabs">
+        <button class="imp-tab" role="tab" type="button" data-se-tab="personal" aria-selected="true" tabindex="0">Personal Info</button>
+        <button class="imp-tab" role="tab" type="button" data-se-tab="personalization" aria-selected="false" tabindex="-1">Personalization</button>
+        <button class="imp-tab" role="tab" type="button" data-se-tab="access" aria-selected="false" tabindex="-1">Access Management</button>
+        <button class="imp-tab" role="tab" type="button" data-se-tab="system" aria-selected="false" tabindex="-1">System Management</button>
+      </div>
 
-        <!-- Personal Information -->
+      <!-- ── Personal Info ── -->
+      <div class="se-pane" data-se-pane="personal">
         <div class="card settings-card">
           <div class="card-head"><h2>Personal Information</h2></div>
           <div class="settings-body">
@@ -5096,8 +5137,43 @@ body {
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Notification Sound -->
+      <!-- ── Personalization ── -->
+      <div class="se-pane" data-se-pane="personalization" hidden>
+        <!-- Display — new: Light/Dark (mirrors the sidebar's own toggle,
+             same real ThemeState so the two can't disagree) and Screen
+             Brightness (a real CSS filter on .main — see the THEME script
+             section). Neither existed anywhere in the app before; the
+             reference design's Personalization tab specifies both. -->
+        <div class="card settings-card">
+          <div class="card-head"><h2>Display</h2></div>
+          <div class="settings-body">
+            <div class="sound-row">
+              <div>
+                <div class="sound-row-label">Theme</div>
+                <div class="sound-row-sub">Applies everywhere, same as the sidebar's own toggle</div>
+              </div>
+              <div class="se-theme-group">
+                <button type="button" class="se-theme-opt on" id="seThemeLight" aria-pressed="true">Light</button>
+                <button type="button" class="se-theme-opt" id="seThemeDark" aria-pressed="false">Dark</button>
+              </div>
+            </div>
+            <div class="sound-row" style="flex-direction:column;align-items:stretch;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div class="sound-row-label">Screen Brightness</div>
+                  <div class="sound-row-sub">Dims the page content only — this control stays fully lit</div>
+                </div>
+                <span class="field-hint" id="seBrightnessVal">100%</span>
+              </div>
+              <input type="range" class="vol-slider" id="seBrightness" min="50" max="100" value="100">
+            </div>
+          </div>
+        </div>
+
+        <!-- Notification Sound — unchanged from the grid layout, just its
+             own card under this tab now. -->
         <div class="card settings-card">
           <div class="card-head"><h2>Notification Sound</h2></div>
           <div class="settings-body">
@@ -5162,8 +5238,10 @@ body {
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- User Management -->
+      <!-- ── Access Management ── -->
+      <div class="se-pane" data-se-pane="access" hidden>
         <div class="card settings-card wide">
           <div class="card-head">
             <div class="um-toolbar" style="width:100%">
@@ -5193,7 +5271,37 @@ body {
             </table>
           </div>
         </div>
+      </div>
 
+      <!-- ── System Management ── new: didn't exist anywhere in the app.
+           Real status tiles (Cloud.available()/Cloud.session — the exact
+           same signed-in/local-mode check the rest of the app already
+           gates on) plus a link into Data Management's own, already-built
+           danger zone (#resetFleetCard) rather than a second copy of that
+           destructive RPC call living on this page too. -->
+      <div class="se-pane" data-se-pane="system" hidden>
+        <div class="card settings-card">
+          <div class="card-head"><h2>System Management</h2></div>
+          <div class="settings-body">
+            <div class="se-sys-grid">
+              <div class="se-sys-tile">
+                <div class="se-sys-tile-title">Data Source</div>
+                <div class="se-sys-row"><span>Mode</span><strong id="seSysMode">—</strong></div>
+                <div class="se-sys-row"><span>Signed in as</span><strong id="seSysUser">—</strong></div>
+              </div>
+              <div class="se-sys-tile">
+                <div class="se-sys-tile-title">Local Session Data</div>
+                <div class="se-sys-row"><span>Files imported</span><strong id="seSysImports">0</strong></div>
+                <div class="se-sys-row"><span>Rows loaded</span><strong id="seSysRows">0</strong></div>
+              </div>
+              <div class="se-sys-tile">
+                <div class="se-sys-tile-title">Fleet Data</div>
+                <div class="se-sys-note">Import history, manual records, and a full reset live on Data Management.</div>
+                <button type="button" class="ov-card-link" data-goto="data-mgmt" style="padding-left:0">Open Data Management <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -20484,27 +20592,84 @@ App.showPage = function(name){
   btn.addEventListener('click', function(){ window.print(); });
 })();
 
-/* ═══════════════════════ THEME TOGGLE ═══════════════════════
-   Minimal by design: a light/dark flip persisted to localStorage, no
-   Settings-page UI and no Cloud.saveSettings() sync — this exists to make
-   the dark palette (:root[data-theme="dark"], THEME section above)
-   reachable and verifiable, not to ship a full per-account preference.
-   Promote it into Settings' existing preferences blob (see
-   currentPreferences()/applyPreferences()) if/when the dark theme itself
-   gets a proper cross-page pass rather than just Overview.
+/* ═══════════════════════ SETTINGS TABS ═══════════════════════
+   Same show/hide-by-[hidden] pattern the other tabbed pages in this file
+   use (Data Management's dm-tabs, Driver & Asset Monitoring's da-tabs) —
+   one active tab, its pane visible, the rest hidden. Every field inside
+   every pane keeps its old id from the grid layout, so none of the
+   Personal Info / Notification Sound / User Management logic elsewhere in
+   this file needed to change — only which cards are grouped under which
+   tab, and which group is on screen, did. */
+(function(){
+  var tabs = document.querySelectorAll('#seTabs [data-se-tab]');
+  if (!tabs.length) return;
+  var panes = document.querySelectorAll('[data-se-pane]');
+
+  function activate(name){
+    tabs.forEach(function(btn){
+      var on = btn.getAttribute('data-se-tab') === name;
+      btn.setAttribute('aria-selected', String(on));
+      btn.tabIndex = on ? 0 : -1;
+    });
+    panes.forEach(function(pane){
+      pane.hidden = pane.getAttribute('data-se-pane') !== name;
+    });
+  }
+
+  tabs.forEach(function(btn){
+    btn.addEventListener('click', function(){ activate(btn.getAttribute('data-se-tab')); });
+  });
+})();
+
+/* Settings > System Management — real, already-available facts only: which
+   data path is active (same Cloud.available()/Cloud.session check every
+   other server-only feature in this app gates on) and how much local
+   session data exists (App.imports/App.currentRows — the same counts
+   Data Management's own fleet-health KPI row reads). Recomputed on every
+   nav-in rather than once at boot, since sign-in state and import counts
+   both change during a session. */
+(function(){
+  var modeEl = document.getElementById('seSysMode');
+  if (!modeEl) return;
+  var userEl    = document.getElementById('seSysUser');
+  var importsEl = document.getElementById('seSysImports');
+  var rowsEl    = document.getElementById('seSysRows');
+
+  function render(){
+    var signedIn = typeof Cloud !== 'undefined' && Cloud.available() && !!Cloud.session;
+    modeEl.textContent = signedIn ? 'Cloud (signed in)' : 'Local (this browser only)';
+    userEl.textContent = signedIn ? (Auth.lastUsername || Cloud.session.user.email || 'Signed in') : '—';
+    importsEl.textContent = fmt.int((App.imports || []).length);
+    rowsEl.textContent = fmt.int((App.imports || []).reduce(function(sum, rec){ return sum + (rec.rowCount || 0); }, 0));
+  }
+
+  document.querySelectorAll('.nav-item[data-nav="settings"]').forEach(function(btn){
+    btn.addEventListener('click', render);
+  });
+  Promise.resolve().then(function(){
+    if (typeof Cloud !== 'undefined') Cloud.onSignIn(render);
+  });
+  render();
+})();
+
+/* ═══════════════════════ THEME ═══════════════════════
+   A light/dark flip persisted to localStorage — no Cloud.saveSettings()
+   sync, so this stays a per-browser preference rather than a full
+   per-account one (see the note on promoting it below). Two controls now
+   write the SAME state: the sidebar's own toggle (original, unchanged
+   behavior) and Settings > Personalization's Light/Dark buttons (new —
+   reference design's own Theme control, previously nowhere in the app).
+   ThemeState is the single source both read/write so they can never show
+   two different "current theme" answers.
 
    Three-state model: no attribute (follow OS via prefers-color-scheme),
-   data-theme="light", data-theme="dark". The toggle only ever writes the
-   latter two — there's no button state for "back to following the OS,"
-   since a user who has explicitly chosen has no obvious way to want that
-   without a third UI affordance this minimal version isn't adding. */
-(function(){
-  var btn = document.getElementById('themeToggleBtn');
-  if (!btn) return;
-  var iconDark  = document.getElementById('themeToggleIconDark');
-  var iconLight = document.getElementById('themeToggleIconLight');
-  var label     = document.getElementById('themeToggleLabel');
-  var root      = document.documentElement;
+   data-theme="light", data-theme="dark". Only the latter two are ever
+   written — there's no control for "back to following the OS," since a
+   user who has explicitly chosen has no obvious way to want that without
+   a third UI affordance this app isn't adding. */
+var ThemeState = (function(){
+  var root = document.documentElement;
+  var listeners = [];
 
   function isDark(){
     var attr = root.getAttribute('data-theme');
@@ -20513,22 +20678,80 @@ App.showPage = function(name){
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
 
-  function sync(){
-    var dark = isDark();
+  function set(next){
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('dds-theme', next); } catch (e) { /* storage unavailable — theme still applies for this load */ }
+    listeners.forEach(function(fn){ fn(isDark()); });
+  }
+
+  function toggle(){ set(isDark() ? 'light' : 'dark'); }
+
+  function onChange(fn){ listeners.push(fn); fn(isDark()); }
+
+  return { isDark: isDark, set: set, toggle: toggle, onChange: onChange };
+})();
+
+(function(){
+  var btn = document.getElementById('themeToggleBtn');
+  if (!btn) return;
+  var iconDark  = document.getElementById('themeToggleIconDark');
+  var iconLight = document.getElementById('themeToggleIconLight');
+  var label     = document.getElementById('themeToggleLabel');
+
+  btn.addEventListener('click', ThemeState.toggle);
+
+  ThemeState.onChange(function(dark){
     btn.setAttribute('aria-pressed', String(dark));
     iconDark.hidden = dark;
     iconLight.hidden = !dark;
     label.textContent = dark ? 'Light mode' : 'Dark mode';
+  });
+})();
+
+/* Settings > Personalization — Light/Dark buttons (se-theme-opt) and the
+   Screen Brightness slider. Brightness is a real effect (a CSS filter on
+   .main, so the sidebar stays at full brightness as a fixed reference
+   point rather than dimming into itself), not a decorative slider with
+   nothing behind it — persisted to localStorage same tier as theme, since
+   promoting either into the Cloud preferences blob (currentPreferences()/
+   applyPreferences(), just above) would make them a per-account setting
+   rather than a per-browser one, which is a real product decision this
+   pass isn't making unilaterally. */
+(function(){
+  var lightBtn = document.getElementById('seThemeLight');
+  var darkBtn  = document.getElementById('seThemeDark');
+  if (lightBtn && darkBtn){
+    lightBtn.addEventListener('click', function(){ ThemeState.set('light'); });
+    darkBtn.addEventListener('click', function(){ ThemeState.set('dark'); });
+    ThemeState.onChange(function(dark){
+      lightBtn.classList.toggle('on', !dark);
+      darkBtn.classList.toggle('on', dark);
+      lightBtn.setAttribute('aria-pressed', String(!dark));
+      darkBtn.setAttribute('aria-pressed', String(dark));
+    });
   }
 
-  btn.addEventListener('click', function(){
-    var next = isDark() ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    try { localStorage.setItem('dds-theme', next); } catch (e) { /* storage unavailable — theme still applies for this load */ }
-    sync();
-  });
+  var brightnessSlider = document.getElementById('seBrightness');
+  var brightnessVal    = document.getElementById('seBrightnessVal');
+  var main = document.querySelector('.main');
+  if (brightnessSlider && main){
+    function applyBrightness(pct){
+      main.style.filter = pct === 100 ? '' : 'brightness(' + (pct / 100) + ')';
+      if (brightnessVal) brightnessVal.textContent = pct + '%';
+    }
+    var stored = null;
+    try { stored = localStorage.getItem('dds-brightness'); } catch (e) { /* unavailable */ }
+    var initial = stored ? Number(stored) : 100;
+    if (!Number.isFinite(initial) || initial < 50 || initial > 100) initial = 100;
+    brightnessSlider.value = String(initial);
+    applyBrightness(initial);
 
-  sync();
+    brightnessSlider.addEventListener('input', function(){
+      var pct = Number(brightnessSlider.value);
+      applyBrightness(pct);
+      try { localStorage.setItem('dds-brightness', String(pct)); } catch (e) { /* unavailable — still applies for this load */ }
+    });
+  }
 })();
 
 applyStatic();
