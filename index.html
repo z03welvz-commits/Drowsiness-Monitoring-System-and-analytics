@@ -840,6 +840,29 @@ svg[data-chart="trend"]{overflow:visible}
   background:linear-gradient(90deg, var(--accent), var(--warning), var(--danger));
 }
 
+/* ── Alerts by Hour of Day: Peak Time / Peak Count / Active Hours ──────
+   Three at-a-glance numbers read off the SAME totals[] the bars above are
+   drawn from (renderOverviewStatTiles(), called right after charts.hourly()
+   paints this card) — never a second computation that could disagree with
+   the chart it summarizes. Matches the Overview reference's stat-tile row,
+   folded into this card (rather than a separate row of cards) since every
+   number here is specifically about the hourly distribution, not the page
+   as a whole. */
+.ov-hour-stats{
+  display:flex; gap:var(--sp-5); margin-top:10px; padding-top:10px;
+  border-top:1px solid var(--divider); flex-shrink:0;
+}
+.ov-hour-stat{display:flex; align-items:center; gap:9px; flex:1; min-width:0}
+.ov-hour-stat-icon{
+  width:30px; height:30px; border-radius:var(--r-lg); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.ov-hour-stat-body{min-width:0}
+.ov-hour-stat-label{font-size:var(--fs-2xs); color:var(--text-muted); text-transform:uppercase; letter-spacing:var(--tracking-label); font-weight:var(--fw-semi)}
+.ov-hour-stat-value{font-size:var(--fs-lg); font-weight:var(--fw-bold); color:var(--text); line-height:1.2; font-variant-numeric:tabular-nums}
+.ov-hour-stat-caption{font-size:var(--fs-2xs); color:var(--text-muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+@media (max-width:1400px){ .ov-hour-stats{flex-wrap:wrap} .ov-hour-stat{flex-basis:100%} }
+
 /* ── Card footer link ──────────────────────────────────────────────────
    "View details →" — a real navigation into the page that owns the full
    version of this card's chart, not a decorative affordance. */
@@ -2697,6 +2720,37 @@ body {
             </div>
             <div class="ov-hour-scale"><span>Low</span><i></i><span>High</span></div>
             <div id="ovHourlyInsight" class="chart-insight-line"></div>
+            <!-- Peak Time / Peak Count / Active Hours — same DAY+NIGHT
+                 per-hour totals the bars above are drawn from (see
+                 renderOverviewStatTiles()), not a separate computation, so
+                 this row can never disagree with the chart it summarizes.
+                 Static em-dash shell until the first real render. -->
+            <div class="ov-hour-stats" id="ovHourStats">
+              <div class="ov-hour-stat">
+                <span class="ov-hour-stat-icon" style="background:var(--border-light);color:var(--text-sec)"><svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
+                <div class="ov-hour-stat-body">
+                  <div class="ov-hour-stat-label">Peak Time</div>
+                  <div class="ov-hour-stat-value" id="ovStatPeakTime">—</div>
+                  <div class="ov-hour-stat-caption" id="ovStatPeakCaption">Most alerts recorded</div>
+                </div>
+              </div>
+              <div class="ov-hour-stat">
+                <span class="ov-hour-stat-icon" style="background:var(--danger-bg);color:var(--danger)"><svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span>
+                <div class="ov-hour-stat-body">
+                  <div class="ov-hour-stat-label">Peak Count</div>
+                  <div class="ov-hour-stat-value" id="ovStatPeakCount">—</div>
+                  <div class="ov-hour-stat-caption" id="ovStatPeakCountCaption">&nbsp;</div>
+                </div>
+              </div>
+              <div class="ov-hour-stat">
+                <span class="ov-hour-stat-icon" style="background:var(--accent-bg);color:var(--accent)"><svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+                <div class="ov-hour-stat-body">
+                  <div class="ov-hour-stat-label">Active Hours</div>
+                  <div class="ov-hour-stat-value" id="ovStatActiveHours">—</div>
+                  <div class="ov-hour-stat-caption" id="ovStatActiveHoursCaption">With alerts recorded</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -10812,7 +10866,9 @@ const ICON = {
   // Key Insights strip only (see insightBullets) — trendUp/clock/warning.
   trendUp: '<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
   clock:   '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
-  warning: '<path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>'
+  warning: '<path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
+  // Overview "Alerts by Hour of Day" stat row only (Active Hours tile).
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'
 };
 
 const svg = (name, cls = 'ic') =>
@@ -11452,6 +11508,60 @@ function renderOverviewTopInsights(derived) {
         ${b.sub ? `<div class="ov-topins-secondary">${b.sub}</div>` : ''}
       </div>
     </li>`).join('');
+}
+
+/* Peak Time / Peak Count / Active Hours (#ovHourStats) — reads
+   derived.hourly.DAY/NIGHT, the exact same per-hour totals charts.hourly()
+   sums to draw the bars in the card above (see that function's own `totals`
+   line), so this row can never report a peak hour the chart doesn't also
+   show as its tallest bar. Called from paint() right after renderPage() has
+   drawn that chart, same ordering renderOverviewTrend() uses and for the
+   same reason.
+
+   Never-fabricate: with no alerts at all, every field shows the app's
+   standard "—" rather than a fake "12:00 AM / 0". */
+function renderOverviewStatTiles(derived) {
+  const timeEl = $('ovStatPeakTime');
+  if (!timeEl) return;
+  const captionEl = $('ovStatPeakCaption');
+  const countEl = $('ovStatPeakCount');
+  const countCaptionEl = $('ovStatPeakCountCaption');
+  const activeEl = $('ovStatActiveHours');
+  const activeCaptionEl = $('ovStatActiveHoursCaption');
+
+  const day = derived?.hourly?.DAY ?? [];
+  const night = derived?.hourly?.NIGHT ?? [];
+  const totals = Array.from({ length: 24 }, (_, h) => (day[h] ?? 0) + (night[h] ?? 0));
+  const grandTotal = totals.reduce((s, v) => s + v, 0);
+
+  const hourLabel = h => {
+    const period = h < 12 ? 'AM' : 'PM';
+    const base = h % 12 === 0 ? 12 : h % 12;
+    return `${String(base).padStart(2, '0')}:00 ${period}`;
+  };
+
+  if (!grandTotal) {
+    timeEl.textContent = '—';
+    captionEl.textContent = 'No alerts recorded';
+    countEl.textContent = '—';
+    countCaptionEl.innerHTML = '&nbsp;';
+    activeEl.textContent = '—';
+    activeCaptionEl.textContent = 'No alerts recorded';
+    return;
+  }
+
+  let peakHour = 0;
+  for (let h = 1; h < 24; h++) if (totals[h] > totals[peakHour]) peakHour = h;
+  const peakIsDay = (day[peakHour] ?? 0) >= (night[peakHour] ?? 0);
+
+  timeEl.textContent = hourLabel(peakHour);
+  captionEl.textContent = 'Most alerts recorded';
+  countEl.textContent = fmt.int(totals[peakHour]);
+  countCaptionEl.textContent = `At ${hourLabel(peakHour)} (${peakIsDay ? 'Day' : 'Night'} shift)`;
+
+  const activeHours = totals.filter(v => v > 0).length;
+  activeEl.textContent = fmt.int(activeHours);
+  activeCaptionEl.textContent = 'Of 24 with alerts';
 }
 
 /* Trend card's y-axis and mean reference line. Reads the same derived.trend
@@ -19833,6 +19943,7 @@ function paint(page, derived){
     // mean line are positioned against the scale those lines were drawn
     // on, so this has to read a chart that already exists this frame.
     renderOverviewTrend(derived);
+    renderOverviewStatTiles(derived);
   }
   if (page === 'driver-monitoring'){
     renderDriverMonitoring(derived);
