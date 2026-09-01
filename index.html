@@ -164,6 +164,7 @@
   .feed-row{display:flex;align-items:flex-start;gap:11px;padding:10px 17px;border-bottom:1px solid #f4f6fa;transition:background-color .15s}
   .feed-row:hover{background:#fafbfd}
   .feed-time{width:38px;flex:0 0 auto;font-size:10px;color:#94a3b8;font-variant-numeric:tabular-nums;padding-top:2px}
+  .feed-time.with-date{width:58px;line-height:1.35}
   .feed-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;margin-top:5px}
   .feed-dot.critical{background:#e53553}
   .feed-dot.high{background:#f0902e}
@@ -965,31 +966,31 @@
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
         <div class="kpi-value" id="ov-kpi-total-value">—</div>
-        <div class="kpi-sub">vs yesterday <span class="delta flat" id="ov-kpi-total-delta">—</span></div>
+        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-total-delta">—</span></div>
         <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-total-spark" points="0,16 100,16" fill="none" stroke="#e53553" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon pink" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>SLEEP ALERTS</div>
         <div class="kpi-value" id="ov-kpi-sleep-value">—</div>
-        <div class="kpi-sub">vs yesterday <span class="delta flat" id="ov-kpi-sleep-delta">—</span></div>
+        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-sleep-delta">—</span></div>
         <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-sleep-spark" points="0,16 100,16" fill="none" stroke="#ec4a75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>DROWSINESS ALERTS</div>
         <div class="kpi-value" id="ov-kpi-drowsy-value">—</div>
-        <div class="kpi-sub">vs yesterday <span class="delta flat" id="ov-kpi-drowsy-delta">—</span></div>
+        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-drowsy-delta">—</span></div>
         <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drowsy-spark" points="0,16 100,16" fill="none" stroke="#e8952e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon bluebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>DRIVERS INVOLVED</div>
         <div class="kpi-value" id="ov-kpi-drivers-value">—</div>
-        <div class="kpi-sub">vs yesterday <span class="delta flat" id="ov-kpi-drivers-delta">—</span></div>
+        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-drivers-delta">—</span></div>
         <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drivers-spark" points="0,16 100,16" fill="none" stroke="#3b7cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon greenbg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>ASSETS REPORTING</div>
         <div class="kpi-value" id="ov-kpi-assets-value">—</div>
-        <div class="kpi-sub">vs yesterday <span class="delta flat" id="ov-kpi-assets-delta">—</span></div>
+        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-assets-delta">—</span></div>
         <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-assets-spark" points="0,16 100,16" fill="none" stroke="#18a05e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
     </section>
@@ -1032,11 +1033,11 @@
           <div class="chart-head">
             <div class="chart-title-group">
               <span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span>
-              <span class="chart-title">Alerts by Hour — Today</span>
+              <span class="chart-title">Alerts by Hour — <span id="ov-hourly-daylabel">Today</span></span>
             </div>
           </div>
           <div class="chart-area">
-            <svg viewBox="0 0 720 220" role="img" aria-label="Bar chart of today's alerts by hour, split by shift" id="ov-hourly-svg">
+            <svg viewBox="0 0 720 220" role="img" aria-label="Bar chart of alerts by hour, split by shift" id="ov-hourly-svg">
               <g id="ov-hourly-gridlines"></g>
               <g id="ov-hourly-yaxis"></g>
               <g id="ov-hourly-bars"></g>
@@ -1082,7 +1083,7 @@
           <div class="feed-head">
             <div class="feed-title-group">
               <span class="feed-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span>
-              <span class="feed-title">What Changed Today</span>
+              <span class="feed-title">Recent Activity — Last 7 Days</span>
             </div>
             <button class="view-all" type="button" data-goto="alerts">View all</button>
           </div>
@@ -2831,7 +2832,7 @@
       if(peakCountEl) peakCountEl.textContent = fmtNum(totals[peakHour] || 0);
       if(peakCaptionEl) peakCaptionEl.textContent = totals[peakHour] > 0
         ? ('At ' + String(peakHour).padStart(2,'0') + ':00 (' + (day[peakHour] >= night[peakHour] ? 'Day' : 'Night') + ')')
-        : 'No alerts today';
+        : 'No alerts that day';
       if(activeHoursEl) activeHoursEl.textContent = fmtNum(activeHours);
     }
 
@@ -2859,14 +2860,22 @@
       list.innerHTML = rows.map(function(r){
         var sev = severityBadge(r.eventCode);
         var t = r.time ? new Date(r.time) : null;
-        var timeStr = t ? t.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false }) : '—';
+        // Feed now spans the trailing 7 days, not just today — a bare
+        // HH:MM would be ambiguous about which day it's from, so any row
+        // not from today gets a stacked date+time (wider column, .with-date).
+        var timeStr = '—', timeIsToday = true;
+        if(t){
+          timeIsToday = t.toDateString() === new Date().toDateString();
+          var hm = t.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false });
+          timeStr = timeIsToday ? hm : (t.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + '<br>' + hm);
+        }
         var day = (r.time || '').slice(0,10);
         var key = day + '|' + (r.asset || '') + '|' + (r.eventCode || '');
         seen[key] = (seen[key] || 0) + 1;
         var repeatTag = counts[key] > 1 && seen[key] > 1
-          ? ' <span class="repeat-tag">· ' + seen[key] + (seen[key]===2?'nd':(seen[key]===3?'rd':'th')) + ' today</span>' : '';
+          ? ' <span class="repeat-tag">· ' + seen[key] + (seen[key]===2?'nd':(seen[key]===3?'rd':'th')) + ' that day</span>' : '';
         return '<div class="feed-row">' +
-          '<span class="feed-time">' + esc(timeStr) + '</span>' +
+          '<span class="feed-time' + (timeIsToday ? '' : ' with-date') + '">' + timeStr + '</span>' +
           '<span class="feed-dot ' + sev.tier + '" aria-hidden="true"></span>' +
           '<div class="feed-body">' +
             '<div class="feed-main">' + esc(r.eventCode || EVENT_LABEL_FALLBACK) + ' — <span class="unit-tag">' + esc(r.asset || '—') + '</span>' + repeatTag + '</div>' +
@@ -2882,7 +2891,7 @@
       var body = document.getElementById('ov-updates-body');
       if(!body) return;
       var rows = (cur.recentAlerts || []).slice(4, 8);
-      if(!rows.length){ body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Nothing else recorded today.</div></div></div>'; return; }
+      if(!rows.length){ body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Nothing else recorded this week.</div></div></div>'; return; }
       body.innerHTML = rows.map(function(r){
         var sev = severityBadge(r.eventCode);
         var t = r.time ? new Date(r.time) : null;
@@ -2951,14 +2960,14 @@
         var pct = Math.round(Math.abs(kpis.totalAlerts - prevKpis.totalAlerts) / prevKpis.totalAlerts * 100);
         var up = kpis.totalAlerts > prevKpis.totalAlerts;
         return {
-          main: 'Total alert volume ' + (up ? 'up' : 'down') + ' ' + pct + '% vs yesterday',
-          sub: fmtNum(kpis.totalAlerts) + ' alerts today · ' + fmtNum(prevKpis.totalAlerts) + ' yesterday',
+          main: 'Total alert volume ' + (up ? 'up' : 'down') + ' ' + pct + '% vs prior 7 days',
+          sub: fmtNum(kpis.totalAlerts) + ' alerts this week · ' + fmtNum(prevKpis.totalAlerts) + ' the week before',
           tier: up ? 'active' : 'resolved'
         };
       }
       if(kpis.distinctAssets != null){
         return {
-          main: fmtNum(kpis.distinctAssets) + ' assets reporting today',
+          main: fmtNum(kpis.distinctAssets) + ' assets reporting this week',
           sub: fmtNum(kpis.distinctOperators || 0) + ' drivers involved across ' + fmtNum(kpis.totalAlerts || 0) + ' alerts',
           tier: 'resolved'
         };
@@ -3012,37 +3021,59 @@
         setUsername((sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there');
 
         var today = startOfDay(new Date());
-        var yesterday = addDays(today, -1);
         var weekStart = addDays(today, -6);
+        var prevWeekEnd = addDays(weekStart, -1);
+        var prevWeekStart = addDays(prevWeekEnd, -6);
 
-        // Two windows: `week` (7 days, for the trend chart's own 7-day
-        // shape) and `todayOnly` (today alone — what the KPI cards and
-        // hourly/feed cards actually mean by "today"). Using `week`'s sum
-        // for the KPI cards would silently inflate every KPI to a 7-day
-        // total while still labeling it "vs yesterday".
+        // KPIs/feed/insight all read the trailing 7-day window (`week`),
+        // not literally "today" — per direct instruction: a day with zero
+        // new alerts (a real, honest gap between imports, not a bug —
+        // confirmed live against the database) should never leave the
+        // whole Overview page looking empty. `prevWeek` (the 7 days before
+        // that) replaces the old "yesterday" comparison so deltas stay an
+        // apples-to-apples 7d-vs-prior-7d, not a mismatched 7d-vs-1-day.
         Promise.all([
           fetchMetrics(toMDY(weekStart), toMDY(today)),
-          fetchMetrics(toMDY(today), toMDY(today))
+          fetchMetrics(toMDY(prevWeekStart), toMDY(prevWeekEnd))
         ]).then(function(results){
           if(!guard.isCurrent(token)) return;
-          var week = results[0], todayOnly = results[1];
+          var week = results[0], prevWeek = results[1];
           setStatus(true);
           renderTrend(week);
-          renderHourly(todayOnly);
-          renderFeed(todayOnly);
-          renderUpdates(todayOnly);
+          renderFeed(week);
+          renderUpdates(week);
           renderActions();
+          renderKpis(week, prevWeek);
+          renderInsight(week, prevWeek);
 
-          fetchMetrics(toMDY(yesterday), toMDY(yesterday)).then(function(prevDay){
-            if(!guard.isCurrent(token)) return;
-            renderKpis(todayOnly, { kpis: prevDay.kpis, eventCodeDistribution: prevDay.eventCodeDistribution });
-            renderInsight(todayOnly, { kpis: prevDay.kpis });
-          }).catch(function(err){
-            if(!guard.isCurrent(token)) return;
-            console.warn('Comparison fetch failed — showing primary data without deltas', err);
-            renderKpis(todayOnly, null);
-            renderInsight(todayOnly, null);
-          });
+          // Hourly chart is inherently a single-day shape (24 buckets) —
+          // summing a week into it would silently become a different
+          // chart ("typical hourly pattern"), not "today's hourly
+          // pattern". Per direct instruction: falls back from literal
+          // "today" to the most recent day that actually has data,
+          // derived from `week.trend[]` (already fetched, no extra
+          // round-trip needed to find it) rather than guessing a date.
+          var trend = week.trend || [];
+          var lastWithData = null;
+          for(var i = trend.length - 1; i >= 0; i--){
+            if(trend[i].units > 0){ lastWithData = trend[i].date; break; }
+          }
+          var hourlyDayLabelEl = document.getElementById('ov-hourly-daylabel');
+          if(!lastWithData){
+            renderHourly({ hourly: { DAY:[], NIGHT:[] } });
+            if(hourlyDayLabelEl) hourlyDayLabelEl.textContent = 'No Data This Week';
+          } else {
+            var isToday = lastWithData === toMDY(today);
+            if(hourlyDayLabelEl) hourlyDayLabelEl.textContent = isToday ? 'Today' : lastWithData;
+            fetchMetrics(lastWithData, lastWithData).then(function(dayData){
+              if(!guard.isCurrent(token)) return;
+              renderHourly(dayData);
+            }).catch(function(err){
+              if(!guard.isCurrent(token)) return;
+              console.warn('Hourly chart fetch failed', err);
+              renderHourly({ hourly: { DAY:[], NIGHT:[] } });
+            });
+          }
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
           setStatus(false);
