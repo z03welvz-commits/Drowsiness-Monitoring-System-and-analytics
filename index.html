@@ -5997,29 +5997,35 @@
       var isOther = driversBulkAction.value === 'Other';
       if(isOther && !driversBulkOther.value.trim()){ driversBulkOther.focus(); return; }
 
+      // 'UNSPECIFIED' is the client's own placeholder for emp_no IS NULL
+      // (dds_driver_event_summary, 0037) — never a real emp_no a row could
+      // match, so it's split out and sent as its own flag rather than in
+      // the emp_no list.
+      var includeUnspecified = empNos.indexOf('UNSPECIFIED') !== -1;
+      var realEmpNos = empNos.filter(function(n){ return n !== 'UNSPECIFIED'; });
+
       var st = summaryState.drivers;
       driversBulkApply.disabled = true;
       driversBulkApply.textContent = 'Applying…';
 
-      Promise.all(empNos.map(function(empNo){
-        return DB.rpc('dds_driver_alert_instances', { p_emp_no: empNo, p_from: st.from || null, p_to: st.to || null })
-          .then(function(res){
-            if(res.error) throw res.error;
-            return ((res.data && res.data.rows) || []).map(function(row){ return row.eventId; });
-          });
-      })).then(function(idLists){
-        var ids = [].concat.apply([], idLists);
-        if(!ids.length){
-          throw new Error('No alert events found for the selected drivers in this date range.');
-        }
-        return DB.rpc('dds_bulk_log_case_action', {
-          p_event_ids: ids,
-          p_action_type: driversBulkAction.value,
-          p_action_is_other: isOther,
-          p_action_date: driversBulkDate.value || null,
-          p_status_value: driversBulkStatus.value,
-          p_remarks: isOther ? driversBulkOther.value.trim() : null
-        });
+      // One set-based RPC (0039_bulk_log_case_by_driver) selects and writes
+      // every matching event in a single indexed statement, instead of
+      // fetching each selected driver's event ids client-side first (that
+      // approach — one dds_driver_alert_instances call per driver, capped
+      // at 500 rows each, merged into one dds_bulk_log_case_action array —
+      // hit Postgres's statement timeout live with 100 drivers selected,
+      // one of them "Unspecified" alone accounting for 235k+ events).
+      DB.rpc('dds_bulk_log_case_action_by_driver', {
+        p_emp_nos: realEmpNos.length ? realEmpNos : null,
+        p_include_unspecified: includeUnspecified,
+        p_from: st.from || null,
+        p_to: st.to || null,
+        p_shift: st.shift || null,
+        p_action_type: driversBulkAction.value,
+        p_action_is_other: isOther,
+        p_action_date: driversBulkDate.value || null,
+        p_status_value: driversBulkStatus.value,
+        p_remarks: isOther ? driversBulkOther.value.trim() : null
       }).then(function(res){
         if(res.error) throw res.error;
         driversBulkAction.value = ''; driversBulkOther.value = ''; driversBulkOther.classList.remove('on'); driversBulkDate.value = ''; driversBulkStatus.value = 'Logged';
