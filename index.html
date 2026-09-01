@@ -370,8 +370,9 @@
   .al-clear{all:unset;box-sizing:border-box;cursor:pointer;flex:0 0 auto;margin-left:4px;color:#2563eb;font-size:11px;font-weight:650;padding:0 10px;height:36px;display:flex;align-items:center;border-radius:6px;white-space:nowrap}
   .al-clear:hover{background:#edf5ff}
 
-  .al-table-wrap{overflow-x:auto}
+  .al-table-wrap{overflow-x:auto;overflow-y:auto;height:1078px}
   .al-table{width:100%;border-collapse:collapse;min-width:880px}
+  .al-table thead th{position:sticky;top:0;z-index:1}
   .al-table th{height:38px;text-align:left;color:#748197;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:#f8fafc;white-space:nowrap}
   .al-table th[data-sort]{cursor:pointer;user-select:none}
   .al-table th[data-sort]:hover{color:#1259b6}
@@ -1872,8 +1873,16 @@
               </button>
             </div>
           </div>
-          <div class="da-filters">
-            <div class="da-sort-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Click a column header to sort</div>
+          <div class="al-filters">
+            <input type="date" class="al-filter" id="da-from-drivers" aria-label="From date">
+            <input type="date" class="al-filter" id="da-to-drivers" aria-label="To date">
+            <select class="al-filter" id="da-shift-drivers" aria-label="Shift filter">
+              <option value="">All shifts</option>
+              <option value="DAY">Day shift</option>
+              <option value="NIGHT">Night shift</option>
+            </select>
+            <button class="al-filter" type="button" id="da-refresh-drivers" style="cursor:pointer">↻&nbsp; Refresh</button>
+            <button class="al-clear" type="button" id="da-clear-drivers">Clear filters</button>
           </div>
           <div class="da-table-wrap">
             <table class="da-table" id="da-table-drivers">
@@ -1905,8 +1914,16 @@
               </button>
             </div>
           </div>
-          <div class="da-filters">
-            <div class="da-sort-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Click a column header to sort</div>
+          <div class="al-filters">
+            <input type="date" class="al-filter" id="da-from-assets" aria-label="From date">
+            <input type="date" class="al-filter" id="da-to-assets" aria-label="To date">
+            <select class="al-filter" id="da-shift-assets" aria-label="Shift filter">
+              <option value="">All shifts</option>
+              <option value="DAY">Day shift</option>
+              <option value="NIGHT">Night shift</option>
+            </select>
+            <button class="al-filter" type="button" id="da-refresh-assets" style="cursor:pointer">↻&nbsp; Refresh</button>
+            <button class="al-clear" type="button" id="da-clear-assets">Clear filters</button>
           </div>
           <div class="da-table-wrap">
             <table class="da-table" id="da-table-assets">
@@ -5082,8 +5099,8 @@
     // filtering an already-fetched array, so this scales the same way as
     // that page regardless of fleet size.
     var summaryState = {
-      drivers: { rows:[], total:0, sort:'total', dir:'desc', search:'' },
-      assets:  { rows:[], total:0, sort:'total', dir:'desc', search:'' }
+      drivers: { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null },
+      assets:  { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null }
     };
     var summaryGuard = { drivers: makeGuard(), assets: makeGuard() };
 
@@ -5107,7 +5124,10 @@
 
       var st = summaryState[kind];
       var fn = kind === 'drivers' ? 'dds_driver_event_summary' : 'dds_asset_event_summary';
-      DB.rpc(fn, { p_search: st.search || null, p_sort: st.sort, p_dir: st.dir, p_limit: 100, p_offset: 0 })
+      DB.rpc(fn, {
+        p_search: st.search || null, p_sort: st.sort, p_dir: st.dir, p_limit: 100, p_offset: 0,
+        p_from: st.from || null, p_to: st.to || null, p_shift: st.shift || null
+      })
         .then(function(res){
           if(!summaryGuard[kind].isCurrent(token)) return;
           if(res.error) throw res.error;
@@ -5254,6 +5274,28 @@
         summaryState[kind].search = input.value.trim();
         clearTimeout(searchTimers[kind]);
         searchTimers[kind] = setTimeout(function(){ loadSummaryTable(kind); }, 250);
+      });
+    });
+
+    // ---- date range / shift filters (Alert Logs-style filter row) ----
+    ['drivers','assets'].forEach(function(kind){
+      var fromEl = document.getElementById('da-from-' + kind);
+      var toEl = document.getElementById('da-to-' + kind);
+      var shiftEl = document.getElementById('da-shift-' + kind);
+      var refreshEl = document.getElementById('da-refresh-' + kind);
+      var clearEl = document.getElementById('da-clear-' + kind);
+      var searchEl = document.querySelector('[data-da-search="' + kind + '"]');
+      if(fromEl) fromEl.addEventListener('change', function(){ summaryState[kind].from = fromEl.value || null; loadSummaryTable(kind); });
+      if(toEl) toEl.addEventListener('change', function(){ summaryState[kind].to = toEl.value || null; loadSummaryTable(kind); });
+      if(shiftEl) shiftEl.addEventListener('change', function(){ summaryState[kind].shift = shiftEl.value || null; loadSummaryTable(kind); });
+      if(refreshEl) refreshEl.addEventListener('click', function(){ loadSummaryTable(kind); });
+      if(clearEl) clearEl.addEventListener('click', function(){
+        summaryState[kind].from = null; summaryState[kind].to = null; summaryState[kind].shift = null; summaryState[kind].search = '';
+        if(fromEl) fromEl.value = '';
+        if(toEl) toEl.value = '';
+        if(shiftEl) shiftEl.value = '';
+        if(searchEl) searchEl.value = '';
+        loadSummaryTable(kind);
       });
     });
 
