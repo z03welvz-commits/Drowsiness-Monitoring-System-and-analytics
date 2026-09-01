@@ -434,6 +434,11 @@
 
   .dm-dropzone{border:1.5px dashed #c7d2e0;border-radius:12px;background:#fbfcfe;flex:1;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:20px;text-align:center;transition:border-color .15s,background-color .15s}
   .dm-dropzone.drag{border-color:var(--blue);background:#eef5ff}
+  .dm-dropzone.busy{border-style:solid;border-color:var(--blue);background:#fff}
+  .dm-progress-track{width:100%;max-width:220px;height:7px;background:#e7eaf1;border-radius:99px;overflow:hidden;margin:4px 0}
+  .dm-progress-fill{height:100%;background:var(--blue);border-radius:99px;transition:width .2s ease}
+  .dm-drop-note.error{color:#c0271f;font-weight:600}
+  .dm-drop-note.success{color:#18a05e;font-weight:600}
   .dm-drop-icon{width:48px;height:48px;border-radius:50%;background:#e9f1fd;display:grid;place-items:center;margin-bottom:8px}
   .dm-drop-icon svg{width:21px;height:21px;color:var(--blue)}
   .dm-drop-title{font-size:12.5px;font-weight:700;color:#1e293b}
@@ -1614,12 +1619,13 @@
         <section class="dm-toprow">
           <div class="card dm-panel">
             <div class="dm-card-head"><div><div class="dm-card-title">Upload Data</div><div class="dm-card-sub">CSV or XLSX export from the DDS device logs</div></div></div>
-            <div class="dm-dropzone">
+            <div class="dm-dropzone" id="dm-dropzone-dds" data-dm-source="dds">
               <div class="dm-drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
-              <div class="dm-drop-title">Drag &amp; drop or click to upload</div>
-              <div class="dm-drop-or">or</div>
-              <button class="dm-choose" type="button">Choose File</button>
-              <div class="dm-drop-note">Supported: CSV, XLSX · Max 50 MB</div>
+              <div class="dm-drop-title" id="dm-drop-title-dds">Drag &amp; drop or click to upload</div>
+              <div class="dm-drop-or" id="dm-drop-or-dds">or</div>
+              <button class="dm-choose" type="button" id="dm-choose-dds">Choose File</button>
+              <div class="dm-drop-note" id="dm-drop-note-dds">Supported: CSV, XLSX · Max 50 MB</div>
+              <input type="file" id="dm-file-dds" accept=".csv,.xlsx,.xls" style="display:none">
             </div>
           </div>
 
@@ -2640,6 +2646,7 @@
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
   // ---------- Shared Supabase client (Phase 3+: real backend, not mock data) ----------
   // Same project/key index.html uses (publishable key — safe to ship client-side,
@@ -4641,6 +4648,199 @@
         });
       });
     }
+
+    // ==================== DDS Data: real file upload (CSV/XLSX) ====================
+    // Real DDS exports (assets/DDS_Data.xlsx, confirmed live) already use
+    // dds_ingest()'s exact expected header names as their own column
+    // headers — UPDATE_TIME/START_TIME/END_TIME/ASSET_ID/EVENT_CODE/
+    // EVENT_COUNT, optionally OPERATOR — so no header-renaming/mapping
+    // step is needed, just type coercion (XLSX stores those timestamp
+    // columns as Excel serial date-times, not text; SheetJS's cellDates
+    // option converts them to real JS Dates on read). Same file reader
+    // handles .csv (SheetJS parses CSV text into the same worksheet
+    // shape) so one code path covers both formats the UI already
+    // advertises ("Supported: CSV, XLSX").
+    var DDS_INGEST_CHUNK = 500; // keep each dds_ingest() call's jsonb payload small/fast rather than one huge round trip
+    var DDS_REQUIRED_HEADERS = ['UPDATE_TIME', 'START_TIME', 'ASSET_ID', 'EVENT_CODE', 'EVENT_COUNT'];
+
+    function parseWorkbookRows(arrayBuffer, filename){
+      var wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+      var sheet = wb.Sheets[wb.SheetNames[0]];
+      if(!sheet) throw new Error('No readable sheet found in "' + filename + '".');
+      var rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: true });
+      if(!rows.length) throw new Error('"' + filename + '" has no data rows.');
+      var headers = Object.keys(rows[0]);
+      var missing = DDS_REQUIRED_HEADERS.filter(function(h){ return headers.indexOf(h) === -1; });
+      if(missing.length) throw new Error('Missing required column(s): ' + missing.join(', ') + '. Found: ' + headers.join(', '));
+      return rows;
+    }
+
+    // A cell may already be a Date (SheetJS cellDates:true, for real XLSX
+    // date cells) or a plain string (CSV always, and XLSX cells stored as
+    // text) — both are normalized to dds_ingest()'s exact MM/DD/YYYY
+    // HH:mm:ss format via the same toCanonical() the manual-add path uses.
+    function cellToCanonical(v){
+      if(v == null || v === '') return '';
+      if(v instanceof Date) return isNaN(v) ? '' : toCanonical(v);
+      var d = new Date(v);
+      return isNaN(d) ? '' : toCanonical(d);
+    }
+
+    function workbookRowToIngestRow(r){
+      var start = cellToCanonical(r.START_TIME);
+      var update = cellToCanonical(r.UPDATE_TIME);
+      var end = cellToCanonical(r.END_TIME);
+      var asset = String(r.ASSET_ID || '').trim();
+      var eventCode = String(r.EVENT_CODE || '').trim();
+      var count = parseInt(r.EVENT_COUNT, 10);
+      if(!start || !update || !asset || !eventCode || !count || count < 1) return null;
+      return {
+        START_TIME: start, UPDATE_TIME: update, END_TIME: end,
+        ASSET_ID: asset, EVENT_CODE: eventCode, EVENT_COUNT: String(count),
+        OPERATOR: r.OPERATOR ? String(r.OPERATOR).trim() : ''
+      };
+    }
+
+    function chunk(arr, size){
+      var out = [];
+      for(var i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+      return out;
+    }
+
+    function setDropzoneStatus(kind, text, cls){
+      var note = document.getElementById('dm-drop-note-' + kind);
+      var title = document.getElementById('dm-drop-title-' + kind);
+      var orEl = document.getElementById('dm-drop-or-' + kind);
+      var chooseBtn = document.getElementById('dm-choose-' + kind);
+      if(note){ note.textContent = text; note.className = 'dm-drop-note' + (cls ? ' ' + cls : ''); }
+      if(title) title.style.display = cls === 'busy' ? 'none' : '';
+      if(orEl) orEl.style.display = cls === 'busy' ? 'none' : '';
+      if(chooseBtn) chooseBtn.disabled = cls === 'busy';
+    }
+    function setDropzoneProgress(kind, doneCount, totalCount){
+      var zone = document.getElementById('dm-dropzone-' + kind);
+      if(!zone) return;
+      var track = zone.querySelector('.dm-progress-track');
+      if(!track){
+        track = document.createElement('div');
+        track.className = 'dm-progress-track';
+        track.innerHTML = '<div class="dm-progress-fill" style="width:0%"></div>';
+        var note = document.getElementById('dm-drop-note-' + kind);
+        zone.insertBefore(track, note);
+      }
+      var pct = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
+      track.querySelector('.dm-progress-fill').style.width = pct + '%';
+    }
+    function clearDropzoneProgress(kind){
+      var zone = document.getElementById('dm-dropzone-' + kind);
+      var track = zone && zone.querySelector('.dm-progress-track');
+      if(track) track.remove();
+    }
+
+    function ingestDdsFile(file){
+      var kind = 'dds';
+      var zone = document.getElementById('dm-dropzone-' + kind);
+      if(file.size > 50 * 1024 * 1024){
+        setDropzoneStatus(kind, '"' + file.name + '" is over the 50 MB limit.', 'error');
+        return;
+      }
+      zone.classList.add('busy');
+      setDropzoneStatus(kind, 'Reading ' + file.name + '…', 'busy');
+
+      var reader = new FileReader();
+      reader.onerror = function(){
+        zone.classList.remove('busy');
+        setDropzoneStatus(kind, 'Could not read "' + file.name + '".', 'error');
+      };
+      reader.onload = function(){
+        var importId = null;
+        Promise.resolve().then(function(){
+          var rawRows = parseWorkbookRows(reader.result, file.name);
+          var rows = rawRows.map(workbookRowToIngestRow).filter(Boolean);
+          var skipped = rawRows.length - rows.length;
+          if(!rows.length) throw new Error('No valid rows found — check START_TIME/UPDATE_TIME/ASSET_ID/EVENT_CODE/EVENT_COUNT in "' + file.name + '".');
+
+          return insertImportRow(kind, file.name).then(function(res){
+            if(res.error) throw res.error;
+            importId = res.data.id;
+            var batches = chunk(rows, DDS_INGEST_CHUNK);
+            setDropzoneStatus(kind, 'Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 'busy');
+            var inserted = 0;
+            return batches.reduce(function(p, batch){
+              return p.then(function(){
+                return DB.rpc('dds_ingest', { p_import_id: importId, p_rows: batch }).then(function(r){
+                  if(r.error) throw r.error;
+                  inserted += batch.length;
+                  setDropzoneProgress(kind, inserted, rows.length);
+                  setDropzoneStatus(kind, 'Uploading ' + fmtNum(inserted) + ' of ' + fmtNum(rows.length) + ' rows…', 'busy');
+                });
+              });
+            }, Promise.resolve()).then(function(){
+              return DB.rpc('dds_complete_import', { p_import_id: importId });
+            }).then(function(){
+              return { rows: rows.length, skipped: skipped };
+            });
+          });
+        }).then(function(summary){
+          zone.classList.remove('busy');
+          clearDropzoneProgress(kind);
+          var msg = 'Imported ' + fmtNum(summary.rows) + ' row(s) from "' + file.name + '".' +
+            (summary.skipped ? ' ' + fmtNum(summary.skipped) + ' row(s) skipped (missing required fields).' : '');
+          setDropzoneStatus(kind, msg, 'success');
+          loaded[kind] = false;
+          ensureLoaded(kind);
+          loadHistory('dds', 'dds', '#dm-source-dds .dm-hist-list', 3);
+        }).catch(function(err){
+          zone.classList.remove('busy');
+          clearDropzoneProgress(kind);
+          // A partially-completed import (imports row created, some
+          // dds_ingest() batches may have landed) is left as status
+          // 'processing' rather than force-completed — its real row_count
+          // (updated by dds_ingest() itself, batch by batch) reflects
+          // exactly what made it in, visible in Upload History, instead of
+          // silently reporting success on a failed/interrupted upload.
+          console.error('DDS file import failed', err, 'importId:', importId);
+          setDropzoneStatus(kind, 'Import failed: ' + esc((err && err.message) || 'unknown error'), 'error');
+          if(importId){ loadHistory('dds', 'dds', '#dm-source-dds .dm-hist-list', 3); }
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    (function(){
+      var zone = document.getElementById('dm-dropzone-dds');
+      var input = document.getElementById('dm-file-dds');
+      var chooseBtn = document.getElementById('dm-choose-dds');
+      if(!zone || !input || !chooseBtn) return;
+
+      chooseBtn.addEventListener('click', function(){ input.click(); });
+      zone.addEventListener('click', function(e){
+        if(e.target === chooseBtn || zone.classList.contains('busy')) return;
+        input.click();
+      });
+      input.addEventListener('change', function(){
+        if(input.files && input.files[0]) ingestDdsFile(input.files[0]);
+        input.value = ''; // allow re-selecting the same file name after a failed/completed run
+      });
+
+      ['dragenter', 'dragover'].forEach(function(evt){
+        zone.addEventListener(evt, function(e){
+          e.preventDefault(); e.stopPropagation();
+          if(!zone.classList.contains('busy')) zone.classList.add('drag');
+        });
+      });
+      ['dragleave', 'drop'].forEach(function(evt){
+        zone.addEventListener(evt, function(e){
+          e.preventDefault(); e.stopPropagation();
+          zone.classList.remove('drag');
+        });
+      });
+      zone.addEventListener('drop', function(e){
+        if(zone.classList.contains('busy')) return;
+        var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if(file) ingestDdsFile(file);
+      });
+    })();
 
     function saveMinestat(){
       // dds_minestat_ingest() expects a fundamentally different row shape
