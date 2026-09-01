@@ -227,48 +227,82 @@
   .page.active{display:block}
 
   /* ---------- Analytics page (an- prefix avoids colliding with Overview's chrome classes) ----------
-     Redesigned to reuse Overview's card system directly (.card/.kpi/
-     .chart-card/.feed-card) instead of the page's own duplicated-inline
-     card chrome — the .an- prefix below now only covers what's genuinely
-     Analytics-specific (KPI bar layout, chart internals, ranked-list
-     bars, the factor table, the hourly-view toggle), not card borders/
-     radius/shadow which come from .card everywhere. */
-  .an-kpis{display:flex;gap:12px}
-  .an-kpis > .kpi{flex:1;min-width:0}
-  .an-insights-bar{padding:14px 16px}
-  .an-insights-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .an-insights-head .chart-title{font-size:14px}
-  .an-synced-note{font-size:11px;color:var(--muted)}
+     Restyled to match the dashboard.jsx reference layout: a divided Key
+     Insights strip, chart cards with sparkline/legend headers, segmented
+     ranked bar-lists with axis ticks, a donut with side legend, and a
+     compact alerts table with pagination chrome. Card borders/radius/
+     shadow still come from .card everywhere — the .an- prefix below only
+     covers what's genuinely Analytics-specific. */
+  .an-insights-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .an-synced-note{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#18a05e;font-weight:500}
+  .an-synced-note::before{content:'';width:6px;height:6px;border-radius:50%;background:#18a05e;flex:0 0 auto}
 
-  .an-charts-top,.an-charts-bottom{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  .an-row-wide-left{grid-template-columns:1.3fr 1fr 1fr}
-  .an-charts-top{margin-bottom:14px}
+  /* Key Insights: 4 KPI columns + 1 wider "alert type count" column, divided
+     by vertical rules instead of separate cards — matches jsx's KeyInsights
+     grid exactly (repeat(4,1fr) 1.1fr). */
+  .an-kpis{display:grid;grid-template-columns:repeat(4,1fr) 1.1fr;gap:0}
+  .an-kpi-col{padding:0 22px;border-left:1px solid var(--border)}
+  .an-kpi-col:first-child{border-left:none;padding-left:0}
+  .an-kpi-col:last-child{padding-right:0}
+  .an-kpi-head{display:flex;align-items:center;gap:8px}
+  .an-kpi-icon{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto}
+  .an-kpi-icon svg{width:14px;height:14px}
+  .an-kpi-label{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.03em}
+  .an-kpi-value{font-size:23px;font-weight:800;color:var(--text);margin-top:8px}
+  .an-kpi-sub{font-size:11.5px;margin-top:3px;color:var(--muted)}
+  .an-kpi-sub .delta{font-weight:650}
+  .an-kpi-sub .delta.up{color:#18a05e}
+  .an-kpi-sub .delta.down{color:#e53553}
+  .an-kpi-sub .delta.flat{color:#64748b}
+  .an-kpi-spark{height:34px;margin-top:10px}
+  .an-kpi-spark svg{width:100%;height:100%;display:block}
+  .an-typecount-bars{display:flex;gap:4px;margin-top:16px}
+  .an-typecount-bars i{width:16px;height:20px;border-radius:3px;background:#7c5cfc;flex:0 0 auto}
+
+  /* Every direct row of #page-analytics gets the same 18px vertical gap
+     below it (Key Insights -> Row 1 -> Row 2 -> Row 3) — a uniform
+     margin-bottom on the row classes themselves, rather than only on
+     .an-charts-top, so no row's bottom gap can silently collapse to 0
+     when a new row type is added after it. The last row's trailing
+     margin is harmless (page has bottom padding already). */
+  #page-analytics > .an-insights-bar,#page-analytics > .an-charts-top,#page-analytics > .an-charts-bottom{margin-bottom:18px}
+  .an-charts-top,.an-charts-bottom{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .an-row-wide-left{grid-template-columns:1.35fr 1fr 1fr}
+  .an-row-wide-table{grid-template-columns:1.55fr 1fr}
   .an-chart-card{padding:0 14px 12px;overflow:hidden}
-  .an-chart-head{height:43px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f3f7}
-  .an-chart-title{font-size:12.5px;font-weight:700;color:#1259b6}
-  .an-legend{display:flex;gap:12px;font-size:9.5px;color:#64748b}
+  .an-chart-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f3f7}
+  .an-chart-title{font-size:14.5px;font-weight:700;color:var(--text)}
+  .an-legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);font-weight:500}
   .an-legend span{display:flex;align-items:center;gap:5px}
-  .an-swatch{width:7px;height:7px;border-radius:2px;flex:0 0 auto}
-  .an-chart-area{height:180px;padding-top:7px}
+  .an-swatch{width:16px;height:2px;border-radius:2px;flex:0 0 auto;display:inline-block}
+  .an-swatch.dashed{background:none!important;border-top:2px dashed #2954e8}
+  .an-chart-area{height:238px;padding-top:7px}
   .an-chart-area svg{width:100%;height:100%;display:block}
   .an-axis{font-size:8px;fill:#64748b}
-  .an-bar{fill:#3b82f6}
-  .an-bar.hot{fill:#dc2626}
+  .an-bar{fill:#2954e8}
+  .an-bar.hot{fill:#e5484d}
   .an-bar.warn{fill:#d97706}
-  .an-note{font-size:9.5px;color:#64748b;padding-top:2px;display:flex;align-items:center;gap:6px}
-  .an-note i{width:16px;height:16px;border-radius:50%;background:#edf5ff;color:#2563eb;display:grid;place-items:center;font-style:normal;font-size:9px;flex:0 0 auto}
-  .an-rank-row{display:flex;align-items:center;gap:7px;height:23px;font-size:9.5px;color:#475569}
-  .an-rank-name{width:52px;flex:0 0 auto;font-weight:650}
-  .an-rank-track{flex:1;height:7px;background:#eef2f7;border-radius:4px;overflow:hidden}
-  .an-rank-fill{height:100%;background:#3b82f6;border-radius:4px}
-  .an-rank-value{width:34px;flex:0 0 auto;text-align:right;font-size:9px;color:#64748b}
+  .an-note{font-size:12px;color:var(--muted);padding-top:12px;display:flex;align-items:flex-start;gap:6px}
+  .an-note i{width:13px;height:13px;flex:0 0 auto;margin-top:1.5px;display:inline-flex;color:var(--muted)}
+  .an-view-toggle{font-size:12px;color:#2954e8;font-weight:600;cursor:pointer;background:none;border:none;padding:4px 6px}
+
+  /* Ranked lists (Top Assets, Top Employees): segmented progress bars with a
+     shared axis row beneath, matching jsx's BarListCard/TopEmployeesCard. */
+  .an-rank-list{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:14px;margin-top:4px}
+  .an-rank-row{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text)}
+  .an-rank-name{width:62px;flex:0 0 auto;font-weight:650}
+  .an-rank-track{flex:1;height:9px;background:#eef1f6;border-radius:5px;overflow:hidden}
+  .an-rank-fill{height:100%;background:#2954e8;border-radius:5px}
+  .an-rank-value{width:44px;flex:0 0 auto;text-align:right;font-size:12px;font-weight:700;color:var(--text)}
+  .an-rank-axis{display:flex;justify-content:space-between;margin-top:12px;font-size:10px;color:var(--muted);padding-left:72px}
 
   /* hourly trend view toggle (By Hour / By Month) */
-  .an-toggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
-  .an-toggle button{all:unset;box-sizing:border-box;cursor:pointer;font-size:10.5px;font-weight:650;color:#64748b;padding:5px 10px}
-  .an-toggle button.active{background:var(--blue);color:#fff}
+  .an-toggle{display:flex;gap:4px}
+  .an-toggle button{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);border-radius:7px;padding:4px 10px}
+  .an-toggle button.active{background:#2954e8;color:#fff}
 
-  /* Contributing Factors table (replaces the previous grouped-bar chart) */
+  /* Contributing Factors table (real data — jsx shows only a static empty
+     state; this table replaces that placeholder whenever factors exist) */
   .an-factor-table{width:100%;border-collapse:collapse;font-size:11.5px}
   .an-factor-table th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.03em;color:#94a3b8;font-weight:650;padding:0 8px 8px;border-bottom:1px solid #f0f3f7}
   .an-factor-table td{padding:9px 8px;border-bottom:1px solid #f4f6fa;color:#334155;vertical-align:middle}
@@ -280,19 +314,34 @@
   .an-factor-link{background:none;border:none;color:#2563eb;font-size:11px;font-weight:650;cursor:pointer;padding:0}
   .an-factor-link:hover{text-decoration:underline}
   .an-factor-detail{font-size:10.5px;color:var(--muted);padding:0 8px 9px;margin-top:-4px}
+  .an-factors-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0;text-align:center}
+  .an-factors-empty-icon{width:54px;height:54px;border-radius:12px;background:#f1f3f8;display:grid;place-items:center;margin-bottom:12px;color:#b4bbcb}
+  .an-factors-empty-text{font-size:12.5px;color:var(--muted);font-weight:500}
 
-  /* Action Taken Summary donut (actionable vs non-actionable — the only real 2-way split the data supports) */
-  .an-donut-card{display:flex;align-items:center;justify-content:center;gap:28px}
-  .an-donut-legend{display:flex;flex-direction:column;gap:8px;font-size:11px}
-  .an-donut-legend span{display:flex;align-items:center;gap:7px}
-  .an-donut-legend i{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
-  .an-donut-legend b{color:#0f172a}
+  /* Alert Type Distribution donut (replaces the old Action-Taken donut —
+     jsx's card groups by real event type, colored per severityBadge()) */
+  .an-donut-card{display:flex;align-items:center;gap:14px;flex:1}
+  .an-donut-wrap{width:130px;height:130px;position:relative;flex:0 0 auto}
+  .an-donut-wrap svg{width:100%;height:100%}
+  .an-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .an-donut-center b{font-size:16px;font-weight:800;color:var(--text)}
+  .an-donut-center span{font-size:9.5px;color:var(--muted)}
+  .an-donut-legend{display:flex;flex-direction:column;gap:8px;font-size:11.5px;flex:1;min-width:0}
+  .an-donut-legend-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .an-donut-legend-name{display:flex;align-items:center;gap:6px;color:var(--text);font-weight:500;min-width:0}
+  .an-donut-legend-name i{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+  .an-donut-legend-val{color:var(--muted);font-weight:600;white-space:nowrap}
+  .an-donut-legend-val b{color:#b4bbcb;font-weight:600}
 
   /* Recent Alerts Overview table (page-local — Alert Logs owns the full paginated table) */
-  .an-alerts-table{width:100%;border-collapse:collapse;font-size:11.5px}
-  .an-alerts-table th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.03em;color:#94a3b8;font-weight:650;padding:0 10px 8px;white-space:nowrap}
-  .an-alerts-table td{padding:8px 10px;border-top:1px solid #f4f6fa;color:#334155;white-space:nowrap}
-  .an-alerts-table tbody tr:hover{background:#fafbfd}
+  .an-alerts-table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .an-alerts-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:700;padding:0 10px 10px 0;border-bottom:1px solid var(--border);white-space:nowrap}
+  .an-alerts-table td{padding:9px 10px 9px 0;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
+  .an-alerts-table tbody tr:hover td{background:#fafbfd}
+  .an-alert-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .an-alerts-foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:11.5px;color:var(--muted)}
+  .an-alerts-pages{display:flex;align-items:center;gap:4px}
+  .an-page-btn{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;color:var(--muted);cursor:default}
 
   /* ---------- Alert Logs page (al- prefix avoids colliding with Overview/Analytics chrome classes) ---------- */
   .al-summary{display:grid;grid-template-columns:1.15fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px}
@@ -305,20 +354,20 @@
   .al-sc-sub{font-size:10.5px;color:var(--muted);margin-top:4px}
 
   .al-table-card{padding:0}
-  .al-table-head{height:54px;padding:0 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-  .al-table-title{font-size:13.5px;font-weight:750;color:#1259b6}
+  .al-table-head{min-height:54px;padding:14px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .al-table-title{font-size:13.5px;font-weight:750;color:#1259b6;flex:0 0 auto}
   .al-table-title small{font-size:10.5px;color:var(--muted);font-weight:500;margin-left:8px}
   .al-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:0 0 auto}
   .al-toggle button{all:unset;box-sizing:border-box;cursor:pointer;font-size:10.5px;padding:7px 13px;color:#64748b;font-weight:600}
   .al-toggle button.on{background:#eaf1fd;color:#1259b6}
 
-  .al-filters{padding:11px 17px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:#fbfcfe}
-  .al-search{width:250px;height:36px;background:#fff;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 11px;color:#94a3b8;font-size:11px;flex:0 1 auto}
+  .al-filters{padding:11px 17px;display:flex;align-items:center;gap:9px;flex-wrap:nowrap;border-bottom:1px solid var(--border);background:#fbfcfe}
+  .al-search{flex:0 0 40%;min-width:0;height:36px;background:#fff;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 11px;color:#94a3b8;font-size:11px}
   .al-search svg{width:13px;height:13px;flex:0 0 auto;color:#94a3b8}
-  .al-filter{all:unset;box-sizing:border-box;cursor:pointer;height:36px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:0 11px;display:flex;align-items:center;gap:7px;color:#475569;font-size:11px}
+  .al-filter{all:unset;box-sizing:border-box;cursor:pointer;height:36px;flex:1 1 0;min-width:0;background:#fff;border:1px solid var(--border);border-radius:8px;padding:0 11px;display:flex;align-items:center;justify-content:center;gap:7px;color:#475569;font-size:11px}
   .al-filter svg{width:10px;height:10px;color:#94a3b8}
   .al-filter strong{font-weight:700;color:#1e293b}
-  .al-clear{all:unset;box-sizing:border-box;cursor:pointer;margin-left:auto;color:#2563eb;font-size:11px;font-weight:650;padding:6px 8px;border-radius:6px}
+  .al-clear{all:unset;box-sizing:border-box;cursor:pointer;flex:0 0 auto;margin-left:4px;color:#2563eb;font-size:11px;font-weight:650;padding:0 10px;height:36px;display:flex;align-items:center;border-radius:6px;white-space:nowrap}
   .al-clear:hover{background:#edf5ff}
 
   .al-table-wrap{overflow-x:auto}
@@ -486,13 +535,15 @@
   .da-view.on{display:block}
 
   .da-table-card{padding:0;margin-bottom:14px}
-  .da-table-head{height:54px;padding:0 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-  .da-table-title{font-size:13.5px;font-weight:750;color:#1259b6;display:flex;align-items:center;gap:8px}
+  .da-table-head{min-height:54px;padding:14px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .da-table-title{font-size:13.5px;font-weight:750;color:#1259b6;display:flex;align-items:center;gap:8px;flex:0 0 auto}
   .da-table-title small{font-size:10.5px;color:var(--muted);font-weight:500}
-  .da-history-link{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:11px;font-weight:650;padding:6px 10px;border-radius:7px;display:inline-flex;align-items:center;gap:6px}
+  .da-table-head-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap}
+  .da-history-link{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:11px;font-weight:650;padding:6px 10px;border-radius:7px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
   .da-history-link:hover{background:#edf5ff}
   .da-history-link svg{width:11px;height:11px}
 
+  .da-table-head .da-search{width:250px;max-width:100%}
   .da-filters{padding:11px 17px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:#fbfcfe}
   .da-search{width:230px;height:36px;background:#fff;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 11px;flex:0 1 auto}
   .da-search svg{width:13px;height:13px;flex:0 0 auto;color:#94a3b8}
@@ -915,7 +966,9 @@
     .feed-time{width:32px}
     .an-kpis{grid-template-columns:1fr}
     .al-summary{grid-template-columns:1fr}
-    .al-search{width:100%}
+    .al-filters{flex-wrap:wrap}
+    .al-search{flex:1 1 100%}
+    .al-filter{flex:1 1 auto}
     .dm-tabs{gap:0}
     .dm-search{width:100%;max-width:100%}
     .dm-records-head{flex-direction:column;align-items:stretch}
@@ -1221,62 +1274,51 @@
           <span class="an-synced-note" id="an-synced-note">Data synced just now</span>
         </div>
         <div class="an-kpis" id="an-kpi-row">
-          <div class="kpi">
-            <div class="kpi-head"><span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
-            <div class="kpi-value" id="an-kpi-total-value">—</div>
-            <div class="kpi-sub" id="an-kpi-total-change">—</div>
-            <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-total-spark" points="0,16 100,16" fill="none" stroke="#e53553" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="an-kpi-col">
+            <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fde8e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span><span class="an-kpi-label">TOTAL ALERTS</span></div>
+            <div class="an-kpi-value" id="an-kpi-total-value">&mdash;</div>
+            <div class="an-kpi-sub" id="an-kpi-total-change">&mdash;</div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-total-spark" points="0,16 100,16" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </div>
-          <div class="kpi">
-            <div class="kpi-head"><span class="kpi-icon bluebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>TOTAL UNITS</div>
-            <div class="kpi-value" id="an-kpi-units-value">—</div>
-            <div class="kpi-sub" id="an-kpi-units-change">—</div>
-            <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-units-spark" points="0,16 100,16" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="an-kpi-col">
+            <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#e6eefe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><span class="an-kpi-label">TOTAL UNITS</span></div>
+            <div class="an-kpi-value" id="an-kpi-units-value">&mdash;</div>
+            <div class="an-kpi-sub" id="an-kpi-units-change">&mdash;</div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-units-spark" points="0,16 100,16" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </div>
-          <div class="kpi">
-            <div class="kpi-head"><span class="kpi-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>AVG SYNC TIME</div>
-            <div class="kpi-value" id="an-kpi-sync-value">—</div>
-            <div class="kpi-sub" id="an-kpi-sync-change">—</div>
-            <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-sync-spark" points="0,16 100,16" fill="none" stroke="#e8952e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="an-kpi-col">
+            <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fdf0dc" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><span class="an-kpi-label">AVG SYNC TIME</span></div>
+            <div class="an-kpi-value" id="an-kpi-sync-value">&mdash;</div>
+            <div class="an-kpi-sub" id="an-kpi-sync-change">&mdash;</div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-sync-spark" points="0,16 100,16" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </div>
-          <div class="kpi">
-            <div class="kpi-head"><span class="kpi-icon greenbg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span>ACTIONABLE RATIO</div>
-            <div class="kpi-value" id="an-kpi-ratio-value">—</div>
-            <div class="kpi-sub" id="an-kpi-ratio-change">—</div>
-            <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-ratio-spark" points="0,16 100,16" fill="none" stroke="#18a05e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="an-kpi-col">
+            <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#ddf6e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span><span class="an-kpi-label">ACTIONABLE RATIO</span></div>
+            <div class="an-kpi-value" id="an-kpi-ratio-value">&mdash;</div>
+            <div class="an-kpi-sub" id="an-kpi-ratio-change">&mdash;</div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-ratio-spark" points="0,16 100,16" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </div>
-          <div class="kpi">
-            <div class="kpi-head"><span class="kpi-icon purplebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg></span>ACTIONS TAKEN</div>
-            <div class="kpi-value" id="an-kpi-actions-value">—</div>
-            <div class="kpi-sub" id="an-kpi-actions-change">—</div>
-            <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-actions-spark" points="0,16 100,16" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          </div>
-          <div class="kpi" style="display:flex;flex-direction:column;justify-content:space-between">
-            <div class="kpi-head"><span class="kpi-icon pink" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>TOP EMP_NO</div>
-            <div>
-              <div class="kpi-value" id="an-kpi-topemp-value" style="font-size:21px">—</div>
-              <div class="kpi-sub" id="an-kpi-topemp-change">—</div>
-            </div>
+          <div class="an-kpi-col">
+            <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#efe9fe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#7c5cfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></span><span class="an-kpi-label">ALERT TYPE COUNT</span></div>
+            <div class="an-kpi-value" id="an-kpi-typecount-value">&mdash;</div>
+            <div class="an-kpi-sub">vs previous 7 days</div>
+            <div class="an-typecount-bars" id="an-kpi-typecount-bars" aria-hidden="true"></div>
           </div>
         </div>
       </section>
 
-      <section class="an-charts-top" id="an-insights-row" style="display:none">
-        <div class="an-chart-card" id="an-insights-body"><div class="da-empty">Loading insights…</div></div>
-      </section>
-
       <section class="an-charts-top">
-        <div class="card an-chart-card" id="anAssetVolumeCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><div class="chart-title an-chart-title">Alert Trend (Last 30 Days)</div></div><div class="an-legend"><span><i class="an-swatch" style="background:#f97316"></i>Total Alerts</span><span><i class="an-swatch" style="background:#5b4bc4"></i>Distinct Assets</span></div></div>
+        <div class="card an-chart-card" style="flex:1.35" id="anAssetVolumeCard">
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><div class="chart-title an-chart-title">Alert Trend (Last 30 Days)</div></div><div class="an-legend"><span><i class="an-swatch" style="background:#f5a524"></i>Total Alerts</span><span><i class="an-swatch dashed"></i>Distinct Assets</span></div></div>
           <div class="an-chart-area">
-            <svg viewBox="0 0 500 190" id="an-trend-svg">
-              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="70" x2="480" y2="70"/><line class="gridline" x1="40" y1="115" x2="480" y2="115"/><line class="gridline" x1="40" y1="160" x2="480" y2="160"/>
-              <polyline id="an-trend-units" points="" fill="none" stroke="#f97316" stroke-width="3"/>
-              <polyline id="an-trend-assets" points="" fill="none" stroke="#5b4bc4" stroke-width="2.5" stroke-dasharray="6 5"/>
+            <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-trend-svg">
+              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
+              <polyline id="an-trend-units" points="" fill="none" stroke="#f5a524" stroke-width="2.5"/>
+              <polyline id="an-trend-assets" points="" fill="none" stroke="#2954e8" stroke-width="2" stroke-dasharray="5 4"/>
               <g id="an-trend-axis"></g>
             </svg>
           </div>
-          <div class="an-note"><i>i</i> <span>Total alerts vs. distinct assets reporting, over the selected period.</span></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Total alerts vs. distinct assets reporting, over the selected period.</span></div>
         </div>
 
         <div class="card an-chart-card" id="anHourlyCard">
@@ -1286,97 +1328,83 @@
             </div>
           </div>
           <div class="an-chart-area">
-            <svg viewBox="0 0 500 190" id="an-hourly-svg">
-              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="70" x2="480" y2="70"/><line class="gridline" x1="40" y1="115" x2="480" y2="115"/><line class="gridline" x1="40" y1="160" x2="480" y2="160"/>
+            <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-hourly-svg">
+              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
               <g id="an-hourly-lines"></g>
               <g id="an-hourly-axis"></g>
             </svg>
           </div>
-          <div class="an-note"><i>i</i> <span id="an-hourly-note">—</span></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-hourly-note">&mdash;</span></div>
         </div>
 
         <div class="card an-chart-card" id="anSyncIntervalCard">
           <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span><div class="chart-title an-chart-title">Alert Sync Time</div></div></div>
           <div class="an-chart-area">
-            <svg viewBox="0 0 500 190" id="an-sync-svg">
-              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="70" x2="480" y2="70"/><line class="gridline" x1="40" y1="115" x2="480" y2="115"/><line class="gridline" x1="40" y1="160" x2="480" y2="160"/>
+            <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-sync-svg">
+              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
               <g id="an-sync-bars"></g>
               <g id="an-sync-axis"></g>
             </svg>
           </div>
-          <div class="an-note"><i>i</i> <span id="an-sync-note">—</span></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-sync-note">&mdash;</span></div>
         </div>
       </section>
 
-      <section class="an-charts-bottom an-row-wide-left">
-        <div class="card an-chart-card" id="anTopAssetsCard">
+      <section class="an-charts-bottom">
+        <div class="card an-chart-card" id="anTopAssetsCard" style="display:flex;flex-direction:column">
           <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><div class="chart-title an-chart-title">Top Assets by Alerts</div></div></div>
-          <div style="padding:10px 4px" id="an-topassets-body">
-            <div class="da-empty">Loading…</div>
+          <div id="an-topassets-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="da-empty">Loading&hellip;</div>
           </div>
         </div>
 
-        <div class="card an-chart-card" id="anFactorImpactCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11Z"/></svg></span><div class="chart-title an-chart-title">Contributing Factors</div></div></div>
-          <div style="padding:8px 4px 4px" id="an-factors-body">
-            <div class="da-empty">Loading…</div>
-          </div>
-          <div class="an-note"><i>i</i> <span>Associated with higher alerts — not a claim of causation.</span></div>
-        </div>
-
-        <div class="card an-chart-card" id="anActionSummaryCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span><div class="chart-title an-chart-title">Action Taken Summary</div></div></div>
-          <div class="an-donut-card" style="flex:1">
-            <svg viewBox="0 0 190 190" width="150" height="150">
-              <g id="an-action-arcs"></g>
-              <circle cx="95" cy="95" r="34" fill="#fff"/><text x="95" y="91" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a" id="an-action-total">—</text><text x="95" y="106" text-anchor="middle" font-size="8" fill="#64748b">Total Alerts</text>
-            </svg>
-            <div class="an-donut-legend" id="an-action-legend">—</div>
+        <div class="card an-chart-card" id="anTopDriversCard" style="display:flex;flex-direction:column">
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><div class="chart-title an-chart-title">Top Employees by Alerts</div></div><button class="view-all" type="button" data-goto="alerts">View all employees</button></div>
+          <div id="an-topdrivers-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="da-empty">Loading&hellip;</div>
           </div>
         </div>
-      </section>
 
-      <section class="an-charts-bottom" style="display:none">
-        <div class="card an-chart-card">
-          <div class="chart-head an-chart-head"><div class="chart-title an-chart-title">Event Severity Distribution</div></div>
-          <div class="an-chart-area">
-            <svg viewBox="0 0 500 190">
-              <g id="an-donut-arcs"></g>
-              <circle cx="250" cy="95" r="36" fill="#fff"/><text x="250" y="91" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a" id="an-donut-total">—</text><text x="250" y="105" text-anchor="middle" font-size="8" fill="#64748b">Total Alerts</text>
-            </svg>
+        <div class="card an-chart-card" id="anAlertTypeDonutCard" style="display:flex;flex-direction:column">
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><div class="chart-title an-chart-title">Alert Type Distribution</div></div></div>
+          <div class="an-donut-card">
+            <div class="an-donut-wrap">
+              <svg viewBox="0 0 190 190">
+                <g id="an-donut-arcs"></g>
+              </svg>
+              <div class="an-donut-center"><b id="an-donut-total">&mdash;</b><span>Total Alerts</span></div>
+            </div>
+            <div class="an-donut-legend" id="an-donut-legend">&mdash;</div>
           </div>
-          <div class="an-note"><i>i</i> <span id="an-donut-note">—</span></div>
-        </div>
-
-        <div class="card an-chart-card">
-          <div class="chart-head an-chart-head"><div class="chart-title an-chart-title">Alert Volume by Day of Week</div></div>
-          <div class="an-chart-area">
-            <svg viewBox="0 0 500 190" id="an-dow-svg">
-              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="70" x2="480" y2="70"/><line class="gridline" x1="40" y1="115" x2="480" y2="115"/><line class="gridline" x1="40" y1="160" x2="480" y2="160"/>
-              <g id="an-dow-bars"></g>
-              <g id="an-dow-axis"></g>
-            </svg>
-          </div>
-          <div class="an-note"><i>i</i> <span id="an-dow-note">—</span></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Distribution by alert type.</span></div>
         </div>
       </section>
 
-      <section class="an-charts-bottom" style="grid-template-columns:1.75fr 1fr">
-        <div class="card an-chart-card">
+      <section class="an-charts-bottom an-row-wide-table">
+        <div class="card an-chart-card" style="display:flex;flex-direction:column">
           <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><div class="chart-title an-chart-title">Recent Alerts Overview</div></div><button class="view-all" type="button" data-goto="alerts">View all alerts</button></div>
-          <div style="overflow-x:auto">
+          <div style="overflow-x:auto;flex:1">
             <table class="an-alerts-table">
               <thead><tr><th>Time</th><th>Driver</th><th>Asset ID</th><th>Event Type</th><th>Event Count</th><th>Shift</th></tr></thead>
-              <tbody id="an-recent-alerts-body"><tr><td colspan="6" style="color:#94a3b8;padding:14px 10px">Loading…</td></tr></tbody>
+              <tbody id="an-recent-alerts-body"><tr><td colspan="6" style="color:#94a3b8;padding:14px 10px">Loading&hellip;</td></tr></tbody>
             </table>
+          </div>
+          <div class="an-alerts-foot">
+            <span id="an-recent-alerts-showing">&mdash;</span>
+            <div class="an-alerts-pages" aria-hidden="true">
+              <span class="an-page-btn">&lsaquo;</span>
+              <span class="an-page-btn" style="background:#2954e8;color:#fff">1</span>
+              <span class="an-page-btn">&rsaquo;</span>
+            </div>
           </div>
         </div>
 
-        <div class="card an-chart-card" id="anTopDriversCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><div class="chart-title an-chart-title">Top Employees by Alerts</div></div></div>
-          <div style="padding:10px 4px" id="an-topdrivers-body">
-            <div class="da-empty">Loading…</div>
+        <div class="card an-chart-card" id="anFactorImpactCard" style="display:flex;flex-direction:column">
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11Z"/></svg></span><div class="chart-title an-chart-title">Contributing Factors</div></div></div>
+          <div id="an-factors-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="da-empty">Loading&hellip;</div>
           </div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Associated with higher alerts &mdash; not a claim of causation.</span></div>
         </div>
       </section>
     </div>
@@ -1386,24 +1414,6 @@
         <div class="title">
           <h1>Alert Logs</h1>
           <p>Review detected events, severity, and actions taken</p>
-        </div>
-        <div class="controls">
-          <div class="user"><span class="online" aria-hidden="true"></span><span id="al-username">z_03welvz</span></div>
-          <div class="card clock-chip">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-            <div>
-              <div class="time" id="al-clock-time">14:47</div>
-              <div class="date" id="al-clock-date">Tuesday, September 1</div>
-            </div>
-          </div>
-          <input type="date" class="control" id="al-from" aria-label="From date">
-          <input type="date" class="control" id="al-to" aria-label="To date">
-          <select class="control" id="al-shift" aria-label="Shift filter">
-            <option value="">All shifts</option>
-            <option value="DAY">Day shift</option>
-            <option value="NIGHT">Night shift</option>
-          </select>
-          <button class="btn" type="button" id="al-refresh">↻&nbsp; Refresh</button>
         </div>
       </header>
 
@@ -1436,10 +1446,18 @@
         </div>
         <div class="al-filters">
           <div class="al-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="al-search" placeholder="Search asset, driver, or event..." style="all:unset;flex:1;min-width:0;font-size:11px;color:#1e293b"></div>
+          <input type="date" class="al-filter" id="al-from" aria-label="From date">
+          <input type="date" class="al-filter" id="al-to" aria-label="To date">
+          <select class="al-filter" id="al-shift" aria-label="Shift filter">
+            <option value="">All shifts</option>
+            <option value="DAY">Day shift</option>
+            <option value="NIGHT">Night shift</option>
+          </select>
           <select class="al-filter" id="al-status" aria-label="Action status filter">
             <option value="all">Action status: All</option>
             <option value="unset">Action status: Not yet logged</option>
           </select>
+          <button class="al-filter" type="button" id="al-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
           <button class="al-clear" type="button" id="al-clear-filters">Clear filters</button>
         </div>
         <div class="al-table-wrap">
@@ -1771,15 +1789,6 @@
         </div>
         <div class="controls">
           <div class="user"><span class="online" aria-hidden="true"></span><span id="da-username">z_03welvz</span></div>
-          <div class="card clock-chip">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-            <div>
-              <div class="time">14:47</div>
-              <div class="date">Tuesday, September 1</div>
-            </div>
-          </div>
-          <button class="control" type="button">This week&nbsp; ⌄</button>
-          <button class="btn" type="button">↻&nbsp; Refresh</button>
         </div>
       </header>
 
@@ -1820,13 +1829,15 @@
         <section class="card da-table-card">
           <div class="da-table-head">
             <div class="da-table-title">Flagged Drivers <small data-da-shown="drivers">Showing 0</small></div>
-            <button class="da-history-link" type="button" data-da-open-history="drivers">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
-              View resolved / history
-            </button>
+            <div class="da-table-head-right">
+              <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." data-da-search="drivers"></div>
+              <button class="da-history-link" type="button" data-da-open-history="drivers">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+                View resolved / history
+              </button>
+            </div>
           </div>
           <div class="da-filters">
-            <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." data-da-search="drivers"></div>
             <button class="da-filter on" type="button" data-da-riskfilter="drivers" data-value="all">Risk&nbsp; <strong>All</strong></button>
             <div class="da-sort-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Sorted by risk, then weekly alert count</div>
           </div>
@@ -1852,13 +1863,15 @@
         <section class="card da-table-card">
           <div class="da-table-head">
             <div class="da-table-title">Flagged Assets <small data-da-shown="assets">Showing 0</small></div>
-            <button class="da-history-link" type="button" data-da-open-history="assets">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
-              View resolved / history
-            </button>
+            <div class="da-table-head-right">
+              <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search asset or unit ID..." data-da-search="assets"></div>
+              <button class="da-history-link" type="button" data-da-open-history="assets">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+                View resolved / history
+              </button>
+            </div>
           </div>
           <div class="da-filters">
-            <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search asset or unit ID..." data-da-search="assets"></div>
             <button class="da-filter on" type="button" data-da-riskfilter="assets" data-value="all">Risk&nbsp; <strong>All</strong></button>
             <div class="da-sort-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Sorted by risk, then weekly alert count</div>
           </div>
@@ -3271,22 +3284,24 @@
       // fraction — fmtPct(n) appends '%' directly, no extra *100 here.
       setKpi('ratio', kpis.actionableRatio, p7 ? p7.actionableRatio : null, null, function(v){ return fmtPct(v || 0); });
 
-      var curActions = Math.round((kpis.totalAlerts || 0) * (kpis.actionableRatio || 0) / 100);
-      var p7Actions = p7 ? Math.round((p7.totalAlerts || 0) * (p7.actionableRatio || 0) / 100) : null;
-      setKpi('actions', curActions, p7Actions, null);
-
-      var top = (cur.topOperators || []).filter(function(o){ return o.id !== UNSPECIFIED_OPERATOR; })[0];
-      var topEl = document.getElementById('an-kpi-topemp-value');
-      var topSubEl = document.getElementById('an-kpi-topemp-change');
-      if(topEl) topEl.textContent = top ? driverLabel(top) : '—';
-      if(topSubEl) topSubEl.textContent = top ? (fmtNum(top.total) + ' alerts · highest alert volume') : 'No driver data yet';
+      var typeCountEl = document.getElementById('an-kpi-typecount-value');
+      var typeBarsEl = document.getElementById('an-kpi-typecount-bars');
+      var codes = (cur.eventCodeDistribution || []).slice().sort(function(a,b){ return b.units - a.units; });
+      if(typeCountEl) typeCountEl.textContent = fmtNum(codes.length);
+      if(typeBarsEl){
+        var peak = Math.max.apply(null, codes.map(function(c){ return c.units; }).concat([1]));
+        typeBarsEl.innerHTML = codes.slice(0, 5).map(function(c){
+          var h = 8 + Math.round((c.units / peak) * 20);
+          return '<i style="height:' + h + 'px"></i>';
+        }).join('');
+      }
     }
 
     // ==================== Alert Volume by Distinct Asset (trend) ====================
     function renderTrend(cur){
       var trend = cur.trend || [];
       if(!trend.length) return;
-      var L = 40, R = 480, T = 25, B = 160;
+      var L = 40, R = 480, T = 25, B = 208;
       var maxUnits = Math.max.apply(null, trend.map(function(t){ return t.units; }).concat([1]));
       var maxAssets = Math.max.apply(null, trend.map(function(t){ return t.assets; }).concat([1]));
       var xFor = function(i){ return trend.length === 1 ? (L+R)/2 : L + (i / (trend.length - 1)) * (R - L); };
@@ -3306,7 +3321,7 @@
         var seen = {};
         axisEl.innerHTML = idxs.filter(function(i){ if(seen[i]) return false; seen[i]=true; return true; })
           .map(function(i){
-            return '<text x="' + xFor(i).toFixed(1) + '" y="180" class="an-axis">' + esc(trend[i].date) + '</text>';
+            return '<text x="' + xFor(i).toFixed(1) + '" y="228" class="an-axis">' + esc(trend[i].date) + '</text>';
           }).join('');
       }
     }
@@ -3321,7 +3336,7 @@
       var noteEl = document.getElementById('an-hourly-note');
       if(!el) return;
       if(!months.length){ el.innerHTML = ''; if(axisEl) axisEl.innerHTML=''; if(noteEl) noteEl.textContent = 'No monthly data yet.'; return; }
-      var L = 40, R = 480, T = 25, B = 160;
+      var L = 40, R = 480, T = 25, B = 208;
       var max = Math.max.apply(null, months.flatMap(function(m){ return m.hours; }).concat([1]));
       var xFor = function(h){ return L + (h / 23) * (R - L); };
       var yFor = function(v){ return B - (v / max) * (B - T); };
@@ -3332,7 +3347,7 @@
       if(axisEl){
         var hourLabels = [1,5,9,13,17,21];
         axisEl.innerHTML = hourLabels.map(function(h){
-          return '<text x="' + xFor(h).toFixed(1) + '" y="180" class="an-axis">' + h + ':00</text>';
+          return '<text x="' + xFor(h).toFixed(1) + '" y="228" class="an-axis">' + h + ':00</text>';
         }).join('');
       }
       if(noteEl) noteEl.textContent = 'One line per month — ' + months.length + ' month(s) shown.';
@@ -3347,7 +3362,7 @@
       var axisEl = document.getElementById('an-hourly-axis');
       var noteEl = document.getElementById('an-hourly-note');
       if(!el) return;
-      var L = 40, R = 480, T = 25, B = 160;
+      var L = 40, R = 480, T = 25, B = 208;
       var max = Math.max.apply(null, totals.concat([1]));
       var xFor = function(h){ return L + (h / 23) * (R - L); };
       var yFor = function(v){ return B - (v / max) * (B - T); };
@@ -3356,7 +3371,7 @@
       if(axisEl){
         var hourLabels = [0,4,8,12,16,20];
         axisEl.innerHTML = hourLabels.map(function(h){
-          return '<text x="' + xFor(h).toFixed(1) + '" y="180" class="an-axis">' + String(h).padStart(2,'0') + ':00</text>';
+          return '<text x="' + xFor(h).toFixed(1) + '" y="228" class="an-axis">' + String(h).padStart(2,'0') + ':00</text>';
         }).join('');
       }
       if(noteEl){
@@ -3394,7 +3409,7 @@
       var totals = SYNC_LABELS.map(function(_, i){
         return (buckets.actionable[i] || 0) + (buckets.nonActionable[i] || 0);
       });
-      var L = 40, R = 480, T = 25, B = 160;
+      var L = 40, R = 480, T = 25, B = 208;
       var peak = Math.max.apply(null, totals.concat([1]));
       var barW = 42, gap = (R - L - SYNC_LABELS.length * barW) / (SYNC_LABELS.length + 1);
       var worstIdx = SYNC_LABELS.length - 1;
@@ -3412,7 +3427,7 @@
       if(axisEl){
         axisEl.innerHTML = SYNC_LABELS.map(function(label, i){
           var x = L + gap + i * (barW + gap) + barW/2;
-          return '<text x="' + x.toFixed(1) + '" y="180" class="an-axis">' + esc(label) + '</text>';
+          return '<text x="' + x.toFixed(1) + '" y="228" class="an-axis">' + esc(label) + '</text>';
         }).join('');
       }
       var noteEl = document.getElementById('an-sync-note');
@@ -3425,116 +3440,93 @@
       }
     }
 
-    // ==================== Alert Volume by Day of Week ====================
-    function renderDayOfWeek(cur){
-      var items = cur.dayOfWeek || [];
-      var barsEl = document.getElementById('an-dow-bars');
-      var axisEl = document.getElementById('an-dow-axis');
-      var noteEl = document.getElementById('an-dow-note');
-      if(!barsEl || !items.length) return;
-      var L = 40, R = 480, T = 25, B = 160;
-      var peak = Math.max.apply(null, items.map(function(x){ return x.units; }).concat([1]));
-      var peakIdx = 0;
-      items.forEach(function(x, i){ if(x.units > items[peakIdx].units) peakIdx = i; });
-      var barW = 30, gap = (R - L - items.length * barW) / (items.length + 1);
-      barsEl.innerHTML = items.map(function(x, i){
-        var h = (x.units / peak) * (B - T);
-        var xPos = L + gap + i * (barW + gap);
-        var y = B - h;
-        var fill = i === peakIdx && x.units > 0 ? '#1e3a8a' : '#93c5fd';
-        return '<rect x="' + xPos.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW + '" height="' + Math.max(h,0).toFixed(1) + '" rx="3" fill="' + fill + '"/>';
-      }).join('');
-      if(axisEl){
-        axisEl.innerHTML = items.map(function(x, i){
-          var xPos = L + gap + i * (barW + gap) + barW/2;
-          return '<text x="' + xPos.toFixed(1) + '" y="180" class="an-axis">' + esc(x.day) + '</text>';
-        }).join('');
-      }
-      if(noteEl){
-        var total = items.reduce(function(s,x){ return s+x.units; }, 0);
-        var peakShare = total ? items[peakIdx].units / total : 0;
-        noteEl.textContent = (total > 0 && peakShare >= (1/7)*1.3)
-          ? esc(items[peakIdx].day) + ' concentrates ' + fmtPct(peakShare*100) + ' of the week\'s volume.'
-          : 'Volume is roughly even across the week.';
-      }
-    }
-
     // ==================== Alert Count by Driver / Alert Volume by Top Asset (ranked bar lists) ====================
+    function niceAxisMax(peak){
+      if(peak <= 0) return 1;
+      var mag = Math.pow(10, Math.floor(Math.log10(peak)));
+      var norm = peak / mag;
+      var step = norm <= 1 ? 1 : (norm <= 2 ? 2 : (norm <= 5 ? 5 : 10));
+      return step * mag;
+    }
     function renderRankedList(containerId, items, opts){
       var body = document.getElementById(containerId);
       if(!body) return;
       opts = opts || {};
+      items = items.slice(0, 5);
       if(!items.length){
         body.innerHTML = '<div class="da-empty">' + esc(opts.emptyText || 'No data') + '</div>';
         return;
       }
-      var peak = Math.max.apply(null, items.map(function(i){ return i.value; }).concat([1]));
-      var total = items.reduce(function(s,i){ return s+i.value; }, 0);
-      var html = items.map(function(item){
-        var pct = Math.round((item.value / peak) * 100);
+      var rawPeak = Math.max.apply(null, items.map(function(i){ return i.value; }).concat([1]));
+      var axisMax = niceAxisMax(rawPeak);
+      var rows = items.map(function(item){
+        var pct = Math.round((item.value / axisMax) * 100);
         return '<div class="an-rank-row"><span class="an-rank-name" title="' + esc(item.label) + '">' + esc(item.label) +
           '</span><span class="an-rank-track"><span class="an-rank-fill" style="width:' + pct + '%"></span></span>' +
           '<span class="an-rank-value">' + fmtNum(item.value) + '</span></div>';
       }).join('');
-      var topShare = total ? items.reduce(function(s,i){ return s+i.value; },0) / total * 100 : 0;
-      html += '<div class="an-note" style="margin-top:8px"><i>i</i> ' + esc(opts.noteText || '') + '</div>';
-      body.innerHTML = html;
+      var ticks = [0, 0.25, 0.5, 0.75, 1].map(function(f){ return fmtNum(Math.round(axisMax * f)); });
+      body.innerHTML = '<div class="an-rank-list">' + rows + '</div>' +
+        '<div class="an-rank-axis">' + ticks.map(function(t){ return '<span>' + esc(t) + '</span>'; }).join('') + '</div>';
     }
     function renderTopDrivers(cur){
-      var items = (cur.topOperators || []).filter(function(o){ return o.id !== UNSPECIFIED_OPERATOR; }).slice(0, 8);
-      var total = cur.kpis ? cur.kpis.totalAlerts : 0;
-      var shown = items.reduce(function(s,o){ return s+o.total; }, 0);
-      var pct = total ? Math.round(shown/total*100) : 0;
+      var items = (cur.topOperators || []).filter(function(o){ return o.id !== UNSPECIFIED_OPERATOR; });
       renderRankedList('an-topdrivers-body', items.map(function(o){ return { label: driverLabel(o), value: o.total }; }),
-        { emptyText: 'No driver data — alert rows carry no driver name yet',
-          noteText: items.length ? ('Top drivers account for ' + pct + '% of recorded alerts.') : '' });
+        { emptyText: 'No driver data — alert rows carry no driver name yet' });
     }
     function renderTopAssets(cur){
-      var items = (cur.topAssets || []).slice(0, 12);
-      var total = cur.kpis ? cur.kpis.totalAlerts : 0;
-      var shown = items.reduce(function(s,a){ return s+a.total; }, 0);
-      var pct = total ? Math.round(shown/total*100) : 0;
+      var items = cur.topAssets || [];
       renderRankedList('an-topassets-body', items.map(function(a){ return { label: a.id, value: a.total }; }),
-        { emptyText: 'No assets in range',
-          noteText: items.length ? ('Top assets account for ' + pct + '% of recorded alerts.') : '' });
+        { emptyText: 'No assets in range' });
     }
 
-    // ==================== Event Severity Distribution (donut) ====================
-    function renderEventDonut(cur){
-      var codes = (cur.eventCodeDistribution || []).slice(0, 6);
+    // ==================== Alert Type Distribution (donut) ====================
+    // Grouped by real event code (cur.eventCodeDistribution), not severity
+    // tier — matches dashboard.jsx's AlertTypeDonutCard, which names each
+    // slice after its actual alert type. Colors come from severityBadge()'s
+    // per-tier palette so "Sleep Alert"/"Drowsiness Alert" keep the same
+    // red/amber meaning used elsewhere on this page; anything beyond the
+    // top 5 codes is folded into a real "Other" slice rather than dropped.
+    var DONUT_OTHER_COLOR = '#c7ccd9';
+    function renderAlertTypeDonut(cur){
+      var all = (cur.eventCodeDistribution || []).slice().sort(function(a,b){ return b.units - a.units; });
       var arcsEl = document.getElementById('an-donut-arcs');
       var totalEl = document.getElementById('an-donut-total');
-      var noteEl = document.getElementById('an-donut-note');
+      var legendEl = document.getElementById('an-donut-legend');
       if(!arcsEl) return;
-      var total = codes.reduce(function(s,c){ return s + c.units; }, 0);
+      var top = all.slice(0, 5);
+      var rest = all.slice(5).reduce(function(s,c){ return s + c.units; }, 0);
+      var slices = top.map(function(c){ return { name: c.code || 'Other', value: c.units, color: severityBadge(c.code).color }; });
+      if(rest > 0) slices.push({ name: 'Other', value: rest, color: DONUT_OTHER_COLOR });
+      var total = slices.reduce(function(s,c){ return s + c.value; }, 0);
       if(totalEl) totalEl.textContent = fmtNum(cur.kpis ? cur.kpis.totalAlerts : total);
-      if(!total){ arcsEl.innerHTML = ''; if(noteEl) noteEl.textContent = 'No event data.'; return; }
-      var cx = 250, cy = 95, r = 60;
+      if(!total){ arcsEl.innerHTML = ''; if(legendEl) legendEl.textContent = 'No event data.'; return; }
+      var cx = 95, cy = 95, r = 62, innerR = 42;
       var startAngle = -90;
-      var paths = codes.map(function(c){
-        var frac = c.units / total;
+      var paths = slices.filter(function(s){ return s.value > 0; }).map(function(s){
+        var frac = s.value / total;
         var endAngle = startAngle + frac * 360;
         var large = (endAngle - startAngle) > 180 ? 1 : 0;
-        var toXY = function(angle){
-          var rad = angle * Math.PI / 180;
-          return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+        var toXY = function(angle, rad){
+          var t = angle * Math.PI / 180;
+          return [cx + rad * Math.cos(t), cy + rad * Math.sin(t)];
         };
-        var p1 = toXY(startAngle), p2 = toXY(endAngle);
-        var color = severityBadge(c.code).color;
-        var d = 'M' + cx + ' ' + cy + ' L' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1) +
-          ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + ' Z';
+        var o1 = toXY(startAngle, r), o2 = toXY(endAngle, r);
+        var i1 = toXY(endAngle, innerR), i2 = toXY(startAngle, innerR);
+        var d = 'M' + o1[0].toFixed(1) + ' ' + o1[1].toFixed(1) +
+          ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + o2[0].toFixed(1) + ' ' + o2[1].toFixed(1) +
+          ' L' + i1[0].toFixed(1) + ' ' + i1[1].toFixed(1) +
+          ' A' + innerR + ' ' + innerR + ' 0 ' + large + ' 0 ' + i2[0].toFixed(1) + ' ' + i2[1].toFixed(1) + ' Z';
         startAngle = endAngle;
-        return '<path d="' + d + '" fill="' + color + '"/>';
+        return '<path d="' + d + '" fill="' + s.color + '"/>';
       });
       arcsEl.innerHTML = paths.join('');
-      if(noteEl){
-        var byTier = { critical:0, high:0, moderate:0 };
-        codes.forEach(function(c){
-          var tier = severityBadge(c.code).tier;
-          byTier[tier] = (byTier[tier]||0) + c.units;
-        });
-        noteEl.textContent = 'Critical ' + fmtPct(byTier.critical/total*100) + ' · High ' + fmtPct(byTier.high/total*100) +
-          ' · Moderate ' + fmtPct(byTier.moderate/total*100) + ' of recorded alerts.';
+      if(legendEl){
+        legendEl.innerHTML = slices.map(function(s){
+          var pct = total ? Math.round(s.value/total*100) : 0;
+          return '<div class="an-donut-legend-row"><span class="an-donut-legend-name"><i style="background:' + s.color + '"></i>' + esc(s.name) + '</span>' +
+            '<span class="an-donut-legend-val">' + fmtNum(s.value) + ' <b>(' + pct + '%)</b></span></div>';
+        }).join('');
       }
     }
 
@@ -3602,7 +3594,7 @@
       if(!body) return;
       var result = computeFactorImpact(cur, factors);
       if(!result || !result.categories.length){
-        body.innerHTML = '<div class="da-empty">No contributing factors logged yet.</div>';
+        body.innerHTML = '<div class="an-factors-empty"><div class="an-factors-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="an-factors-empty-text">No contributing factors logged yet.</div></div>';
         return;
       }
       var cats = result.categories.slice().sort(function(a,b){ return b.rate - a.rate; });
@@ -3629,56 +3621,14 @@
       });
     }
 
-    // ==================== Action Taken Summary (actionable vs. non-actionable — the only real 2-way split the data supports) ====================
-    function renderActionSummaryDonut(cur){
-      var kpis = cur.kpis || {};
-      var arcsEl = document.getElementById('an-action-arcs');
-      var totalEl = document.getElementById('an-action-total');
-      var legendEl = document.getElementById('an-action-legend');
-      if(!arcsEl) return;
-      var total = kpis.totalAlerts || 0;
-      var actionable = Math.round(total * (kpis.actionableRatio || 0) / 100);
-      var nonActionable = total - actionable;
-      if(totalEl) totalEl.textContent = fmtNum(total);
-      if(!total){
-        arcsEl.innerHTML = '';
-        if(legendEl) legendEl.textContent = 'No alerts in range.';
-        return;
-      }
-      var cx = 95, cy = 95, r = 58;
-      var slices = [
-        { value: actionable, color: '#2563eb', label: 'Actionable' },
-        { value: nonActionable, color: '#cbd5e1', label: 'Non-actionable' }
-      ];
-      var startAngle = -90;
-      var paths = slices.filter(function(s){ return s.value > 0; }).map(function(s){
-        var frac = s.value / total;
-        var endAngle = startAngle + frac * 360;
-        var large = (endAngle - startAngle) > 180 ? 1 : 0;
-        var toXY = function(angle){
-          var rad = angle * Math.PI / 180;
-          return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
-        };
-        var p1 = toXY(startAngle), p2 = toXY(endAngle);
-        var d = 'M' + cx + ' ' + cy + ' L' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1) +
-          ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + ' Z';
-        startAngle = endAngle;
-        return '<path d="' + d + '" fill="' + s.color + '"/>';
-      });
-      arcsEl.innerHTML = paths.join('');
-      if(legendEl){
-        legendEl.innerHTML = slices.map(function(s){
-          var pct = total ? Math.round(s.value/total*100) : 0;
-          return '<span><i style="background:' + s.color + '"></i>' + esc(s.label) + ' <b>' + fmtNum(s.value) + '</b> (' + pct + '%)</span>';
-        }).join('');
-      }
-    }
-
     // ==================== Recent Alerts Overview (page-local preview — Alert Logs owns the full paginated table) ====================
     function renderRecentAlerts(cur){
       var body = document.getElementById('an-recent-alerts-body');
       if(!body) return;
-      var rows = (cur.recentAlerts || []).slice(0, 8);
+      var all = cur.recentAlerts || [];
+      var rows = all.slice(0, 8);
+      var showingEl = document.getElementById('an-recent-alerts-showing');
+      if(showingEl) showingEl.textContent = rows.length ? ('Showing 1 to ' + rows.length + ' of ' + fmtNum(all.length) + ' entries') : '—';
       if(!rows.length){
         body.innerHTML = '<tr><td colspan="6" style="color:#94a3b8;padding:14px 10px">No alerts recorded.</td></tr>';
         return;
@@ -3686,162 +3636,30 @@
       body.innerHTML = rows.map(function(r){
         var t = r.time ? new Date(r.time) : null;
         var timeStr = t ? t.toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true }) : '—';
+        var badge = severityBadge(r.eventCode);
         return '<tr>' +
           '<td>' + esc(timeStr) + '</td>' +
           '<td>' + esc(r.operator || 'Unspecified') + '</td>' +
           '<td>' + esc(r.asset || '—') + '</td>' +
-          '<td>' + esc(r.eventCode || 'Alert') + '</td>' +
+          '<td><span class="an-alert-badge" style="background:' + badge.color + '22;color:' + badge.color + '">' + esc(r.eventCode || 'Alert') + '</span></td>' +
           '<td>' + fmtNum(r.count || 0) + '</td>' +
           '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : 'Day') + '</td>' +
           '</tr>';
       }).join('');
     }
 
-    // ==================== Key Insights ====================
-    // Simplified equivalents of index.html's insightBullets object
-    // (assetsTrend/volumeTrend/populationAssets/syncDelay/populationDrivers/
-    // topFactor/unactionedEntity) — same signals, computed from the already-
-    // fetched dds_metrics() payload, not a port of that object's evidence-
-    // drawer/tooltip machinery which has no counterpart in this mock.
-    function computeInsightCards(cur, prev7d, factorResult, consistency){
-      var cards = [];
-      var kpis = cur.kpis || {};
-
-      if(prev7d && prev7d.kpis && prev7d.kpis.distinctAssets != null && kpis.distinctAssets != null){
-        var pv = prev7d.kpis.distinctAssets, cv = kpis.distinctAssets;
-        if(pv !== 0){
-          var pct = Math.round(Math.abs(cv-pv)/pv*100);
-          cards.push({ title:'Assets reporting', main:(cv>pv?'Up ':'Down ')+pct+'% vs 7 days ago', sub: fmtNum(cv)+' assets today · '+fmtNum(pv)+' a week ago' });
-        }
-      }
-      if(prev7d && prev7d.kpis && prev7d.kpis.totalAlerts != null && kpis.totalAlerts != null && prev7d.kpis.totalAlerts !== 0){
-        var pctV = Math.round(Math.abs(kpis.totalAlerts-prev7d.kpis.totalAlerts)/prev7d.kpis.totalAlerts*100);
-        var up = kpis.totalAlerts > prev7d.kpis.totalAlerts;
-        var trend = cur.trend || [];
-        var r = pearsonRLocal(trend.map(function(t){return t.units;}), trend.map(function(t){return t.assets;}));
-        cards.push({ title:'Total alert volume', main:(up?'Up ':'Down ')+pctV+'% vs 7 days ago',
-          sub: r != null ? ('correlates with assets, r = ' + r.toFixed(2)) : (fmtNum(kpis.totalAlerts)+' alerts total') });
-      }
-      var assetsN = (cur.assetConsistency || []).length;
-      if(assetsN > 0) cards.push({ title:'Assets in alert data', main: fmtNum(assetsN)+' assets', sub:'Distinct assets appearing in alert data' });
-
-      var realDrivers = (cur.operatorConsistency || []).filter(function(o){ return o.id !== UNSPECIFIED_OPERATOR; });
-      if(kpis.totalAlerts > 0){
-        cards.push({ title:'Drivers identified', main: realDrivers.length ? (fmtNum(realDrivers.length)+' drivers') : '0% identified',
-          sub: realDrivers.length ? (fmtNum(realDrivers.length)+' distinct named drivers') : 'No alert rows carry a driver name' });
-      }
-
-      var buckets = cur.syncBuckets || { actionable:[], nonActionable:[] };
-      var worst = (buckets.actionable[4]||0) + (buckets.nonActionable[4]||0);
-      var syncTotal = buckets.actionable.reduce(function(s,v){return s+v;},0) + buckets.nonActionable.reduce(function(s,v){return s+v;},0);
-      if(syncTotal > 0 && worst/syncTotal >= 0.1){
-        cards.push({ title:'Sync delay', main: fmtPct(worst/syncTotal*100,0)+' in 10h+ bucket', sub: fmtNum(worst)+' events — the longest delay bucket' });
-      }
-
-      if(factorResult && factorResult.categories.length){
-        var top = factorResult.categories.slice().sort(function(a,b){return b.rate-a.rate;})[0];
-        if(top.elevated){
-          cards.push({ title:'Top contributing factor', main: top.ratio.toFixed(1)+'× baseline', sub: esc(top.category)+' vs. fleet baseline rate' });
-        }
-      }
-
-      if(consistency && consistency.length){
-        var worstEntity = consistency[0];
-        cards.push({ title:'Needs attention', main: worstEntity.id + ' — ' + worstEntity.severityLabel,
-          sub: 'Highest-ranked ' + worstEntity.entityType + ' by severity — see Driver & Asset Monitoring' });
-      }
-      return cards;
-    }
-    function pearsonRLocal(xs, ys){
-      var n = Math.min(xs.length, ys.length);
-      var pairs = [];
-      for(var i=0;i<n;i++){ if(xs[i]!=null && ys[i]!=null) pairs.push([xs[i],ys[i]]); }
-      if(pairs.length < 3) return null;
-      var mx=0,my=0;
-      pairs.forEach(function(p){ mx+=p[0]; my+=p[1]; });
-      mx/=pairs.length; my/=pairs.length;
-      var num=0, dx=0, dy=0;
-      pairs.forEach(function(p){ var a=p[0]-mx,b=p[1]-my; num+=a*b; dx+=a*a; dy+=b*b; });
-      if(dx===0 || dy===0) return null;
-      return num / Math.sqrt(dx*dy);
-    }
-    // Re-renderable: always rebuilds the row's full innerHTML from scratch
-    // (targets #an-insights-row directly, not a one-time placeholder child)
-    // so a later call — e.g. once comparison-window data lands and richer
-    // cards become available — correctly replaces the earlier, sparser set
-    // instead of silently no-op'ing after the placeholder element is gone.
-    function renderInsights(cards){
-      var row = document.getElementById('an-insights-row');
-      if(!row) return;
-      if(!cards.length){
-        row.style.gridTemplateColumns = '';
-        row.innerHTML = '<div class="an-chart-card" style="grid-column:1/-1"><div class="da-empty">Not enough data yet for insights.</div></div>';
-        return;
-      }
-      row.style.gridTemplateColumns = 'repeat(auto-fit, minmax(260px, 1fr))';
-      row.innerHTML = cards.map(function(c){
-        return '<div class="an-chart-card" style="padding:12px 14px">' +
-          '<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px">' + esc(c.title) + '</div>' +
-          '<div style="font-size:13px;font-weight:650;color:#0f172a;margin-bottom:4px">' + esc(c.main) + '</div>' +
-          '<div style="font-size:11px;color:#64748b">' + esc(c.sub) + '</div>' +
-        '</div>';
-      }).join('');
-    }
-
-    // ==================== "Needs attention" — applySeverity() equivalent ====================
-    // Per user decision: included as a read-only Analytics insight card
-    // (not a Driver & Asset Monitoring UI element, no write path) — reuses
-    // dds_metrics()'s highDayRatio field with the same 4-band formula
-    // index.html's applySeverity() uses, matching what the real Analytics
-    // page's unactionedEntity Key Insight card shows.
-    var SEVERITY_BANDS = [
-      { severity:'critical', label:'Critical', min:75 },
-      { severity:'warning',  label:'Warning',  min:50 },
-      { severity:'caution',  label:'Caution',  min:25 },
-      { severity:'normal',   label:'Normal',   min:0 }
-    ];
-    function bandFor(ratio){
-      for(var i=0;i<SEVERITY_BANDS.length;i++){ if(ratio >= SEVERITY_BANDS[i].min) return SEVERITY_BANDS[i]; }
-      return SEVERITY_BANDS[SEVERITY_BANDS.length-1];
-    }
-    function computeWorstEntity(cur){
-      var assets = (cur.assetConsistency || []).map(function(r){ return { id:r.id, highDayRatio:r.highDayRatio, entityType:'asset' }; });
-      var drivers = (cur.operatorConsistency || [])
-        .filter(function(r){ return r.id !== UNSPECIFIED_OPERATOR; })
-        .map(function(r){ return { id:r.id, highDayRatio:r.highDayRatio, entityType:'driver' }; });
-      var all = assets.concat(drivers).map(function(r){
-        var band = bandFor(r.highDayRatio);
-        return { id:r.id, entityType:r.entityType, severity:band.severity, severityLabel:band.label, rank: SEVERITY_BANDS.indexOf(band) };
-      }).filter(function(r){ return r.severity !== 'normal'; })
-        .sort(function(a,b){ return a.rank - b.rank; });
-      return all;
-    }
-
     // ==================== orchestration ====================
-    // Targets #an-insights-row directly (not the one-time #an-insights-body
-    // placeholder child, which renderInsights() replaces the first time
-    // real cards render) — a bug found in audit: signedOutState()/
-    // errorState() used to look up #an-insights-body, which no longer
-    // exists after the first successful card render, so a later sign-out
-    // or error silently no-op'd and left stale cards on screen.
     function signedOutState(){
       var kpiRow = document.getElementById('an-kpi-row');
       if(kpiRow){
-        ['total','units','sync','ratio','actions'].forEach(function(key){
+        ['total','units','sync','ratio'].forEach(function(key){
           var v = document.getElementById('an-kpi-' + key + '-value');
           var c = document.getElementById('an-kpi-' + key + '-change');
           if(v) v.textContent = '—';
           if(c) c.textContent = 'Sign in to load real data';
         });
-        var topEl = document.getElementById('an-kpi-topemp-value');
-        var topSubEl = document.getElementById('an-kpi-topemp-change');
-        if(topEl) topEl.textContent = '—';
-        if(topSubEl) topSubEl.textContent = 'Sign in to load real data';
-      }
-      var insightsRow = document.getElementById('an-insights-row');
-      if(insightsRow){
-        insightsRow.style.gridTemplateColumns = '';
-        insightsRow.innerHTML = '<div class="an-chart-card" style="grid-column:1/-1"><div class="da-empty">Sign in to load real data — this page reads live data, not a mock.</div></div>';
+        var typeEl = document.getElementById('an-kpi-typecount-value');
+        if(typeEl) typeEl.textContent = '—';
       }
       ['an-topdrivers-body','an-topassets-body'].forEach(function(id){
         var el = document.getElementById(id);
@@ -3851,13 +3669,12 @@
       if(factorsBody) factorsBody.innerHTML = '<div class="da-empty">Sign in to load real data.</div>';
       var alertsBody = document.getElementById('an-recent-alerts-body');
       if(alertsBody) alertsBody.innerHTML = '<tr><td colspan="6" style="color:#94a3b8;padding:14px 10px">Sign in to load real data.</td></tr>';
+      var donutLegend = document.getElementById('an-donut-legend');
+      if(donutLegend) donutLegend.textContent = 'Sign in to load real data.';
     }
     function errorState(err){
-      var insightsRow = document.getElementById('an-insights-row');
-      if(insightsRow){
-        insightsRow.style.gridTemplateColumns = '';
-        insightsRow.innerHTML = '<div class="an-chart-card" style="grid-column:1/-1"><div class="da-empty">Could not load: ' + esc((err && err.message) || 'unknown error') + '</div></div>';
-      }
+      var syncedEl = document.getElementById('an-synced-note');
+      if(syncedEl) syncedEl.textContent = 'Could not load: ' + ((err && err.message) || 'unknown error');
     }
 
     function load(){
@@ -3878,19 +3695,12 @@
           renderTrend(cur);
           renderHourlyChart(cur);
           renderSyncInterval(cur);
-          renderDayOfWeek(cur);
           renderTopDrivers(cur);
           renderTopAssets(cur);
-          renderEventDonut(cur);
-          renderActionSummaryDonut(cur);
+          renderAlertTypeDonut(cur);
           renderRecentAlerts(cur);
-          var factorResult = computeFactorImpact(cur, factors);
           renderFactorImpact(cur, factors);
           renderKpis(cur, null);
-
-          var worstEntities = computeWorstEntity(cur);
-          var cards = computeInsightCards(cur, null, factorResult, worstEntities);
-          renderInsights(cards);
 
           var syncedEl = document.getElementById('an-synced-note');
           if(syncedEl) syncedEl.textContent = 'Data synced just now';
@@ -3903,8 +3713,6 @@
             if(!guard.isCurrent(token)) return;
             var p7 = res.error ? null : res.data;
             renderKpis(cur, p7);
-            var cardsWithTrend = computeInsightCards(cur, p7, factorResult, worstEntities);
-            renderInsights(cardsWithTrend);
           }).catch(function(err){
             if(!guard.isCurrent(token)) return;
             console.warn('Analytics comparison fetch failed — showing KPIs without deltas', err);
