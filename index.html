@@ -97,18 +97,26 @@
   .kpi-spark svg{width:100%;height:100%}
 
   /* ---------- 2-col layout: wide left, narrower right ---------- */
-  /* align-items:stretch + justify-content:space-between on .right-col was
-     tried to keep both columns' bottoms flush with real, variable-length
-     data — it backfired: stretching forces BOTH columns to the taller
-     column's height, but only .right-col's own content was told to grow
-     into that height (space-between), so .left-col was stretched into
-     empty space with nothing set to fill it, leaving a large dead gap
-     below the stat tiles. Reverted to align-items:start: each column
-     sizes to its own content, so neither can ever show a fabricated empty
-     gap — ending at different heights is normal, common dashboard
-     behavior, not a defect. */
-  .overview-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:14px;align-items:start}
-  .left-col,.right-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+  /* Both columns are locked to ONE shared, fixed total height
+     (--overview-col-h) — neither column's height is derived from its own
+     content anymore, so nothing can grow, shrink, or drift out of step
+     with the other as real data changes or the page zooms. Left column's
+     3 rows (2 charts + stat tiles) and right column's 4 rows (feed,
+     actions, insight, updates) each get an explicit, equal-share grid
+     track within that same fixed height — 4 visually-equal cards on the
+     right, matching each other's size/behavior, not one dominating
+     because it happens to have more rows of data. Any card whose content
+     overflows its fixed track scrolls internally (see .feed-list/
+     .action-body/.chart-area rules) rather than pushing the layout taller. */
+  :root{ --overview-col-h: 800px; }
+  .overview-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:14px;align-items:stretch}
+  .left-col,.right-col{display:grid;gap:14px;min-width:0;height:var(--overview-col-h)}
+  .left-col{grid-template-rows:1fr 1fr auto}
+  .right-col{grid-template-rows:repeat(4,1fr)}
+  .left-col > .chart-card,.right-col > .feed-card{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  .left-col > .chart-card .chart-area{flex:1;min-height:0;overflow:hidden}
+  .left-col > .chart-card .chart-area svg{height:100%}
+  .right-col > .feed-card .feed-list,.right-col > .feed-card .action-body{flex:1;min-height:0;overflow-y:auto}
 
   /* chart card */
   .chart-card{padding:0 16px 14px}
@@ -848,6 +856,14 @@
   }
   @media(max-width:1080px){
     .overview-grid{grid-template-columns:1fr}
+    /* Columns stack vertically below this width — they're no longer
+       competing for the same shared visual row, so the fixed equal-height
+       lock (meant to keep two SIDE-BY-SIDE columns flush) is released;
+       each stacked column goes back to sizing to its own real content. */
+    .left-col,.right-col{height:auto;display:flex;flex-direction:column}
+    .left-col > .chart-card .chart-area{flex:none;height:auto}
+    .left-col > .chart-card .chart-area svg{height:auto}
+    .right-col > .feed-card .feed-list,.right-col > .feed-card .action-body{flex:none;max-height:392px}
     .stat-tiles{grid-template-columns:1fr 1fr 1fr}
     .an-charts-top,.an-charts-bottom{grid-template-columns:1fr}
     .dm-toprow > .card{flex-basis:100%}
