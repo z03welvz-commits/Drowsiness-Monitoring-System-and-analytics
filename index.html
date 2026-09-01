@@ -555,6 +555,43 @@
   .da-sort-note{margin-left:auto;font-size:10px;color:#94a3b8;display:flex;align-items:center;gap:5px}
   .da-sort-note svg{width:11px;height:11px}
 
+  /* Single-line table head: title + search + date/shift filters + refresh/
+     clear + history link, all in one row, no separate filter row below
+     it and no leftover gap — title stays compact/left, the rest shares
+     the remaining width via .al-filter's own flex:1 1 0. */
+  .da-table-head-oneline{flex-wrap:nowrap;gap:8px}
+  .da-table-head-oneline .da-table-title{flex:0 0 auto;white-space:nowrap}
+  .da-table-head-oneline .da-search{flex:0 1 220px;min-width:0}
+  .da-table-head-oneline .al-filter{flex:1 1 0;min-width:0}
+  .da-table-head-oneline .al-clear{flex:0 0 auto}
+  .da-table-head-oneline .da-history-link{flex:0 0 auto}
+  @media (max-width:1100px){
+    .da-table-head-oneline{flex-wrap:wrap}
+  }
+
+  /* Fit-to-viewport variant (Driver & Asset Monitoring only): the card
+     takes whatever height #page-driver-asset's flex layout gives it, and
+     only the row area scrolls internally — see #page-driver-asset rules
+     below for the page-level height budget this depends on. */
+  .da-table-card-flex{display:flex;flex-direction:column;min-height:0}
+  .da-table-wrap-flex{flex:1;min-height:0;overflow-y:auto}
+
+  /* Driver & Asset Monitoring page-level fit-to-viewport: only this page
+     (not the app shell/other pages) is capped to the viewport height —
+     .main's own 20px/30px top/bottom padding is subtracted so the page
+     never grows a page-level scrollbar. Every direct child above the
+     active tab view is a fixed-height row; the active .da-view is the
+     one flexible row, and its own table-card/table-wrap chain (see
+     .da-table-card-flex/.da-table-wrap-flex above) passes that remaining
+     height down to the actual scrollable row area. */
+  #page-driver-asset.active{display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden}
+  #page-driver-asset.active .topbar{flex:0 0 auto}
+  #page-driver-asset.active .da-summary{flex:0 0 auto}
+  #page-driver-asset.active .da-tabs{flex:0 0 auto}
+  #page-driver-asset.active .da-view{min-height:0}
+  #page-driver-asset.active .da-view.on{flex:1;min-height:0;display:flex;flex-direction:column}
+  #page-driver-asset.active .da-view.on > .da-table-card{flex:1;min-height:0}
+
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
   .da-table th{height:38px;text-align:left;color:#748197;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:#f8fafc;white-space:nowrap}
@@ -996,8 +1033,17 @@
     .al-summary{grid-template-columns:1fr 1fr}
     .su-kpis{grid-template-columns:repeat(2,1fr)}
     .se-field-row{grid-template-columns:1fr}
+    #page-driver-asset.active{height:calc(100vh - 36px)}
   }
   @media(max-width:640px){
+    /* Below this width the page's own layout already reflows heavily
+       (.topbar stacks, etc.) — fall back to normal page scroll rather
+       than fighting exact pixel math against every other breakpoint's
+       .main padding. */
+    #page-driver-asset.active{height:auto;overflow:visible;display:block}
+    #page-driver-asset.active .da-view.on{display:block}
+    #page-driver-asset.active .da-view.on > .da-table-card{flex:none}
+    .da-table-wrap-flex{overflow-y:visible;flex:none}
     .topbar{flex-direction:column;align-items:stretch;width:100%}
     .controls{justify-content:flex-start;width:100%;min-width:0}
     .kpis{grid-template-columns:1fr}
@@ -1008,6 +1054,8 @@
     .al-filters{flex-wrap:wrap}
     .al-search{flex:1 1 100%}
     .al-filter{flex:1 1 auto}
+    .da-table-head-oneline{flex-wrap:wrap}
+    .da-table-head-oneline .da-search{flex:1 1 100%}
     .dm-tabs{gap:0}
     .dm-search{width:100%;max-width:100%}
     .dm-records-head{flex-direction:column;align-items:stretch}
@@ -1862,18 +1910,10 @@
 
       <!-- ===================== DRIVERS VIEW ===================== -->
       <div class="da-view on" id="da-view-drivers">
-        <section class="card da-table-card">
-          <div class="da-table-head">
+        <section class="card da-table-card da-table-card-flex">
+          <div class="da-table-head da-table-head-oneline">
             <div class="da-table-title">Flagged Drivers <small data-da-shown="drivers">Showing 0</small></div>
-            <div class="da-table-head-right">
-              <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." data-da-search="drivers"></div>
-              <button class="da-history-link" type="button" data-da-open-history="drivers">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
-                View resolved / history
-              </button>
-            </div>
-          </div>
-          <div class="al-filters">
+            <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." data-da-search="drivers"></div>
             <input type="date" class="al-filter" id="da-from-drivers" aria-label="From date">
             <input type="date" class="al-filter" id="da-to-drivers" aria-label="To date">
             <select class="al-filter" id="da-shift-drivers" aria-label="Shift filter">
@@ -1883,8 +1923,12 @@
             </select>
             <button class="al-filter" type="button" id="da-refresh-drivers" style="cursor:pointer">↻&nbsp; Refresh</button>
             <button class="al-clear" type="button" id="da-clear-drivers">Clear filters</button>
+            <button class="da-history-link" type="button" data-da-open-history="drivers">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+              View resolved / history
+            </button>
           </div>
-          <div class="da-table-wrap">
+          <div class="da-table-wrap da-table-wrap-flex">
             <table class="da-table" id="da-table-drivers">
               <thead>
                 <tr>
@@ -1903,18 +1947,10 @@
 
       <!-- ===================== ASSETS VIEW ===================== -->
       <div class="da-view" id="da-view-assets">
-        <section class="card da-table-card">
-          <div class="da-table-head">
+        <section class="card da-table-card da-table-card-flex">
+          <div class="da-table-head da-table-head-oneline">
             <div class="da-table-title">Flagged Assets <small data-da-shown="assets">Showing 0</small></div>
-            <div class="da-table-head-right">
-              <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search asset or unit ID..." data-da-search="assets"></div>
-              <button class="da-history-link" type="button" data-da-open-history="assets">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
-                View resolved / history
-              </button>
-            </div>
-          </div>
-          <div class="al-filters">
+            <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search asset or unit ID..." data-da-search="assets"></div>
             <input type="date" class="al-filter" id="da-from-assets" aria-label="From date">
             <input type="date" class="al-filter" id="da-to-assets" aria-label="To date">
             <select class="al-filter" id="da-shift-assets" aria-label="Shift filter">
@@ -1924,8 +1960,12 @@
             </select>
             <button class="al-filter" type="button" id="da-refresh-assets" style="cursor:pointer">↻&nbsp; Refresh</button>
             <button class="al-clear" type="button" id="da-clear-assets">Clear filters</button>
+            <button class="da-history-link" type="button" data-da-open-history="assets">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+              View resolved / history
+            </button>
           </div>
-          <div class="da-table-wrap">
+          <div class="da-table-wrap da-table-wrap-flex">
             <table class="da-table" id="da-table-assets">
               <thead>
                 <tr>
