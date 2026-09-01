@@ -97,14 +97,18 @@
   .kpi-spark svg{width:100%;height:100%}
 
   /* ---------- 2-col layout: wide left, narrower right ---------- */
-  /* Columns stretch to match each other's height (not align-items:start,
-     which let each column size purely to its own content) — with real,
-     variable-length data instead of the mock's fixed placeholder rows,
-     the two columns could otherwise end at very different heights and
-     look misaligned/unfinished at the bottom. */
-  .overview-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:14px;align-items:stretch}
+  /* align-items:stretch + justify-content:space-between on .right-col was
+     tried to keep both columns' bottoms flush with real, variable-length
+     data — it backfired: stretching forces BOTH columns to the taller
+     column's height, but only .right-col's own content was told to grow
+     into that height (space-between), so .left-col was stretched into
+     empty space with nothing set to fill it, leaving a large dead gap
+     below the stat tiles. Reverted to align-items:start: each column
+     sizes to its own content, so neither can ever show a fabricated empty
+     gap — ending at different heights is normal, common dashboard
+     behavior, not a defect. */
+  .overview-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:14px;align-items:start}
   .left-col,.right-col{display:flex;flex-direction:column;gap:14px;min-width:0}
-  .right-col{justify-content:space-between}
 
   /* chart card */
   .chart-card{padding:0 16px 14px}
@@ -285,6 +289,10 @@
   .al-table-wrap{overflow-x:auto}
   .al-table{width:100%;border-collapse:collapse;min-width:880px}
   .al-table th{height:38px;text-align:left;color:#748197;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:#f8fafc;white-space:nowrap}
+  .al-table th[data-sort]{cursor:pointer;user-select:none}
+  .al-table th[data-sort]:hover{color:#1259b6}
+  .al-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
+  .al-table th[data-sort].sorted.asc::after{content:' ▴'}
   .al-table td{height:52px;border-bottom:1px solid #f0f3f7;padding:0 14px;font-size:11.5px;color:#344054;white-space:nowrap}
   .al-table tr:hover td{background:#fafbfd}
   .al-time{color:#64748b}
@@ -605,7 +613,9 @@
   .su-trend-title-icon{width:28px;height:28px;border-radius:8px;background:#eaf1fd;display:grid;place-items:center;flex:0 0 auto}
   .su-trend-title-icon svg{width:14px;height:14px;color:#2563eb}
 
-  .su-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:stretch;margin-top:14px}
+  /* align-items:start — same reasoning as .overview-grid above (stretch
+     without something to grow into the extra height leaves dead space). */
+  .su-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start;margin-top:14px}
   .su-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 
   .su-section-head{padding:15px 17px 4px;display:flex;align-items:center;gap:10px}
@@ -1302,107 +1312,97 @@
           <p>Review detected events, severity, and actions taken</p>
         </div>
         <div class="controls">
-          <div class="user"><span class="online" aria-hidden="true"></span>z_03welvz</div>
+          <div class="user"><span class="online" aria-hidden="true"></span><span id="al-username">z_03welvz</span></div>
           <div class="card clock-chip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
             <div>
-              <div class="time">14:47</div>
-              <div class="date">Tuesday, September 1</div>
+              <div class="time" id="al-clock-time">14:47</div>
+              <div class="date" id="al-clock-date">Tuesday, September 1</div>
             </div>
           </div>
-          <button class="control" type="button">From&nbsp; dd/mm/yyyy&nbsp; 📅</button>
-          <button class="control" type="button">To&nbsp; dd/mm/yyyy&nbsp; 📅</button>
-          <button class="control" type="button">All shifts&nbsp; ⌄</button>
-          <button class="btn" type="button">↻&nbsp; Refresh</button>
+          <input type="date" class="control" id="al-from" aria-label="From date">
+          <input type="date" class="control" id="al-to" aria-label="To date">
+          <select class="control" id="al-shift" aria-label="Shift filter">
+            <option value="">All shifts</option>
+            <option value="DAY">Day shift</option>
+            <option value="NIGHT">Night shift</option>
+          </select>
+          <button class="btn" type="button" id="al-refresh">↻&nbsp; Refresh</button>
         </div>
       </header>
 
       <section class="al-summary" aria-label="Alert log summary">
         <div class="card al-sc">
           <div class="al-sc-label">Events in view</div>
-          <div class="al-sc-value">1,842</div>
-          <div class="al-sc-sub">All detected alerts in selected period</div>
+          <div class="al-sc-value" id="al-sc-total">—</div>
+          <div class="al-sc-sub">All detected alerts matching current filters</div>
         </div>
         <div class="card al-sc crit">
           <div class="al-sc-label">Critical</div>
-          <div class="al-sc-value">126</div>
-          <div class="al-sc-sub">6.8% of all events</div>
+          <div class="al-sc-value" id="al-sc-critical">—</div>
+          <div class="al-sc-sub" id="al-sc-critical-sub">Of events on this page</div>
         </div>
         <div class="card al-sc pend">
-          <div class="al-sc-label">Pending review</div>
-          <div class="al-sc-value">18</div>
-          <div class="al-sc-sub">Requires follow-up</div>
+          <div class="al-sc-label">With a logged case</div>
+          <div class="al-sc-value" id="al-sc-cased">—</div>
+          <div class="al-sc-sub">Of events on this page</div>
         </div>
         <div class="card al-sc act">
-          <div class="al-sc-label">Actioned</div>
-          <div class="al-sc-value">94%</div>
-          <div class="al-sc-sub">Of actionable events</div>
+          <div class="al-sc-label">Actionable</div>
+          <div class="al-sc-value" id="al-sc-actionable">—</div>
+          <div class="al-sc-sub" id="al-sc-actionable-sub">Of events on this page</div>
         </div>
       </section>
 
       <section class="card al-table-card">
         <div class="al-table-head">
-          <div class="al-table-title">Detected Events <small>Showing 8 of 1,842</small></div>
-          <div class="al-toggle">
-            <button type="button" class="on">List</button>
-            <button type="button">Compact</button>
-          </div>
+          <div class="al-table-title">Detected Events <small id="al-table-showing">Loading…</small></div>
         </div>
         <div class="al-filters">
-          <div class="al-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search asset, driver, or event...</div>
-          <button class="al-filter" type="button">Severity&nbsp; <strong>All</strong><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-          <button class="al-filter" type="button">Event type&nbsp; <strong>All</strong><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-          <button class="al-filter" type="button">Action status&nbsp; <strong>All</strong><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-          <button class="al-filter" type="button">Shift&nbsp; <strong>All</strong><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-          <button class="al-clear" type="button">Clear filters</button>
+          <div class="al-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="al-search" placeholder="Search asset, driver, or event..." style="all:unset;flex:1;min-width:0;font-size:11px;color:#1e293b"></div>
+          <select class="al-filter" id="al-status" aria-label="Action status filter">
+            <option value="all">Action status: All</option>
+            <option value="unset">Action status: Not yet logged</option>
+          </select>
+          <button class="al-clear" type="button" id="al-clear-filters">Clear filters</button>
         </div>
         <div class="al-table-wrap">
           <table class="al-table">
             <thead>
               <tr>
-                <th>Timestamp</th><th>Event</th><th>Asset</th><th>Driver</th><th>Shift</th><th>Severity</th><th>Action status</th><th>Action</th>
+                <th data-sort="start_time">Timestamp</th><th data-sort="event_code">Event</th><th data-sort="asset_id">Asset</th><th data-sort="driver">Driver</th><th data-sort="shift">Shift</th><th>Severity</th><th data-sort="status">Action status</th><th>Action</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td class="al-time">30 Jun · 11:28</td><td class="al-event">Drowsiness Alert — DB-17</td><td class="al-asset">DT-233</td><td>R. Santos</td><td>Day</td><td><span class="al-badge high">High</span></td><td><span class="al-status reviewed">Reviewed</span></td><td><button class="al-act" type="button">View</button></td>
-              </tr>
-              <tr>
-                <td class="al-time">30 Jun · 11:05</td><td class="al-event">Drowsiness Alert — SH-11</td><td class="al-asset">DT-235</td><td>J. Reyes</td><td>Day</td><td><span class="al-badge moderate">Moderate</span></td><td><span class="al-status reviewed">Reviewed</span></td><td><button class="al-act" type="button">View</button></td>
-              </tr>
-              <tr>
-                <td class="al-time">30 Jun · 10:42</td><td class="al-event">Sleep Alert — DT-232</td><td class="al-asset">DT-232</td><td>M. Cruz</td><td>Day</td><td><span class="al-badge critical">Critical</span></td><td><span class="al-status pending">Pending</span></td><td><button class="al-act" type="button">Review</button></td>
-              </tr>
-              <tr>
-                <td class="al-time">30 Jun · 09:54</td><td class="al-event">Sleep Alert — DT-18</td><td class="al-asset">DT-238</td><td>A. Dela Cruz</td><td>Day</td><td><span class="al-badge high">High</span></td><td><span class="al-status reviewed">Reviewed</span></td><td><button class="al-act" type="button">View</button></td>
-              </tr>
-              <tr>
-                <td class="al-time">30 Jun · 08:37</td><td class="al-event">Sleep Alert — DT-21</td><td class="al-asset">DT-236</td><td>P. Garcia</td><td>Day</td><td><span class="al-badge critical">Critical</span></td><td><span class="al-status ack">Acknowledged</span></td><td><button class="al-act" type="button">View</button></td>
-              </tr>
-              <tr>
-                <td class="al-time">30 Jun · 07:46</td><td class="al-event">Drowsiness Alert — SH-04</td><td class="al-asset">DT-231</td><td>N. Ramos</td><td>Day</td><td><span class="al-badge high">High</span></td><td><span class="al-status reviewed">Reviewed</span></td><td><button class="al-act" type="button">View</button></td>
-              </tr>
-              <tr>
-                <td class="al-time">30 Jun · 06:52</td><td class="al-event">Sleep Alert — DT-22</td><td class="al-asset">DT-239</td><td>E. Navarro</td><td>Night</td><td><span class="al-badge critical">Critical</span></td><td><span class="al-status pending">Pending</span></td><td><button class="al-act" type="button">Review</button></td>
-              </tr>
-              <tr>
-                <td class="al-time">30 Jun · 05:41</td><td class="al-event">Drowsiness Alert — SH-04</td><td class="al-asset">DT-237</td><td>C. Aquino</td><td>Night</td><td><span class="al-badge moderate">Moderate</span></td><td><span class="al-status reviewed">Reviewed</span></td><td><button class="al-act" type="button">View</button></td>
-              </tr>
+            <tbody id="al-tbody">
+              <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px 0">Loading…</td></tr>
             </tbody>
           </table>
         </div>
         <div class="al-table-foot">
-          <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
-          <div class="al-pages">
-            <span>Rows 1–8 of 1,842</span>
-            <button class="al-page" type="button" disabled aria-label="Previous page">‹</button>
-            <button class="al-page on" type="button" aria-current="page">1</button>
-            <button class="al-page" type="button">2</button>
-            <button class="al-page" type="button">3</button>
-            <button class="al-page" type="button" aria-label="Next page">›</button>
+          <span id="al-lastrefresh">—</span>
+          <div class="al-pages" id="al-pages">
+            <span id="al-rowsrange">—</span>
+            <button class="al-page" type="button" id="al-page-prev" disabled aria-label="Previous page">‹</button>
+            <span id="al-page-numbers"></span>
+            <button class="al-page" type="button" id="al-page-next" aria-label="Next page">›</button>
           </div>
         </div>
       </section>
+    </div>
+
+    <!-- Alert Logs: group detail modal (View button — dds_alert_group_details) -->
+    <div class="da-modal-mask" id="al-detail-mask">
+      <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="al-detail-title" style="max-width:720px">
+        <div class="da-modal-head">
+          <div class="da-modal-title" id="al-detail-title">Alert group detail</div>
+          <button class="da-modal-close" type="button" id="al-detail-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="da-history-card">
+          <div class="da-table-wrap" id="al-detail-body" style="padding:6px 4px"></div>
+        </div>
+      </div>
     </div>
 
     <div id="page-data" class="page">
@@ -4140,7 +4140,7 @@
           }
           tbody.innerHTML = rows.map(function(r){
             var sev = severityBadge(r.eventCode);
-            var driver = r.driverDisplayName || r.operator || 'Unspecified';
+            var driver = r.driverName || r.operator || 'Unspecified';
             return '<tr>' +
               '<td>' + esc(fmtDateShort(r.startTime)) + '</td>' +
               '<td>' + esc(r.eventCode || '—') + (r.assetId ? ' — ' + esc(r.assetId) : '') + '</td>' +
@@ -4598,6 +4598,258 @@
     loadHistory('minestat', 'minestat', '#dm-source-minestat .dm-hist-list', 5);
     loadHistory('masterlist', null, '#dm-source-masterlist .dm-hist-list', 2);
     loadHistory('factors', null, '#dm-source-factors .dm-hist-list', 2);
+  })();
+
+  // ---------- Alert Logs: real dds_alert_logs() data ----------
+  // Was 100% static mock content across every prior phase (flagged
+  // repeatedly in MIGRATION_STATUS.md as "formally unassigned"). Wired
+  // here against dds_alert_logs() (0016_sorting_and_group_details.sql),
+  // the same RPC Data Management's DDS tab already calls — see that
+  // IIFE's loadDds() for the precedent this follows.
+  //
+  // Two mock filter dropdowns (Severity, Event type) were REMOVED rather
+  // than wired: dds_alert_logs() has no discrete exact-match parameter for
+  // either (severity is a client-derived tier from event_code, same as
+  // every other page; event type only supports free-text substring search
+  // via p_search, not a "pick one of N" filter) — faking a full-dataset
+  // filter by filtering only the current fetched page would be exactly
+  // the anti-pattern this RPC's own migration comment warns against for
+  // sorting ("looks like it worked" over 75 rows while claiming to sort
+  // 84k). The Action Status dropdown was similarly narrowed to All/Not
+  // yet logged — confirmed live that alert_cases has zero rows with a
+  // status_value set today, so a fixed status vocabulary would be listing
+  // options that match no real data; p_status still accepts real values
+  // the moment case-logging exists elsewhere in the app.
+  (function(){
+    var guard = makeGuard();
+    var state = { from:null, to:null, shift:null, status:'all', search:'', sort:'start_time', dir:'desc', limit:20, offset:0, total:0 };
+
+    var clockTimeEl = document.getElementById('al-clock-time');
+    var clockDateEl = document.getElementById('al-clock-date');
+    function tickClock(){
+      var now = new Date();
+      if(clockTimeEl) clockTimeEl.textContent = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false });
+      if(clockDateEl) clockDateEl.textContent = now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+    }
+    tickClock();
+    setInterval(tickClock, 30000);
+
+    function fmtDateShort(iso){
+      if(!iso) return '—';
+      var d = new Date(iso);
+      if(isNaN(d)) return '—';
+      return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ' · ' +
+             d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false});
+    }
+    function toISODate(v){ return v || null; }
+
+    function fetchLogs(){
+      return DB.rpc('dds_alert_logs', {
+        p_from: toISODate(state.from), p_to: toISODate(state.to),
+        p_shift: state.shift || null, p_status: state.status,
+        p_search: state.search || null,
+        p_limit: state.limit, p_offset: state.offset,
+        p_sort: state.sort, p_dir: state.dir
+      });
+    }
+
+    function renderSortHeaders(){
+      document.querySelectorAll('.al-table th[data-sort]').forEach(function(th){
+        var col = th.getAttribute('data-sort');
+        th.classList.toggle('sorted', col === state.sort);
+        th.classList.toggle('asc', col === state.sort && state.dir === 'asc');
+      });
+    }
+
+    function renderPagination(){
+      var totalPages = Math.max(1, Math.ceil(state.total / state.limit));
+      var curPage = Math.floor(state.offset / state.limit) + 1;
+      var rowsRangeEl = document.getElementById('al-rowsrange');
+      var shownFrom = state.total === 0 ? 0 : state.offset + 1;
+      var shownTo = Math.min(state.offset + state.limit, state.total);
+      if(rowsRangeEl) rowsRangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(state.total);
+
+      var prevBtn = document.getElementById('al-page-prev');
+      var nextBtn = document.getElementById('al-page-next');
+      if(prevBtn) prevBtn.disabled = curPage <= 1;
+      if(nextBtn) nextBtn.disabled = curPage >= totalPages;
+
+      var numsEl = document.getElementById('al-page-numbers');
+      if(numsEl){
+        // Cap visible page-number buttons at 5 (centered on current page)
+        // — real data can span thousands of pages; listing every page
+        // number would be both useless and slow to render.
+        var start = Math.max(1, curPage - 2);
+        var end = Math.min(totalPages, start + 4);
+        start = Math.max(1, end - 4);
+        var html = '';
+        for(var p = start; p <= end; p++){
+          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
+            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
+        }
+        numsEl.innerHTML = html;
+        numsEl.querySelectorAll('[data-page]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            state.offset = (Number(btn.getAttribute('data-page')) - 1) * state.limit;
+            load();
+          });
+        });
+      }
+    }
+
+    function load(){
+      var token = guard.start();
+      requireSession().then(function(sess){
+        if(!guard.isCurrent(token)) return;
+        var tbody = document.getElementById('al-tbody');
+        var showingEl = document.getElementById('al-table-showing');
+        if(!sess){
+          if(tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          if(showingEl) showingEl.textContent = '';
+          ['al-sc-total','al-sc-critical','al-sc-cased','al-sc-actionable'].forEach(function(id){
+            var el = document.getElementById(id); if(el) el.textContent = '—';
+          });
+          return;
+        }
+        setHeaderUsername(sess, 'al-username');
+        renderSortHeaders();
+
+        fetchLogs().then(function(res){
+          if(!guard.isCurrent(token)) return;
+          if(res.error) throw res.error;
+          var total = (res.data && res.data.total) || 0;
+          var rows = (res.data && res.data.rows) || [];
+          state.total = total;
+
+          if(showingEl) showingEl.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(total);
+          var lastRefreshEl = document.getElementById('al-lastrefresh');
+          if(lastRefreshEl) lastRefreshEl.textContent = 'Last refreshed ' + new Date().toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+          document.getElementById('al-sc-total').textContent = fmtNum(total);
+          var criticalCount = rows.filter(function(r){ return severityBadge(r.eventCode).tier === 'critical'; }).length;
+          var casedCount = rows.filter(function(r){ return r.caseId != null; }).length;
+          var actionableCount = rows.filter(function(r){ return r.actionable; }).length;
+          document.getElementById('al-sc-critical').textContent = rows.length ? fmtNum(criticalCount) : '—';
+          document.getElementById('al-sc-critical-sub').textContent = rows.length ? (Math.round(criticalCount/rows.length*100) + '% of this page') : 'Of events on this page';
+          document.getElementById('al-sc-cased').textContent = rows.length ? fmtNum(casedCount) : '—';
+          document.getElementById('al-sc-actionable').textContent = rows.length ? fmtNum(actionableCount) : '—';
+          document.getElementById('al-sc-actionable-sub').textContent = rows.length ? (Math.round(actionableCount/rows.length*100) + '% of this page') : 'Of events on this page';
+
+          if(!rows.length){
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px 0">No records match.</td></tr>';
+            renderPagination();
+            return;
+          }
+          tbody.innerHTML = rows.map(function(r){
+            var sev = severityBadge(r.eventCode);
+            var driver = r.driverName || r.operator || 'Unspecified';
+            var statusLabel = r.statusValue ? esc(r.statusValue) : '<span style="color:#94a3b8">Not logged</span>';
+            return '<tr>' +
+              '<td class="al-time">' + esc(fmtDateShort(r.startTime)) + '</td>' +
+              '<td class="al-event">' + esc(r.eventCode || '—') + '</td>' +
+              '<td class="al-asset">' + esc(r.assetId || '—') + '</td>' +
+              '<td>' + esc(driver) + '</td>' +
+              '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : 'Day') + '</td>' +
+              '<td><span class="al-badge ' + sev.tier + '">' + esc(sev.label) + '</span></td>' +
+              '<td><span class="al-status">' + statusLabel + '</span></td>' +
+              '<td><button class="al-act" type="button" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">View</button></td>' +
+            '</tr>';
+          }).join('');
+          renderPagination();
+        }).catch(function(err){
+          if(!guard.isCurrent(token)) return;
+          console.error('Alert Logs fetch failed', err);
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
+        });
+      });
+    }
+
+    // ---- group detail modal (View button) ----
+    var detailMask = document.getElementById('al-detail-mask');
+    var detailBody = document.getElementById('al-detail-body');
+    function openGroupDetail(shiftDate, shift, assetId, eventCode){
+      detailBody.innerHTML = '<div class="da-empty" style="padding:30px 0">Loading…</div>';
+      detailMask.classList.add('on');
+      DB.rpc('dds_alert_group_details', {
+        p_shift_date: shiftDate, p_shift: shift, p_asset_id: assetId, p_event_code: eventCode
+      }).then(function(res){
+        if(res.error) throw res.error;
+        var data = res.data || {};
+        var rows = data.rows || [];
+        document.getElementById('al-detail-title').textContent = (eventCode || 'Alert') + ' — ' + (assetId || '—') + ' (' + (shift === 'NIGHT' ? 'Night' : 'Day') + ', ' + esc(shiftDate) + ')';
+        if(!rows.length){
+          detailBody.innerHTML = '<div class="da-empty" style="padding:30px 0">No individual alerts found for this group.</div>';
+          return;
+        }
+        detailBody.innerHTML = '<table class="da-table"><thead><tr><th>Time</th><th>Count</th><th>Driver</th><th>Actionable</th><th>Action</th><th>Remarks</th></tr></thead><tbody>' +
+          rows.map(function(r){
+            var t = r.startTime ? new Date(r.startTime).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false }) : '—';
+            return '<tr>' +
+              '<td>' + esc(t) + '</td>' +
+              '<td>' + fmtNum(r.eventCount) + '</td>' +
+              '<td>' + esc(r.driver || 'Unspecified') + '</td>' +
+              '<td>' + (r.actionable ? 'Yes' : 'No') + '</td>' +
+              '<td>' + esc(r.actionType || '—') + '</td>' +
+              '<td>' + esc(r.remarks || '—') + '</td>' +
+            '</tr>';
+          }).join('') + '</tbody></table>' +
+          '<div class="an-note" style="margin:10px 4px 0"><i>i</i> ' + fmtNum(data.total || 0) + ' total counts across ' + fmtNum(data.rowCount || rows.length) + ' events in this group.</div>';
+      }).catch(function(err){
+        console.error('Group detail fetch failed', err);
+        detailBody.innerHTML = '<div class="da-empty" style="padding:30px 0;color:#c0271f">Could not load: ' + esc(err.message || 'unknown error') + '</div>';
+      });
+    }
+    document.getElementById('al-tbody').addEventListener('click', function(e){
+      var btn = e.target.closest('.al-act');
+      if(!btn) return;
+      openGroupDetail(btn.getAttribute('data-shiftdate'), btn.getAttribute('data-shift'), btn.getAttribute('data-asset'), btn.getAttribute('data-eventcode'));
+    });
+    document.getElementById('al-detail-close').addEventListener('click', function(){ detailMask.classList.remove('on'); });
+    detailMask.addEventListener('click', function(e){ if(e.target === detailMask) detailMask.classList.remove('on'); });
+
+    // ---- filter/sort/search wiring ----
+    document.getElementById('al-from').addEventListener('change', function(e){ state.from = e.target.value || null; state.offset = 0; load(); });
+    document.getElementById('al-to').addEventListener('change', function(e){ state.to = e.target.value || null; state.offset = 0; load(); });
+    document.getElementById('al-shift').addEventListener('change', function(e){ state.shift = e.target.value || null; state.offset = 0; load(); });
+    document.getElementById('al-status').addEventListener('change', function(e){ state.status = e.target.value; state.offset = 0; load(); });
+    document.getElementById('al-refresh').addEventListener('click', function(){ load(); });
+
+    var searchTimer = null;
+    document.getElementById('al-search').addEventListener('input', function(e){
+      var v = e.target.value;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function(){ state.search = v.trim(); state.offset = 0; load(); }, 350);
+    });
+
+    document.getElementById('al-clear-filters').addEventListener('click', function(){
+      state.from = null; state.to = null; state.shift = null; state.status = 'all'; state.search = ''; state.offset = 0;
+      document.getElementById('al-from').value = '';
+      document.getElementById('al-to').value = '';
+      document.getElementById('al-shift').value = '';
+      document.getElementById('al-status').value = 'all';
+      document.getElementById('al-search').value = '';
+      load();
+    });
+
+    document.getElementById('al-page-prev').addEventListener('click', function(){
+      state.offset = Math.max(0, state.offset - state.limit); load();
+    });
+    document.getElementById('al-page-next').addEventListener('click', function(){
+      if(state.offset + state.limit < state.total) { state.offset += state.limit; load(); }
+    });
+
+    document.querySelectorAll('.al-table th[data-sort]').forEach(function(th){
+      th.addEventListener('click', function(){
+        var col = th.getAttribute('data-sort');
+        if(state.sort === col){ state.dir = state.dir === 'asc' ? 'desc' : 'asc'; }
+        else { state.sort = col; state.dir = 'desc'; }
+        state.offset = 0;
+        load();
+      });
+    });
+
+    window.__ddsPageLoad.alerts = load;
+    load();
   })();
 
   // ---------- Driver & Asset Monitoring ----------
