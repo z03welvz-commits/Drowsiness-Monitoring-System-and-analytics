@@ -953,6 +953,8 @@
   .se-status-badge.active::before{background:#18a05e}
   .se-status-badge.disabled{color:#94a3b8}
   .se-status-badge.disabled::before{background:#cbd5e1}
+  .se-status-badge.pending{color:#e8952e}
+  .se-status-badge.pending::before{background:#e8952e}
   button.se-remove-btn{all:unset;box-sizing:border-box;cursor:pointer;height:29px;padding:0 11px;border:1px solid #f3c8c8;background:#fff;border-radius:7px;color:#c0271f;font-size:10px;font-weight:650}
   button.se-remove-btn:hover{background:#fdeaea}
 
@@ -2389,22 +2391,18 @@
           <div class="se-card-head">
             <div>
               <div class="se-card-title">Access Management</div>
-              <div class="se-card-sub">Add or remove users from the system</div>
+              <div class="se-card-sub">Review pending sign-ups and manage roles — new accounts are created by signing up, not from here</div>
             </div>
           </div>
           <div class="se-users-toolbar">
-            <span class="se-users-count" id="se-users-count">5 users</span>
-            <button class="se-btn-primary" type="button" id="se-add-user-btn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
-              Add user
-            </button>
+            <span class="se-users-count" id="se-users-count">Loading…</span>
           </div>
           <div class="se-table-wrap">
             <table class="se-table">
               <thead>
-                <tr><th>Name</th><th>Email</th><th>Role</th><th>Last login</th><th>Status</th><th>Action</th></tr>
+                <tr><th>User</th><th>Role</th><th>Joined</th><th>Status</th><th>Action</th></tr>
               </thead>
-              <tbody id="se-users-tbody"><!-- rows injected by script --></tbody>
+              <tbody id="se-users-tbody"><tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:30px 0">Loading…</td></tr></tbody>
             </table>
           </div>
         </section>
@@ -2473,38 +2471,32 @@
       </div>
     </div>
 
-    <!-- Settings: add-user modal -->
-    <div class="se-addform-mask" id="se-addform-mask">
-      <div class="se-addform" role="dialog" aria-modal="true" aria-labelledby="se-addform-title">
+    <!-- Settings: role-change modal (real profiles.role update, admin-only) -->
+    <div class="se-addform-mask" id="se-role-mask">
+      <div class="se-addform" role="dialog" aria-modal="true" aria-labelledby="se-role-title">
         <div class="se-addform-head">
-          <div class="se-addform-title" id="se-addform-title">Add user</div>
-          <button class="se-addform-close" type="button" id="se-addform-close" aria-label="Close">
+          <div class="se-addform-title" id="se-role-title">Change role</div>
+          <button class="se-addform-close" type="button" id="se-role-close" aria-label="Close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>
         <div class="se-addform-body">
           <div class="se-field">
-            <label for="se-add-name">Full name</label>
-            <input type="text" id="se-add-name" placeholder="e.g. J. Ramie">
+            <label id="se-role-user-label" style="font-weight:700;color:#1e293b">—</label>
           </div>
           <div class="se-field">
-            <label for="se-add-email">Email address</label>
-            <input type="email" id="se-add-email" placeholder="name@mtso-fleet.com">
-          </div>
-          <div class="se-field">
-            <label for="se-add-role">Role</label>
-            <select id="se-add-role">
-              <option value="Reviewer">Reviewer</option>
-              <option value="B2B Operator">B2B Operator</option>
-              <option value="Supervisor">Supervisor</option>
-              <option value="Admin">Admin</option>
+            <label for="se-role-select">Role</label>
+            <select id="se-role-select">
+              <option value="admin">Admin</option>
+              <option value="oa">OA</option>
+              <option value="b2b">B2B</option>
             </select>
           </div>
-          <div class="se-addform-err" id="se-addform-err">Please fill in name and email before adding this user.</div>
+          <div class="se-addform-err" id="se-role-err">Could not update role.</div>
         </div>
         <div class="dm-modal-foot">
-          <button class="dm-modal-cancel" type="button" id="se-addform-cancel">Cancel</button>
-          <button class="dm-modal-save" type="button" id="se-addform-save">Add user</button>
+          <button class="dm-modal-cancel" type="button" id="se-role-cancel">Cancel</button>
+          <button class="dm-modal-save" type="button" id="se-role-save">Save role</button>
         </div>
       </div>
     </div>
@@ -4108,100 +4100,152 @@
       sidebarModeToggle.addEventListener('click', function(){ applyTheme(!isDark); });
     }
 
-    // ---- Access Management: in-memory user list ----
-    var USERS = [
-      { name:'Z. Welvz', email:'z.welvz@mtso-fleet.com', role:'Admin', lastLogin:'Just now', status:'active' },
-      { name:'J. Ramie', email:'j.ramie@mtso-fleet.com', role:'Reviewer', lastLogin:'2h ago', status:'active' },
-      { name:'R. Jade', email:'r.jade@mtso-fleet.com', role:'B2B Operator', lastLogin:'1d ago', status:'active' },
-      { name:'D. Cruz', email:'d.cruz@mtso-fleet.com', role:'Supervisor', lastLogin:'3d ago', status:'active' },
-      { name:'A. Santos', email:'a.santos@mtso-fleet.com', role:'Reviewer', lastLogin:'21d ago', status:'disabled' }
-    ];
+    // ---- Access Management: real profiles table (0004_auth_profiles.sql) ----
+    // profiles RLS (confirmed live): profiles_read lets any signed-in user
+    // read every row; profiles_insert_self only lets a user insert their
+    // OWN row (accounts are created by signing up, not by an admin here —
+    // there is no signup flow in this file, and no way to create another
+    // person's auth.users row from the browser with a publishable key);
+    // profiles_update_admin lets an admin (role='admin' AND
+    // status='approved') update ANY row; there is no delete policy at
+    // all. So this panel's real surface is: list everyone, and — if the
+    // signed-in user is an approved admin — approve/reject pending
+    // sign-ups and change an approved user's role. "Add user"/"Remove"
+    // from the old mock aren't representable against this schema.
+    var ROLE_LABEL = { admin: 'Admin', oa: 'OA', b2b: 'B2B' };
     var AVATAR_COLORS = ['#3b82f6','#7c3aed','#e8952e','#18a05e','#e53553','#0ea5e9'];
+    var accessState = { profiles: [], isAdmin: false, currentUserId: null };
 
     function initialsOf(name){
-      var parts = name.replace(/[().]/g,'').split(' ').filter(Boolean);
-      return ((parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '')).toUpperCase();
+      var parts = String(name || '').replace(/[().]/g,'').split(/[\s_]+/).filter(Boolean);
+      return ((parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '')).toUpperCase() || '?';
     }
     function colorFor(i){ return AVATAR_COLORS[i % AVATAR_COLORS.length]; }
+    function fmtJoined(iso){
+      var d = new Date(iso);
+      return isNaN(d) ? '—' : d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    }
 
     function renderUsers(){
       var tbody = document.getElementById('se-users-tbody');
       var countEl = document.getElementById('se-users-count');
       if(!tbody) return;
-      if(countEl) countEl.textContent = USERS.length + (USERS.length === 1 ? ' user' : ' users');
+      var rows = accessState.profiles;
+      if(countEl) countEl.textContent = rows.length + (rows.length === 1 ? ' user' : ' users');
 
-      if(!USERS.length){
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:30px 0">No users yet.</td></tr>';
+      if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:30px 0">No users yet.</td></tr>';
         return;
       }
-      tbody.innerHTML = USERS.map(function(u, i){
+      tbody.innerHTML = rows.map(function(u, i){
+        var name = u.display_name || u.username;
+        var statusLabel = u.status === 'approved' ? 'Approved' : (u.status === 'pending' ? 'Pending' : 'Rejected');
+        var statusClass = u.status === 'approved' ? 'active' : (u.status === 'pending' ? 'pending' : 'disabled');
+        var actionsHtml = '';
+        if(accessState.isAdmin && u.user_id !== accessState.currentUserId){
+          if(u.status === 'pending'){
+            actionsHtml = '<button class="se-remove-btn" type="button" data-se-approve="' + esc(u.user_id) + '" style="color:#18a05e;border-color:#bfe8d3">Approve</button> ' +
+              '<button class="se-remove-btn" type="button" data-se-reject="' + esc(u.user_id) + '">Reject</button>';
+          } else {
+            actionsHtml = '<button class="se-remove-btn" type="button" data-se-changerole="' + esc(u.user_id) + '">Change role</button>';
+          }
+        }
         return '<tr>' +
-          '<td><div class="se-user-name"><span class="se-user-avatar" style="background:' + colorFor(i) + '">' + initialsOf(u.name) + '</span>' + esc(u.name) + '</div></td>' +
-          '<td>' + esc(u.email) + '</td>' +
-          '<td><span class="se-role-badge' + (u.role === 'Admin' ? ' admin' : '') + '">' + esc(u.role) + '</span></td>' +
-          '<td>' + esc(u.lastLogin) + '</td>' +
-          '<td><span class="se-status-badge ' + u.status + '">' + (u.status === 'active' ? 'Active' : 'Disabled') + '</span></td>' +
-          '<td><button class="se-remove-btn" type="button" data-se-remove="' + i + '">Remove</button></td>' +
+          '<td><div class="se-user-name"><span class="se-user-avatar" style="background:' + colorFor(i) + '">' + esc(initialsOf(name)) + '</span>' + esc(name) + '</div></td>' +
+          '<td><span class="se-role-badge' + (u.role === 'admin' ? ' admin' : '') + '">' + esc(ROLE_LABEL[u.role] || u.role) + '</span></td>' +
+          '<td>' + esc(fmtJoined(u.created_at)) + '</td>' +
+          '<td><span class="se-status-badge ' + statusClass + '">' + statusLabel + '</span></td>' +
+          '<td>' + actionsHtml + '</td>' +
         '</tr>';
       }).join('');
+    }
+
+    function updateProfile(userId, patch){
+      return DB.from('profiles').update(patch).eq('user_id', userId).then(function(res){
+        if(res.error) throw res.error;
+        var row = accessState.profiles.find(function(p){ return p.user_id === userId; });
+        if(row) Object.assign(row, patch);
+        renderUsers();
+      }).catch(function(err){
+        window.alert('Could not update this user: ' + ((err && err.message) || 'unknown error'));
+      });
     }
 
     var usersTbody = document.getElementById('se-users-tbody');
     if(usersTbody){
       usersTbody.addEventListener('click', function(e){
-        var btn = e.target.closest('[data-se-remove]');
-        if(!btn) return;
-        var idx = parseInt(btn.getAttribute('data-se-remove'), 10);
-        var user = USERS[idx];
-        if(!user) return;
-        if(window.confirm('Remove ' + user.name + ' from the system?')){
-          USERS.splice(idx, 1);
-          renderUsers();
-        }
-      });
-    }
-
-    // ---- Access Management: add-user modal ----
-    var addMask = document.getElementById('se-addform-mask');
-    var addNameInput = document.getElementById('se-add-name');
-    var addEmailInput = document.getElementById('se-add-email');
-    var addRoleSelect = document.getElementById('se-add-role');
-    var addErr = document.getElementById('se-addform-err');
-
-    function openAddUser(){
-      addNameInput.value = '';
-      addEmailInput.value = '';
-      addRoleSelect.value = 'Reviewer';
-      addErr.classList.remove('on');
-      addMask.classList.add('on');
-      addNameInput.focus();
-    }
-    function closeAddUser(){ addMask.classList.remove('on'); }
-
-    var addUserBtn = document.getElementById('se-add-user-btn');
-    if(addUserBtn) addUserBtn.addEventListener('click', openAddUser);
-    var addCloseBtn = document.getElementById('se-addform-close');
-    if(addCloseBtn) addCloseBtn.addEventListener('click', closeAddUser);
-    var addCancelBtn = document.getElementById('se-addform-cancel');
-    if(addCancelBtn) addCancelBtn.addEventListener('click', closeAddUser);
-    if(addMask) addMask.addEventListener('click', function(e){ if(e.target === addMask) closeAddUser(); });
-
-    var addSaveBtn = document.getElementById('se-addform-save');
-    if(addSaveBtn){
-      addSaveBtn.addEventListener('click', function(){
-        var name = addNameInput.value.trim();
-        var email = addEmailInput.value.trim();
-        if(!name || !email){
-          addErr.classList.add('on');
+        var approveBtn = e.target.closest('[data-se-approve]');
+        if(approveBtn){ updateProfile(approveBtn.getAttribute('data-se-approve'), { status: 'approved' }); return; }
+        var rejectBtn = e.target.closest('[data-se-reject]');
+        if(rejectBtn){
+          if(window.confirm('Reject this sign-up request?')) updateProfile(rejectBtn.getAttribute('data-se-reject'), { status: 'rejected' });
           return;
         }
-        USERS.push({ name:name, email:email, role:addRoleSelect.value, lastLogin:'Never', status:'active' });
-        renderUsers();
-        closeAddUser();
+        var roleBtn = e.target.closest('[data-se-changerole]');
+        if(roleBtn){ openRoleModal(roleBtn.getAttribute('data-se-changerole')); return; }
       });
     }
 
-    renderUsers();
+    // ---- Access Management: role-change modal ----
+    var roleMask = document.getElementById('se-role-mask');
+    var roleUserLabel = document.getElementById('se-role-user-label');
+    var roleSelect = document.getElementById('se-role-select');
+    var roleErr = document.getElementById('se-role-err');
+    var roleTargetId = null;
+
+    function openRoleModal(userId){
+      var u = accessState.profiles.find(function(p){ return p.user_id === userId; });
+      if(!u) return;
+      roleTargetId = userId;
+      roleUserLabel.textContent = u.display_name || u.username;
+      roleSelect.value = u.role;
+      roleErr.classList.remove('on');
+      roleMask.classList.add('on');
+    }
+    function closeRoleModal(){ roleMask.classList.remove('on'); roleTargetId = null; }
+
+    var roleCloseBtn = document.getElementById('se-role-close');
+    if(roleCloseBtn) roleCloseBtn.addEventListener('click', closeRoleModal);
+    var roleCancelBtn = document.getElementById('se-role-cancel');
+    if(roleCancelBtn) roleCancelBtn.addEventListener('click', closeRoleModal);
+    if(roleMask) roleMask.addEventListener('click', function(e){ if(e.target === roleMask) closeRoleModal(); });
+
+    var roleSaveBtn = document.getElementById('se-role-save');
+    if(roleSaveBtn){
+      roleSaveBtn.addEventListener('click', function(){
+        if(!roleTargetId) return;
+        updateProfile(roleTargetId, { role: roleSelect.value }).then(closeRoleModal);
+      });
+    }
+
+    function loadUsers(){
+      var tbody = document.getElementById('se-users-tbody');
+      var countEl = document.getElementById('se-users-count');
+      requireSession().then(function(sess){
+        if(!sess){
+          if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:30px 0">Sign in to load real user data.</td></tr>';
+          if(countEl) countEl.textContent = '';
+          return;
+        }
+        accessState.currentUserId = sess.user.id;
+        return DB.from('profiles').select('user_id, username, display_name, role, status, created_at').order('created_at')
+          .then(function(res){
+            if(res.error) throw res.error;
+            accessState.profiles = res.data || [];
+            var me = accessState.profiles.find(function(p){ return p.user_id === sess.user.id; });
+            accessState.isAdmin = !!(me && me.role === 'admin' && me.status === 'approved');
+            renderUsers();
+          });
+      }).catch(function(err){
+        if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#c0271f;padding:30px 0">Could not load users: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+      });
+    }
+    // Re-fetch on every nav to this page (same pattern as Data Management/
+    // Analytics/etc. — see window.__ddsPageLoad) so signing in after
+    // landing on Settings, or approving/rejecting a user and navigating
+    // back, shows current data instead of a stale first-load snapshot.
+    window.__ddsPageLoad.settings = loadUsers;
+    loadUsers();
 
     // ---- System Management: backup / sync (simulated) / delete (confirm-gated) ----
     function withSpinner(btn, label, doneLabel, cb){
