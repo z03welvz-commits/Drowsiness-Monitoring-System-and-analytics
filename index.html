@@ -46,6 +46,7 @@
   :root[data-theme="dark"] .al-badge.moderate{background:#1d2b4a}
   :root[data-theme="dark"] .al-status.ack::before{background:#8a94ab}
   :root[data-theme="dark"] .dm-empty,:root[data-theme="dark"] .da-empty{color:var(--muted)}
+  :root[data-theme="dark"] .da-bulk-bar{background:#132542}
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   html,body{margin:0;width:100%;min-height:100%;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--text);background:var(--bg)}
@@ -770,14 +771,17 @@
   .da-bulk-count{font-size:11.5px;font-weight:700;color:#1259b6;white-space:nowrap}
   .da-bulk-bar select,.da-bulk-bar input[type="text"],.da-bulk-bar input[type="date"]{all:unset;box-sizing:border-box;height:34px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:11.5px;color:var(--text-dim);min-width:0}
   .da-bulk-bar select{cursor:pointer}
-  .da-bulk-other{width:150px;display:none}
-  .da-bulk-other.on{display:block}
+  .da-bulk-bar input[type="text"].da-bulk-other{width:150px;display:none}
+  .da-bulk-bar input[type="text"].da-bulk-other.on{display:block}
   .da-bulk-date{width:132px}
   .da-bulk-apply{all:unset;box-sizing:border-box;cursor:pointer;height:34px;padding:0 16px;border-radius:7px;background:var(--blue);color:#fff;font-size:11.5px;font-weight:700;white-space:nowrap}
   .da-bulk-apply:hover{background:#1d4fd1}
   .da-bulk-apply:disabled{opacity:.5;cursor:default}
   .da-bulk-clear{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:650;color:var(--muted);padding:0 4px;white-space:nowrap}
   .da-bulk-clear:hover{color:var(--text-dim)}
+  .da-th-check{width:34px;padding:0 0 0 17px!important}
+  .da-table td.da-td-check{padding:0 0 0 17px}
+  .da-row-check{cursor:pointer;width:14px;height:14px}
 
   .da-inst-table{width:100%;border-collapse:collapse;min-width:900px}
   .da-inst-table th{height:36px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
@@ -1988,11 +1992,24 @@
               View resolved / history
             </button>
           </div>
+          <div class="da-bulk-bar" id="da-drivers-bulk-bar">
+            <span class="da-bulk-count" id="da-drivers-bulk-count">0 selected</span>
+            <select id="da-drivers-bulk-action" aria-label="Bulk action">
+              <option value="">Set action…</option>
+              <option value="Spare">Spare</option>
+              <option value="Continue">Continue</option>
+              <option value="Other">Other…</option>
+            </select>
+            <input type="text" class="da-bulk-other" id="da-drivers-bulk-other" placeholder="Describe action...">
+            <input type="date" class="da-bulk-date" id="da-drivers-bulk-date" aria-label="Action date">
+            <button class="da-bulk-apply" type="button" id="da-drivers-bulk-apply" disabled>Apply to selected</button>
+            <button class="da-bulk-clear" type="button" id="da-drivers-bulk-clear-sel">Clear selection</button>
+          </div>
           <div class="da-table-wrap da-table-wrap-flex">
             <table class="da-table" id="da-table-drivers">
               <thead>
                 <tr>
-                  <th data-da-sort="emp_no">Emp ID</th><th data-da-sort="emp_name">Emp Name</th><th>Event Code</th><th data-da-sort="total">Counts</th><th>Status</th><th></th>
+                  <th class="da-th-check"><input type="checkbox" id="da-drivers-selectall" aria-label="Select all drivers"></th><th data-da-sort="emp_no">Emp ID</th><th data-da-sort="emp_name">Emp Name</th><th>Event Code</th><th data-da-sort="total">Counts</th><th>Status</th><th></th>
                 </tr>
               </thead>
               <tbody data-da-tbody="drivers"><!-- rows injected by script --></tbody>
@@ -4227,15 +4244,26 @@
     // control without a schema migration.
     var prefsState = { userId: null, preferences: {} };
     function savePreferences(patch){
-      if(!prefsState.userId) return Promise.resolve();
       Object.assign(prefsState.preferences, patch);
-      return DB.from('user_settings').upsert({
-        user_id: prefsState.userId,
-        preferences: prefsState.preferences,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' }).then(function(res){
-        if(res.error) console.error('Could not save preference', res.error);
-      });
+      // Re-derive the session here instead of trusting prefsState.userId to
+      // already be set: loadPreferences() only runs once at page-load, so if
+      // that first requireSession() call lost a startup race (or the user
+      // wasn't signed in yet at that moment), userId would stay null forever
+      // and every later click would silently no-op — this was confirmed live:
+      // user_settings had zero rows despite the theme toggle visibly working
+      // in the UI, meaning every save was hitting the old `if(!userId) return`
+      // guard and never reaching the network at all.
+      return requireSession().then(function(sess){
+        if(!sess) return;
+        prefsState.userId = sess.user.id;
+        return DB.from('user_settings').upsert({
+          user_id: prefsState.userId,
+          preferences: prefsState.preferences,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' }).then(function(res){
+          if(res.error) console.error('Could not save preference', res.error);
+        });
+      }).catch(function(err){ console.error('Could not save preference', err); });
     }
 
     // ---- Personalization: sound switch (persisted) ----
@@ -5836,7 +5864,7 @@
       if(!rows.length){
         var emptyRow = document.createElement('tr');
         var cell = document.createElement('td');
-        cell.colSpan = 6;
+        cell.colSpan = kind === 'drivers' ? 7 : 6;
         cell.className = 'da-empty';
         cell.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg><div>No ' + kind + ' match this view right now.</div>';
         emptyRow.appendChild(cell);
@@ -5846,6 +5874,7 @@
       } else {
         rows.forEach(function(r){ tbody.appendChild(buildAssetRow(r)); });
       }
+      if(kind === 'drivers') updateDriversBulkBar();
 
       var shownEl = document.querySelector('[data-da-shown="' + kind + '"]');
       if(shownEl) shownEl.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(st.total);
@@ -5865,6 +5894,7 @@
         ? '<span class="da-inst-status done">Done</span>'
         : '<span class="da-inst-status pending">Pending</span>';
       tr.innerHTML =
+        '<td class="da-td-check"><input type="checkbox" class="da-row-check" data-da-driver-check="' + esc(r.empNo) + '" aria-label="Select ' + esc(r.empName) + '"></td>' +
         '<td>' + esc(r.empNo) + '</td>' +
         '<td>' + esc(r.empName) + '</td>' +
         '<td>' + fmtEventCodes(r.eventCodes) + '</td>' +
@@ -5903,6 +5933,97 @@
         if(st.sort === col) st.dir = st.dir === 'asc' ? 'desc' : 'asc';
         else { st.sort = col; st.dir = col === 'total' ? 'desc' : 'asc'; }
         loadSummaryTable(kind);
+      });
+    });
+
+    // ---- Flagged Drivers table: bulk-select rows, apply one action across
+    // every selected driver's events in range. Row selection only ever
+    // yields emp_no's — the actual bulk-write RPC (dds_bulk_log_case_action,
+    // 0035) needs individual event_id's, same as the existing per-driver
+    // drawer's bulk-edit bar. So "Apply to selected" first re-fetches each
+    // checked driver's instances via dds_driver_alert_instances (already
+    // used to populate the drawer), scoped to this table's current
+    // from/to filters so the action only touches events actually shown in
+    // the current view, then unions every eventId into one
+    // dds_bulk_log_case_action call — one user action, one confirmation,
+    // regardless of how many drivers were selected.
+    var driversTbody = document.querySelector('[data-da-tbody="drivers"]');
+    var driversBulkBar = document.getElementById('da-drivers-bulk-bar');
+    var driversSelectAll = document.getElementById('da-drivers-selectall');
+    var driversBulkCount = document.getElementById('da-drivers-bulk-count');
+    var driversBulkAction = document.getElementById('da-drivers-bulk-action');
+    var driversBulkOther = document.getElementById('da-drivers-bulk-other');
+    var driversBulkDate = document.getElementById('da-drivers-bulk-date');
+    var driversBulkApply = document.getElementById('da-drivers-bulk-apply');
+    var driversBulkClearSel = document.getElementById('da-drivers-bulk-clear-sel');
+
+    function selectedDriverChecks(){
+      return Array.prototype.slice.call(driversTbody.querySelectorAll('[data-da-driver-check]:checked'));
+    }
+    function updateDriversBulkBar(){
+      var n = selectedDriverChecks().length;
+      driversBulkBar.classList.toggle('on', n > 0);
+      driversBulkCount.textContent = n + ' selected';
+      driversBulkApply.disabled = !(n > 0 && driversBulkAction.value);
+      var allChecks = driversTbody.querySelectorAll('[data-da-driver-check]');
+      driversSelectAll.checked = n > 0 && n === allChecks.length;
+    }
+    driversTbody.addEventListener('change', function(e){
+      if(e.target.matches('[data-da-driver-check]')) updateDriversBulkBar();
+    });
+    driversSelectAll.addEventListener('change', function(){
+      var checked = driversSelectAll.checked;
+      driversTbody.querySelectorAll('[data-da-driver-check]').forEach(function(cb){ cb.checked = checked; });
+      updateDriversBulkBar();
+    });
+    driversBulkClearSel.addEventListener('click', function(){
+      driversTbody.querySelectorAll('[data-da-driver-check]').forEach(function(cb){ cb.checked = false; });
+      updateDriversBulkBar();
+    });
+    driversBulkAction.addEventListener('change', function(){
+      driversBulkOther.classList.toggle('on', driversBulkAction.value === 'Other');
+      updateDriversBulkBar();
+    });
+
+    driversBulkApply.addEventListener('click', function(){
+      var empNos = selectedDriverChecks().map(function(cb){ return cb.getAttribute('data-da-driver-check'); });
+      if(!empNos.length || !driversBulkAction.value) return;
+      var isOther = driversBulkAction.value === 'Other';
+      if(isOther && !driversBulkOther.value.trim()){ driversBulkOther.focus(); return; }
+
+      var st = summaryState.drivers;
+      driversBulkApply.disabled = true;
+      driversBulkApply.textContent = 'Applying…';
+
+      Promise.all(empNos.map(function(empNo){
+        return DB.rpc('dds_driver_alert_instances', { p_emp_no: empNo, p_from: st.from || null, p_to: st.to || null })
+          .then(function(res){
+            if(res.error) throw res.error;
+            return ((res.data && res.data.rows) || []).map(function(row){ return row.eventId; });
+          });
+      })).then(function(idLists){
+        var ids = [].concat.apply([], idLists);
+        if(!ids.length){
+          throw new Error('No alert events found for the selected drivers in this date range.');
+        }
+        return DB.rpc('dds_bulk_log_case_action', {
+          p_event_ids: ids,
+          p_action_type: driversBulkAction.value,
+          p_action_is_other: isOther,
+          p_action_date: driversBulkDate.value || null,
+          p_status_value: 'Logged',
+          p_remarks: isOther ? driversBulkOther.value.trim() : null
+        });
+      }).then(function(res){
+        if(res.error) throw res.error;
+        driversBulkAction.value = ''; driversBulkOther.value = ''; driversBulkOther.classList.remove('on'); driversBulkDate.value = '';
+        loadSummaryTable('drivers');
+      }).catch(function(err){
+        console.error('Bulk driver action failed', err);
+        alert('Could not save: ' + ((err && err.message) || 'unknown error'));
+      }).finally(function(){
+        driversBulkApply.disabled = false;
+        driversBulkApply.textContent = 'Apply to selected';
       });
     });
 
