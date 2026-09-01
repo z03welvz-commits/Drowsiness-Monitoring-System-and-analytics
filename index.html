@@ -557,6 +557,10 @@
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
   .da-table th{height:38px;text-align:left;color:#748197;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:#f8fafc;white-space:nowrap}
+  .da-table th[data-da-sort]{cursor:pointer;user-select:none}
+  .da-table th[data-da-sort]:hover{color:#1259b6}
+  .da-table th[data-da-sort].sorted::after{content:' ▾';font-size:8px}
+  .da-table th[data-da-sort].sorted.asc::after{content:' ▴'}
   .da-table td{height:56px;border-bottom:1px solid #f0f3f7;padding:0 14px;font-size:11.5px;color:#344054;white-space:nowrap}
   .da-table tr:hover td{background:#fafbfd}
   .da-table tr.flag-high td{background:#fff9f9}
@@ -674,6 +678,40 @@
   .da-tl-main{font-size:11.5px;color:#1e293b;font-weight:650;line-height:1.4}
   .da-tl-sub{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.5}
   .da-tl-empty{font-size:11px;color:#94a3b8;padding:14px 0;text-align:center}
+
+  /* ---------- Alert instance popup (per-driver/per-asset "Details" — bulk-edit for drivers, read-only history for assets) ---------- */
+  .da-modal.wide{max-width:960px}
+  .da-inst-summary{display:flex;align-items:center;gap:18px;padding:14px 20px;border-bottom:1px solid var(--border);background:#fbfcfe;flex-wrap:wrap}
+  .da-inst-stat{display:flex;flex-direction:column;gap:2px}
+  .da-inst-stat-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:#748197;font-weight:700}
+  .da-inst-stat-value{font-size:15px;font-weight:800;color:#0b1220}
+
+  /* bulk-edit toolbar: hidden until >=1 row is checked */
+  .da-bulk-bar{display:none;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--border);background:#eef5ff;flex-wrap:wrap}
+  .da-bulk-bar.on{display:flex}
+  .da-bulk-count{font-size:11.5px;font-weight:700;color:#1259b6;white-space:nowrap}
+  .da-bulk-bar select,.da-bulk-bar input[type="text"],.da-bulk-bar input[type="date"]{all:unset;box-sizing:border-box;height:34px;border:1px solid var(--border);border-radius:7px;background:#fff;padding:0 10px;font-size:11.5px;color:#1e293b;min-width:0}
+  .da-bulk-bar select{cursor:pointer}
+  .da-bulk-other{width:150px;display:none}
+  .da-bulk-other.on{display:block}
+  .da-bulk-date{width:132px}
+  .da-bulk-apply{all:unset;box-sizing:border-box;cursor:pointer;height:34px;padding:0 16px;border-radius:7px;background:var(--blue);color:#fff;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .da-bulk-apply:hover{background:#1d4fd1}
+  .da-bulk-apply:disabled{opacity:.5;cursor:default}
+  .da-bulk-clear{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:650;color:#64748b;padding:0 4px;white-space:nowrap}
+  .da-bulk-clear:hover{color:#1e293b}
+
+  .da-inst-table{width:100%;border-collapse:collapse;min-width:900px}
+  .da-inst-table th{height:36px;text-align:left;color:#748197;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:#f8fafc;white-space:nowrap}
+  .da-inst-table td{height:48px;border-bottom:1px solid #f0f3f7;padding:0 10px;font-size:11px;color:#344054;white-space:nowrap}
+  .da-inst-table tr:hover td{background:#fafbfd}
+  .da-inst-table .chk-col{width:34px;text-align:center;padding:0}
+  .da-inst-table input[type="checkbox"]{width:15px;height:15px;cursor:pointer;accent-color:var(--blue)}
+  .da-inst-status{font-size:9.5px;font-weight:750;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+  .da-inst-status.done{background:#dff5ea;color:#18a05e}
+  .da-inst-status.pending{background:#fdeaea;color:#e53553}
+  .da-inst-row-action{font-size:10.5px;color:#475569}
+  .da-inst-row-action .name{font-weight:650;color:#1e293b}
 
   /* ---------- Summary page (su- prefix; running 7-day report) ---------- */
   .su-range{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 13px;font-size:11.5px;color:#475569;font-weight:650}
@@ -1787,9 +1825,6 @@
           <h1>Driver &amp; Asset Monitoring</h1>
           <p>Weekly alert consistency for drivers and assets, prioritized for action</p>
         </div>
-        <div class="controls">
-          <div class="user"><span class="online" aria-hidden="true"></span><span id="da-username">z_03welvz</span></div>
-        </div>
       </header>
 
       <section class="da-summary" aria-label="Weekly risk summary">
@@ -1838,14 +1873,13 @@
             </div>
           </div>
           <div class="da-filters">
-            <button class="da-filter on" type="button" data-da-riskfilter="drivers" data-value="all">Risk&nbsp; <strong>All</strong></button>
-            <div class="da-sort-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Sorted by risk, then weekly alert count</div>
+            <div class="da-sort-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Click a column header to sort</div>
           </div>
           <div class="da-table-wrap">
             <table class="da-table" id="da-table-drivers">
               <thead>
                 <tr>
-                  <th>Driver</th><th>Risk</th><th>This week</th><th>Pattern</th><th>Status</th><th>Recommended</th><th>Action</th>
+                  <th data-da-sort="emp_no">Emp ID</th><th data-da-sort="emp_name">Emp Name</th><th>Event Code</th><th data-da-sort="total">Counts</th><th>Status</th><th></th>
                 </tr>
               </thead>
               <tbody data-da-tbody="drivers"><!-- rows injected by script --></tbody>
@@ -1872,14 +1906,13 @@
             </div>
           </div>
           <div class="da-filters">
-            <button class="da-filter on" type="button" data-da-riskfilter="assets" data-value="all">Risk&nbsp; <strong>All</strong></button>
-            <div class="da-sort-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Sorted by risk, then weekly alert count</div>
+            <div class="da-sort-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>Click a column header to sort</div>
           </div>
           <div class="da-table-wrap">
             <table class="da-table" id="da-table-assets">
               <thead>
                 <tr>
-                  <th>Asset</th><th>Risk</th><th>This week</th><th>Pattern</th><th>Status</th><th>Recommended</th><th>Action</th>
+                  <th data-da-sort="asset_id">Asset No</th><th>Event Code</th><th data-da-sort="total">Event Counts</th><th>Avg Sync Time</th><th></th>
                 </tr>
               </thead>
               <tbody data-da-tbody="assets"><!-- rows injected by script --></tbody>
@@ -2505,6 +2538,45 @@
         </div>
         <div class="da-history-card">
           <div class="da-table-wrap" id="da-history-body" style="padding:6px 4px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Driver & Asset Monitoring: alert-instance "Details" popup
+         (drivers: bulk-editable action log; assets: read-only history) -->
+    <div class="da-modal-mask" id="da-inst-mask">
+      <div class="da-modal wide" role="dialog" aria-modal="true" aria-labelledby="da-inst-title">
+        <div class="da-modal-head">
+          <div>
+            <div class="da-modal-title" id="da-inst-title">—</div>
+            <div class="da-modal-sub" id="da-inst-sub">—</div>
+          </div>
+          <button class="da-modal-close" type="button" id="da-inst-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="da-inst-summary" id="da-inst-summary"></div>
+        <div class="da-bulk-bar" id="da-bulk-bar">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#475569;cursor:pointer"><input type="checkbox" id="da-inst-selectall">Select all</label>
+          <span class="da-bulk-count" id="da-bulk-count">0 selected</span>
+          <select id="da-bulk-action" aria-label="Bulk action">
+            <option value="">Set action…</option>
+            <option value="Spare">Spare</option>
+            <option value="Continue">Continue</option>
+            <option value="Other">Other…</option>
+          </select>
+          <input type="text" class="da-bulk-other" id="da-bulk-other" placeholder="Describe action...">
+          <input type="date" class="da-bulk-date" id="da-bulk-date" aria-label="Action date">
+          <button class="da-bulk-apply" type="button" id="da-bulk-apply" disabled>Apply to selected</button>
+          <button class="da-bulk-clear" type="button" id="da-bulk-clear-sel">Clear selection</button>
+        </div>
+        <div class="da-table-wrap">
+          <table class="da-inst-table" id="da-inst-table">
+            <thead>
+              <tr id="da-inst-thead-row"></tr>
+            </thead>
+            <tbody id="da-inst-tbody"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -4924,10 +4996,29 @@
       });
     }
 
+    // Background-only load of the weekly day-of-week risk model — no
+    // longer drives the visible table (see loadSummaryTable() below,
+    // which does that from dds_driver_event_summary/dds_asset_event_
+    // summary per product decision: "drivers with total count per event
+    // code, sortable/filterable" is the priority now, the weekly
+    // consecutive-day pattern is optional/secondary). Kept running so
+    // window.__daState/__daComputeRisk/__daRecommendation stay populated
+    // for the Summary page's "top flagged" table, and so the da-summary
+    // KPI cards (High/Medium/Low risk, Action required) keep working.
+    function loadWeeklyRiskBackground(){
+      fetchWeekly().then(function(fresh){
+        state = fresh;
+        window.__daState = state;
+        updateSummaryKpis();
+      }).catch(function(err){
+        console.error('Driver & Asset weekly (background risk model) fetch failed', err);
+      });
+    }
+
     function signedOutTable(kind){
       var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
       if(!tbody) return;
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:30px 0">' +
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:30px 0">' +
         'Sign in to load real ' + (kind === 'drivers' ? 'driver' : 'asset') + ' data — this page reads live data, not a mock.</td></tr>';
       var shownEl = document.querySelector('[data-da-shown="' + kind + '"]');
       if(shownEl) shownEl.textContent = '';
@@ -4935,7 +5026,7 @@
     function errorTable(kind, err){
       var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
       if(!tbody) return;
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#c0271f;padding:30px 0">' +
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:30px 0">' +
         'Could not load records: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
     }
 
@@ -4947,18 +5038,9 @@
           signedOutTable('drivers'); signedOutTable('assets');
           return;
         }
-        setHeaderUsername(sess, 'da-username');
-        fetchWeekly().then(function(fresh){
-          if(!guard.isCurrent(token)) return;
-          state = fresh;
-          window.__daState = state;
-          renderTable('drivers');
-          renderTable('assets');
-        }).catch(function(err){
-          if(!guard.isCurrent(token)) return;
-          console.error('Driver & Asset weekly fetch failed', err);
-          errorTable('drivers', err); errorTable('assets', err);
-        });
+        loadWeeklyRiskBackground();
+        loadSummaryTable('drivers');
+        loadSummaryTable('assets');
       });
     }
 
@@ -4993,124 +5075,157 @@
       var parts = name.replace(/[().]/g,'').split(' ').filter(Boolean);
       return (parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '');
     }
-    function buildRows(kind){
-      var records = state[kind];
-      return records.map(function(rec){
-        var scored = computeRisk(rec.days);
-        return { rec:rec, risk:scored.risk, total:scored.total, daysOver10:scored.daysOver10 };
-      });
+    // ---- new summary table: dds_driver_event_summary / dds_asset_event_summary ----
+    // Row grain is one row per driver/asset with an aggregated event-code
+    // breakdown (per user decision), server-side searched/sorted/paged the
+    // same way Alert Logs does (dds_alert_logs) rather than client-side
+    // filtering an already-fetched array, so this scales the same way as
+    // that page regardless of fleet size.
+    var summaryState = {
+      drivers: { rows:[], total:0, sort:'total', dir:'desc', search:'' },
+      assets:  { rows:[], total:0, sort:'total', dir:'desc', search:'' }
+    };
+    var summaryGuard = { drivers: makeGuard(), assets: makeGuard() };
+
+    function fmtEventCodes(codes){
+      if(!codes || !codes.length) return '<span style="color:#94a3b8">—</span>';
+      return codes.map(function(c){
+        return esc(c.eventCode || 'Alert') + ' <span style="color:#94a3b8">(' + fmtNum(c.count) + ')</span>';
+      }).join(', ');
+    }
+    function fmtSyncSecondsShort(s){
+      if(s == null) return '—';
+      var h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
+      return h + 'h ' + m + 'm';
     }
 
-    function sortRows(rows){
-      var order = { high:0, medium:1, low:2 };
-      rows.sort(function(a,b){
-        if(order[a.risk] !== order[b.risk]) return order[a.risk] - order[b.risk];
-        return b.total - a.total; // most consistent / highest weekly count floats to top within its tier
-      });
-      return rows;
-    }
-
-    function currentFilter(kind){
-      var btn = document.querySelector('[data-da-riskfilter="' + kind + '"]');
-      return btn ? btn.getAttribute('data-value') : 'all';
-    }
-    function currentSearch(kind){
-      var input = document.querySelector('[data-da-search="' + kind + '"]');
-      return input ? input.value.trim().toLowerCase() : '';
-    }
-
-    function renderTable(kind){
+    function loadSummaryTable(kind){
+      var token = summaryGuard[kind].start();
       var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
       if(!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:30px 0">Loading…</td></tr>';
 
-      var rows = buildRows(kind).filter(function(r){ return r.rec.status !== 'actioned'; });
-      rows = sortRows(rows);
+      var st = summaryState[kind];
+      var fn = kind === 'drivers' ? 'dds_driver_event_summary' : 'dds_asset_event_summary';
+      DB.rpc(fn, { p_search: st.search || null, p_sort: st.sort, p_dir: st.dir, p_limit: 100, p_offset: 0 })
+        .then(function(res){
+          if(!summaryGuard[kind].isCurrent(token)) return;
+          if(res.error) throw res.error;
+          st.rows = (res.data && res.data.rows) || [];
+          st.total = (res.data && res.data.total) || 0;
+          renderSummaryTable(kind);
+        }).catch(function(err){
+          if(!summaryGuard[kind].isCurrent(token)) return;
+          console.error((kind === 'drivers' ? 'Driver' : 'Asset') + ' event summary fetch failed', err);
+          errorTable(kind, err);
+        });
+    }
 
-      var filter = currentFilter(kind);
-      if(filter !== 'all') rows = rows.filter(function(r){ return r.risk === filter; });
-
-      var q = currentSearch(kind);
-      if(q) rows = rows.filter(function(r){
-        return (r.rec.name + ' ' + r.rec.id).toLowerCase().indexOf(q) !== -1;
-      });
+    function renderSummaryTable(kind){
+      var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
+      if(!tbody) return;
+      var st = summaryState[kind];
+      var rows = st.rows;
 
       tbody.innerHTML = '';
       if(!rows.length){
         var emptyRow = document.createElement('tr');
         var cell = document.createElement('td');
-        cell.colSpan = 7;
+        cell.colSpan = 6;
         cell.className = 'da-empty';
         cell.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg><div>No ' + kind + ' match this view right now.</div>';
         emptyRow.appendChild(cell);
         tbody.appendChild(emptyRow);
+      } else if(kind === 'drivers'){
+        rows.forEach(function(r){ tbody.appendChild(buildDriverRow(r)); });
       } else {
-        rows.forEach(function(r){ tbody.appendChild(buildRow(kind, r)); });
+        rows.forEach(function(r){ tbody.appendChild(buildAssetRow(r)); });
       }
 
       var shownEl = document.querySelector('[data-da-shown="' + kind + '"]');
-      if(shownEl) shownEl.textContent = 'Showing ' + rows.length + ' of ' + state[kind].filter(function(x){return x.status!=='actioned';}).length;
+      if(shownEl) shownEl.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(st.total);
 
       var emptyNote = document.querySelector('[data-da-empty-note="' + kind + '"]');
-      var reqCount = rows.filter(function(r){ return r.rec.status === 'required' && r.risk !== 'low'; }).length;
-      if(emptyNote) emptyNote.textContent = reqCount ? reqCount + ' row(s) need action' : 'All caught up';
-
-      updateTabCounts();
-      updateSummaryKpis();
-    }
-
-    function buildRow(kind, r){
-      var rec = r.rec;
-      var tr = document.createElement('tr');
-      if(r.risk === 'high') tr.className = 'flag-high';
-
-      var patternHtml;
-      if(r.daysOver10.length >= 2){
-        patternHtml = '<div class="da-pattern"><strong>' + r.daysOver10.length + ' days</strong> with a >10-count alert</div>';
-      } else if(r.total > 20){
-        patternHtml = '<div class="da-pattern"><strong>' + r.total + ' total</strong> counts this week</div>';
-      } else if(r.total > 0){
-        patternHtml = '<div class="da-pattern">No repeat pattern yet</div>';
-      } else {
-        patternHtml = '<div class="da-pattern">—</div>';
+      if(emptyNote && kind === 'drivers'){
+        var pendingCount = rows.filter(function(r){ return !r.done; }).length;
+        emptyNote.textContent = pendingCount ? pendingCount + ' row(s) need action' : 'All caught up';
       }
 
-      var rec_ = recommendation(r.risk);
-      var statusHtml = rec.status === 'actioned'
-        ? '<span class="da-status actioned">Actioned</span>'
-        : '<span class="da-status required">Action required</span>';
+      updateSortHeaders(kind);
+    }
 
-      var avatarClass = kind === 'assets' ? 'da-avatar asset' : 'da-avatar';
-
+    function buildDriverRow(r){
+      var tr = document.createElement('tr');
+      var statusHtml = r.done
+        ? '<span class="da-inst-status done">Done</span>'
+        : '<span class="da-inst-status pending">Pending</span>';
       tr.innerHTML =
-        '<td><div class="da-id"><span class="' + avatarClass + '">' + esc(initials(rec.name)) + '</span>' +
-          '<div><div>' + esc(rec.name) + '</div><div class="da-id-sub">' + esc(rec.id) + ' · ' + esc(rec.sub) + '</div></div></div></td>' +
-        '<td><span class="da-risk ' + (r.risk === 'high' ? 'high' : r.risk === 'medium' ? 'med' : 'low') + '">' + r.risk + '</span></td>' +
-        '<td><span class="da-week-count">' + r.total + '</span> <span class="of">counts</span></td>' +
-        '<td>' + patternHtml + '</td>' +
+        '<td>' + esc(r.empNo) + '</td>' +
+        '<td>' + esc(r.empName) + '</td>' +
+        '<td>' + fmtEventCodes(r.eventCodes) + '</td>' +
+        '<td><span class="da-week-count">' + fmtNum(r.total) + '</span></td>' +
         '<td>' + statusHtml + '</td>' +
-        '<td><span class="da-rec ' + rec_.key + '"><span class="da-rec-dot"></span>' + rec_.label + '</span></td>' +
-        '<td>' +
-          '<button class="da-view-btn" type="button" data-da-detail="' + kind + '|' + rec.id + '">Details</button>' +
-          (rec.status !== 'actioned' ? '<button class="da-act-btn" type="button" data-da-openaction="' + kind + '|' + rec.id + '">Log action</button>' : '') +
-        '</td>';
+        '<td><button class="da-view-btn" type="button" data-da-detail="drivers|' + esc(r.empNo) + '">See details</button></td>';
+      return tr;
+    }
+    function buildAssetRow(r){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + esc(r.assetId) + '</td>' +
+        '<td>' + fmtEventCodes(r.eventCodes) + '</td>' +
+        '<td><span class="da-week-count">' + fmtNum(r.total) + '</span></td>' +
+        '<td>' + esc(fmtSyncSecondsShort(r.avgSyncSeconds)) + '</td>' +
+        '<td><button class="da-view-btn" type="button" data-da-detail="assets|' + esc(r.assetId) + '">See details</button></td>';
       return tr;
     }
 
+    function updateSortHeaders(kind){
+      var tableId = kind === 'drivers' ? 'da-table-drivers' : 'da-table-assets';
+      var st = summaryState[kind];
+      document.querySelectorAll('#' + tableId + ' th[data-da-sort]').forEach(function(th){
+        var col = th.getAttribute('data-da-sort');
+        th.classList.toggle('sorted', col === st.sort);
+        th.classList.toggle('asc', col === st.sort && st.dir === 'asc');
+      });
+    }
+
+    document.querySelectorAll('.da-table th[data-da-sort]').forEach(function(th){
+      th.addEventListener('click', function(){
+        var table = th.closest('table');
+        var kind = table && table.id === 'da-table-assets' ? 'assets' : 'drivers';
+        var col = th.getAttribute('data-da-sort');
+        var st = summaryState[kind];
+        if(st.sort === col) st.dir = st.dir === 'asc' ? 'desc' : 'asc';
+        else { st.sort = col; st.dir = col === 'total' ? 'desc' : 'asc'; }
+        loadSummaryTable(kind);
+      });
+    });
+
+    // ---- tab counts / KPI cards: still driven by the background weekly
+    // risk model (state/computeRisk) — unrelated to the new summary table,
+    // this is the same High/Medium/Low/Action-required signal the page
+    // has always shown, computed independently of what's on screen. ----
     function updateTabCounts(){
       ['drivers','assets'].forEach(function(kind){
-        var flagged = buildRows(kind).filter(function(r){ return r.rec.status !== 'actioned' && r.risk !== 'low'; }).length;
+        var flagged = (state[kind] || []).filter(function(rec){
+          if(rec.status === 'actioned') return false;
+          return computeRisk(rec.days).risk !== 'low';
+        }).length;
         var el = document.querySelector('[data-da-tabcount="' + kind + '"]');
         if(el) el.textContent = flagged;
       });
     }
 
     function updateSummaryKpis(){
-      var all = buildRows('drivers').concat(buildRows('assets')).filter(function(r){ return r.rec.status !== 'actioned'; });
-      var high = all.filter(function(r){ return r.risk === 'high'; }).length;
-      var med = all.filter(function(r){ return r.risk === 'medium'; }).length;
-      var low = all.filter(function(r){ return r.risk === 'low'; }).length;
-      var required = all.filter(function(r){ return r.rec.status === 'required' && r.risk !== 'low'; }).length;
+      var all = (state.drivers || []).concat(state.assets || []).filter(function(rec){ return rec.status !== 'actioned'; });
+      var high = 0, med = 0, low = 0, required = 0;
+      all.forEach(function(rec){
+        var risk = computeRisk(rec.days).risk;
+        if(risk === 'high') high++; else if(risk === 'medium') med++; else low++;
+        if(rec.status === 'required' && risk !== 'low') required++;
+      });
       setKpi('high', high); setKpi('med', med); setKpi('low', low); setKpi('required', required);
+      updateTabCounts();
     }
     function setKpi(key, val){
       var el = document.querySelector('[data-da-count="' + key + '"]');
@@ -5131,22 +5246,14 @@
       });
     });
 
-    // ---- search & filter ----
+    // ---- search (debounced, server-side via loadSummaryTable) ----
+    var searchTimers = {};
     document.querySelectorAll('[data-da-search]').forEach(function(input){
-      input.addEventListener('input', function(){ renderTable(input.getAttribute('data-da-search')); });
-    });
-    document.querySelectorAll('[data-da-riskfilter]').forEach(function(btn){
-      // simple cycling filter: All -> High -> Medium -> Low -> All, click to cycle
-      var cycle = ['all','high','medium','low'];
-      var labelFor = { all:'All', high:'High', medium:'Medium', low:'Low' };
-      btn.addEventListener('click', function(){
-        var kind = btn.getAttribute('data-da-riskfilter');
-        var cur = btn.getAttribute('data-value');
-        var next = cycle[(cycle.indexOf(cur) + 1) % cycle.length];
-        btn.setAttribute('data-value', next);
-        btn.classList.toggle('on', next !== 'all');
-        btn.innerHTML = 'Risk&nbsp; <strong>' + labelFor[next] + '</strong>';
-        renderTable(kind);
+      input.addEventListener('input', function(){
+        var kind = input.getAttribute('data-da-search');
+        summaryState[kind].search = input.value.trim();
+        clearTimeout(searchTimers[kind]);
+        searchTimers[kind] = setTimeout(function(){ loadSummaryTable(kind); }, 250);
       });
     });
 
@@ -5156,12 +5263,12 @@
         var actionBtn = e.target.closest('[data-da-openaction]');
         if(actionBtn){ openActionModal(actionBtn.getAttribute('data-da-openaction')); return; }
         var detailBtn = e.target.closest('[data-da-detail]');
-        if(detailBtn){ openDetailDrawer(detailBtn.getAttribute('data-da-detail')); return; }
+        if(detailBtn){ openInstancePopup(detailBtn.getAttribute('data-da-detail')); return; }
       });
     });
 
     function findRecord(kind, id){
-      return state[kind].find(function(r){ return r.id === id; });
+      return (state[kind] || []).find(function(r){ return r.id === id; });
     }
 
     // ---- action modal ----
@@ -5249,8 +5356,9 @@
       }).then(function(fresh){
         state = fresh;
         window.__daState = state;
-        renderTable('drivers');
-        renderTable('assets');
+        updateSummaryKpis();
+        loadSummaryTable('drivers');
+        loadSummaryTable('assets');
       }).catch(function(err){
         console.error('Log action failed', err);
         alert('Could not save this action: ' + ((err && err.message) || 'unknown error'));
@@ -5403,6 +5511,202 @@
     document.getElementById('da-history-close').addEventListener('click', function(){ histMask.classList.remove('on'); });
     histMask.addEventListener('click', function(e){ if(e.target === histMask) histMask.classList.remove('on'); });
 
+    // ---- alert-instance "Details" popup ----
+    // Drivers: bulk-editable via checkboxes against dds_bulk_log_case_action
+    // (one alert_cases row per selected event_id). Assets: read-only history
+    // (no action/status model for assets, per product decision) — same
+    // modal shell, table just renders fewer columns and the bulk toolbar
+    // never shows.
+    var instMask = document.getElementById('da-inst-mask');
+    var instTitle = document.getElementById('da-inst-title');
+    var instSub = document.getElementById('da-inst-sub');
+    var instSummary = document.getElementById('da-inst-summary');
+    var instTheadRow = document.getElementById('da-inst-thead-row');
+    var instTbody = document.getElementById('da-inst-tbody');
+    var bulkBar = document.getElementById('da-bulk-bar');
+    var bulkCount = document.getElementById('da-bulk-count');
+    var bulkSelectAll = document.getElementById('da-inst-selectall');
+    var bulkAction = document.getElementById('da-bulk-action');
+    var bulkOther = document.getElementById('da-bulk-other');
+    var bulkDate = document.getElementById('da-bulk-date');
+    var bulkApply = document.getElementById('da-bulk-apply');
+    var bulkClearSel = document.getElementById('da-bulk-clear-sel');
+    var instCurrentKind = null; // 'drivers' | 'assets'
+    var instCurrentId = null;   // empNo or assetId of the currently open popup
+    var instRows = []; // last-fetched instance rows for the open popup
+    var instGuard = makeGuard();
+
+    function fmtDateTimeShort(mdyhms){
+      // server already formats as MM/DD/YYYY HH:MM:SS — just trim seconds
+      // for compact table display; '—' passes through unchanged.
+      if(!mdyhms) return '—';
+      var parts = mdyhms.split(' ');
+      if(parts.length < 2) return mdyhms;
+      var hm = parts[1].split(':').slice(0,2).join(':');
+      return parts[0] + ' ' + hm;
+    }
+    function selectedCheckboxes(){
+      return Array.prototype.slice.call(instTbody.querySelectorAll('input[type="checkbox"]:checked'));
+    }
+    function updateBulkBar(){
+      var n = selectedCheckboxes().length;
+      bulkBar.classList.toggle('on', n > 0);
+      bulkCount.textContent = n + ' selected';
+      bulkApply.disabled = !(n > 0 && bulkAction.value);
+      bulkSelectAll.checked = n > 0 && n === instTbody.querySelectorAll('input[type="checkbox"]').length;
+    }
+
+    function openInstancePopup(key){
+      var token = instGuard.start();
+      var parts = key.split('|'); var kind = parts[0], id = parts[1];
+      instCurrentKind = kind;
+      instCurrentId = id;
+      instRows = [];
+      bulkBar.classList.remove('on');
+      bulkAction.value = ''; bulkOther.value = ''; bulkOther.classList.remove('on'); bulkDate.value = '';
+
+      if(kind === 'drivers'){
+        instTitle.textContent = 'Alert history — ' + id;
+        instTheadRow.innerHTML = '<th class="chk-col"></th><th>Unit</th><th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th><th>Action</th><th>Status</th>';
+      } else {
+        instTitle.textContent = 'Alert history — ' + id;
+        instTheadRow.innerHTML = '<th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th>';
+      }
+      instSub.textContent = 'Loading…';
+      instSummary.innerHTML = '';
+      instTbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:24px 0">Loading…</td></tr>';
+      bulkBar.style.display = kind === 'drivers' ? '' : 'none';
+      instMask.classList.add('on');
+
+      var fn = kind === 'drivers' ? 'dds_driver_alert_instances' : 'dds_asset_alert_instances';
+      var params = kind === 'drivers' ? { p_emp_no: id, p_from: null, p_to: null } : { p_asset_id: id, p_from: null, p_to: null };
+      DB.rpc(fn, params).then(function(res){
+        if(!instGuard.isCurrent(token)) return;
+        if(res.error) throw res.error;
+        var data = res.data || {};
+        instRows = data.rows || [];
+        instSub.textContent = fmtNum(instRows.length) + ' alert instance(s)';
+        if(kind === 'drivers'){
+          instSummary.innerHTML =
+            '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.total || 0) + '</span></div>' +
+            '<div class="da-inst-stat"><span class="da-inst-stat-label">Status</span><span class="da-inst-stat-value">' + (data.allHighSeverityActioned ? '<span class="da-inst-status done">Done</span>' : '<span class="da-inst-status pending">Pending</span>') + '</span></div>';
+          renderInstRowsDrivers();
+        } else {
+          instSummary.innerHTML =
+            '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.total || 0) + '</span></div>' +
+            '<div class="da-inst-stat"><span class="da-inst-stat-label">Avg sync time</span><span class="da-inst-stat-value">' + esc(fmtSyncSecondsShort(data.avgSyncSeconds)) + '</span></div>';
+          renderInstRowsAssets();
+        }
+      }).catch(function(err){
+        if(!instGuard.isCurrent(token)) return;
+        console.error('Alert instance fetch failed', err);
+        instTbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+      });
+    }
+
+    function renderInstRowsDrivers(){
+      if(!instRows.length){
+        instTbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:24px 0">No alert instances found.</td></tr>';
+        return;
+      }
+      instTbody.innerHTML = instRows.map(function(r){
+        var statusHtml = r.statusValue
+          ? '<span class="da-inst-status done">Logged</span>'
+          : '<span class="da-inst-status pending">Pending</span>';
+        var actionLabel = r.actionType ? (r.actionType === 'Other' ? (r.remarks || 'Other') : r.actionType) : '—';
+        return '<tr>' +
+          '<td class="chk-col"><input type="checkbox" data-event-id="' + r.eventId + '"></td>' +
+          '<td>' + esc(r.unit || '—') + '</td>' +
+          '<td>' + esc(fmtDateTimeShort(r.startTime)) + '</td>' +
+          '<td>' + esc(fmtDateTimeShort(r.endTime)) + '</td>' +
+          '<td>' + esc(fmtDateTimeShort(r.updateTime)) + '</td>' +
+          '<td>' + esc(r.eventCode || '—') + '</td>' +
+          '<td>' + fmtNum(r.eventCount || 0) + '</td>' +
+          '<td class="da-inst-row-action">' + esc(actionLabel) + (r.actionDate ? ' <span style="color:#94a3b8">· ' + esc(r.actionDate) + '</span>' : '') + '</td>' +
+          '<td>' + statusHtml + '</td>' +
+        '</tr>';
+      }).join('');
+      updateBulkBar();
+    }
+    function renderInstRowsAssets(){
+      if(!instRows.length){
+        instTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px 0">No alert instances found.</td></tr>';
+        return;
+      }
+      instTbody.innerHTML = instRows.map(function(r){
+        return '<tr>' +
+          '<td>' + esc(fmtDateTimeShort(r.startTime)) + '</td>' +
+          '<td>' + esc(fmtDateTimeShort(r.endTime)) + '</td>' +
+          '<td>' + esc(fmtDateTimeShort(r.updateTime)) + '</td>' +
+          '<td>' + esc(r.eventCode || '—') + '</td>' +
+          '<td>' + fmtNum(r.eventCount || 0) + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function closeInstancePopup(){ instMask.classList.remove('on'); }
+    document.getElementById('da-inst-close').addEventListener('click', closeInstancePopup);
+    instMask.addEventListener('click', function(e){ if(e.target === instMask) closeInstancePopup(); });
+
+    instTbody.addEventListener('change', function(e){
+      if(e.target.matches('input[type="checkbox"]')) updateBulkBar();
+    });
+    bulkSelectAll.addEventListener('change', function(){
+      var checked = bulkSelectAll.checked;
+      instTbody.querySelectorAll('input[type="checkbox"]').forEach(function(cb){ cb.checked = checked; });
+      updateBulkBar();
+    });
+    bulkClearSel.addEventListener('click', function(){
+      instTbody.querySelectorAll('input[type="checkbox"]').forEach(function(cb){ cb.checked = false; });
+      updateBulkBar();
+    });
+    bulkAction.addEventListener('change', function(){
+      bulkOther.classList.toggle('on', bulkAction.value === 'Other');
+      updateBulkBar();
+    });
+
+    bulkApply.addEventListener('click', function(){
+      var ids = selectedCheckboxes().map(function(cb){ return Number(cb.getAttribute('data-event-id')); });
+      if(!ids.length || !bulkAction.value) return;
+      var isOther = bulkAction.value === 'Other';
+      if(isOther && !bulkOther.value.trim()){ bulkOther.focus(); return; }
+
+      bulkApply.disabled = true;
+      bulkApply.textContent = 'Applying…';
+      DB.rpc('dds_bulk_log_case_action', {
+        p_event_ids: ids,
+        p_action_type: bulkAction.value,
+        p_action_is_other: isOther,
+        p_action_date: bulkDate.value || null,
+        p_status_value: 'Logged',
+        p_remarks: isOther ? bulkOther.value.trim() : null
+      }).then(function(res){
+        if(res.error) throw res.error;
+        // Re-fetch this driver's instances so the table (and the Status
+        // summary chip) reflect the newly-logged actions, then refresh the
+        // main table row behind the popup so its Status column stays in
+        // sync without requiring the user to close and reopen.
+        return DB.rpc('dds_driver_alert_instances', { p_emp_no: instCurrentId, p_from: null, p_to: null });
+      }).then(function(res){
+        if(res && res.data){
+          instRows = res.data.rows || [];
+          instSub.textContent = fmtNum(instRows.length) + ' alert instance(s)';
+          instSummary.innerHTML =
+            '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(res.data.total || 0) + '</span></div>' +
+            '<div class="da-inst-stat"><span class="da-inst-stat-label">Status</span><span class="da-inst-stat-value">' + (res.data.allHighSeverityActioned ? '<span class="da-inst-status done">Done</span>' : '<span class="da-inst-status pending">Pending</span>') + '</span></div>';
+          renderInstRowsDrivers();
+        }
+        bulkAction.value = ''; bulkOther.value = ''; bulkOther.classList.remove('on'); bulkDate.value = '';
+        loadSummaryTable('drivers');
+      }).catch(function(err){
+        console.error('Bulk log action failed', err);
+        alert('Could not save: ' + ((err && err.message) || 'unknown error'));
+      }).finally(function(){
+        bulkApply.disabled = false;
+        bulkApply.textContent = 'Apply to selected';
+        updateBulkBar();
+      });
+    });
     // Exposed read-only surface for other modules (e.g. the Summary page) —
     // computeRisk/recommendation/esc are pure and safe to expose
     // immediately; window.__daState is set inside load() once the real
