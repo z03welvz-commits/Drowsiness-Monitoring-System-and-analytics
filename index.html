@@ -282,7 +282,7 @@
   .an-factor-detail{font-size:10.5px;color:var(--muted);padding:0 8px 9px;margin-top:-4px}
 
   /* Action Taken Summary donut (actionable vs non-actionable — the only real 2-way split the data supports) */
-  .an-donut-card{display:flex;align-items:center;gap:16px}
+  .an-donut-card{display:flex;align-items:center;justify-content:center;gap:28px}
   .an-donut-legend{display:flex;flex-direction:column;gap:8px;font-size:11px}
   .an-donut-legend span{display:flex;align-items:center;gap:7px}
   .an-donut-legend i{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
@@ -1251,10 +1251,12 @@
             <div class="kpi-sub" id="an-kpi-actions-change">—</div>
             <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-actions-spark" points="0,16 100,16" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </div>
-          <div class="kpi">
+          <div class="kpi" style="display:flex;flex-direction:column;justify-content:space-between">
             <div class="kpi-head"><span class="kpi-icon pink" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>TOP EMP_NO</div>
-            <div class="kpi-value" id="an-kpi-topemp-value" style="font-size:21px">—</div>
-            <div class="kpi-sub" id="an-kpi-topemp-change">—</div>
+            <div>
+              <div class="kpi-value" id="an-kpi-topemp-value" style="font-size:21px">—</div>
+              <div class="kpi-sub" id="an-kpi-topemp-change">—</div>
+            </div>
           </div>
         </div>
       </section>
@@ -1322,15 +1324,15 @@
           <div class="an-note"><i>i</i> <span>Associated with higher alerts — not a claim of causation.</span></div>
         </div>
 
-        <div class="card an-chart-card an-donut-card" id="anActionSummaryCard">
-          <div style="flex:1;min-width:0">
-            <div class="chart-head an-chart-head" style="border-bottom:none"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span><div class="chart-title an-chart-title">Action Taken Summary</div></div></div>
+        <div class="card an-chart-card" id="anActionSummaryCard" style="display:flex;flex-direction:column">
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span><div class="chart-title an-chart-title">Action Taken Summary</div></div></div>
+          <div class="an-donut-card" style="flex:1">
             <svg viewBox="0 0 190 190" width="150" height="150">
               <g id="an-action-arcs"></g>
               <circle cx="95" cy="95" r="34" fill="#fff"/><text x="95" y="91" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a" id="an-action-total">—</text><text x="95" y="106" text-anchor="middle" font-size="8" fill="#64748b">Total Alerts</text>
             </svg>
+            <div class="an-donut-legend" id="an-action-legend">—</div>
           </div>
-          <div class="an-donut-legend" id="an-action-legend">—</div>
         </div>
       </section>
 
