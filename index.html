@@ -97,8 +97,14 @@
   .kpi-spark svg{width:100%;height:100%}
 
   /* ---------- 2-col layout: wide left, narrower right ---------- */
-  .overview-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:14px;align-items:start}
+  /* Columns stretch to match each other's height (not align-items:start,
+     which let each column size purely to its own content) — with real,
+     variable-length data instead of the mock's fixed placeholder rows,
+     the two columns could otherwise end at very different heights and
+     look misaligned/unfinished at the bottom. */
+  .overview-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:14px;align-items:stretch}
   .left-col,.right-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .right-col{justify-content:space-between}
 
   /* chart card */
   .chart-card{padding:0 16px 14px}
@@ -160,7 +166,7 @@
   .view-all:hover{background:#edf5ff}
   .view-all:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 
-  .feed-list{display:flex;flex-direction:column;border-top:1px solid #f0f3f7}
+  .feed-list{display:flex;flex-direction:column;border-top:1px solid #f0f3f7;max-height:392px;overflow-y:auto}
   .feed-row{display:flex;align-items:flex-start;gap:11px;padding:10px 17px;border-bottom:1px solid #f4f6fa;transition:background-color .15s}
   .feed-row:hover{background:#fafbfd}
   .feed-time{width:38px;flex:0 0 auto;font-size:10px;color:#94a3b8;font-variant-numeric:tabular-nums;padding-top:2px}
@@ -189,7 +195,7 @@
   .feed-footer button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
   .feed-footer svg{width:11px;height:11px}
 
-  .action-body{padding:10px 17px 14px;display:flex;flex-direction:column;gap:2px}
+  .action-body{padding:10px 17px 14px;display:flex;flex-direction:column;gap:2px;min-height:76px;justify-content:center}
   .action-row{display:flex;align-items:flex-start;gap:11px;padding:9px 0;border-bottom:1px solid #f4f6fa}
   .action-row:last-child{border-bottom:none}
   .action-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;margin-top:5px}
@@ -599,7 +605,7 @@
   .su-trend-title-icon{width:28px;height:28px;border-radius:8px;background:#eaf1fd;display:grid;place-items:center;flex:0 0 auto}
   .su-trend-title-icon svg{width:14px;height:14px;color:#2563eb}
 
-  .su-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start;margin-top:14px}
+  .su-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:stretch;margin-top:14px}
   .su-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 
   .su-section-head{padding:15px 17px 4px;display:flex;align-items:center;gap:10px}
@@ -608,7 +614,7 @@
   .su-section-title{font-size:13.5px;font-weight:750;color:#0b1220}
   .su-section-sub{font-size:10.5px;color:var(--muted);margin-top:1px}
 
-  .su-insight-list{display:flex;flex-direction:column;padding:8px 17px 14px}
+  .su-insight-list{display:flex;flex-direction:column;padding:8px 17px 14px;max-height:392px;overflow-y:auto}
   .su-insight-row{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-top:1px solid #f4f6fa}
   .su-insight-row:first-child{border-top:none}
   .su-insight-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto;margin-top:1px}
@@ -2738,11 +2744,14 @@
       var xaxis = document.getElementById('ov-trend-xaxis');
       if(xaxis){
         xaxis.innerHTML = trend.map(function(t, i){
-          var dow = new Date(t.date.split('/')[2], t.date.split('/')[0]-1, t.date.split('/')[1])
-            .toLocaleDateString('en-US', { weekday:'short' });
+          // Date (e.g. "Aug 26"), not day-of-week — a weekday name alone
+          // doesn't say WHICH week, so two different weeks' Tuesdays were
+          // indistinguishable on this axis. Per direct instruction.
+          var dateLabel = new Date(t.date.split('/')[2], t.date.split('/')[0]-1, t.date.split('/')[1])
+            .toLocaleDateString('en-US', { month:'short', day:'numeric' });
           var isToday = i === trend.length - 1;
           return '<text x="' + xFor(i).toFixed(1) + '" y="182" class="axis" text-anchor="middle"' +
-            (isToday ? ' font-weight="700" fill="#1259b6"' : '') + '>' + esc(dow) + '</text>';
+            (isToday ? ' font-weight="700" fill="#1259b6"' : '') + '>' + esc(dateLabel) + '</text>';
         }).join('');
       }
 
