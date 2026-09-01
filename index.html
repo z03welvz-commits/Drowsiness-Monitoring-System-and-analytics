@@ -2001,6 +2001,11 @@
               <option value="Other">Other…</option>
             </select>
             <input type="text" class="da-bulk-other" id="da-drivers-bulk-other" placeholder="Describe action...">
+            <select id="da-drivers-bulk-status" aria-label="Bulk status">
+              <option value="Logged">Status: Logged</option>
+              <option value="Under Review">Status: Under Review</option>
+              <option value="Resolved">Status: Resolved</option>
+            </select>
             <input type="date" class="da-bulk-date" id="da-drivers-bulk-date" aria-label="Action date">
             <button class="da-bulk-apply" type="button" id="da-drivers-bulk-apply" disabled>Apply to selected</button>
             <button class="da-bulk-clear" type="button" id="da-drivers-bulk-clear-sel">Clear selection</button>
@@ -5953,6 +5958,7 @@
     var driversBulkCount = document.getElementById('da-drivers-bulk-count');
     var driversBulkAction = document.getElementById('da-drivers-bulk-action');
     var driversBulkOther = document.getElementById('da-drivers-bulk-other');
+    var driversBulkStatus = document.getElementById('da-drivers-bulk-status');
     var driversBulkDate = document.getElementById('da-drivers-bulk-date');
     var driversBulkApply = document.getElementById('da-drivers-bulk-apply');
     var driversBulkClearSel = document.getElementById('da-drivers-bulk-clear-sel');
@@ -6011,12 +6017,12 @@
           p_action_type: driversBulkAction.value,
           p_action_is_other: isOther,
           p_action_date: driversBulkDate.value || null,
-          p_status_value: 'Logged',
+          p_status_value: driversBulkStatus.value,
           p_remarks: isOther ? driversBulkOther.value.trim() : null
         });
       }).then(function(res){
         if(res.error) throw res.error;
-        driversBulkAction.value = ''; driversBulkOther.value = ''; driversBulkOther.classList.remove('on'); driversBulkDate.value = '';
+        driversBulkAction.value = ''; driversBulkOther.value = ''; driversBulkOther.classList.remove('on'); driversBulkDate.value = ''; driversBulkStatus.value = 'Logged';
         loadSummaryTable('drivers');
       }).catch(function(err){
         console.error('Bulk driver action failed', err);
