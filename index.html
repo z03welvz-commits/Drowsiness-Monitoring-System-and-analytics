@@ -2391,11 +2391,15 @@
           <div class="se-card-head">
             <div>
               <div class="se-card-title">Access Management</div>
-              <div class="se-card-sub">Review pending sign-ups and manage roles — new accounts are created by signing up, not from here</div>
+              <div class="se-card-sub">Review pending sign-ups, invite new users, and manage roles</div>
             </div>
           </div>
           <div class="se-users-toolbar">
             <span class="se-users-count" id="se-users-count">Loading…</span>
+            <button class="se-btn-primary" type="button" id="se-invite-btn" style="display:none;margin-left:auto">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+              Invite user
+            </button>
           </div>
           <div class="se-table-wrap">
             <table class="se-table">
@@ -2497,6 +2501,37 @@
         <div class="dm-modal-foot">
           <button class="dm-modal-cancel" type="button" id="se-role-cancel">Cancel</button>
           <button class="dm-modal-save" type="button" id="se-role-save">Save role</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings: invite-user modal (real Supabase Auth invite via invite-user Edge Function, admin-only) -->
+    <div class="se-addform-mask" id="se-invite-mask">
+      <div class="se-addform" role="dialog" aria-modal="true" aria-labelledby="se-invite-title">
+        <div class="se-addform-head">
+          <div class="se-addform-title" id="se-invite-title">Invite user</div>
+          <button class="se-addform-close" type="button" id="se-invite-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="se-addform-body">
+          <div class="se-field">
+            <label for="se-invite-email">Email address</label>
+            <input type="email" id="se-invite-email" placeholder="name@mtso-fleet.com">
+          </div>
+          <div class="se-field">
+            <label for="se-invite-role">Role</label>
+            <select id="se-invite-role">
+              <option value="oa">OA</option>
+              <option value="b2b">B2B</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="se-addform-err" id="se-invite-err">Enter a valid email address.</div>
+        </div>
+        <div class="dm-modal-foot">
+          <button class="dm-modal-cancel" type="button" id="se-invite-cancel">Cancel</button>
+          <button class="dm-modal-save" type="button" id="se-invite-save">Send invite</button>
         </div>
       </div>
     </div>
@@ -4129,6 +4164,8 @@
     function renderUsers(){
       var tbody = document.getElementById('se-users-tbody');
       var countEl = document.getElementById('se-users-count');
+      var inviteBtn = document.getElementById('se-invite-btn');
+      if(inviteBtn) inviteBtn.style.display = accessState.isAdmin ? '' : 'none';
       if(!tbody) return;
       var rows = accessState.profiles;
       if(countEl) countEl.textContent = rows.length + (rows.length === 1 ? ' user' : ' users');
@@ -4215,6 +4252,71 @@
       roleSaveBtn.addEventListener('click', function(){
         if(!roleTargetId) return;
         updateProfile(roleTargetId, { role: roleSelect.value }).then(closeRoleModal);
+      });
+    }
+
+    // ---- Access Management: invite-user modal (real email invite via the
+    // invite-user Edge Function — see supabase/functions/invite-user) ----
+    var inviteMask = document.getElementById('se-invite-mask');
+    var inviteEmailInput = document.getElementById('se-invite-email');
+    var inviteRoleSelect = document.getElementById('se-invite-role');
+    var inviteErr = document.getElementById('se-invite-err');
+    var inviteBtnEl = document.getElementById('se-invite-btn');
+    var inviteSaveBtn = document.getElementById('se-invite-save');
+
+    function openInviteModal(){
+      inviteEmailInput.value = '';
+      inviteRoleSelect.value = 'oa';
+      inviteErr.classList.remove('on');
+      inviteMask.classList.add('on');
+      inviteEmailInput.focus();
+    }
+    function closeInviteModal(){ inviteMask.classList.remove('on'); }
+
+    if(inviteBtnEl) inviteBtnEl.addEventListener('click', openInviteModal);
+    var inviteCloseBtn = document.getElementById('se-invite-close');
+    if(inviteCloseBtn) inviteCloseBtn.addEventListener('click', closeInviteModal);
+    var inviteCancelBtn = document.getElementById('se-invite-cancel');
+    if(inviteCancelBtn) inviteCancelBtn.addEventListener('click', closeInviteModal);
+    if(inviteMask) inviteMask.addEventListener('click', function(e){ if(e.target === inviteMask) closeInviteModal(); });
+
+    if(inviteSaveBtn){
+      inviteSaveBtn.addEventListener('click', function(){
+        var email = inviteEmailInput.value.trim().toLowerCase();
+        var role = inviteRoleSelect.value;
+        if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+          inviteErr.textContent = 'Enter a valid email address.';
+          inviteErr.classList.add('on');
+          return;
+        }
+        inviteErr.classList.remove('on');
+        inviteSaveBtn.disabled = true;
+        inviteSaveBtn.textContent = 'Sending…';
+
+        // Same redirectTo pattern login.html's own resetPasswordForEmail
+        // call already uses: derive from the current page's own location
+        // rather than hardcoding a deployed URL, so this works unmodified
+        // wherever the app is actually hosted. reset-password.html already
+        // handles the Supabase invite-link token exchange (same
+        // SIGNED_IN/PASSWORD_RECOVERY flow as a real password reset).
+        var redirectTo = window.location.origin +
+          window.location.pathname.replace(/[^/]*$/, '') + 'reset-password.html';
+
+        DB.functions.invoke('invite-user', { body: { email: email, role: role, redirectTo: redirectTo } })
+          .then(function(res){
+            if(res.error) throw res.error;
+            if(res.data && res.data.error) throw new Error(res.data.message || res.data.detail || res.data.error);
+            closeInviteModal();
+            loadUsers();
+          })
+          .catch(function(err){
+            inviteErr.textContent = 'Could not send invite: ' + ((err && err.message) || 'unknown error');
+            inviteErr.classList.add('on');
+          })
+          .finally(function(){
+            inviteSaveBtn.disabled = false;
+            inviteSaveBtn.textContent = 'Send invite';
+          });
       });
     }
 
