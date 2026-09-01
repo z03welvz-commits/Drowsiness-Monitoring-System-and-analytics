@@ -437,6 +437,8 @@
   .dm-dropzone.busy{border-style:solid;border-color:var(--blue);background:#fff}
   .dm-progress-track{width:100%;max-width:220px;height:7px;background:#e7eaf1;border-radius:99px;overflow:hidden;margin:4px 0}
   .dm-progress-fill{height:100%;background:var(--blue);border-radius:99px;transition:width .2s ease}
+  .dm-upload-cancel{all:unset;box-sizing:border-box;cursor:pointer;font-size:10.5px;font-weight:650;color:#c0271f;padding:4px 10px;border-radius:6px;border:1px solid #f3c9c9;margin-top:2px}
+  .dm-upload-cancel:hover{background:#fdeaea}
   .dm-drop-note.error{color:#c0271f;font-weight:600}
   .dm-drop-note.success{color:#18a05e;font-weight:600}
   .dm-drop-icon{width:48px;height:48px;border-radius:50%;background:#e9f1fd;display:grid;place-items:center;margin-bottom:8px}
@@ -1639,7 +1641,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0">View all</a></div>
+            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="dds">View all</a></div>
             <div class="dm-hist-list">
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#e53553">X</span><div class="dm-hist-body"><div class="dm-hist-name">DDS_EVENTS_20250630.xlsx</div><div class="dm-hist-meta">1,842 records · Jun 30, 11:28 AM</div></div><span class="dm-hist-status">Success</span></div>
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#e53553">X</span><div class="dm-hist-body"><div class="dm-hist-name">DDS_EVENTS_20250629.xlsx</div><div class="dm-hist-meta">1,715 records · Jun 29, 11:10 AM</div></div><span class="dm-hist-status">Success</span></div>
@@ -1696,7 +1698,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0">View all</a></div>
+            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="minestat">View all</a></div>
             <div class="dm-hist-list">
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#18a05e">X</span><div class="dm-hist-body"><div class="dm-hist-name">MIE_STAT_20250630.xlsx</div><div class="dm-hist-meta">1,842 records · Jun 30, 11:28 AM</div></div><span class="dm-hist-status">Success</span></div>
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#7c3aed">X</span><div class="dm-hist-body"><div class="dm-hist-name">POLIHON_20250630.xlsx</div><div class="dm-hist-meta">1,523 records · Jun 30, 11:15 AM</div></div><span class="dm-hist-status">Success</span></div>
@@ -1752,7 +1754,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0">View all</a></div>
+            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="masterlist">View all</a></div>
             <div class="dm-hist-list">
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#3b7cf6">X</span><div class="dm-hist-body"><div class="dm-hist-name">MASTERLIST_20250615.xlsx</div><div class="dm-hist-meta">312 records · Jun 15, 09:00 AM</div></div><span class="dm-hist-status">Success</span></div>
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#3b7cf6">X</span><div class="dm-hist-body"><div class="dm-hist-name">MASTERLIST_20250501.xlsx</div><div class="dm-hist-meta">305 records · May 1, 09:00 AM</div></div><span class="dm-hist-status">Success</span></div>
@@ -1808,7 +1810,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0">View all</a></div>
+            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="factors">View all</a></div>
             <div class="dm-hist-list">
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#d88a13">X</span><div class="dm-hist-body"><div class="dm-hist-name">FACTORS_20250630.xlsx</div><div class="dm-hist-meta">126 records · Jun 30, 11:40 AM</div></div><span class="dm-hist-status">Success</span></div>
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#d88a13">X</span><div class="dm-hist-body"><div class="dm-hist-name">FACTORS_20250623.xlsx</div><div class="dm-hist-meta">98 records · Jun 23, 11:12 AM</div></div><span class="dm-hist-status">Success</span></div>
@@ -1870,6 +1872,21 @@
           <div class="dm-modal-foot">
             <button class="dm-modal-cancel" type="button" id="dm-modal-cancel">Cancel</button>
             <button class="dm-modal-save" type="button" id="dm-modal-save">Save Record</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ UPLOAD HISTORY: "View all" modal (shared by all 4 source tabs) ============ -->
+      <div class="da-modal-mask" id="dm-history-mask">
+        <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="dm-history-title" style="max-width:640px">
+          <div class="da-modal-head">
+            <div class="da-modal-title" id="dm-history-title">Upload History</div>
+            <button class="da-modal-close" type="button" id="dm-history-close" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="da-history-card">
+            <div class="da-table-wrap" id="dm-history-body" style="padding:6px 4px"></div>
           </div>
         </div>
       </div>
@@ -4487,6 +4504,62 @@
       }).catch(function(err){ list.innerHTML = '<div style="padding:14px 2px;color:#c0271f;font-size:10.5px">' + esc(err.message || 'Could not load history.') + '</div>'; });
     }
 
+    // ==================== Upload History: "View all" modal ====================
+    // Reuses the exact query loadHistory() already runs per source-panel
+    // preview, just with a higher limit (50 instead of 2-5) and rendered
+    // into the shared dm-history-mask instead of a fixed-height sidebar
+    // list — same real `imports` data, not a separate feature.
+    var SOURCE_KIND = { dds: 'dds', minestat: 'minestat', masterlist: null, factors: null };
+    var SOURCE_LABEL = { dds: 'DDS Data', minestat: 'Minestat Data', masterlist: 'Masterlist', factors: 'Contributing Factors' };
+    var dmHistMask = document.getElementById('dm-history-mask');
+    var dmHistTitle = document.getElementById('dm-history-title');
+    var dmHistBody = document.getElementById('dm-history-body');
+
+    function openUploadHistoryModal(sourceKey){
+      var kind = SOURCE_KIND[sourceKey];
+      dmHistTitle.textContent = (SOURCE_LABEL[sourceKey] || 'Upload') + ' History';
+      dmHistMask.classList.add('on');
+
+      if(!kind){
+        dmHistBody.innerHTML = '<div class="da-empty" style="padding:30px 0">Upload history isn\'t tracked server-side for this source yet.</div>';
+        return;
+      }
+      dmHistBody.innerHTML = '<div class="da-empty" style="padding:30px 0">Loading…</div>';
+      requireSession().then(function(sess){
+        if(!sess){ dmHistBody.innerHTML = '<div class="da-empty" style="padding:30px 0">Sign in to load upload history.</div>'; return; }
+        return DB.from('imports').select('original_name, row_count, status, created_at')
+          .eq('kind', kind).order('created_at', { ascending: false }).limit(50)
+          .then(function(res){
+            if(res.error) throw res.error;
+            var rows = res.data || [];
+            if(!rows.length){
+              dmHistBody.innerHTML = '<div class="da-empty" style="padding:30px 0">No uploads yet.</div>';
+              return;
+            }
+            dmHistBody.innerHTML = '<table class="da-table"><thead><tr><th>File</th><th>Records</th><th>Status</th><th>Uploaded</th></tr></thead><tbody>' +
+              rows.map(function(r){
+                var statusLabel = r.status === 'complete' ? 'Success' : (r.status === 'failed' ? 'Failed' : 'Processing');
+                return '<tr>' +
+                  '<td>' + esc(r.original_name) + '</td>' +
+                  '<td>' + fmtNum(r.row_count) + '</td>' +
+                  '<td>' + esc(statusLabel) + '</td>' +
+                  '<td>' + esc(fmtDateShort(r.created_at)) + '</td>' +
+                '</tr>';
+              }).join('') + '</tbody></table>';
+          });
+      }).catch(function(err){
+        dmHistBody.innerHTML = '<div class="da-empty" style="padding:30px 0;color:#c0271f">' + esc((err && err.message) || 'Could not load history.') + '</div>';
+      });
+    }
+    document.querySelectorAll('[data-dm-viewall]').forEach(function(link){
+      link.addEventListener('click', function(){ openUploadHistoryModal(link.getAttribute('data-dm-viewall')); });
+      link.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openUploadHistoryModal(link.getAttribute('data-dm-viewall')); }
+      });
+    });
+    document.getElementById('dm-history-close').addEventListener('click', function(){ dmHistMask.classList.remove('on'); });
+    dmHistMask.addEventListener('click', function(e){ if(e.target === dmHistMask) dmHistMask.classList.remove('on'); });
+
     var LOADERS = { dds: loadDds, minestat: loadMinestat, masterlist: loadMasterlist, factors: loadFactors };
     var loaded = {};
     function ensureLoaded(key){
@@ -4717,6 +4790,16 @@
       if(orEl) orEl.style.display = cls === 'busy' ? 'none' : '';
       if(chooseBtn) chooseBtn.disabled = cls === 'busy';
     }
+    // Cancel tokens: one per source-kind's in-flight upload. dds_ingest()
+    // calls are sequential (the batches.reduce() chain below), so
+    // cancelling doesn't need to abort an in-flight network request —
+    // just flip token.cancelled and the loop stops before starting the
+    // next batch. Rows already ingested in prior batches stay in the
+    // database (dds_ingest() has already committed them); the import
+    // row's real row_count reflects exactly what landed, same honesty
+    // the error path already has.
+    var uploadTokens = {};
+
     function setDropzoneProgress(kind, doneCount, totalCount){
       var zone = document.getElementById('dm-dropzone-' + kind);
       if(!zone) return;
@@ -4736,6 +4819,22 @@
       var track = zone && zone.querySelector('.dm-progress-track');
       if(track) track.remove();
     }
+    function showCancelButton(kind, onCancel){
+      var zone = document.getElementById('dm-dropzone-' + kind);
+      if(!zone || zone.querySelector('.dm-upload-cancel')) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dm-upload-cancel';
+      btn.textContent = 'Cancel upload';
+      btn.addEventListener('click', onCancel);
+      var note = document.getElementById('dm-drop-note-' + kind);
+      zone.insertBefore(btn, note);
+    }
+    function hideCancelButton(kind){
+      var zone = document.getElementById('dm-dropzone-' + kind);
+      var btn = zone && zone.querySelector('.dm-upload-cancel');
+      if(btn) btn.remove();
+    }
 
     function ingestDdsFile(file){
       var kind = 'dds';
@@ -4744,16 +4843,21 @@
         setDropzoneStatus(kind, '"' + file.name + '" is over the 50 MB limit.', 'error');
         return;
       }
+      var token = { cancelled: false };
+      uploadTokens[kind] = token;
       zone.classList.add('busy');
       setDropzoneStatus(kind, 'Reading ' + file.name + '…', 'busy');
+      showCancelButton(kind, function(){ token.cancelled = true; });
 
       var reader = new FileReader();
       reader.onerror = function(){
         zone.classList.remove('busy');
+        hideCancelButton(kind);
         setDropzoneStatus(kind, 'Could not read "' + file.name + '".', 'error');
       };
       reader.onload = function(){
         var importId = null;
+        var wasCancelled = false;
         Promise.resolve().then(function(){
           var rawRows = parseWorkbookRows(reader.result, file.name);
           var rows = rawRows.map(workbookRowToIngestRow).filter(Boolean);
@@ -4768,6 +4872,7 @@
             var inserted = 0;
             return batches.reduce(function(p, batch){
               return p.then(function(){
+                if(token.cancelled){ wasCancelled = true; return; }
                 return DB.rpc('dds_ingest', { p_import_id: importId, p_rows: batch }).then(function(r){
                   if(r.error) throw r.error;
                   inserted += batch.length;
@@ -4776,23 +4881,30 @@
                 });
               });
             }, Promise.resolve()).then(function(){
-              return DB.rpc('dds_complete_import', { p_import_id: importId });
-            }).then(function(){
-              return { rows: rows.length, skipped: skipped };
+              if(wasCancelled) return { rows: inserted, skipped: skipped, cancelled: true };
+              return DB.rpc('dds_complete_import', { p_import_id: importId }).then(function(){
+                return { rows: rows.length, skipped: skipped, cancelled: false };
+              });
             });
           });
         }).then(function(summary){
           zone.classList.remove('busy');
           clearDropzoneProgress(kind);
-          var msg = 'Imported ' + fmtNum(summary.rows) + ' row(s) from "' + file.name + '".' +
-            (summary.skipped ? ' ' + fmtNum(summary.skipped) + ' row(s) skipped (missing required fields).' : '');
-          setDropzoneStatus(kind, msg, 'success');
+          hideCancelButton(kind);
+          if(summary.cancelled){
+            setDropzoneStatus(kind, 'Upload cancelled — ' + fmtNum(summary.rows) + ' row(s) already saved from "' + file.name + '".', 'error');
+          } else {
+            var msg = 'Imported ' + fmtNum(summary.rows) + ' row(s) from "' + file.name + '".' +
+              (summary.skipped ? ' ' + fmtNum(summary.skipped) + ' row(s) skipped (missing required fields).' : '');
+            setDropzoneStatus(kind, msg, 'success');
+          }
           loaded[kind] = false;
           ensureLoaded(kind);
           loadHistory('dds', 'dds', '#dm-source-dds .dm-hist-list', 3);
         }).catch(function(err){
           zone.classList.remove('busy');
           clearDropzoneProgress(kind);
+          hideCancelButton(kind);
           // A partially-completed import (imports row created, some
           // dds_ingest() batches may have landed) is left as status
           // 'processing' rather than force-completed — its real row_count
