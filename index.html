@@ -1920,6 +1920,37 @@
         </div>
       </div>
 
+      <!-- ============ PRE-FLIGHT: duplicate/inconsistency review before upload ============ -->
+      <div class="dm-modal-mask" id="dm-preflight-mask">
+        <div class="dm-modal" role="dialog" aria-modal="true" aria-labelledby="dm-preflight-title" style="max-width:460px">
+          <div class="dm-modal-head">
+            <div><div class="dm-modal-title" id="dm-preflight-title">Review before uploading</div><div class="dm-modal-sub">Checked against this file and what's already saved</div></div>
+          </div>
+          <div class="dm-modal-body" style="display:block" id="dm-preflight-body"></div>
+          <div class="dm-modal-foot">
+            <button class="dm-modal-cancel" type="button" id="dm-preflight-cancel">Cancel</button>
+            <button class="dm-modal-save" type="button" id="dm-preflight-confirm">Upload</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ BLOCKING UPLOAD PROGRESS (Cancel / Retry only) ============ -->
+      <div class="dm-modal-mask" id="dm-upload-mask">
+        <div class="dm-modal" role="dialog" aria-modal="true" aria-labelledby="dm-upload-title" style="max-width:400px">
+          <div class="dm-modal-head">
+            <div><div class="dm-modal-title" id="dm-upload-title">Uploading…</div><div class="dm-modal-sub">Please don't close this tab</div></div>
+          </div>
+          <div class="dm-modal-body" style="display:block">
+            <div class="dm-progress-track" style="max-width:none"><div class="dm-progress-fill" id="dm-upload-progress-fill" style="width:0%"></div></div>
+            <div id="dm-upload-status-text" style="margin-top:10px;font-size:12px;color:var(--text-dim)">Starting…</div>
+          </div>
+          <div class="dm-modal-foot">
+            <button class="dm-modal-cancel" type="button" id="dm-upload-cancel-btn">Cancel</button>
+            <button class="dm-modal-save" type="button" id="dm-upload-retry-btn" style="display:none">Retry</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ============ UPLOAD HISTORY: "View all" modal (shared by all 4 source tabs) ============ -->
       <div class="da-modal-mask" id="dm-history-mask">
         <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="dm-history-title" style="max-width:640px">
@@ -5243,6 +5274,286 @@
       return out;
     }
 
+    // ==================== Pre-upload duplicate/inconsistency check ====================
+    // Purely a client-side UX layer: catches the obvious cases (a file with
+    // itself-duplicate rows, or rows that already exist from a prior upload)
+    // BEFORE any network call, so the user finds out in milliseconds instead
+    // of after a full upload round-trip. The database is still the real
+    // authority — dds_ingest()/dds_minestat_ingest()/dds_upsert_drivers()
+    // enforce the same rules server-side regardless of what runs here (RLS +
+    // these functions are this app's only real backend, since the browser
+    // talks to Supabase directly with no application server in between).
+    function ddsRowKey(r){
+      return r.ASSET_ID + '|' + new Date(r.START_TIME).getTime() + '|' + r.EVENT_CODE;
+    }
+    // Client-side approximation of dds_norm_name() — good enough to flag a
+    // likely-duplicate operator in this preview. migrations/0043's
+    // dds_minestat_operator_key() in the database is the real, authoritative
+    // rule for what actually gets collapsed on ingest; this never needs to
+    // match it byte-for-byte.
+    // Combining diacritical marks range (U+0300-U+036F), built via
+    // fromCharCode rather than a literal in the regex source so the range
+    // can't be silently mis-copied as the wrong invisible characters.
+    var DIACRITIC_RE = new RegExp('[' + String.fromCharCode(0x0300) + '-' + String.fromCharCode(0x036f) + ']', 'g');
+    function clientNormName(s){
+      if(!s) return '';
+      return String(s).normalize('NFD').replace(DIACRITIC_RE, '')
+        .toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+    function clientOperatorKey(last, first, middle){
+      var l = String(last || '').trim().toUpperCase();
+      var f = String(first || '').trim().toUpperCase();
+      var m = String(middle || '').trim().toUpperCase();
+      if(l === 'NO OPERATOR' && f === 'EQUIPMENT DOWN' && m === 'OR STANDBY') return '__no_operator__';
+      return clientNormName((last || '') + ' ' + (first || '') + ' ' + (middle || ''));
+    }
+    function minestatRowKey(r){
+      return r.UNIT + '|' + r.SHIFT_DATE + '|' + r.SHIFT + '|' + clientOperatorKey(r.LAST_NAME, r.FIRST_NAME, r.MIDDLE_NAME);
+    }
+    function masterlistRowKey(r){ return r.emp_no; }
+    // Contributing Factors has no dedup key server-side at all (every insert
+    // is a new log entry, by design — see 0003_contributing_factors.sql) —
+    // this key is only used to flag rows that look like an accidental exact
+    // copy within the same file; it never causes a row to be dropped.
+    function factorRowKey(r){ return r.factor_type + '|' + r.detail + '|' + r.start_time + '|' + (r.notes || ''); }
+
+    function groupByKey(rows, keyFn){
+      var groups = new Map();
+      rows.forEach(function(r){
+        var k = keyFn(r);
+        if(!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(r);
+      });
+      return groups;
+    }
+    // keepFirst matches DDS's own `on conflict ... do nothing` (uq_events_natural,
+    // 0001_init.sql) — a repeat of an existing key is dropped, not merged, so
+    // the FIRST occurrence in the file is the one that "wins" a re-upload.
+    // Minestat/Masterlist instead upsert ("do update"), so the LAST occurrence
+    // in the file is the one whose values actually land — same rule
+    // migration 0043 and dds_upsert_drivers() (0018) already apply server-side.
+    function collapseDuplicates(rows, keyFn, keepFirst){
+      var groups = groupByKey(rows, keyFn);
+      var clean = [];
+      groups.forEach(function(group){
+        clean.push(keepFirst ? group[0] : group[group.length - 1]);
+      });
+      return { clean: clean, removedCount: rows.length - clean.length };
+    }
+
+    function fetchExistingDdsKeys(rows){
+      if(!rows.length) return Promise.resolve(new Set());
+      var times = rows.map(function(r){ return new Date(r.START_TIME).getTime(); });
+      var minT = new Date(Math.min.apply(null, times)).toISOString();
+      var maxT = new Date(Math.max.apply(null, times)).toISOString();
+      return DB.from('events').select('asset_id,start_time,event_code')
+        .gte('start_time', minT).lte('start_time', maxT)
+        .then(function(res){
+          var set = new Set();
+          (res.data || []).forEach(function(r){
+            set.add(r.asset_id + '|' + new Date(r.start_time).getTime() + '|' + r.event_code);
+          });
+          return set;
+        }).catch(function(){ return new Set(); });
+    }
+    function fetchExistingMinestatKeys(rows){
+      if(!rows.length) return Promise.resolve(new Set());
+      var dates = rows.map(function(r){ return r.SHIFT_DATE; }).sort();
+      return DB.from('minestat_shifts').select('asset_id,shift_date,shift,last_name,first_name,middle_name')
+        .gte('shift_date', dates[0]).lte('shift_date', dates[dates.length - 1])
+        .then(function(res){
+          var set = new Set();
+          (res.data || []).forEach(function(r){
+            set.add(r.asset_id + '|' + r.shift_date + '|' + r.shift + '|' + clientOperatorKey(r.last_name, r.first_name, r.middle_name));
+          });
+          return set;
+        }).catch(function(){ return new Set(); });
+    }
+    function fetchExistingMasterlistKeys(rows){
+      var empNos = rows.map(function(r){ return r.emp_no; });
+      if(!empNos.length) return Promise.resolve(new Set());
+      return DB.from('drivers').select('emp_no').in('emp_no', empNos)
+        .then(function(res){
+          var set = new Set();
+          (res.data || []).forEach(function(r){ set.add(r.emp_no); });
+          return set;
+        }).catch(function(){ return new Set(); });
+    }
+
+    var preflightMask = document.getElementById('dm-preflight-mask');
+    var preflightBody = document.getElementById('dm-preflight-body');
+    var preflightCancelBtn = document.getElementById('dm-preflight-cancel');
+    var preflightConfirmBtn = document.getElementById('dm-preflight-confirm');
+
+    function showPreflightModal(stats, callback){
+      var lines = [];
+      lines.push('<div style="margin-bottom:10px">' + fmtNum(stats.rawCount) + ' row(s) read from the file.</div>');
+      if(stats.skippedCount) lines.push('<div style="margin-bottom:8px;color:var(--text-dim)">' + fmtNum(stats.skippedCount) + ' row(s) skipped — missing required fields.</div>');
+      if(stats.invalidCount) lines.push('<div style="margin-bottom:8px;color:var(--text-dim)">' + fmtNum(stats.invalidCount) + ' row(s) skipped — invalid value (e.g. Shift isn\'t Day/Night).</div>');
+      if(stats.dupCount) lines.push('<div style="margin-bottom:8px;color:#e8952e">' + fmtNum(stats.dupCount) + ' duplicate row(s) within this file — only the ' + (stats.keepFirst ? 'first' : 'last') + ' occurrence will be kept.</div>');
+      if(stats.existingCount) lines.push('<div style="margin-bottom:8px;color:#3b7cf6">' + fmtNum(stats.existingCount) + ' row(s) already exist in the database — they will be updated in place.</div>');
+      if(!stats.skippedCount && !stats.invalidCount && !stats.dupCount && !stats.existingCount){
+        lines.push('<div style="color:var(--muted)">No duplicates or issues found.</div>');
+      }
+      preflightBody.innerHTML = lines.join('');
+      preflightConfirmBtn.textContent = 'Upload ' + fmtNum(stats.finalCount) + ' Row' + (stats.finalCount === 1 ? '' : 's');
+      preflightMask.classList.add('on');
+
+      function cleanup(){
+        preflightMask.classList.remove('on');
+        preflightConfirmBtn.removeEventListener('click', onConfirm);
+        preflightCancelBtn.removeEventListener('click', onCancel);
+      }
+      function onConfirm(){ cleanup(); callback(true); }
+      function onCancel(){ cleanup(); callback(false); }
+      preflightConfirmBtn.addEventListener('click', onConfirm);
+      preflightCancelBtn.addEventListener('click', onCancel);
+    }
+
+    // opts: { rows, rawCount, skippedCount, keyFn, keepFirst, dedupe, isInvalid, fetchExisting }
+    // Resolves { proceed:false } on Cancel, or { proceed:true, rows: cleanRows }
+    // on confirm — cleanRows is what actually gets uploaded (post-dedupe,
+    // post-invalid-filter), so the count shown is exactly what lands.
+    function runPreflight(opts){
+      var validRows = opts.rows;
+      var invalidCount = 0;
+      if(opts.isInvalid){
+        var kept = [];
+        validRows.forEach(function(r){ if(opts.isInvalid(r)) invalidCount++; else kept.push(r); });
+        validRows = kept;
+      }
+
+      var cleanRows = validRows, dupCount = 0;
+      if(opts.keyFn && opts.dedupe !== false){
+        var collapsed = collapseDuplicates(validRows, opts.keyFn, !!opts.keepFirst);
+        cleanRows = collapsed.clean;
+        dupCount = collapsed.removedCount;
+      } else if(opts.keyFn){
+        // Informational only (Contributing Factors has no real dedup key
+        // server-side — every row is a new log entry by design) — count
+        // repeats but never remove a row the user may have meant to keep.
+        var seen = new Set();
+        validRows.forEach(function(r){
+          var k = opts.keyFn(r);
+          if(seen.has(k)) dupCount++; else seen.add(k);
+        });
+      }
+
+      var existingPromise = (opts.fetchExisting && cleanRows.length)
+        ? opts.fetchExisting(cleanRows)
+        : Promise.resolve(new Set());
+
+      return existingPromise.then(function(existingSet){
+        var existingCount = (opts.keyFn && existingSet.size)
+          ? cleanRows.filter(function(r){ return existingSet.has(opts.keyFn(r)); }).length
+          : 0;
+        return new Promise(function(resolve){
+          showPreflightModal({
+            rawCount: opts.rawCount, skippedCount: opts.skippedCount,
+            dupCount: dupCount, invalidCount: invalidCount,
+            existingCount: existingCount, finalCount: cleanRows.length,
+            keepFirst: !!opts.keepFirst
+          }, function(proceed){
+            resolve(proceed ? { proceed: true, rows: cleanRows } : { proceed: false });
+          });
+        });
+      });
+    }
+
+    // ==================== Blocking upload modal (Cancel / Retry only) ====================
+    var uploadMask = document.getElementById('dm-upload-mask');
+    var uploadTitleEl = document.getElementById('dm-upload-title');
+    var uploadStatusEl = document.getElementById('dm-upload-status-text');
+    var uploadProgressFill = document.getElementById('dm-upload-progress-fill');
+    var uploadCancelBtn = document.getElementById('dm-upload-cancel-btn');
+    var uploadRetryBtn = document.getElementById('dm-upload-retry-btn');
+
+    function openUploadModal(label){
+      uploadTitleEl.textContent = 'Uploading ' + label + '…';
+      uploadStatusEl.textContent = 'Starting…';
+      uploadProgressFill.style.width = '0%';
+      uploadRetryBtn.style.display = 'none';
+      uploadMask.classList.add('on');
+    }
+    function closeUploadModal(){
+      uploadMask.classList.remove('on');
+    }
+    function setUploadProgress(text, doneCount, totalCount){
+      uploadStatusEl.textContent = text;
+      var pct = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
+      uploadProgressFill.style.width = pct + '%';
+    }
+
+    var BATCH_TIMEOUT_MS = 30000;
+    function withTimeout(promise, ms){
+      return new Promise(function(resolve, reject){
+        var timer = setTimeout(function(){ reject(new Error('TIMEOUT')); }, ms);
+        promise.then(function(v){ clearTimeout(timer); resolve(v); }, function(e){ clearTimeout(timer); reject(e); });
+      });
+    }
+    // A real RPC/data rejection carries Supabase's structured Postgres error
+    // shape (.code/.details) and should still fail loudly, same as today.
+    // A dropped connection or our own 30s timeout has neither — that's what
+    // makes it worth offering Retry instead of aborting the whole import.
+    function isRetryableError(err){
+      if(!err) return false;
+      if(err.message === 'TIMEOUT') return true;
+      if(typeof TypeError !== 'undefined' && err instanceof TypeError) return true;
+      if(!err.code && !err.details && /network|fetch|timeout/i.test(err.message || '')) return true;
+      return false;
+    }
+    function showUploadRetryPrompt(){
+      uploadStatusEl.textContent = 'Connection issue — retry?';
+      uploadRetryBtn.style.display = '';
+      return new Promise(function(resolve){
+        function cleanup(){
+          uploadRetryBtn.style.display = 'none';
+          uploadRetryBtn.removeEventListener('click', onRetry);
+          uploadCancelBtn.removeEventListener('click', onCancelExtra);
+        }
+        function onRetry(){ cleanup(); resolve('retry'); }
+        function onCancelExtra(){ cleanup(); resolve('cancel'); }
+        uploadRetryBtn.addEventListener('click', onRetry);
+        // The modal's own Cancel button already flips uploadTokens[kind]
+        // (wired once per kind below); this extra listener only resolves
+        // the retry-wait promise so a cancel during a "retry?" prompt
+        // doesn't leave step() waiting forever.
+        uploadCancelBtn.addEventListener('click', onCancelExtra);
+      });
+    }
+    // Runs `batches` through sendBatchFn sequentially. sendBatchFn(batch)
+    // resolves { count } (rows to add to the progress total). A retryable
+    // failure pauses and waits for the user's Retry/Cancel choice, resuming
+    // the SAME batch on retry — batches already sent are already committed
+    // in the database (dds_ingest()/etc. commit per call), so nothing already
+    // landed is ever re-sent or lost. A non-retryable error (a real
+    // validation/data rejection) still propagates immediately, unchanged
+    // from today's behavior.
+    function runBatchesWithRetry(kind, batches, sendBatchFn, totalRows, progressLabel){
+      var inserted = 0;
+      function step(i){
+        if(i >= batches.length) return Promise.resolve({ inserted: inserted, cancelled: false });
+        var token = uploadTokens[kind];
+        if(token && token.cancelled) return Promise.resolve({ inserted: inserted, cancelled: true });
+        return withTimeout(sendBatchFn(batches[i]), BATCH_TIMEOUT_MS).then(function(res){
+          inserted += (res && res.count) || 0;
+          setUploadProgress(progressLabel(inserted, totalRows), inserted, totalRows);
+          return step(i + 1);
+        }).catch(function(err){
+          if(!isRetryableError(err)) throw err;
+          return showUploadRetryPrompt().then(function(choice){
+            if(choice === 'cancel'){
+              if(token) token.cancelled = true;
+              return { inserted: inserted, cancelled: true };
+            }
+            uploadRetryBtn.style.display = 'none';
+            return step(i);
+          });
+        });
+      }
+      return step(0);
+    }
+
     function setDropzoneStatus(kind, text, cls){
       var note = document.getElementById('dm-drop-note-' + kind);
       var title = document.getElementById('dm-drop-title-' + kind);
@@ -5254,8 +5565,8 @@
       if(chooseBtn) chooseBtn.disabled = cls === 'busy';
     }
     // Cancel tokens: one per source-kind's in-flight upload. dds_ingest()
-    // calls are sequential (the batches.reduce() chain below), so
-    // cancelling doesn't need to abort an in-flight network request —
+    // calls are sequential (runBatchesWithRetry()'s step() recursion below),
+    // so cancelling doesn't need to abort an in-flight network request —
     // just flip token.cancelled and the loop stops before starting the
     // next batch. Rows already ingested in prior batches stay in the
     // database (dds_ingest() has already committed them); the import
@@ -5263,25 +5574,6 @@
     // the error path already has.
     var uploadTokens = {};
 
-    function setDropzoneProgress(kind, doneCount, totalCount){
-      var zone = document.getElementById('dm-dropzone-' + kind);
-      if(!zone) return;
-      var track = zone.querySelector('.dm-progress-track');
-      if(!track){
-        track = document.createElement('div');
-        track.className = 'dm-progress-track';
-        track.innerHTML = '<div class="dm-progress-fill" style="width:0%"></div>';
-        var note = document.getElementById('dm-drop-note-' + kind);
-        zone.insertBefore(track, note);
-      }
-      var pct = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
-      track.querySelector('.dm-progress-fill').style.width = pct + '%';
-    }
-    function clearDropzoneProgress(kind){
-      var zone = document.getElementById('dm-dropzone-' + kind);
-      var track = zone && zone.querySelector('.dm-progress-track');
-      if(track) track.remove();
-    }
     function showCancelButton(kind, onCancel){
       var zone = document.getElementById('dm-dropzone-' + kind);
       if(!zone || zone.querySelector('.dm-upload-cancel')) return;
@@ -5320,40 +5612,50 @@
       };
       reader.onload = function(){
         var importId = null;
-        var wasCancelled = false;
+        var rows, skipped;
         Promise.resolve().then(function(){
           var rawRows = parseWorkbookRows(reader.result, file.name);
-          var rows = rawRows.map(workbookRowToIngestRow).filter(Boolean);
-          var skipped = rawRows.length - rows.length;
+          rows = rawRows.map(workbookRowToIngestRow).filter(Boolean);
+          skipped = rawRows.length - rows.length;
           if(!rows.length) throw new Error('No valid rows found — check START_TIME/UPDATE_TIME/ASSET_ID/EVENT_CODE/EVENT_COUNT in "' + file.name + '".');
+
+          hideCancelButton(kind);
+          return runPreflight({
+            rows: rows, rawCount: rawRows.length, skippedCount: skipped,
+            keyFn: ddsRowKey, keepFirst: true,
+            fetchExisting: fetchExistingDdsKeys
+          });
+        }).then(function(pf){
+          if(!pf.proceed){
+            zone.classList.remove('busy');
+            setDropzoneStatus(kind, 'Upload cancelled.', '');
+            return null;
+          }
+          rows = pf.rows;
+          openUploadModal(file.name);
+          uploadCancelBtn.onclick = function(){ token.cancelled = true; };
 
           return insertImportRow(kind, file.name).then(function(res){
             if(res.error) throw res.error;
             importId = res.data.id;
             var batches = chunk(rows, DDS_INGEST_CHUNK);
-            setDropzoneStatus(kind, 'Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 'busy');
-            var inserted = 0;
-            return batches.reduce(function(p, batch){
-              return p.then(function(){
-                if(token.cancelled){ wasCancelled = true; return; }
-                return DB.rpc('dds_ingest', { p_import_id: importId, p_rows: batch }).then(function(r){
-                  if(r.error) throw r.error;
-                  inserted += batch.length;
-                  setDropzoneProgress(kind, inserted, rows.length);
-                  setDropzoneStatus(kind, 'Uploading ' + fmtNum(inserted) + ' of ' + fmtNum(rows.length) + ' rows…', 'busy');
-                });
+            setUploadProgress('Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 0, rows.length);
+            return runBatchesWithRetry(kind, batches, function(batch){
+              return DB.rpc('dds_ingest', { p_import_id: importId, p_rows: batch }).then(function(r){
+                if(r.error) throw r.error;
+                return { count: batch.length };
               });
-            }, Promise.resolve()).then(function(){
-              if(wasCancelled) return { rows: inserted, skipped: skipped, cancelled: true };
-              return DB.rpc('dds_complete_import', { p_import_id: importId }).then(function(){
-                return { rows: rows.length, skipped: skipped, cancelled: false };
-              });
+            }, rows.length, function(done, total){ return 'Uploading ' + fmtNum(done) + ' of ' + fmtNum(total) + ' rows…'; });
+          }).then(function(result){
+            if(result.cancelled) return { rows: result.inserted, skipped: skipped, cancelled: true };
+            return DB.rpc('dds_complete_import', { p_import_id: importId }).then(function(){
+              return { rows: result.inserted, skipped: skipped, cancelled: false };
             });
           });
         }).then(function(summary){
+          if(!summary) return; // pre-flight was cancelled — already handled above
+          closeUploadModal();
           zone.classList.remove('busy');
-          clearDropzoneProgress(kind);
-          hideCancelButton(kind);
           if(summary.cancelled){
             setDropzoneStatus(kind, 'Upload cancelled — ' + fmtNum(summary.rows) + ' row(s) already saved from "' + file.name + '".', 'error');
           } else {
@@ -5365,8 +5667,8 @@
           ensureLoaded(kind);
           loadHistory('dds', 'dds', '#dm-source-dds .dm-hist-list', 3);
         }).catch(function(err){
+          closeUploadModal();
           zone.classList.remove('busy');
-          clearDropzoneProgress(kind);
           hideCancelButton(kind);
           // A partially-completed import (imports row created, some
           // dds_ingest() batches may have landed) is left as status
@@ -5410,40 +5712,55 @@
       };
       reader.onload = function(){
         var importId = null;
-        var wasCancelled = false;
+        var rows, skipped;
         Promise.resolve().then(function(){
           var rawRows = parseWorkbookRows(reader.result, file.name, []);
-          var rows = rawRows.map(workbookRowToMinestatRow).filter(Boolean);
-          var skipped = rawRows.length - rows.length;
+          rows = rawRows.map(workbookRowToMinestatRow).filter(Boolean);
+          skipped = rawRows.length - rows.length;
           if(!rows.length) throw new Error('No valid rows found — check Unit/Asset, Date, and Shift columns in "' + file.name + '".');
+
+          hideCancelButton(kind);
+          return runPreflight({
+            rows: rows, rawCount: rawRows.length, skippedCount: skipped,
+            // minestat_shifts' shift check constraint (0024_minestat.sql)
+            // only accepts DAY/NIGHT — anything else would fail the whole
+            // batch server-side; caught here as an early, friendly skip
+            // instead of a raw Postgres constraint error.
+            isInvalid: function(r){ return r.SHIFT !== 'DAY' && r.SHIFT !== 'NIGHT'; },
+            keyFn: minestatRowKey, keepFirst: false,
+            fetchExisting: fetchExistingMinestatKeys
+          });
+        }).then(function(pf){
+          if(!pf.proceed){
+            zone.classList.remove('busy');
+            setDropzoneStatus(kind, 'Upload cancelled.', '');
+            return null;
+          }
+          rows = pf.rows;
+          openUploadModal(file.name);
+          uploadCancelBtn.onclick = function(){ token.cancelled = true; };
 
           return insertImportRow(kind, file.name).then(function(res){
             if(res.error) throw res.error;
             importId = res.data.id;
             var batches = chunk(rows, DDS_INGEST_CHUNK);
-            setDropzoneStatus(kind, 'Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 'busy');
-            var inserted = 0;
-            return batches.reduce(function(p, batch){
-              return p.then(function(){
-                if(token.cancelled){ wasCancelled = true; return; }
-                return DB.rpc('dds_minestat_ingest', { p_import_id: importId, p_rows: batch }).then(function(r){
-                  if(r.error) throw r.error;
-                  inserted += batch.length;
-                  setDropzoneProgress(kind, inserted, rows.length);
-                  setDropzoneStatus(kind, 'Uploading ' + fmtNum(inserted) + ' of ' + fmtNum(rows.length) + ' rows…', 'busy');
-                });
+            setUploadProgress('Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 0, rows.length);
+            return runBatchesWithRetry(kind, batches, function(batch){
+              return DB.rpc('dds_minestat_ingest', { p_import_id: importId, p_rows: batch }).then(function(r){
+                if(r.error) throw r.error;
+                return { count: batch.length };
               });
-            }, Promise.resolve()).then(function(){
-              if(wasCancelled) return { rows: inserted, skipped: skipped, cancelled: true };
-              return DB.rpc('dds_complete_import', { p_import_id: importId }).then(function(){
-                return { rows: rows.length, skipped: skipped, cancelled: false };
-              });
+            }, rows.length, function(done, total){ return 'Uploading ' + fmtNum(done) + ' of ' + fmtNum(total) + ' rows…'; });
+          }).then(function(result){
+            if(result.cancelled) return { rows: result.inserted, skipped: skipped, cancelled: true };
+            return DB.rpc('dds_complete_import', { p_import_id: importId }).then(function(){
+              return { rows: result.inserted, skipped: skipped, cancelled: false };
             });
           });
         }).then(function(summary){
+          if(!summary) return;
+          closeUploadModal();
           zone.classList.remove('busy');
-          clearDropzoneProgress(kind);
-          hideCancelButton(kind);
           if(summary.cancelled){
             setDropzoneStatus(kind, 'Upload cancelled — ' + fmtNum(summary.rows) + ' row(s) already saved from "' + file.name + '".', 'error');
           } else {
@@ -5455,8 +5772,8 @@
           ensureLoaded(kind);
           loadHistory('minestat', 'minestat', '#dm-source-minestat .dm-hist-list', 5);
         }).catch(function(err){
+          closeUploadModal();
           zone.classList.remove('busy');
-          clearDropzoneProgress(kind);
           hideCancelButton(kind);
           console.error('Minestat file import failed', err, 'importId:', importId);
           setDropzoneStatus(kind, 'Import failed: ' + esc((err && err.message) || 'unknown error'), 'error');
@@ -5486,41 +5803,55 @@
         setDropzoneStatus(kind, 'Could not read "' + file.name + '".', 'error');
       };
       reader.onload = function(){
-        var wasCancelled = false;
+        var rows, skipped;
         Promise.resolve().then(function(){
           var rawRows = parseWorkbookRows(reader.result, file.name, []);
-          var rows = rawRows.map(workbookRowToMasterlistRow).filter(Boolean);
-          var skipped = rawRows.length - rows.length;
+          rows = rawRows.map(workbookRowToMasterlistRow).filter(Boolean);
+          skipped = rawRows.length - rows.length;
           if(!rows.length) throw new Error('No valid rows found — check Employee ID/Name columns in "' + file.name + '".');
 
+          hideCancelButton(kind);
+          return runPreflight({
+            rows: rows, rawCount: rawRows.length, skippedCount: skipped,
+            keyFn: masterlistRowKey, keepFirst: false,
+            fetchExisting: fetchExistingMasterlistKeys
+          });
+        }).then(function(pf){
+          if(!pf.proceed){
+            zone.classList.remove('busy');
+            setDropzoneStatus(kind, 'Upload cancelled.', '');
+            return null;
+          }
+          rows = pf.rows;
           return requireSession().then(function(sess){
             if(!sess) throw new Error('Sign in required to upload records.');
+            openUploadModal(file.name);
+            uploadCancelBtn.onclick = function(){ token.cancelled = true; };
+
             var batches = chunk(rows, DDS_INGEST_CHUNK);
-            setDropzoneStatus(kind, 'Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 'busy');
+            setUploadProgress('Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 0, rows.length);
             var inserted = 0, updated = 0;
             // p_deactivate is always false for a file upload: a partial or
             // supplementary roster should never silently retire everyone it
             // omits (same reasoning dds_upsert_drivers()'s own comment gives
             // for that parameter), matching the manual Add Record path above.
-            return batches.reduce(function(p, batch){
-              return p.then(function(){
-                if(token.cancelled){ wasCancelled = true; return; }
-                return DB.rpc('dds_upsert_drivers', { p_rows: batch, p_deactivate: false }).then(function(r){
-                  if(r.error) throw r.error;
-                  inserted += (r.data && r.data.inserted) || 0;
-                  updated += (r.data && r.data.updated) || 0;
-                  setDropzoneProgress(kind, inserted + updated, rows.length);
-                  setDropzoneStatus(kind, 'Uploading ' + fmtNum(inserted + updated) + ' of ' + fmtNum(rows.length) + ' rows…', 'busy');
-                });
+            return runBatchesWithRetry(kind, batches, function(batch){
+              return DB.rpc('dds_upsert_drivers', { p_rows: batch, p_deactivate: false }).then(function(r){
+                if(r.error) throw r.error;
+                var batchInserted = (r.data && r.data.inserted) || 0;
+                var batchUpdated = (r.data && r.data.updated) || 0;
+                inserted += batchInserted;
+                updated += batchUpdated;
+                return { count: batchInserted + batchUpdated };
               });
-            }, Promise.resolve()).then(function(){
-              return { inserted: inserted, updated: updated, skipped: skipped, cancelled: wasCancelled };
+            }, rows.length, function(done, total){ return 'Uploading ' + fmtNum(done) + ' of ' + fmtNum(total) + ' rows…'; }).then(function(result){
+              return { inserted: inserted, updated: updated, skipped: skipped, cancelled: result.cancelled };
             });
           });
         }).then(function(summary){
+          if(!summary) return;
+          closeUploadModal();
           zone.classList.remove('busy');
-          clearDropzoneProgress(kind);
-          hideCancelButton(kind);
           if(summary.cancelled){
             setDropzoneStatus(kind, 'Upload cancelled — ' + fmtNum(summary.inserted + summary.updated) + ' row(s) already saved from "' + file.name + '".', 'error');
           } else {
@@ -5531,8 +5862,8 @@
           loaded[kind] = false;
           ensureLoaded(kind);
         }).catch(function(err){
+          closeUploadModal();
           zone.classList.remove('busy');
-          clearDropzoneProgress(kind);
           hideCancelButton(kind);
           console.error('Masterlist file import failed', err);
           setDropzoneStatus(kind, 'Import failed: ' + esc((err && err.message) || 'unknown error'), 'error');
@@ -5561,36 +5892,45 @@
         setDropzoneStatus(kind, 'Could not read "' + file.name + '".', 'error');
       };
       reader.onload = function(){
-        var wasCancelled = false;
+        var rows, skipped;
         Promise.resolve().then(function(){
           return requireSession().then(function(sess){
             if(!sess) throw new Error('Sign in required to upload records.');
             var rawRows = parseWorkbookRows(reader.result, file.name, []);
-            var rows = rawRows.map(function(r){ return workbookRowToFactorRow(r, sess.user.id); }).filter(Boolean);
-            var skipped = rawRows.length - rows.length;
+            rows = rawRows.map(function(r){ return workbookRowToFactorRow(r, sess.user.id); }).filter(Boolean);
+            skipped = rawRows.length - rows.length;
             if(!rows.length) throw new Error('No valid rows found — check Factor/Category columns in "' + file.name + '".');
 
-            var batches = chunk(rows, DDS_INGEST_CHUNK);
-            setDropzoneStatus(kind, 'Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 'busy');
-            var inserted = 0;
-            return batches.reduce(function(p, batch){
-              return p.then(function(){
-                if(token.cancelled){ wasCancelled = true; return; }
-                return DB.from('contributing_factors').insert(batch).then(function(r){
-                  if(r.error) throw r.error;
-                  inserted += batch.length;
-                  setDropzoneProgress(kind, inserted, rows.length);
-                  setDropzoneStatus(kind, 'Uploading ' + fmtNum(inserted) + ' of ' + fmtNum(rows.length) + ' rows…', 'busy');
-                });
-              });
-            }, Promise.resolve()).then(function(){
-              return { rows: inserted, skipped: skipped, cancelled: wasCancelled };
+            hideCancelButton(kind);
+            return runPreflight({
+              rows: rows, rawCount: rawRows.length, skippedCount: skipped,
+              keyFn: factorRowKey, dedupe: false // no DB dedup key exists for this source — informational only
             });
           });
+        }).then(function(pf){
+          if(!pf.proceed){
+            zone.classList.remove('busy');
+            setDropzoneStatus(kind, 'Upload cancelled.', '');
+            return null;
+          }
+          rows = pf.rows;
+          openUploadModal(file.name);
+          uploadCancelBtn.onclick = function(){ token.cancelled = true; };
+
+          var batches = chunk(rows, DDS_INGEST_CHUNK);
+          setUploadProgress('Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 0, rows.length);
+          return runBatchesWithRetry(kind, batches, function(batch){
+            return DB.from('contributing_factors').insert(batch).then(function(r){
+              if(r.error) throw r.error;
+              return { count: batch.length };
+            });
+          }, rows.length, function(done, total){ return 'Uploading ' + fmtNum(done) + ' of ' + fmtNum(total) + ' rows…'; }).then(function(result){
+            return { rows: result.inserted, skipped: skipped, cancelled: result.cancelled };
+          });
         }).then(function(summary){
+          if(!summary) return;
+          closeUploadModal();
           zone.classList.remove('busy');
-          clearDropzoneProgress(kind);
-          hideCancelButton(kind);
           if(summary.cancelled){
             setDropzoneStatus(kind, 'Upload cancelled — ' + fmtNum(summary.rows) + ' row(s) already saved from "' + file.name + '".', 'error');
           } else {
@@ -5601,8 +5941,8 @@
           loaded[kind] = false;
           ensureLoaded(kind);
         }).catch(function(err){
+          closeUploadModal();
           zone.classList.remove('busy');
-          clearDropzoneProgress(kind);
           hideCancelButton(kind);
           console.error('Contributing factors file import failed', err);
           setDropzoneStatus(kind, 'Import failed: ' + esc((err && err.message) || 'unknown error'), 'error');
