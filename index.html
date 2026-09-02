@@ -1720,12 +1720,13 @@
         <section class="dm-toprow">
           <div class="card dm-panel">
             <div class="dm-card-head"><div><div class="dm-card-title">Upload Data</div><div class="dm-card-sub">MIE STAT, POLIHON, SANY, Fuel, Rainfall &amp; more</div></div></div>
-            <div class="dm-dropzone">
+            <div class="dm-dropzone" id="dm-dropzone-minestat" data-dm-source="minestat">
               <div class="dm-drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
-              <div class="dm-drop-title">Drag &amp; drop or click to upload</div>
-              <div class="dm-drop-or">or</div>
-              <button class="dm-choose" type="button">Choose File</button>
-              <div class="dm-drop-note">Supported: CSV, XLSX · Max 50 MB</div>
+              <div class="dm-drop-title" id="dm-drop-title-minestat">Drag &amp; drop or click to upload</div>
+              <div class="dm-drop-or" id="dm-drop-or-minestat">or</div>
+              <button class="dm-choose" type="button" id="dm-choose-minestat">Choose File</button>
+              <div class="dm-drop-note" id="dm-drop-note-minestat">Supported: CSV, XLSX · Max 50 MB</div>
+              <input type="file" id="dm-file-minestat" accept=".csv,.xlsx,.xls" style="display:none">
             </div>
           </div>
 
@@ -1776,12 +1777,13 @@
         <section class="dm-toprow">
           <div class="card dm-panel">
             <div class="dm-card-head"><div><div class="dm-card-title">Upload Data</div><div class="dm-card-sub">Employee masterlist from HR</div></div></div>
-            <div class="dm-dropzone">
+            <div class="dm-dropzone" id="dm-dropzone-masterlist" data-dm-source="masterlist">
               <div class="dm-drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
-              <div class="dm-drop-title">Drag &amp; drop or click to upload</div>
-              <div class="dm-drop-or">or</div>
-              <button class="dm-choose" type="button">Choose File</button>
-              <div class="dm-drop-note">Supported: CSV, XLSX · Max 50 MB</div>
+              <div class="dm-drop-title" id="dm-drop-title-masterlist">Drag &amp; drop or click to upload</div>
+              <div class="dm-drop-or" id="dm-drop-or-masterlist">or</div>
+              <button class="dm-choose" type="button" id="dm-choose-masterlist">Choose File</button>
+              <div class="dm-drop-note" id="dm-drop-note-masterlist">Supported: CSV, XLSX · Max 50 MB</div>
+              <input type="file" id="dm-file-masterlist" accept=".csv,.xlsx,.xls" style="display:none">
             </div>
           </div>
 
@@ -1832,12 +1834,13 @@
         <section class="dm-toprow">
           <div class="card dm-panel">
             <div class="dm-card-head"><div><div class="dm-card-title">Upload Data</div><div class="dm-card-sub">Factor tagging exports for incident review</div></div></div>
-            <div class="dm-dropzone">
+            <div class="dm-dropzone" id="dm-dropzone-factors" data-dm-source="factors">
               <div class="dm-drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
-              <div class="dm-drop-title">Drag &amp; drop or click to upload</div>
-              <div class="dm-drop-or">or</div>
-              <button class="dm-choose" type="button">Choose File</button>
-              <div class="dm-drop-note">Supported: CSV, XLSX · Max 50 MB</div>
+              <div class="dm-drop-title" id="dm-drop-title-factors">Drag &amp; drop or click to upload</div>
+              <div class="dm-drop-or" id="dm-drop-or-factors">or</div>
+              <button class="dm-choose" type="button" id="dm-choose-factors">Choose File</button>
+              <div class="dm-drop-note" id="dm-drop-note-factors">Supported: CSV, XLSX · Max 50 MB</div>
+              <input type="file" id="dm-file-factors" accept=".csv,.xlsx,.xls" style="display:none">
             </div>
           </div>
 
@@ -4626,10 +4629,10 @@
   // ---------- Data Management: real Supabase-backed data (Phase 3) ----------
   // Wires DDS/Minestat/Masterlist/Contributing Factors to the same tables and
   // RPCs index.html's own Cloud.* helpers already use — see MIGRATION_STATUS.md
-  // Phase 3 for the reconciliation. Scope this phase: real list/count/search/
-  // manual-add for all 4 sources. File-upload/drag-drop and row-level Edit are
-  // explicitly NOT wired yet (flagged in MIGRATION_STATUS.md, not silently
-  // skipped) — the dropzone/Edit buttons stay visually in place but inert.
+  // Phase 3 for the reconciliation. Real list/count/search/manual-add and
+  // file-upload/drag-drop are wired for all 4 sources below; row-level Edit
+  // is still NOT wired (flagged in MIGRATION_STATUS.md, not silently
+  // skipped) — the Edit buttons stay visually in place but inert.
   (function(){
     function fmtDateShort(iso){
       if(!iso) return '—';
@@ -5102,16 +5105,106 @@
     var DDS_INGEST_CHUNK = 500; // keep each dds_ingest() call's jsonb payload small/fast rather than one huge round trip
     var DDS_REQUIRED_HEADERS = ['UPDATE_TIME', 'START_TIME', 'ASSET_ID', 'EVENT_CODE', 'EVENT_COUNT'];
 
-    function parseWorkbookRows(arrayBuffer, filename){
+    function parseWorkbookRows(arrayBuffer, filename, requiredHeaders){
       var wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
       var sheet = wb.Sheets[wb.SheetNames[0]];
       if(!sheet) throw new Error('No readable sheet found in "' + filename + '".');
       var rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: true });
       if(!rows.length) throw new Error('"' + filename + '" has no data rows.');
       var headers = Object.keys(rows[0]);
-      var missing = DDS_REQUIRED_HEADERS.filter(function(h){ return headers.indexOf(h) === -1; });
+      var required = requiredHeaders || DDS_REQUIRED_HEADERS;
+      var missing = required.filter(function(h){ return headers.indexOf(h) === -1; });
       if(missing.length) throw new Error('Missing required column(s): ' + missing.join(', ') + '. Found: ' + headers.join(', '));
       return rows;
+    }
+
+    // Minestat real exports (MIE STAT/POLIHON/SANY/Fuel/Rainfall) all feed the
+    // same dds_minestat_ingest() shape as the manual-add path above (UNIT/
+    // SHIFT_DATE/SHIFT, same as DDS's own exact-header-match design) — no
+    // renaming step, just type coercion for the date and numeric columns.
+    var MINESTAT_REQUIRED_HEADERS = ['UNIT', 'SHIFT_DATE', 'SHIFT'];
+
+    function cellToISODate(v){
+      if(v == null || v === '') return '';
+      if(v instanceof Date) return isNaN(v) ? '' : (v.getFullYear() + '-' + two(v.getMonth()+1) + '-' + two(v.getDate()));
+      var s = String(v).trim();
+      if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+      var d = new Date(s);
+      return isNaN(d) ? '' : (d.getFullYear() + '-' + two(d.getMonth()+1) + '-' + two(d.getDate()));
+    }
+
+    function numOrZero(v){
+      var n = parseFloat(v);
+      return isNaN(n) ? '0' : String(n);
+    }
+
+    function workbookRowToMinestatRow(r){
+      var unit = String(r.UNIT || '').trim();
+      var shiftDate = cellToISODate(r.SHIFT_DATE);
+      var shift = String(r.SHIFT || '').trim().toUpperCase();
+      if(!unit || !shiftDate || !shift) return null;
+      return {
+        UNIT: unit, SHIFT_DATE: shiftDate, SHIFT: shift,
+        LAST_NAME: r.LAST_NAME ? String(r.LAST_NAME).trim() : '',
+        FIRST_NAME: r.FIRST_NAME ? String(r.FIRST_NAME).trim() : '',
+        MIDDLE_NAME: r.MIDDLE_NAME ? String(r.MIDDLE_NAME).trim() : '',
+        OPERATING_HRS: numOrZero(r.OPERATING_HRS), DOWN_HRS: numOrZero(r.DOWN_HRS),
+        DELAY_HRS: numOrZero(r.DELAY_HRS), STANDBY_HRS: numOrZero(r.STANDBY_HRS),
+        TOTAL_HRS: numOrZero(r.TOTAL_HRS)
+      };
+    }
+
+    // Masterlist/Contributing Factors have no single confirmed real export
+    // layout (unlike DDS/Minestat above), so their columns are matched
+    // case/punctuation-insensitively against the same field names the manual
+    // Add Record forms already use — friendlier than requiring an exact header
+    // string, and any row missing its required fields is just skipped (same
+    // "skipped" accounting DDS's own file import already reports).
+    function normKey(k){ return String(k).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+    function pickField(row, aliases){
+      var keys = Object.keys(row);
+      for(var i = 0; i < aliases.length; i++){
+        var target = normKey(aliases[i]);
+        for(var j = 0; j < keys.length; j++){
+          if(normKey(keys[j]) === target) return row[keys[j]];
+        }
+      }
+      return undefined;
+    }
+
+    function workbookRowToMasterlistRow(r){
+      var empId = String(pickField(r, ['Employee ID', 'EMP_NO', 'Employee No', 'EmpID']) || '').trim();
+      var name = String(pickField(r, ['Name', 'Full Name']) || '').trim();
+      if(!empId || !name) return null;
+      var dept = String(pickField(r, ['Department']) || '').trim();
+      var position = String(pickField(r, ['Position']) || '').trim();
+      var statusRaw = String(pickField(r, ['Status']) || '').trim();
+      var statusLower = statusRaw.toLowerCase();
+      var details = {};
+      if(dept) details.department = dept;
+      if(position) details.position = position;
+      if(statusRaw && statusLower !== 'active' && statusLower !== 'inactive') details.status_label = statusRaw;
+      return { emp_no: empId, name: name, status: statusLower === 'inactive' ? 'inactive' : 'active', details: details };
+    }
+
+    function cellToCanonicalTimestamp(v){
+      if(v instanceof Date) return isNaN(v) ? '' : v.toISOString();
+      var d = new Date(v);
+      return isNaN(d) ? '' : d.toISOString();
+    }
+
+    function workbookRowToFactorRow(r, loggedBy){
+      var factorType = String(pickField(r, ['Category', 'Factor Type']) || '').trim();
+      var detail = String(pickField(r, ['Factor', 'Detail']) || '').trim();
+      if(!factorType && !detail) return null;
+      var startRaw = pickField(r, ['Start Time', 'Date', 'Logged Date']);
+      var start = startRaw ? cellToCanonicalTimestamp(startRaw) : '';
+      var notes = String(pickField(r, ['Notes']) || '').trim();
+      return {
+        factor_type: factorType || 'Others', detail: detail || factorType,
+        start_time: start || new Date().toISOString(),
+        notes: notes || null, logged_by: loggedBy
+      };
     }
 
     // A cell may already be a Date (SheetJS cellDates:true, for real XLSX
@@ -5285,10 +5378,239 @@
       reader.readAsArrayBuffer(file);
     }
 
-    (function(){
-      var zone = document.getElementById('dm-dropzone-dds');
-      var input = document.getElementById('dm-file-dds');
-      var chooseBtn = document.getElementById('dm-choose-dds');
+    // ==================== Minestat/Masterlist/Factors: real file upload ====================
+    // Minestat reuses dds_minestat_ingest() + imports tracking exactly like
+    // DDS above (0024_minestat.sql's imports.kind check constraint allows
+    // 'dds'/'minestat' only). Masterlist/Contributing Factors have no `kind`
+    // slot in imports at all, so their uploads write straight to
+    // dds_upsert_drivers()/contributing_factors — same RPCs/tables the manual
+    // Add Record forms already use — with no import-history row created.
+    function ingestMinestatFile(file){
+      var kind = 'minestat';
+      var zone = document.getElementById('dm-dropzone-' + kind);
+      if(file.size > 50 * 1024 * 1024){
+        setDropzoneStatus(kind, '"' + file.name + '" is over the 50 MB limit.', 'error');
+        return;
+      }
+      var token = { cancelled: false };
+      uploadTokens[kind] = token;
+      zone.classList.add('busy');
+      setDropzoneStatus(kind, 'Reading ' + file.name + '…', 'busy');
+      showCancelButton(kind, function(){ token.cancelled = true; });
+
+      var reader = new FileReader();
+      reader.onerror = function(){
+        zone.classList.remove('busy');
+        hideCancelButton(kind);
+        setDropzoneStatus(kind, 'Could not read "' + file.name + '".', 'error');
+      };
+      reader.onload = function(){
+        var importId = null;
+        var wasCancelled = false;
+        Promise.resolve().then(function(){
+          var rawRows = parseWorkbookRows(reader.result, file.name, MINESTAT_REQUIRED_HEADERS);
+          var rows = rawRows.map(workbookRowToMinestatRow).filter(Boolean);
+          var skipped = rawRows.length - rows.length;
+          if(!rows.length) throw new Error('No valid rows found — check UNIT/SHIFT_DATE/SHIFT in "' + file.name + '".');
+
+          return insertImportRow(kind, file.name).then(function(res){
+            if(res.error) throw res.error;
+            importId = res.data.id;
+            var batches = chunk(rows, DDS_INGEST_CHUNK);
+            setDropzoneStatus(kind, 'Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 'busy');
+            var inserted = 0;
+            return batches.reduce(function(p, batch){
+              return p.then(function(){
+                if(token.cancelled){ wasCancelled = true; return; }
+                return DB.rpc('dds_minestat_ingest', { p_import_id: importId, p_rows: batch }).then(function(r){
+                  if(r.error) throw r.error;
+                  inserted += batch.length;
+                  setDropzoneProgress(kind, inserted, rows.length);
+                  setDropzoneStatus(kind, 'Uploading ' + fmtNum(inserted) + ' of ' + fmtNum(rows.length) + ' rows…', 'busy');
+                });
+              });
+            }, Promise.resolve()).then(function(){
+              if(wasCancelled) return { rows: inserted, skipped: skipped, cancelled: true };
+              return DB.rpc('dds_complete_import', { p_import_id: importId }).then(function(){
+                return { rows: rows.length, skipped: skipped, cancelled: false };
+              });
+            });
+          });
+        }).then(function(summary){
+          zone.classList.remove('busy');
+          clearDropzoneProgress(kind);
+          hideCancelButton(kind);
+          if(summary.cancelled){
+            setDropzoneStatus(kind, 'Upload cancelled — ' + fmtNum(summary.rows) + ' row(s) already saved from "' + file.name + '".', 'error');
+          } else {
+            var msg = 'Imported ' + fmtNum(summary.rows) + ' row(s) from "' + file.name + '".' +
+              (summary.skipped ? ' ' + fmtNum(summary.skipped) + ' row(s) skipped (missing required fields).' : '');
+            setDropzoneStatus(kind, msg, 'success');
+          }
+          loaded[kind] = false;
+          ensureLoaded(kind);
+          loadHistory('minestat', 'minestat', '#dm-source-minestat .dm-hist-list', 5);
+        }).catch(function(err){
+          zone.classList.remove('busy');
+          clearDropzoneProgress(kind);
+          hideCancelButton(kind);
+          console.error('Minestat file import failed', err, 'importId:', importId);
+          setDropzoneStatus(kind, 'Import failed: ' + esc((err && err.message) || 'unknown error'), 'error');
+          if(importId){ loadHistory('minestat', 'minestat', '#dm-source-minestat .dm-hist-list', 5); }
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function ingestMasterlistFile(file){
+      var kind = 'masterlist';
+      var zone = document.getElementById('dm-dropzone-' + kind);
+      if(file.size > 50 * 1024 * 1024){
+        setDropzoneStatus(kind, '"' + file.name + '" is over the 50 MB limit.', 'error');
+        return;
+      }
+      var token = { cancelled: false };
+      uploadTokens[kind] = token;
+      zone.classList.add('busy');
+      setDropzoneStatus(kind, 'Reading ' + file.name + '…', 'busy');
+      showCancelButton(kind, function(){ token.cancelled = true; });
+
+      var reader = new FileReader();
+      reader.onerror = function(){
+        zone.classList.remove('busy');
+        hideCancelButton(kind);
+        setDropzoneStatus(kind, 'Could not read "' + file.name + '".', 'error');
+      };
+      reader.onload = function(){
+        var wasCancelled = false;
+        Promise.resolve().then(function(){
+          var rawRows = parseWorkbookRows(reader.result, file.name, []);
+          var rows = rawRows.map(workbookRowToMasterlistRow).filter(Boolean);
+          var skipped = rawRows.length - rows.length;
+          if(!rows.length) throw new Error('No valid rows found — check Employee ID/Name columns in "' + file.name + '".');
+
+          return requireSession().then(function(sess){
+            if(!sess) throw new Error('Sign in required to upload records.');
+            var batches = chunk(rows, DDS_INGEST_CHUNK);
+            setDropzoneStatus(kind, 'Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 'busy');
+            var inserted = 0, updated = 0;
+            // p_deactivate is always false for a file upload: a partial or
+            // supplementary roster should never silently retire everyone it
+            // omits (same reasoning dds_upsert_drivers()'s own comment gives
+            // for that parameter), matching the manual Add Record path above.
+            return batches.reduce(function(p, batch){
+              return p.then(function(){
+                if(token.cancelled){ wasCancelled = true; return; }
+                return DB.rpc('dds_upsert_drivers', { p_rows: batch, p_deactivate: false }).then(function(r){
+                  if(r.error) throw r.error;
+                  inserted += (r.data && r.data.inserted) || 0;
+                  updated += (r.data && r.data.updated) || 0;
+                  setDropzoneProgress(kind, inserted + updated, rows.length);
+                  setDropzoneStatus(kind, 'Uploading ' + fmtNum(inserted + updated) + ' of ' + fmtNum(rows.length) + ' rows…', 'busy');
+                });
+              });
+            }, Promise.resolve()).then(function(){
+              return { inserted: inserted, updated: updated, skipped: skipped, cancelled: wasCancelled };
+            });
+          });
+        }).then(function(summary){
+          zone.classList.remove('busy');
+          clearDropzoneProgress(kind);
+          hideCancelButton(kind);
+          if(summary.cancelled){
+            setDropzoneStatus(kind, 'Upload cancelled — ' + fmtNum(summary.inserted + summary.updated) + ' row(s) already saved from "' + file.name + '".', 'error');
+          } else {
+            var msg = 'Added ' + fmtNum(summary.inserted) + ' and updated ' + fmtNum(summary.updated) + ' record(s) from "' + file.name + '".' +
+              (summary.skipped ? ' ' + fmtNum(summary.skipped) + ' row(s) skipped (missing Employee ID or Name).' : '');
+            setDropzoneStatus(kind, msg, 'success');
+          }
+          loaded[kind] = false;
+          ensureLoaded(kind);
+        }).catch(function(err){
+          zone.classList.remove('busy');
+          clearDropzoneProgress(kind);
+          hideCancelButton(kind);
+          console.error('Masterlist file import failed', err);
+          setDropzoneStatus(kind, 'Import failed: ' + esc((err && err.message) || 'unknown error'), 'error');
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function ingestFactorsFile(file){
+      var kind = 'factors';
+      var zone = document.getElementById('dm-dropzone-' + kind);
+      if(file.size > 50 * 1024 * 1024){
+        setDropzoneStatus(kind, '"' + file.name + '" is over the 50 MB limit.', 'error');
+        return;
+      }
+      var token = { cancelled: false };
+      uploadTokens[kind] = token;
+      zone.classList.add('busy');
+      setDropzoneStatus(kind, 'Reading ' + file.name + '…', 'busy');
+      showCancelButton(kind, function(){ token.cancelled = true; });
+
+      var reader = new FileReader();
+      reader.onerror = function(){
+        zone.classList.remove('busy');
+        hideCancelButton(kind);
+        setDropzoneStatus(kind, 'Could not read "' + file.name + '".', 'error');
+      };
+      reader.onload = function(){
+        var wasCancelled = false;
+        Promise.resolve().then(function(){
+          return requireSession().then(function(sess){
+            if(!sess) throw new Error('Sign in required to upload records.');
+            var rawRows = parseWorkbookRows(reader.result, file.name, []);
+            var rows = rawRows.map(function(r){ return workbookRowToFactorRow(r, sess.user.id); }).filter(Boolean);
+            var skipped = rawRows.length - rows.length;
+            if(!rows.length) throw new Error('No valid rows found — check Factor/Category columns in "' + file.name + '".');
+
+            var batches = chunk(rows, DDS_INGEST_CHUNK);
+            setDropzoneStatus(kind, 'Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 'busy');
+            var inserted = 0;
+            return batches.reduce(function(p, batch){
+              return p.then(function(){
+                if(token.cancelled){ wasCancelled = true; return; }
+                return DB.from('contributing_factors').insert(batch).then(function(r){
+                  if(r.error) throw r.error;
+                  inserted += batch.length;
+                  setDropzoneProgress(kind, inserted, rows.length);
+                  setDropzoneStatus(kind, 'Uploading ' + fmtNum(inserted) + ' of ' + fmtNum(rows.length) + ' rows…', 'busy');
+                });
+              });
+            }, Promise.resolve()).then(function(){
+              return { rows: inserted, skipped: skipped, cancelled: wasCancelled };
+            });
+          });
+        }).then(function(summary){
+          zone.classList.remove('busy');
+          clearDropzoneProgress(kind);
+          hideCancelButton(kind);
+          if(summary.cancelled){
+            setDropzoneStatus(kind, 'Upload cancelled — ' + fmtNum(summary.rows) + ' row(s) already saved from "' + file.name + '".', 'error');
+          } else {
+            var msg = 'Imported ' + fmtNum(summary.rows) + ' row(s) from "' + file.name + '".' +
+              (summary.skipped ? ' ' + fmtNum(summary.skipped) + ' row(s) skipped (missing Factor or Category).' : '');
+            setDropzoneStatus(kind, msg, 'success');
+          }
+          loaded[kind] = false;
+          ensureLoaded(kind);
+        }).catch(function(err){
+          zone.classList.remove('busy');
+          clearDropzoneProgress(kind);
+          hideCancelButton(kind);
+          console.error('Contributing factors file import failed', err);
+          setDropzoneStatus(kind, 'Import failed: ' + esc((err && err.message) || 'unknown error'), 'error');
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function wireDropzone(kind, ingestFn){
+      var zone = document.getElementById('dm-dropzone-' + kind);
+      var input = document.getElementById('dm-file-' + kind);
+      var chooseBtn = document.getElementById('dm-choose-' + kind);
       if(!zone || !input || !chooseBtn) return;
 
       chooseBtn.addEventListener('click', function(){ input.click(); });
@@ -5297,7 +5619,7 @@
         input.click();
       });
       input.addEventListener('change', function(){
-        if(input.files && input.files[0]) ingestDdsFile(input.files[0]);
+        if(input.files && input.files[0]) ingestFn(input.files[0]);
         input.value = ''; // allow re-selecting the same file name after a failed/completed run
       });
 
@@ -5316,9 +5638,14 @@
       zone.addEventListener('drop', function(e){
         if(zone.classList.contains('busy')) return;
         var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-        if(file) ingestDdsFile(file);
+        if(file) ingestFn(file);
       });
-    })();
+    }
+
+    wireDropzone('dds', ingestDdsFile);
+    wireDropzone('minestat', ingestMinestatFile);
+    wireDropzone('masterlist', ingestMasterlistFile);
+    wireDropzone('factors', ingestFactorsFile);
 
     function saveMinestat(){
       // dds_minestat_ingest() expects a fundamentally different row shape
