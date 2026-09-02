@@ -5118,11 +5118,28 @@
       return rows;
     }
 
-    // Minestat real exports (MIE STAT/POLIHON/SANY/Fuel/Rainfall) all feed the
-    // same dds_minestat_ingest() shape as the manual-add path above (UNIT/
-    // SHIFT_DATE/SHIFT, same as DDS's own exact-header-match design) — no
-    // renaming step, just type coercion for the date and numeric columns.
-    var MINESTAT_REQUIRED_HEADERS = ['UNIT', 'SHIFT_DATE', 'SHIFT'];
+    // Minestat/Masterlist/Contributing Factors have no single confirmed real
+    // export layout the way DDS does (DDS's exact-header-match was verified
+    // against assets/DDS_Data.xlsx, a real live export) — MIE STAT, POLIHON,
+    // SANY, Fuel, and Rainfall are five visibly different source systems per
+    // the tab's own subtitle, so a single hardcoded header set would just be
+    // guessed and would reject real files with different column names/casing.
+    // Instead their columns are matched case/punctuation-insensitively against
+    // aliases covering both the internal field name and common human-readable
+    // variants — friendlier than an exact-string requirement — and any row
+    // missing its required fields is just skipped (same "skipped" accounting
+    // DDS's own file import already reports).
+    function normKey(k){ return String(k).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+    function pickField(row, aliases){
+      var keys = Object.keys(row);
+      for(var i = 0; i < aliases.length; i++){
+        var target = normKey(aliases[i]);
+        for(var j = 0; j < keys.length; j++){
+          if(normKey(keys[j]) === target) return row[keys[j]];
+        }
+      }
+      return undefined;
+    }
 
     function cellToISODate(v){
       if(v == null || v === '') return '';
@@ -5139,37 +5156,24 @@
     }
 
     function workbookRowToMinestatRow(r){
-      var unit = String(r.UNIT || '').trim();
-      var shiftDate = cellToISODate(r.SHIFT_DATE);
-      var shift = String(r.SHIFT || '').trim().toUpperCase();
+      var unit = String(pickField(r, ['UNIT', 'Asset ID', 'Asset', 'Unit', 'Equipment ID', 'Equipment No']) || '').trim();
+      var shiftDate = cellToISODate(pickField(r, ['SHIFT_DATE', 'Shift Date', 'Date']));
+      var shift = String(pickField(r, ['SHIFT', 'Shift', 'Shift Type']) || '').trim().toUpperCase();
       if(!unit || !shiftDate || !shift) return null;
+      var lastName = pickField(r, ['LAST_NAME', 'Last Name', 'Surname']);
+      var firstName = pickField(r, ['FIRST_NAME', 'First Name']);
+      var middleName = pickField(r, ['MIDDLE_NAME', 'Middle Name']);
       return {
         UNIT: unit, SHIFT_DATE: shiftDate, SHIFT: shift,
-        LAST_NAME: r.LAST_NAME ? String(r.LAST_NAME).trim() : '',
-        FIRST_NAME: r.FIRST_NAME ? String(r.FIRST_NAME).trim() : '',
-        MIDDLE_NAME: r.MIDDLE_NAME ? String(r.MIDDLE_NAME).trim() : '',
-        OPERATING_HRS: numOrZero(r.OPERATING_HRS), DOWN_HRS: numOrZero(r.DOWN_HRS),
-        DELAY_HRS: numOrZero(r.DELAY_HRS), STANDBY_HRS: numOrZero(r.STANDBY_HRS),
-        TOTAL_HRS: numOrZero(r.TOTAL_HRS)
+        LAST_NAME: lastName ? String(lastName).trim() : '',
+        FIRST_NAME: firstName ? String(firstName).trim() : '',
+        MIDDLE_NAME: middleName ? String(middleName).trim() : '',
+        OPERATING_HRS: numOrZero(pickField(r, ['OPERATING_HRS', 'Operating Hours', 'Operating Hrs', 'Operating'])),
+        DOWN_HRS: numOrZero(pickField(r, ['DOWN_HRS', 'Down Hours', 'Down Hrs', 'Down'])),
+        DELAY_HRS: numOrZero(pickField(r, ['DELAY_HRS', 'Delay Hours', 'Delay Hrs', 'Delay'])),
+        STANDBY_HRS: numOrZero(pickField(r, ['STANDBY_HRS', 'Standby Hours', 'Standby Hrs', 'Standby'])),
+        TOTAL_HRS: numOrZero(pickField(r, ['TOTAL_HRS', 'Total Hours', 'Total Hrs']))
       };
-    }
-
-    // Masterlist/Contributing Factors have no single confirmed real export
-    // layout (unlike DDS/Minestat above), so their columns are matched
-    // case/punctuation-insensitively against the same field names the manual
-    // Add Record forms already use — friendlier than requiring an exact header
-    // string, and any row missing its required fields is just skipped (same
-    // "skipped" accounting DDS's own file import already reports).
-    function normKey(k){ return String(k).toLowerCase().replace(/[^a-z0-9]/g, ''); }
-    function pickField(row, aliases){
-      var keys = Object.keys(row);
-      for(var i = 0; i < aliases.length; i++){
-        var target = normKey(aliases[i]);
-        for(var j = 0; j < keys.length; j++){
-          if(normKey(keys[j]) === target) return row[keys[j]];
-        }
-      }
-      return undefined;
     }
 
     function workbookRowToMasterlistRow(r){
@@ -5408,10 +5412,10 @@
         var importId = null;
         var wasCancelled = false;
         Promise.resolve().then(function(){
-          var rawRows = parseWorkbookRows(reader.result, file.name, MINESTAT_REQUIRED_HEADERS);
+          var rawRows = parseWorkbookRows(reader.result, file.name, []);
           var rows = rawRows.map(workbookRowToMinestatRow).filter(Boolean);
           var skipped = rawRows.length - rows.length;
-          if(!rows.length) throw new Error('No valid rows found — check UNIT/SHIFT_DATE/SHIFT in "' + file.name + '".');
+          if(!rows.length) throw new Error('No valid rows found — check Unit/Asset, Date, and Shift columns in "' + file.name + '".');
 
           return insertImportRow(kind, file.name).then(function(res){
             if(res.error) throw res.error;
