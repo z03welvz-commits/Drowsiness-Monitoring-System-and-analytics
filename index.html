@@ -5093,6 +5093,15 @@
         }).select('id').single();
       });
     }
+    // Marks an in-flight import 'failed' (dds_fail_import(), 0015) before
+    // re-throwing the original error, so a manual Add Record that creates
+    // an imports row but then fails partway through never leaves that row
+    // stuck showing "Processing" forever with no way to tell it actually
+    // died — the same fix applied to the file-upload paths' catch blocks.
+    function failImportAndRethrow(importId, err){
+      var errMsg = (err && err.message) || 'unknown error';
+      return DB.rpc('dds_fail_import', { p_import_id: importId, p_error: errMsg }).then(function(){ throw err; }, function(){ throw err; });
+    }
 
     function saveDds(){
       var startVal = document.getElementById('dm-dds-start').value;   // datetime-local
@@ -5113,12 +5122,17 @@
         ASSET_ID: asset, EVENT_CODE: eventCode, EVENT_COUNT: String(countNum),
         OPERATOR: driver || ''
       };
+      var importId;
       return insertImportRow('dds', eventCode + ' — ' + asset).then(function(res){
         if(res.error) throw res.error;
-        return DB.rpc('dds_ingest', { p_import_id: res.data.id, p_rows: [row] }).then(function(r2){
+        importId = res.data.id;
+        return DB.rpc('dds_ingest', { p_import_id: importId, p_rows: [row] }).then(function(r2){
           if(r2.error) throw r2.error;
-          return DB.rpc('dds_complete_import', { p_import_id: res.data.id });
+          return DB.rpc('dds_complete_import', { p_import_id: importId });
         });
+      }).catch(function(err){
+        if(importId) return failImportAndRethrow(importId, err);
+        throw err;
       });
     }
 
@@ -5671,14 +5685,24 @@
           zone.classList.remove('busy');
           hideCancelButton(kind);
           // A partially-completed import (imports row created, some
-          // dds_ingest() batches may have landed) is left as status
-          // 'processing' rather than force-completed — its real row_count
-          // (updated by dds_ingest() itself, batch by batch) reflects
-          // exactly what made it in, visible in Upload History, instead of
-          // silently reporting success on a failed/interrupted upload.
+          // dds_ingest() batches may have landed) is explicitly marked
+          // 'failed' via dds_fail_import() rather than left at 'processing'
+          // forever — its real row_count (updated by dds_ingest() itself,
+          // batch by batch) still reflects exactly what made it in, visible
+          // in Upload History, but the status itself must say what actually
+          // happened instead of showing "Processing" indefinitely with no
+          // way to tell the import is actually dead (dds_fail_import() exists
+          // in the database for exactly this; it just wasn't being called).
           console.error('DDS file import failed', err, 'importId:', importId);
-          setDropzoneStatus(kind, 'Import failed: ' + esc((err && err.message) || 'unknown error'), 'error');
-          if(importId){ loadHistory('dds', 'dds', '#dm-source-dds .dm-hist-list', 3); }
+          var errMsg = (err && err.message) || 'unknown error';
+          setDropzoneStatus(kind, 'Import failed: ' + esc(errMsg), 'error');
+          if(importId){
+            DB.rpc('dds_fail_import', { p_import_id: importId, p_error: errMsg }).then(function(){
+              loadHistory('dds', 'dds', '#dm-source-dds .dm-hist-list', 3);
+            }, function(){
+              loadHistory('dds', 'dds', '#dm-source-dds .dm-hist-list', 3);
+            });
+          }
         });
       };
       reader.readAsArrayBuffer(file);
@@ -5775,9 +5799,19 @@
           closeUploadModal();
           zone.classList.remove('busy');
           hideCancelButton(kind);
+          // See ingestDdsFile()'s matching catch block: explicitly mark the
+          // import 'failed' via dds_fail_import() rather than leaving it at
+          // 'processing' forever.
           console.error('Minestat file import failed', err, 'importId:', importId);
-          setDropzoneStatus(kind, 'Import failed: ' + esc((err && err.message) || 'unknown error'), 'error');
-          if(importId){ loadHistory('minestat', 'minestat', '#dm-source-minestat .dm-hist-list', 5); }
+          var errMsg = (err && err.message) || 'unknown error';
+          setDropzoneStatus(kind, 'Import failed: ' + esc(errMsg), 'error');
+          if(importId){
+            DB.rpc('dds_fail_import', { p_import_id: importId, p_error: errMsg }).then(function(){
+              loadHistory('minestat', 'minestat', '#dm-source-minestat .dm-hist-list', 5);
+            }, function(){
+              loadHistory('minestat', 'minestat', '#dm-source-minestat .dm-hist-list', 5);
+            });
+          }
         });
       };
       reader.readAsArrayBuffer(file);
@@ -6013,12 +6047,17 @@
         OPERATING_HRS: value || '0', DOWN_HRS: '0', DELAY_HRS: '0',
         STANDBY_HRS: '0', TOTAL_HRS: value || '0'
       };
+      var importId;
       return insertImportRow('minestat', dataset + ' manual entry').then(function(res){
         if(res.error) throw res.error;
-        return DB.rpc('dds_minestat_ingest', { p_import_id: res.data.id, p_rows: [row] }).then(function(r2){
+        importId = res.data.id;
+        return DB.rpc('dds_minestat_ingest', { p_import_id: importId, p_rows: [row] }).then(function(r2){
           if(r2.error) throw r2.error;
-          return DB.rpc('dds_complete_import', { p_import_id: res.data.id });
+          return DB.rpc('dds_complete_import', { p_import_id: importId });
         });
+      }).catch(function(err){
+        if(importId) return failImportAndRethrow(importId, err);
+        throw err;
       });
     }
 
