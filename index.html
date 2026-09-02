@@ -404,19 +404,29 @@
   .al-clear{all:unset;box-sizing:border-box;cursor:pointer;flex:0 0 auto;margin-left:4px;color:#2563eb;font-size:11px;font-weight:650;padding:0 10px;height:36px;display:flex;align-items:center;border-radius:6px;white-space:nowrap}
   .al-clear:hover{background:#edf5ff}
 
-  .al-table-wrap{overflow-x:auto;overflow-y:auto;height:1078px}
-  .al-table{width:100%;border-collapse:collapse;min-width:880px}
+  .al-table-wrap{overflow-x:auto;overflow-y:auto}
+  .al-table{width:100%;border-collapse:collapse;min-width:1500px}
   .al-table thead th{position:sticky;top:0;z-index:1}
-  .al-table th{height:38px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
+  .al-table th{height:34px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 11px;background:var(--surface2);white-space:nowrap}
   .al-table th[data-sort]{cursor:pointer;user-select:none}
   .al-table th[data-sort]:hover{color:#1259b6}
   .al-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
   .al-table th[data-sort].sorted.asc::after{content:' ▴'}
-  .al-table td{height:52px;border-bottom:1px solid var(--border);padding:0 14px;font-size:11.5px;color:var(--text-dim);white-space:nowrap}
+  .al-table td{height:40px;border-bottom:1px solid var(--border);padding:0 11px;font-size:11px;color:var(--text-dim);white-space:nowrap}
   .al-table tr:hover td{background:var(--surface2)}
+  .al-table td.al-remarks{max-width:220px;overflow:hidden;text-overflow:ellipsis}
   .al-time{color:var(--muted)}
   .al-event{font-weight:650;color:var(--text-dim)}
   .al-asset{font-weight:700;color:#1259b6}
+
+  /* Fit-to-viewport: same pattern as #page-driver-asset (see that page's
+     own comment for the full reasoning) — only the table-wrap scrolls
+     internally, the page itself never grows a page-level scrollbar. */
+  #page-alerts.active{display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden}
+  #page-alerts.active .topbar{flex:0 0 auto}
+  #page-alerts.active .al-summary{flex:0 0 auto}
+  #page-alerts.active .al-table-card{flex:1;min-height:0;display:flex;flex-direction:column}
+  #page-alerts.active .al-table-wrap{flex:1;min-height:0}
   .al-badge{display:inline-flex;height:21px;align-items:center;border-radius:999px;padding:0 9px;font-size:9px;font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .al-badge.critical{background:#fdeaea;color:#e53553}
   .al-badge.high{background:#fdf0dc;color:#e8952e}
@@ -429,8 +439,8 @@
   .al-status.pending::before{background:#e53553}
   .al-status.ack{color:var(--muted)}
   .al-status.ack::before{background:#94a3b8}
-  .al-act{all:unset;box-sizing:border-box;cursor:pointer;height:27px;padding:0 10px;border:1px solid var(--border);background:var(--card);border-radius:7px;color:#3b5b82;font-size:10px;font-weight:650}
-  .al-act:hover{border-color:var(--border);background:var(--surface2)}
+  .al-table tbody tr{cursor:pointer}
+  .al-table tbody tr .al-check-cell{cursor:default}
 
   .al-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:10.5px;flex-wrap:wrap;gap:8px}
   .al-pages{display:flex;gap:5px;align-items:center}
@@ -1084,6 +1094,7 @@
     .su-kpis{grid-template-columns:repeat(2,1fr)}
     .se-field-row{grid-template-columns:1fr}
     #page-driver-asset.active{height:calc(100vh - 36px)}
+    #page-alerts.active{height:calc(100vh - 36px)}
   }
   @media(max-width:640px){
     /* Below this width the page's own layout already reflows heavily
@@ -1094,6 +1105,9 @@
     #page-driver-asset.active .da-view.on{display:block}
     #page-driver-asset.active .da-view.on > .da-table-card{flex:none}
     .da-table-wrap-flex{overflow-y:visible;flex:none}
+    #page-alerts.active{height:auto;overflow:visible;display:block}
+    #page-alerts.active .al-table-card{flex:none;display:block}
+    #page-alerts.active .al-table-wrap{flex:none;overflow-y:visible}
     .topbar{flex-direction:column;align-items:stretch;width:100%}
     .controls{justify-content:flex-start;width:100%;min-width:0}
     .kpis{grid-template-columns:1fr}
@@ -1595,15 +1609,52 @@
           <button class="al-filter" type="button" id="al-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
           <button class="al-clear" type="button" id="al-clear-filters">Clear filters</button>
         </div>
+        <div class="da-bulk-bar" id="al-bulk-bar">
+          <span class="da-bulk-count" id="al-bulk-count">0 selected</span>
+          <select id="al-bulk-action" aria-label="Action performed">
+            <option value="">Action performed…</option>
+            <option value="Reviewed">Reviewed</option>
+            <option value="Escalated">Escalated</option>
+            <option value="Coached">Coached</option>
+            <option value="Dismissed">Dismissed</option>
+            <option value="Other">Other…</option>
+          </select>
+          <input type="text" class="da-bulk-other" id="al-bulk-action-other" placeholder="Describe action...">
+          <select id="al-bulk-status" aria-label="Status">
+            <option value="">Status: unchanged</option>
+            <option value="Logged">Status: Logged</option>
+            <option value="Under Review">Status: Under Review</option>
+            <option value="Resolved">Status: Resolved</option>
+            <option value="Other">Status: Other…</option>
+          </select>
+          <input type="text" class="da-bulk-other" id="al-bulk-status-other" placeholder="Describe status...">
+          <input type="date" class="da-bulk-date" id="al-bulk-date" aria-label="Action date">
+          <input type="text" id="al-bulk-remarks" aria-label="Remarks" placeholder="Remarks (optional)" style="all:unset;box-sizing:border-box;height:34px;flex:1 1 160px;min-width:120px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:11.5px;color:var(--text-dim)">
+          <button class="da-bulk-apply" type="button" id="al-bulk-apply" disabled>Apply to selected</button>
+          <button class="da-bulk-clear" type="button" id="al-bulk-clear-sel">Clear selection</button>
+        </div>
         <div class="al-table-wrap">
           <table class="al-table">
             <thead>
               <tr>
-                <th data-sort="start_time">Timestamp</th><th data-sort="event_code">Event</th><th data-sort="asset_id">Asset</th><th data-sort="driver">Driver</th><th data-sort="shift">Shift</th><th>Severity</th><th data-sort="status">Action status</th><th>Action</th>
+                <th class="da-th-check"><input type="checkbox" id="al-selectall" aria-label="Select all rows on this page"></th>
+                <th data-sort="shift_date">Date</th>
+                <th data-sort="asset_id">Asset ID</th>
+                <th data-sort="event_code">Event Code</th>
+                <th data-sort="event_count">Event Count</th>
+                <th data-sort="start_time">Start Time</th>
+                <th data-sort="end_time">End Time</th>
+                <th data-sort="update_time">Update Time</th>
+                <th data-sort="emp_no">Emp ID</th>
+                <th data-sort="driver">Emp Name</th>
+                <th data-sort="action">Action Performed</th>
+                <th data-sort="action_by">Action By</th>
+                <th data-sort="status">Status</th>
+                <th data-sort="remarks">Remarks</th>
               </tr>
             </thead>
             <tbody id="al-tbody">
-              <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>
+              <tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -6179,7 +6230,27 @@
       return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ' · ' +
              d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false});
     }
+    // Date and Start/End/Update Time are now separate columns — date-only
+    // and time-only formatters so the date isn't repeated in every one of
+    // those three time columns.
+    function fmtDateOnly(dateStr){
+      if(!dateStr) return '—';
+      var d = new Date(dateStr + 'T00:00:00');
+      if(isNaN(d)) return '—';
+      return d.toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'});
+    }
+    function fmtTimeOnly(iso){
+      if(!iso) return '—';
+      var d = new Date(iso);
+      if(isNaN(d)) return '—';
+      return d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false});
+    }
     function toISODate(v){ return v || null; }
+    // Populated fresh on every load() — the bulk-apply handler looks up a
+    // selected row's assetId/empNo here to know which entities' action
+    // histories (driver_asset_actions, read elsewhere by Driver & Asset
+    // Monitoring) should also get this same logged action.
+    var lastRowsById = {};
 
     function fetchLogs(){
       return DB.rpc('dds_alert_logs', {
@@ -6242,7 +6313,7 @@
         var tbody = document.getElementById('al-tbody');
         var showingEl = document.getElementById('al-table-showing');
         if(!sess){
-          if(tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          if(tbody) tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           if(showingEl) showingEl.textContent = '';
           ['al-sc-total','al-sc-critical','al-sc-cased','al-sc-actionable'].forEach(function(id){
             var el = document.getElementById(id); if(el) el.textContent = '—';
@@ -6273,31 +6344,42 @@
           document.getElementById('al-sc-actionable').textContent = rows.length ? fmtNum(actionableCount) : '—';
           document.getElementById('al-sc-actionable-sub').textContent = rows.length ? (Math.round(actionableCount/rows.length*100) + '% of this page') : 'Of events on this page';
 
+          lastRowsById = {};
+          rows.forEach(function(r){ lastRowsById[r.id] = r; });
+
           if(!rows.length){
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">No records match.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">No records match.</td></tr>';
             renderPagination();
+            updateBulkBar();
             return;
           }
           tbody.innerHTML = rows.map(function(r){
             var sev = severityBadge(r.eventCode);
-            var driver = r.driverName || r.operator || 'Unspecified';
+            var driver = r.driverDisplayName || r.driverName || r.operator || 'Unspecified';
             var statusLabel = r.statusValue ? esc(r.statusValue) : '<span style="color:var(--muted)">Not logged</span>';
-            return '<tr>' +
-              '<td class="al-time">' + esc(fmtDateShort(r.startTime)) + '</td>' +
-              '<td class="al-event">' + esc(r.eventCode || '—') + '</td>' +
+            return '<tr data-al-row-id="' + r.id + '" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">' +
+              '<td class="al-check-cell"><input type="checkbox" class="al-row-check" data-al-check="' + r.id + '"></td>' +
+              '<td>' + esc(fmtDateOnly(r.shiftDate)) + '</td>' +
               '<td class="al-asset">' + esc(r.assetId || '—') + '</td>' +
+              '<td class="al-event"><span class="al-badge ' + sev.tier + '">' + esc(r.eventCode || '—') + '</span></td>' +
+              '<td>' + fmtNum(r.eventCount) + '</td>' +
+              '<td class="al-time">' + esc(fmtTimeOnly(r.startTime)) + '</td>' +
+              '<td class="al-time">' + esc(fmtTimeOnly(r.endTime)) + '</td>' +
+              '<td class="al-time">' + esc(fmtTimeOnly(r.updateTime)) + '</td>' +
+              '<td>' + esc(r.empNo || '—') + '</td>' +
               '<td>' + esc(driver) + '</td>' +
-              '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : 'Day') + '</td>' +
-              '<td><span class="al-badge ' + sev.tier + '">' + esc(sev.label) + '</span></td>' +
+              '<td>' + esc(r.actionType || '—') + '</td>' +
+              '<td>' + esc(r.actionBy || '—') + '</td>' +
               '<td><span class="al-status">' + statusLabel + '</span></td>' +
-              '<td><button class="al-act" type="button" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">View</button></td>' +
+              '<td class="al-remarks" title="' + esc(r.remarks || '') + '">' + esc(r.remarks || '—') + '</td>' +
             '</tr>';
           }).join('');
           renderPagination();
+          updateBulkBar();
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
           console.error('Alert Logs fetch failed', err);
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
         });
       });
     }
@@ -6337,13 +6419,149 @@
         detailBody.innerHTML = '<div class="da-empty" style="padding:30px 0;color:#c0271f">Could not load: ' + esc(err.message || 'unknown error') + '</div>';
       });
     }
-    document.getElementById('al-tbody').addEventListener('click', function(e){
-      var btn = e.target.closest('.al-act');
-      if(!btn) return;
-      openGroupDetail(btn.getAttribute('data-shiftdate'), btn.getAttribute('data-shift'), btn.getAttribute('data-asset'), btn.getAttribute('data-eventcode'));
+    var alTbody = document.getElementById('al-tbody');
+    // Clicking a row (anywhere except its checkbox) opens the same
+    // read-only group-detail view the old "View" column's button did —
+    // dropped as a dedicated column since it wasn't part of the requested
+    // header set, folded into the row itself instead.
+    alTbody.addEventListener('click', function(e){
+      if(e.target.closest('[data-al-check]')) return;
+      var tr = e.target.closest('tr[data-al-row-id]');
+      if(!tr) return;
+      openGroupDetail(tr.getAttribute('data-shiftdate'), tr.getAttribute('data-shift'), tr.getAttribute('data-asset'), tr.getAttribute('data-eventcode'));
     });
     document.getElementById('al-detail-close').addEventListener('click', function(){ detailMask.classList.remove('on'); });
     detailMask.addEventListener('click', function(e){ if(e.target === detailMask) detailMask.classList.remove('on'); });
+
+    // ---- bulk select / bulk edit ----
+    // Same da-bulk-bar pattern already used by Driver & Asset Monitoring's
+    // Flagged Drivers table (index.html's driversBulkApply block) — reused
+    // here rather than a second bespoke UI. Unlike that table's per-driver
+    // aggregate rows, Alert Logs rows already carry a concrete event id, so
+    // the write goes straight to dds_bulk_log_case_action(event_ids[], ...)
+    // (0035_alert_case_instances.sql) — a single INSERT...SELECT...ON
+    // CONFLICT statement, not one call per row, so selecting everything on
+    // a page (capped at 200 rows server-side) never risks the statement
+    // timeout 0039's own migration had to fix for the criteria-based
+    // driver bulk action.
+    var bulkBar = document.getElementById('al-bulk-bar');
+    var selectAllCb = document.getElementById('al-selectall');
+    var bulkCountEl = document.getElementById('al-bulk-count');
+    var bulkActionSel = document.getElementById('al-bulk-action');
+    var bulkActionOther = document.getElementById('al-bulk-action-other');
+    var bulkStatusSel = document.getElementById('al-bulk-status');
+    var bulkStatusOther = document.getElementById('al-bulk-status-other');
+    var bulkDate = document.getElementById('al-bulk-date');
+    var bulkRemarks = document.getElementById('al-bulk-remarks');
+    var bulkApplyBtn = document.getElementById('al-bulk-apply');
+    var bulkClearBtn = document.getElementById('al-bulk-clear-sel');
+
+    function selectedChecks(){
+      return Array.prototype.slice.call(alTbody.querySelectorAll('[data-al-check]:checked'));
+    }
+    function updateBulkBar(){
+      var n = selectedChecks().length;
+      bulkBar.classList.toggle('on', n > 0);
+      bulkCountEl.textContent = n + ' selected';
+      var hasAction = bulkActionSel.value && (bulkActionSel.value !== 'Other' || bulkActionOther.value.trim());
+      var hasStatus = bulkStatusSel.value && (bulkStatusSel.value !== 'Other' || bulkStatusOther.value.trim());
+      var hasRemarks = !!bulkRemarks.value.trim();
+      bulkApplyBtn.disabled = !(n > 0 && (hasAction || hasStatus || hasRemarks));
+      var allChecks = alTbody.querySelectorAll('[data-al-check]');
+      selectAllCb.checked = n > 0 && n === allChecks.length;
+    }
+    alTbody.addEventListener('change', function(e){
+      if(e.target.matches('[data-al-check]')) updateBulkBar();
+    });
+    selectAllCb.addEventListener('change', function(){
+      var checked = selectAllCb.checked;
+      alTbody.querySelectorAll('[data-al-check]').forEach(function(cb){ cb.checked = checked; });
+      updateBulkBar();
+    });
+    bulkClearBtn.addEventListener('click', function(){
+      alTbody.querySelectorAll('[data-al-check]').forEach(function(cb){ cb.checked = false; });
+      updateBulkBar();
+    });
+    bulkActionSel.addEventListener('change', function(){
+      bulkActionOther.classList.toggle('on', bulkActionSel.value === 'Other');
+      updateBulkBar();
+    });
+    bulkStatusSel.addEventListener('change', function(){
+      bulkStatusOther.classList.toggle('on', bulkStatusSel.value === 'Other');
+      updateBulkBar();
+    });
+    [bulkActionOther, bulkStatusOther, bulkRemarks].forEach(function(el){
+      el.addEventListener('input', updateBulkBar);
+    });
+
+    function resetBulkForm(){
+      bulkActionSel.value = ''; bulkActionOther.value = ''; bulkActionOther.classList.remove('on');
+      bulkStatusSel.value = ''; bulkStatusOther.value = ''; bulkStatusOther.classList.remove('on');
+      bulkDate.value = ''; bulkRemarks.value = '';
+    }
+
+    bulkApplyBtn.addEventListener('click', function(){
+      var ids = selectedChecks().map(function(cb){ return Number(cb.getAttribute('data-al-check')); });
+      if(!ids.length) return;
+
+      var isActionOther = bulkActionSel.value === 'Other';
+      var actionType = isActionOther ? bulkActionOther.value.trim() : (bulkActionSel.value || null);
+      var isStatusOther = bulkStatusSel.value === 'Other';
+      var statusValue = isStatusOther ? bulkStatusOther.value.trim() : (bulkStatusSel.value || null);
+      var remarks = bulkRemarks.value.trim() || null;
+      var actionDate = bulkDate.value || null;
+      if(!actionType && !statusValue && !remarks) return;
+
+      var selectedRows = ids.map(function(id){ return lastRowsById[id]; }).filter(Boolean);
+
+      bulkApplyBtn.disabled = true;
+      bulkApplyBtn.textContent = 'Applying…';
+
+      DB.rpc('dds_bulk_log_case_action', {
+        p_event_ids: ids, p_action_type: actionType, p_action_is_other: isActionOther,
+        p_action_date: actionDate, p_status_value: statusValue, p_remarks: remarks
+      }).then(function(res){
+        if(res.error) throw res.error;
+        // "Reflect to all": the same logged action also lands in
+        // driver_asset_actions (dds_log_driver_asset_action(), 0007) with
+        // source='alert_logs', so it shows up in Driver & Asset
+        // Monitoring's per-driver/per-asset action history for the same
+        // case — one entry per distinct affected asset and per distinct
+        // affected driver among the selected rows, not one per row, so
+        // bulk-selecting many alerts against the same truck/driver doesn't
+        // spam duplicate log entries. Only fires when an actual action
+        // (not just a status/remarks tweak) was recorded, since
+        // driver_asset_actions.action_type is required.
+        if(!actionType) return;
+        var assetIds = [], empNos = [], seenAsset = {}, seenEmp = {};
+        selectedRows.forEach(function(r){
+          if(r.assetId && !seenAsset[r.assetId]){ seenAsset[r.assetId] = true; assetIds.push(r.assetId); }
+          if(r.empNo && !seenEmp[r.empNo]){ seenEmp[r.empNo] = true; empNos.push(r.empNo); }
+        });
+        var calls = assetIds.map(function(aid){
+          return DB.rpc('dds_log_driver_asset_action', {
+            p_entity_type: 'asset', p_entity_id: aid, p_action_type: actionType,
+            p_action_is_other: isActionOther, p_remarks: remarks, p_source: 'alert_logs'
+          });
+        }).concat(empNos.map(function(en){
+          return DB.rpc('dds_log_driver_asset_action', {
+            p_entity_type: 'driver', p_entity_id: en, p_action_type: actionType,
+            p_action_is_other: isActionOther, p_remarks: remarks, p_source: 'alert_logs'
+          });
+        }));
+        return Promise.all(calls);
+      }).then(function(){
+        resetBulkForm();
+        load();
+      }).catch(function(err){
+        console.error('Bulk alert action failed', err);
+        alert('Could not save: ' + ((err && err.message) || 'unknown error'));
+      }).then(function(){
+        bulkApplyBtn.disabled = false;
+        bulkApplyBtn.textContent = 'Apply to selected';
+        updateBulkBar();
+      });
+    });
 
     // ---- filter/sort/search wiring ----
     document.getElementById('al-from').addEventListener('change', function(e){ state.from = e.target.value || null; state.offset = 0; load(); });
