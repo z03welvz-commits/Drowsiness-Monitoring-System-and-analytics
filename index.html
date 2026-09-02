@@ -441,6 +441,23 @@
   .al-status.ack::before{background:#94a3b8}
   .al-table tbody tr{cursor:pointer}
   .al-table tbody tr .al-check-cell{cursor:default}
+  /* Checkbox column stays out of the way until "Select" is toggled on —
+     hidden by default on both the header cell and every row cell, shown
+     together once #al-table has the .selecting class. */
+  .al-table .al-check-cell{display:none}
+  .al-table.selecting .al-check-cell{display:table-cell}
+  #al-select-toggle.on{background:#eaf1fd;color:#1259b6;border-color:#bcd6fb}
+
+  /* Inline-editable cells (Emp ID, Action Performed) — kept visually close
+     to a plain table cell rather than looking like a form, since most of
+     the table is still read-only. */
+  .al-inline-input{all:unset;box-sizing:border-box;width:100%;height:24px;padding:0 6px;border-radius:5px;font-size:11px;color:var(--text-dim);cursor:text}
+  .al-inline-input:hover,.al-inline-input:focus{background:var(--surface2);outline:1px solid var(--border)}
+  .al-inline-select{all:unset;box-sizing:border-box;width:100%;height:24px;padding:0 4px;border-radius:5px;font-size:11px;color:var(--text-dim);cursor:pointer}
+  .al-inline-select:hover,.al-inline-select:focus{background:var(--surface2);outline:1px solid var(--border)}
+  .al-action-other{display:none;margin-top:3px}
+  .al-action-other.on{display:block}
+  td[data-al-empname].unknown{color:#e53553}
 
   .al-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:10.5px;flex-wrap:wrap;gap:8px}
   .al-pages{display:flex;gap:5px;align-items:center}
@@ -1592,6 +1609,7 @@
       <section class="card al-table-card">
         <div class="al-table-head">
           <div class="al-table-title">Detected Events <small id="al-table-showing">Loading…</small></div>
+          <button class="al-filter" type="button" id="al-select-toggle" style="cursor:pointer;flex:0 0 auto">Select</button>
         </div>
         <div class="al-filters">
           <div class="al-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="al-search" placeholder="Search asset, driver, or event..." style="all:unset;flex:1;min-width:0;font-size:11px;color:var(--text-dim)"></div>
@@ -1611,6 +1629,7 @@
         </div>
         <div class="da-bulk-bar" id="al-bulk-bar">
           <span class="da-bulk-count" id="al-bulk-count">0 selected</span>
+          <input type="text" id="al-bulk-empno" aria-label="Emp ID" placeholder="Emp ID (optional)" style="all:unset;box-sizing:border-box;height:34px;width:110px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:11.5px;color:var(--text-dim)">
           <select id="al-bulk-action" aria-label="Action performed">
             <option value="">Action performed…</option>
             <option value="Reviewed">Reviewed</option>
@@ -1631,13 +1650,12 @@
           <input type="date" class="da-bulk-date" id="al-bulk-date" aria-label="Action date">
           <input type="text" id="al-bulk-remarks" aria-label="Remarks" placeholder="Remarks (optional)" style="all:unset;box-sizing:border-box;height:34px;flex:1 1 160px;min-width:120px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:11.5px;color:var(--text-dim)">
           <button class="da-bulk-apply" type="button" id="al-bulk-apply" disabled>Apply to selected</button>
-          <button class="da-bulk-clear" type="button" id="al-bulk-clear-sel">Clear selection</button>
         </div>
         <div class="al-table-wrap">
-          <table class="al-table">
+          <table class="al-table" id="al-table">
             <thead>
               <tr>
-                <th class="da-th-check"><input type="checkbox" id="al-selectall" aria-label="Select all rows on this page"></th>
+                <th class="da-th-check al-check-cell"><input type="checkbox" id="al-selectall" aria-label="Select all rows on this page"></th>
                 <th data-sort="shift_date">Date</th>
                 <th data-sort="asset_id">Asset ID</th>
                 <th data-sort="event_code">Event Code</th>
@@ -6252,6 +6270,36 @@
     // Monitoring) should also get this same logged action.
     var lastRowsById = {};
 
+    // Emp ID -> full_name, fetched once and cached (the roster doesn't
+    // change while this page is open) — backs the inline Emp ID cell's
+    // "type an ID, the name fills in from the masterlist" behavior.
+    var driversByEmpNo = null;
+    function loadDriversMap(){
+      if(driversByEmpNo) return Promise.resolve(driversByEmpNo);
+      return DB.from('drivers').select('emp_no,full_name').then(function(res){
+        driversByEmpNo = {};
+        (res.data || []).forEach(function(d){
+          if(d.emp_no) driversByEmpNo[String(d.emp_no).trim().toUpperCase()] = d.full_name;
+        });
+        return driversByEmpNo;
+      }).catch(function(){ driversByEmpNo = driversByEmpNo || {}; return driversByEmpNo; });
+    }
+    loadDriversMap(); // fire-and-forget — ready well before anyone types
+
+    // Same vocabulary as the bulk-edit bar's Action Performed dropdown —
+    // one list, used both places, so a value picked inline and one picked
+    // via bulk edit always mean the same thing.
+    var AL_ACTION_OPTIONS = ['Reviewed', 'Escalated', 'Coached', 'Dismissed'];
+    function actionOptionsHtml(current){
+      var isKnown = current && AL_ACTION_OPTIONS.indexOf(current) !== -1;
+      var html = '<option value=""' + (!current ? ' selected' : '') + '>—</option>';
+      AL_ACTION_OPTIONS.forEach(function(opt){
+        html += '<option value="' + opt + '"' + (current === opt ? ' selected' : '') + '>' + opt + '</option>';
+      });
+      html += '<option value="Other"' + (current && !isKnown ? ' selected' : '') + '>Other…</option>';
+      return html;
+    }
+
     function fetchLogs(){
       return DB.rpc('dds_alert_logs', {
         p_from: toISODate(state.from), p_to: toISODate(state.to),
@@ -6357,6 +6405,7 @@
             var sev = severityBadge(r.eventCode);
             var driver = r.driverDisplayName || r.driverName || r.operator || 'Unspecified';
             var statusLabel = r.statusValue ? esc(r.statusValue) : '<span style="color:var(--muted)">Not logged</span>';
+            var actionIsKnownOther = r.actionType && AL_ACTION_OPTIONS.indexOf(r.actionType) === -1;
             return '<tr data-al-row-id="' + r.id + '" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">' +
               '<td class="al-check-cell"><input type="checkbox" class="al-row-check" data-al-check="' + r.id + '"></td>' +
               '<td>' + esc(fmtDateOnly(r.shiftDate)) + '</td>' +
@@ -6366,9 +6415,12 @@
               '<td class="al-time">' + esc(fmtTimeOnly(r.startTime)) + '</td>' +
               '<td class="al-time">' + esc(fmtTimeOnly(r.endTime)) + '</td>' +
               '<td class="al-time">' + esc(fmtTimeOnly(r.updateTime)) + '</td>' +
-              '<td>' + esc(r.empNo || '—') + '</td>' +
-              '<td>' + esc(driver) + '</td>' +
-              '<td>' + esc(r.actionType || '—') + '</td>' +
+              '<td><input type="text" class="al-inline-input" data-al-empid="' + r.id + '" value="' + esc(r.empNo || '') + '" placeholder="—"></td>' +
+              '<td data-al-empname="' + r.id + '">' + esc(driver) + '</td>' +
+              '<td>' +
+                '<select class="al-inline-select" data-al-action="' + r.id + '">' + actionOptionsHtml(r.actionType) + '</select>' +
+                '<input type="text" class="al-inline-input al-action-other' + (actionIsKnownOther ? ' on' : '') + '" data-al-action-other="' + r.id + '" placeholder="Describe action..." value="' + (actionIsKnownOther ? esc(r.actionType) : '') + '">' +
+              '</td>' +
               '<td>' + esc(r.actionBy || '—') + '</td>' +
               '<td><span class="al-status">' + statusLabel + '</span></td>' +
               '<td class="al-remarks" title="' + esc(r.remarks || '') + '">' + esc(r.remarks || '—') + '</td>' +
@@ -6425,13 +6477,130 @@
     // dropped as a dedicated column since it wasn't part of the requested
     // header set, folded into the row itself instead.
     alTbody.addEventListener('click', function(e){
-      if(e.target.closest('[data-al-check]')) return;
+      if(e.target.closest('[data-al-check], [data-al-empid], [data-al-action], [data-al-action-other]')) return;
       var tr = e.target.closest('tr[data-al-row-id]');
       if(!tr) return;
       openGroupDetail(tr.getAttribute('data-shiftdate'), tr.getAttribute('data-shift'), tr.getAttribute('data-asset'), tr.getAttribute('data-eventcode'));
     });
     document.getElementById('al-detail-close').addEventListener('click', function(){ detailMask.classList.remove('on'); });
     detailMask.addEventListener('click', function(e){ if(e.target === detailMask) detailMask.classList.remove('on'); });
+
+    // ---- inline per-row edits: Emp ID (auto-resolves Emp Name from the
+    // masterlist) and the Action Performed dropdown. Both write through the
+    // same dds_bulk_log_case_action() RPC the bulk-edit bar uses, called
+    // with a single-element event id array — safe to call with everything
+    // else left null since 0045/0046 made every other field coalesce-on-null
+    // instead of overwriting unconditionally, so editing one row's Emp ID
+    // can't wipe that row's Action/Status/Remarks and vice versa.
+    function findEmpName(empNo){
+      if(!empNo) return null;
+      var key = String(empNo).trim().toUpperCase();
+      return (driversByEmpNo && driversByEmpNo[key]) || null;
+    }
+    function renderEmpNameCell(id, empNo){
+      var cell = alTbody.querySelector('[data-al-empname="' + id + '"]');
+      if(!cell) return;
+      var name = findEmpName(empNo);
+      cell.textContent = name || 'Unknown ID';
+      cell.classList.toggle('unknown', !name);
+      var row = lastRowsById[id];
+      if(row){ row.empNo = empNo; row.driverDisplayName = name || row.driverDisplayName; }
+    }
+    function commitEmpIdEdit(id, input){
+      var empNo = input.value.trim() || null;
+      // Same coalesce-on-null convention as the bulk bar (0045/0046): passing
+      // null means "leave emp_no alone", not "clear it" — there is no clear
+      // affordance yet, so blanking the input is a no-op rather than an
+      // edit that would silently fail to persist and revert on next load().
+      if(!empNo) return;
+      if(input.dataset.alLastCommitted === empNo) return;
+      input.dataset.alLastCommitted = empNo;
+      loadDriversMap().then(function(){
+        renderEmpNameCell(id, empNo);
+        return requireSession();
+      }).then(function(sess){
+        if(!sess) return;
+        return DB.rpc('dds_bulk_log_case_action', {
+          p_event_ids: [Number(id)], p_action_type: null, p_action_is_other: null,
+          p_action_date: null, p_status_value: null, p_remarks: null,
+          p_status_is_other: null, p_emp_no: empNo
+        });
+      }).then(function(res){
+        if(res && res.error) throw res.error;
+      }).catch(function(err){
+        console.error('Emp ID save failed', err);
+        alert('Could not save Emp ID: ' + ((err && err.message) || 'unknown error'));
+      });
+    }
+    var empIdCommitTimers = {};
+    alTbody.addEventListener('input', function(e){
+      var input = e.target.closest('[data-al-empid]');
+      if(!input) return;
+      var id = input.getAttribute('data-al-empid');
+      clearTimeout(empIdCommitTimers[id]);
+      empIdCommitTimers[id] = setTimeout(function(){ commitEmpIdEdit(id, input); }, 600);
+    });
+    alTbody.addEventListener('keydown', function(e){
+      var input = e.target.closest('[data-al-empid]');
+      if(!input || e.key !== 'Enter') return;
+      var id = input.getAttribute('data-al-empid');
+      clearTimeout(empIdCommitTimers[id]);
+      commitEmpIdEdit(id, input);
+      input.blur();
+    });
+    alTbody.addEventListener('focusout', function(e){
+      var input = e.target.closest('[data-al-empid]');
+      if(!input) return;
+      var id = input.getAttribute('data-al-empid');
+      clearTimeout(empIdCommitTimers[id]);
+      commitEmpIdEdit(id, input);
+    });
+
+    function commitInlineAction(id, actionType, isOther){
+      requireSession().then(function(sess){
+        if(!sess) return;
+        return DB.rpc('dds_bulk_log_case_action', {
+          p_event_ids: [Number(id)], p_action_type: actionType || null, p_action_is_other: !!isOther,
+          p_action_date: null, p_status_value: null, p_remarks: null,
+          p_status_is_other: null, p_emp_no: null
+        });
+      }).then(function(res){
+        if(res && res.error) throw res.error;
+      }).catch(function(err){
+        console.error('Inline action save failed', err);
+        alert('Could not save action: ' + ((err && err.message) || 'unknown error'));
+      });
+    }
+    alTbody.addEventListener('change', function(e){
+      var sel = e.target.closest('[data-al-action]');
+      if(!sel) return;
+      var id = sel.getAttribute('data-al-action');
+      var otherInput = alTbody.querySelector('[data-al-action-other="' + id + '"]');
+      if(sel.value === 'Other'){
+        if(otherInput){ otherInput.classList.add('on'); otherInput.focus(); }
+        return; // wait for the free-text value before committing
+      }
+      if(otherInput){ otherInput.classList.remove('on'); otherInput.value = ''; }
+      if(!sel.value){
+        // Same coalesce-on-null convention as the bulk bar: null means
+        // "leave alone", not "clear" — picking the blank option can't
+        // actually clear action_type server-side yet, so snap the control
+        // back to its real value instead of showing a selection that would
+        // silently revert on the next load().
+        var row = lastRowsById[id];
+        sel.value = (row && row.actionType && AL_ACTION_OPTIONS.indexOf(row.actionType) !== -1) ? row.actionType : '';
+        return;
+      }
+      commitInlineAction(id, sel.value, false);
+    });
+    alTbody.addEventListener('focusout', function(e){
+      var input = e.target.closest('[data-al-action-other]');
+      if(!input) return;
+      var id = input.getAttribute('data-al-action-other');
+      var text = input.value.trim();
+      if(!text) return;
+      commitInlineAction(id, text, true);
+    });
 
     // ---- bulk select / bulk edit ----
     // Same da-bulk-bar pattern already used by Driver & Asset Monitoring's
@@ -6447,6 +6616,7 @@
     var bulkBar = document.getElementById('al-bulk-bar');
     var selectAllCb = document.getElementById('al-selectall');
     var bulkCountEl = document.getElementById('al-bulk-count');
+    var bulkEmpNo = document.getElementById('al-bulk-empno');
     var bulkActionSel = document.getElementById('al-bulk-action');
     var bulkActionOther = document.getElementById('al-bulk-action-other');
     var bulkStatusSel = document.getElementById('al-bulk-status');
@@ -6454,11 +6624,17 @@
     var bulkDate = document.getElementById('al-bulk-date');
     var bulkRemarks = document.getElementById('al-bulk-remarks');
     var bulkApplyBtn = document.getElementById('al-bulk-apply');
-    var bulkClearBtn = document.getElementById('al-bulk-clear-sel');
+    var alTableEl = document.getElementById('al-table');
+    var selectToggleBtn = document.getElementById('al-select-toggle');
 
     function selectedChecks(){
       return Array.prototype.slice.call(alTbody.querySelectorAll('[data-al-check]:checked'));
     }
+    // One button instead of a separate always-visible checkbox column plus
+    // its own "Clear selection" button: with nothing selected it just
+    // toggles the checkbox column's visibility ("Select"); the moment
+    // something is checked it becomes the clear/exit action instead, label
+    // showing the live count.
     function updateBulkBar(){
       var n = selectedChecks().length;
       bulkBar.classList.toggle('on', n > 0);
@@ -6466,20 +6642,29 @@
       var hasAction = bulkActionSel.value && (bulkActionSel.value !== 'Other' || bulkActionOther.value.trim());
       var hasStatus = bulkStatusSel.value && (bulkStatusSel.value !== 'Other' || bulkStatusOther.value.trim());
       var hasRemarks = !!bulkRemarks.value.trim();
-      bulkApplyBtn.disabled = !(n > 0 && (hasAction || hasStatus || hasRemarks));
+      var hasEmpNo = !!bulkEmpNo.value.trim();
+      bulkApplyBtn.disabled = !(n > 0 && (hasAction || hasStatus || hasRemarks || hasEmpNo));
       var allChecks = alTbody.querySelectorAll('[data-al-check]');
       selectAllCb.checked = n > 0 && n === allChecks.length;
+      selectToggleBtn.textContent = n > 0 ? ('Clear Selection (' + n + ')') : 'Select';
+      selectToggleBtn.classList.toggle('on', alTableEl.classList.contains('selecting') || n > 0);
     }
+    function exitSelectionMode(){
+      alTableEl.classList.remove('selecting');
+      alTbody.querySelectorAll('[data-al-check]').forEach(function(cb){ cb.checked = false; });
+      updateBulkBar();
+    }
+    selectToggleBtn.addEventListener('click', function(){
+      if(selectedChecks().length > 0){ exitSelectionMode(); return; }
+      alTableEl.classList.toggle('selecting');
+      updateBulkBar();
+    });
     alTbody.addEventListener('change', function(e){
       if(e.target.matches('[data-al-check]')) updateBulkBar();
     });
     selectAllCb.addEventListener('change', function(){
       var checked = selectAllCb.checked;
       alTbody.querySelectorAll('[data-al-check]').forEach(function(cb){ cb.checked = checked; });
-      updateBulkBar();
-    });
-    bulkClearBtn.addEventListener('click', function(){
-      alTbody.querySelectorAll('[data-al-check]').forEach(function(cb){ cb.checked = false; });
       updateBulkBar();
     });
     bulkActionSel.addEventListener('change', function(){
@@ -6490,14 +6675,14 @@
       bulkStatusOther.classList.toggle('on', bulkStatusSel.value === 'Other');
       updateBulkBar();
     });
-    [bulkActionOther, bulkStatusOther, bulkRemarks].forEach(function(el){
+    [bulkActionOther, bulkStatusOther, bulkRemarks, bulkEmpNo].forEach(function(el){
       el.addEventListener('input', updateBulkBar);
     });
 
     function resetBulkForm(){
       bulkActionSel.value = ''; bulkActionOther.value = ''; bulkActionOther.classList.remove('on');
       bulkStatusSel.value = ''; bulkStatusOther.value = ''; bulkStatusOther.classList.remove('on');
-      bulkDate.value = ''; bulkRemarks.value = '';
+      bulkDate.value = ''; bulkRemarks.value = ''; bulkEmpNo.value = '';
     }
 
     bulkApplyBtn.addEventListener('click', function(){
@@ -6510,7 +6695,8 @@
       var statusValue = isStatusOther ? bulkStatusOther.value.trim() : (bulkStatusSel.value || null);
       var remarks = bulkRemarks.value.trim() || null;
       var actionDate = bulkDate.value || null;
-      if(!actionType && !statusValue && !remarks) return;
+      var empNo = bulkEmpNo.value.trim() || null;
+      if(!actionType && !statusValue && !remarks && !empNo) return;
 
       var selectedRows = ids.map(function(id){ return lastRowsById[id]; }).filter(Boolean);
 
@@ -6519,7 +6705,8 @@
 
       DB.rpc('dds_bulk_log_case_action', {
         p_event_ids: ids, p_action_type: actionType, p_action_is_other: isActionOther,
-        p_action_date: actionDate, p_status_value: statusValue, p_remarks: remarks
+        p_action_date: actionDate, p_status_value: statusValue, p_remarks: remarks,
+        p_status_is_other: isStatusOther, p_emp_no: empNo
       }).then(function(res){
         if(res.error) throw res.error;
         // "Reflect to all": the same logged action also lands in
