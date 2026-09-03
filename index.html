@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DDS Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
   :root{
     --navy:#0b3b78; --navy2:#0e4b98; --blue:#2563eb; --blue2:#3b82f6;
@@ -89,7 +92,18 @@
   button.btn:focus-visible,.control:focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--blue)}
 
   /* ---------- topbar ---------- */
-  .topbar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+  /* Sticky masthead: the topbar (page title + primary actions) and each
+     page's own filter/search row stay pinned to the top of the viewport
+     while the table beneath scrolls — so search, filters, and bulk-action
+     controls (Apply, Clear selection) never scroll out of reach on a long
+     table. `.main` doesn't scroll itself (the sidebar's own position:sticky
+     already relies on window/document scroll, confirmed by `.sidebar{
+     position:sticky;top:0}` above), so top:0 here is relative to the same
+     window scroll. Solid background required — content scrolling underneath
+     a sticky element needs to be visually covered, not just positioned over. */
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;
+    position:sticky;top:0;z-index:5;background:var(--bg);padding-top:20px;margin-top:-20px}
+  .page-sticky-filters{position:sticky;z-index:4;background:var(--bg)}
   .title h1{font-size:29px;margin:0;font-weight:800;color:var(--text-dim);line-height:1.05;letter-spacing:-.01em}
   .title p{font-size:12.5px;color:var(--muted);margin:7px 0 0}
   .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
@@ -708,6 +722,10 @@
   .da-act-btn:hover{background:#1d4fd1}
   .da-view-btn{all:unset;box-sizing:border-box;cursor:pointer;height:29px;padding:0 11px;border:1px solid var(--border);background:var(--card);color:#3b5b82;border-radius:7px;font-size:10.5px;font-weight:650;margin-left:6px}
   .da-view-btn:hover{border-color:var(--border);background:var(--surface2)}
+  .da-row-actions{display:flex;align-items:center;justify-content:flex-end;white-space:nowrap}
+  .da-action-btn{all:unset;box-sizing:border-box;cursor:pointer;width:29px;height:29px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--card);color:var(--muted);border-radius:7px;font-size:14px;line-height:1;margin-left:6px}
+  .da-action-btn:hover{border-color:var(--border);background:var(--surface2);color:var(--text)}
+  .da-action-btn:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 
   .da-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:10.5px;flex-wrap:wrap;gap:8px}
   .da-empty{padding:44px 18px;text-align:center;color:var(--muted);font-size:11.5px}
@@ -809,6 +827,20 @@
   .da-th-check{width:34px;padding:0 0 0 17px!important}
   .da-table td.da-td-check{padding:0 0 0 17px}
   .da-row-check{cursor:pointer;width:14px;height:14px}
+
+  /* Sync status pill: shown while an optimistic write (single or bulk
+     action) is in flight to the database, hidden once it settles. See
+     the Driver & Asset Monitoring IIFE's syncTracker for state. */
+  .da-sync-status{display:none;align-items:center;gap:7px;height:30px;padding:0 13px;border-radius:999px;font-size:11px;font-weight:650;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);white-space:nowrap;flex:0 0 auto}
+  .da-sync-status.on{display:inline-flex}
+  .da-sync-status.done{color:#18a05e;border-color:#bfe8d3;background:#dff5ea}
+  .da-sync-status.error{color:#c0271f;border-color:#f3c8c8;background:#fdeaea}
+  .da-sync-dot{width:7px;height:7px;border-radius:50%;background:var(--blue);flex:0 0 auto;animation:da-sync-pulse 1s ease-in-out infinite}
+  .da-sync-status.done .da-sync-dot{background:#18a05e;animation:none}
+  .da-sync-status.error .da-sync-dot{background:#c0271f;animation:none}
+  @keyframes da-sync-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  :root[data-theme="dark"] .da-sync-status.done{background:#132b1f}
+  :root[data-theme="dark"] .da-sync-status.error{background:#2a1518}
 
   .da-inst-table{width:100%;border-collapse:collapse;min-width:900px}
   .da-inst-table th{height:36px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
@@ -2041,6 +2073,10 @@
           <h1>Driver &amp; Asset Monitoring</h1>
           <p>Weekly alert consistency for drivers and assets, prioritized for action</p>
         </div>
+        <div class="da-sync-status" id="da-sync-status" role="status" aria-live="polite">
+          <span class="da-sync-dot" aria-hidden="true"></span>
+          <span id="da-sync-status-text">Updating database…</span>
+        </div>
       </header>
 
       <section class="da-summary" aria-label="Weekly risk summary">
@@ -2126,6 +2162,12 @@
           <div class="da-table-foot">
             <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
             <span data-da-empty-note="drivers"></span>
+            <div class="al-pages" data-da-pages="drivers">
+              <span data-da-rowsrange="drivers">—</span>
+              <button class="al-page" type="button" data-da-page-prev="drivers" disabled aria-label="Previous page">‹</button>
+              <span data-da-page-numbers="drivers"></span>
+              <button class="al-page" type="button" data-da-page-next="drivers" aria-label="Next page">›</button>
+            </div>
           </div>
         </section>
       </div>
@@ -2163,6 +2205,12 @@
           <div class="da-table-foot">
             <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
             <span data-da-empty-note="assets"></span>
+            <div class="al-pages" data-da-pages="assets">
+              <span data-da-rowsrange="assets">—</span>
+              <button class="al-page" type="button" data-da-page-prev="assets" disabled aria-label="Previous page">‹</button>
+              <span data-da-page-numbers="assets"></span>
+              <button class="al-page" type="button" data-da-page-next="assets" aria-label="Next page">›</button>
+            </div>
           </div>
         </section>
       </div>
@@ -2872,6 +2920,28 @@
   // that page's data every time it becomes active, not just once ever.
   window.__ddsPageLoad = {};
 
+  // Per-page in-memory cache, keyed by pageKey. A page's own load() function
+  // decides what "the data" means for it and calls __ddsCache.set(pageKey,
+  // ...) once it has fetched something worth keeping; goToPage() below
+  // checks __ddsCache.isStale() before deciding whether to show a fetch
+  // immediately or let the page render from what's already in memory while
+  // a background refresh (if stale) catches up silently. Page reload (F5)
+  // clears this, same as everything else in module scope — it's a
+  // navigation-speed cache, not a persistence layer.
+  window.__ddsCache = (function(){
+    var store = {};
+    return {
+      get: function(key){ return store[key] ? store[key].data : undefined; },
+      has: function(key){ return !!store[key]; },
+      set: function(key, data){ store[key] = { data: data, at: Date.now() }; },
+      isStale: function(key, maxAgeMs){
+        var entry = store[key];
+        if(!entry) return true;
+        return (Date.now() - entry.at) > maxAgeMs;
+      }
+    };
+  })();
+
   // ---------- Shared helpers (post-migration audit hardening) ----------
   // esc()/fmtNum()/SEVERITY_RULES/severityBadge()/requireSession() used to
   // be independently duplicated in every page's own IIFE (deliberately,
@@ -3559,8 +3629,8 @@
     tickClock();
     setInterval(tickClock, 30000);
 
-    function fetchMetrics(){
-      return DB.rpc('dds_metrics', { p_from: null, p_to: null, p_shift: null, p_actionable_only: false })
+    function fetchMetrics(from, to){
+      return DB.rpc('dds_metrics', { p_from: from || null, p_to: to || null, p_shift: null, p_actionable_only: false })
         .then(function(res){
           if(res.error) throw res.error;
           return res.data;
@@ -3846,7 +3916,14 @@
       var startAngle = -90;
       var paths = slices.filter(function(s){ return s.value > 0; }).map(function(s){
         var frac = s.value / total;
-        var endAngle = startAngle + frac * 360;
+        // A slice at exactly 100% share puts the arc's start and end point
+        // at the same coordinate — SVG's arc command needs two distinct
+        // points to know which way to sweep, so a true 360° sweep silently
+        // renders as nothing. Capping just under a full circle keeps the
+        // endpoints distinct while being visually indistinguishable from a
+        // complete ring.
+        var sweep = Math.min(frac * 360, 359.99);
+        var endAngle = startAngle + sweep;
         var large = (endAngle - startAngle) > 180 ? 1 : 0;
         var toXY = function(angle, rad){
           var t = angle * Math.PI / 180;
@@ -4026,10 +4103,16 @@
         setHeaderUsername(sess, 'an-username');
 
         var today = new Date(); today.setHours(0,0,0,0);
-        var week7Ago = new Date(today); week7Ago.setDate(week7Ago.getDate()-7);
+        var sixAgo = new Date(today); sixAgo.setDate(sixAgo.getDate()-6);
+        var prevPeriodEnd = new Date(sixAgo); prevPeriodEnd.setDate(prevPeriodEnd.getDate()-1);
+        var prevPeriodStart = new Date(prevPeriodEnd); prevPeriodStart.setDate(prevPeriodStart.getDate()-6);
         function toMDY(d){ return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear(); }
 
-        Promise.all([fetchMetrics(), fetchFactors()]).then(function(results){
+        // KPI deltas are "trailing 7 days vs the 7 days before that" — a
+        // real week-over-week comparison, not the page's overall totals.
+        // (Previously compared an unbounded all-time fetch to a single day
+        // 7 days ago, which produced a confident but meaningless delta.)
+        Promise.all([fetchMetrics(toMDY(sixAgo), toMDY(today)), fetchFactors()]).then(function(results){
           if(!guard.isCurrent(token)) return;
           var cur = results[0], factors = results[1];
 
@@ -4046,13 +4129,14 @@
           var syncedEl = document.getElementById('an-synced-note');
           if(syncedEl) syncedEl.textContent = 'Data synced just now';
 
-          // Comparison window (7d-ago) for KPI deltas — non-fatal, same
-          // degrade-gracefully contract as Overview's own comparison fetch
-          // (Phase 4 precedent): failing here just leaves KPI deltas blank,
-          // the rest of the page already rendered from `cur` above.
-          DB.rpc('dds_metrics', { p_from: toMDY(week7Ago), p_to: toMDY(week7Ago), p_shift: null, p_actionable_only: false }).then(function(res){
+          // Comparison window: the 7 days immediately before the current
+          // trailing-7-day window above — a real week-over-week delta, not
+          // a single day. Non-fatal, same degrade-gracefully contract as
+          // Overview's own comparison fetch (Phase 4 precedent): failing
+          // here just leaves KPI deltas blank, the rest of the page already
+          // rendered from `cur` above.
+          fetchMetrics(toMDY(prevPeriodStart), toMDY(prevPeriodEnd)).then(function(p7){
             if(!guard.isCurrent(token)) return;
-            var p7 = res.error ? null : res.data;
             renderKpis(cur, p7);
           }).catch(function(err){
             if(!guard.isCurrent(token)) return;
@@ -4888,7 +4972,7 @@
               '<td>' + esc(d.department || '—') + '</td>' +
               '<td>' + esc(d.position || '—') + '</td>' +
               '<td><span class="dm-status"' + statusStyle + '>' + esc(statusLabel) + '</span></td>' +
-              '<td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit" disabled title="Editing not available yet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td>' +
+              '<td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit" data-ml-edit=\'' + esc(JSON.stringify({ empNo: r.emp_no, name: r.full_name, dept: d.department || '', position: d.position || '', statusLabel: statusLabel })) + '\'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td>' +
             '</tr>';
           }).join('');
         });
@@ -4905,18 +4989,19 @@
       if(!tbody) return;
       requireSession().then(function(sess){
         if(!sess){ tbody.innerHTML = signedOutRow(5, 'contributing factors'); clearCounts(titleSmall, foot); return; }
-        return DB.from('contributing_factors')
+        var q = DB.from('contributing_factors')
           .select('id, factor_type, detail, start_time, end_time, notes', { count: 'exact' })
-          .order('start_time', { ascending: false }).limit(8)
-          .then(function(res){
+          .order('start_time', { ascending: false }).limit(8);
+        if(factorsState.search){
+          // Server-side, same as Minestat/Masterlist — searching must see
+          // the whole table, not just the 8 most-recent rows already
+          // fetched (which silently hid real matches on older factors).
+          var like = '%' + factorsState.search + '%';
+          q = q.or('factor_type.ilike.' + like + ',detail.ilike.' + like);
+        }
+        return q.then(function(res){
             if(res.error) throw res.error;
             var rows = res.data || [];
-            if(factorsState.search){
-              var q = factorsState.search.toLowerCase();
-              rows = rows.filter(function(r){
-                return (r.factor_type + ' ' + (r.detail||'')).toLowerCase().indexOf(q) !== -1;
-              });
-            }
             var total = res.count || rows.length;
             if(titleSmall) titleSmall.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(total);
             if(foot) foot.textContent = 'Rows 1–' + rows.length + ' of ' + fmtNum(total);
@@ -5077,10 +5162,15 @@
     var sourceLabels = { dds: 'a DDS event', minestat: 'a Minestat reading', masterlist: 'an employee', factors: 'a contributing factor' };
     var saveBtn = document.getElementById('dm-modal-save');
 
+    var modalTitleEl = document.getElementById('dm-modal-title');
+    var editState = null; // { key, empNo } while the modal is editing an existing row; null when adding
+
     function openManualAdd(key){
+      editState = null;
       modalBodies.forEach(function(b){ b.style.display = 'none'; });
       var body = document.getElementById('dm-modal-body-' + key);
       if(body) body.style.display = 'flex';
+      if(modalTitleEl) modalTitleEl.textContent = 'Add Record';
       modalSub.textContent = 'Manually encode ' + (sourceLabels[key] || 'a record');
       modalMask.classList.add('on');
       modalMask.setAttribute('data-current-source', key);
@@ -5092,6 +5182,7 @@
       // select's own DOM state otherwise persists across opens, unlike a
       // freshly-parsed page).
       if(body){
+        body.querySelectorAll('input[type=text],input[type=number],input[type=date],input[type=datetime-local]').forEach(function(inp){ inp.value = ''; inp.readOnly = false; });
         body.querySelectorAll('select').forEach(function(sel){ sel.selectedIndex = 0; });
         body.querySelectorAll('.dm-other-input').forEach(function(inp){
           inp.value = '';
@@ -5100,12 +5191,48 @@
         });
       }
     }
+    // Masterlist rows can already be safely edited today: dds_upsert_drivers
+    // upserts on emp_no as its conflict key (0018_driver_masterlist.sql), so
+    // reusing the exact same "Add Record" modal/save path with the row's
+    // existing emp_no pre-filled (and locked, so an edit can't accidentally
+    // fork a new row under a mistyped ID) IS an edit, not a new feature.
+    // DDS Data and Contributing Factors intentionally stay un-editable here
+    // (raw sensor events with generated/derived columns and downstream
+    // triggers are a materially different, riskier edit surface than a
+    // roster record) — Download-only Minestat rows are unrelated to this.
+    function openMasterlistEdit(row){
+      openManualAdd('masterlist');
+      editState = { key: 'masterlist', empNo: row.empNo };
+      if(modalTitleEl) modalTitleEl.textContent = 'Edit Record';
+      modalSub.textContent = 'Update this employee’s masterlist record';
+      var empEl = document.getElementById('dm-ml-empid');
+      empEl.value = row.empNo;
+      empEl.readOnly = true;
+      document.getElementById('dm-ml-name').value = row.name;
+      document.getElementById('dm-ml-dept').value = row.dept;
+      document.getElementById('dm-ml-position').value = row.position;
+      var statusSel = document.getElementById('dm-ml-status');
+      var knownStatus = ['Active', 'On Leave', 'Inactive'].indexOf(row.statusLabel) !== -1;
+      if(knownStatus){
+        statusSel.value = row.statusLabel;
+      } else {
+        statusSel.value = '__other__';
+        var otherEl = document.getElementById('dm-ml-status-other');
+        if(otherEl){ otherEl.value = row.statusLabel; otherEl.style.display = ''; otherEl.classList.add('on'); }
+      }
+    }
     function closeManualAdd(){
       modalMask.classList.remove('on');
+      editState = null;
     }
 
     document.querySelectorAll('[data-manual-add]').forEach(function(btn){
       btn.addEventListener('click', function(){ openManualAdd(btn.getAttribute('data-manual-add')); });
+    });
+    document.querySelector('#dm-table-masterlist tbody').addEventListener('click', function(e){
+      var btn = e.target.closest('[data-ml-edit]');
+      if(!btn) return;
+      openMasterlistEdit(JSON.parse(btn.getAttribute('data-ml-edit')));
     });
     document.getElementById('dm-modal-close').addEventListener('click', closeManualAdd);
     document.getElementById('dm-modal-cancel').addEventListener('click', closeManualAdd);
@@ -5551,15 +5678,24 @@
     var uploadCancelBtn = document.getElementById('dm-upload-cancel-btn');
     var uploadRetryBtn = document.getElementById('dm-upload-retry-btn');
 
+    // Page-wide flag: the upload modal and its Cancel button are single
+    // shared elements, not per-zone, so a second upload starting in a
+    // different zone before the first finishes was silently stealing the
+    // first one's Cancel handler and overwriting its progress text. Every
+    // zone's entry point (wireDropzone, below) checks this before starting.
+    var anyUploadActive = false;
+
     function openUploadModal(label){
       uploadTitleEl.textContent = 'Uploading ' + label + '…';
       uploadStatusEl.textContent = 'Starting…';
       uploadProgressFill.style.width = '0%';
       uploadRetryBtn.style.display = 'none';
       uploadMask.classList.add('on');
+      anyUploadActive = true;
     }
     function closeUploadModal(){
       uploadMask.classList.remove('on');
+      anyUploadActive = false;
     }
     function setUploadProgress(text, doneCount, totalCount){
       uploadStatusEl.textContent = text;
@@ -6062,18 +6198,24 @@
 
       chooseBtn.addEventListener('click', function(){ input.click(); });
       zone.addEventListener('click', function(e){
-        if(e.target === chooseBtn || zone.classList.contains('busy')) return;
+        if(e.target === chooseBtn || zone.classList.contains('busy') || anyUploadActive) return;
         input.click();
       });
       input.addEventListener('change', function(){
-        if(input.files && input.files[0]) ingestFn(input.files[0]);
+        if(input.files && input.files[0]){
+          if(anyUploadActive){
+            alert('Another upload is already in progress — wait for it to finish before starting a new one.');
+          } else {
+            ingestFn(input.files[0]);
+          }
+        }
         input.value = ''; // allow re-selecting the same file name after a failed/completed run
       });
 
       ['dragenter', 'dragover'].forEach(function(evt){
         zone.addEventListener(evt, function(e){
           e.preventDefault(); e.stopPropagation();
-          if(!zone.classList.contains('busy')) zone.classList.add('drag');
+          if(!zone.classList.contains('busy') && !anyUploadActive) zone.classList.add('drag');
         });
       });
       ['dragleave', 'drop'].forEach(function(evt){
@@ -6083,7 +6225,7 @@
         });
       });
       zone.addEventListener('drop', function(e){
-        if(zone.classList.contains('busy')) return;
+        if(zone.classList.contains('busy') || anyUploadActive) return;
         var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
         if(file) ingestFn(file);
       });
@@ -6813,6 +6955,73 @@
     // ---- state: populated by load() below from dds_driver_asset_weekly() ----
     var state = { drivers:[], assets:[] };
 
+    // ---- sync status pill: tracks in-flight optimistic writes ----
+    // Every write that updates the UI before the database confirms it
+    // (single action save, bulk apply) registers one "job" here with a
+    // known unit count (1 for a single save, N selected rows for bulk) and
+    // reports progress as each unit completes. The pill shows "Updating
+    // database… N%" while any job is active, briefly "All changes saved"
+    // once the last one finishes successfully, or an error state if the
+    // write actually failed server-side (distinct from a merely slow one).
+    var syncEl = document.getElementById('da-sync-status');
+    var syncTextEl = document.getElementById('da-sync-status-text');
+    var syncJobs = {};
+    var syncJobSeq = 0;
+    var syncDoneTimer = null;
+    function syncTotals(){
+      var done = 0, total = 0;
+      Object.keys(syncJobs).forEach(function(id){
+        done += syncJobs[id].done;
+        total += syncJobs[id].total;
+      });
+      return { done: done, total: total };
+    }
+    function syncRender(){
+      var t = syncTotals();
+      if(t.total === 0){
+        // Nothing in flight — leave whatever terminal state (done/error) a
+        // just-finished job already painted; syncJobDone()/syncJobError()
+        // own clearing that on their own timer/next-job.
+        return;
+      }
+      syncEl.classList.remove('done','error');
+      syncEl.classList.add('on');
+      var pct = Math.round((t.done / t.total) * 100);
+      syncTextEl.textContent = 'Updating database… ' + pct + '%';
+    }
+    function syncJobStart(total){
+      clearTimeout(syncDoneTimer);
+      var id = ++syncJobSeq;
+      syncJobs[id] = { done: 0, total: total };
+      syncRender();
+      return id;
+    }
+    function syncJobProgress(id, doneCount){
+      if(!syncJobs[id]) return;
+      syncJobs[id].done = doneCount;
+      syncRender();
+    }
+    function syncJobDone(id){
+      delete syncJobs[id];
+      var t = syncTotals();
+      if(t.total > 0){ syncRender(); return; }
+      syncEl.classList.remove('error');
+      syncEl.classList.add('on', 'done');
+      syncTextEl.textContent = 'All changes saved';
+      clearTimeout(syncDoneTimer);
+      syncDoneTimer = setTimeout(function(){ syncEl.classList.remove('on','done'); }, 2200);
+    }
+    function syncJobError(id, message){
+      delete syncJobs[id];
+      var t = syncTotals();
+      if(t.total > 0){ syncRender(); return; }
+      syncEl.classList.remove('done');
+      syncEl.classList.add('on', 'error');
+      syncTextEl.textContent = message || 'Could not save — changes reverted';
+      clearTimeout(syncDoneTimer);
+      syncDoneTimer = setTimeout(function(){ syncEl.classList.remove('on','error'); }, 4500);
+    }
+
     // Maps one dds_driver_asset_weekly() record ({id,name,days,status,
     // lastAction}) onto the shape this IIFE's render functions already
     // expect ({id,name,sub,days,status,history}). `sub` (e.g. "Hauling ·
@@ -6889,8 +7098,8 @@
           return;
         }
         loadWeeklyRiskBackground();
-        loadSummaryTable('drivers');
-        loadSummaryTable('assets');
+        loadSummaryTableCached('drivers');
+        loadSummaryTableCached('assets');
       });
     }
 
@@ -6920,20 +7129,16 @@
       return { key:'continue', label:'Continue' };
     }
 
-    // ---- rendering ----
-    function initials(name){
-      var parts = name.replace(/[().]/g,'').split(' ').filter(Boolean);
-      return (parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '');
-    }
     // ---- new summary table: dds_driver_event_summary / dds_asset_event_summary ----
     // Row grain is one row per driver/asset with an aggregated event-code
     // breakdown (per user decision), server-side searched/sorted/paged the
     // same way Alert Logs does (dds_alert_logs) rather than client-side
     // filtering an already-fetched array, so this scales the same way as
     // that page regardless of fleet size.
+    var SUMMARY_PAGE_LIMIT = 100;
     var summaryState = {
-      drivers: { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null },
-      assets:  { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null }
+      drivers: { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null, offset:0, limit:SUMMARY_PAGE_LIMIT },
+      assets:  { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null, offset:0, limit:SUMMARY_PAGE_LIMIT }
     };
     var summaryGuard = { drivers: makeGuard(), assets: makeGuard() };
 
@@ -6949,29 +7154,130 @@
       return h + 'h ' + m + 'm';
     }
 
-    function loadSummaryTable(kind){
+    // Cache key includes every param that changes what the RPC returns —
+    // switching a filter must never show a stale result for the OLD
+    // filter combination while the new one's fetch is still in flight.
+    function summaryCacheKey(kind){
+      var st = summaryState[kind];
+      return 'da-summary:' + kind + ':' + JSON.stringify([st.search||'', st.sort, st.dir, st.from||'', st.to||'', st.shift||'', st.offset||0]);
+    }
+
+    // opts.silent: true for a background refresh of already-shown cached
+    // data — skips the "Loading…" flash and skips re-rendering on success
+    // (the visible table already reflects this exact cache key's last
+    // known rows; only the cache timestamp needs to move forward so the
+    // next page visit doesn't immediately re-trigger another background
+    // fetch). A background fetch still calls renderSummaryTable if the
+    // rows actually differ from what's on screen, so a genuinely new alert
+    // arriving server-side is never hidden behind a stale cache.
+    function loadSummaryTable(kind, opts){
+      opts = opts || {};
       var token = summaryGuard[kind].start();
       var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
       if(!tbody) return;
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+      var key = summaryCacheKey(kind);
+
+      if(!opts.silent) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
 
       var st = summaryState[kind];
       var fn = kind === 'drivers' ? 'dds_driver_event_summary' : 'dds_asset_event_summary';
       DB.rpc(fn, {
-        p_search: st.search || null, p_sort: st.sort, p_dir: st.dir, p_limit: 100, p_offset: 0,
+        p_search: st.search || null, p_sort: st.sort, p_dir: st.dir, p_limit: st.limit, p_offset: st.offset,
         p_from: st.from || null, p_to: st.to || null, p_shift: st.shift || null
       })
         .then(function(res){
           if(!summaryGuard[kind].isCurrent(token)) return;
           if(res.error) throw res.error;
-          st.rows = (res.data && res.data.rows) || [];
-          st.total = (res.data && res.data.total) || 0;
-          renderSummaryTable(kind);
+          var rows = (res.data && res.data.rows) || [];
+          var total = (res.data && res.data.total) || 0;
+          window.__ddsCache.set(key, { rows: rows, total: total });
+          var changed = JSON.stringify(rows) !== JSON.stringify(st.rows) || total !== st.total;
+          st.rows = rows;
+          st.total = total;
+          if(!opts.silent || changed) renderSummaryTable(kind);
+          renderSummaryPager(kind);
         }).catch(function(err){
           if(!summaryGuard[kind].isCurrent(token)) return;
           console.error((kind === 'drivers' ? 'Driver' : 'Asset') + ' event summary fetch failed', err);
-          errorTable(kind, err);
+          if(!opts.silent) errorTable(kind, err);
         });
+    }
+
+    // Same pager pattern as Alert Logs (al-page-prev/next/numbers, see
+    // renderSortHeaders() area above) — previously this table fetched a
+    // flat 100-row page with no way to reach anything past it, silently
+    // truncating any fleet with more than 100 flagged drivers/assets in
+    // the current filter window despite the footer's own "Showing N of
+    // total" text implying more existed.
+    function renderSummaryPager(kind){
+      var st = summaryState[kind];
+      var totalPages = Math.max(1, Math.ceil(st.total / st.limit));
+      var curPage = Math.floor(st.offset / st.limit) + 1;
+      var rangeEl = document.querySelector('[data-da-rowsrange="' + kind + '"]');
+      var shownFrom = st.total === 0 ? 0 : st.offset + 1;
+      var shownTo = Math.min(st.offset + st.limit, st.total);
+      if(rangeEl) rangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(st.total);
+
+      var prevBtn = document.querySelector('[data-da-page-prev="' + kind + '"]');
+      var nextBtn = document.querySelector('[data-da-page-next="' + kind + '"]');
+      if(prevBtn) prevBtn.disabled = curPage <= 1;
+      if(nextBtn) nextBtn.disabled = curPage >= totalPages;
+
+      var numsEl = document.querySelector('[data-da-page-numbers="' + kind + '"]');
+      if(numsEl){
+        var start = Math.max(1, curPage - 2);
+        var end = Math.min(totalPages, start + 4);
+        start = Math.max(1, end - 4);
+        var html = '';
+        for(var p = start; p <= end; p++){
+          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
+            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
+        }
+        numsEl.innerHTML = html;
+        numsEl.querySelectorAll('[data-page]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            st.offset = (Number(btn.getAttribute('data-page')) - 1) * st.limit;
+            loadSummaryTable(kind);
+          });
+        });
+      }
+    }
+    document.querySelectorAll('[data-da-page-prev]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var kind = btn.getAttribute('data-da-page-prev');
+        var st = summaryState[kind];
+        st.offset = Math.max(0, st.offset - st.limit);
+        loadSummaryTable(kind);
+      });
+    });
+    document.querySelectorAll('[data-da-page-next]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var kind = btn.getAttribute('data-da-page-next');
+        var st = summaryState[kind];
+        if(st.offset + st.limit < st.total) st.offset += st.limit;
+        loadSummaryTable(kind);
+      });
+    });
+
+    // Entry point used by load()/nav — shows cached rows instantly (if any
+    // exist for the current filters) with no loading flash, then always
+    // revalidates in the background so a stale cache never lingers past
+    // DA_CACHE_MAX_AGE_MS silently. A cold cache (nothing stored yet for
+    // this exact filter combination) falls back to the normal blocking
+    // fetch with its "Loading…" state, same as before this feature existed.
+    var DA_CACHE_MAX_AGE_MS = 2 * 60 * 1000;
+    function loadSummaryTableCached(kind){
+      var key = summaryCacheKey(kind);
+      var cached = window.__ddsCache.get(key);
+      if(cached){
+        summaryState[kind].rows = cached.rows;
+        summaryState[kind].total = cached.total;
+        renderSummaryTable(kind);
+        renderSummaryPager(kind);
+        if(window.__ddsCache.isStale(key, DA_CACHE_MAX_AGE_MS)) loadSummaryTable(kind, { silent: true });
+      } else {
+        loadSummaryTable(kind);
+      }
     }
 
     function renderSummaryTable(kind){
@@ -6979,6 +7285,18 @@
       if(!tbody) return;
       var st = summaryState[kind];
       var rows = st.rows;
+
+      // A silent background cache revalidation (loadSummaryTableCached())
+      // can call this mid-bulk-selection. Selection lives only as checked
+      // checkboxes in the DOM, so a bare innerHTML wipe would silently
+      // clear it with no feedback. Capture which ids were checked before
+      // clearing, and re-check the matching rows after rebuild — a driver/
+      // asset no longer present in the fresh rows is simply dropped from
+      // the selection, same as if the user had unchecked it themselves.
+      var checkedIds = kind === 'drivers'
+        ? Array.prototype.slice.call(tbody.querySelectorAll('[data-da-driver-check]:checked'))
+            .map(function(cb){ return cb.getAttribute('data-da-driver-check'); })
+        : [];
 
       tbody.innerHTML = '';
       if(!rows.length){
@@ -6993,6 +7311,13 @@
         rows.forEach(function(r){ tbody.appendChild(buildDriverRow(r)); });
       } else {
         rows.forEach(function(r){ tbody.appendChild(buildAssetRow(r)); });
+      }
+      if(kind === 'drivers' && checkedIds.length){
+        var checkedSet = {};
+        checkedIds.forEach(function(id){ checkedSet[id] = true; });
+        tbody.querySelectorAll('[data-da-driver-check]').forEach(function(cb){
+          if(checkedSet[cb.getAttribute('data-da-driver-check')]) cb.checked = true;
+        });
       }
       if(kind === 'drivers') updateDriversBulkBar();
 
@@ -7020,7 +7345,10 @@
         '<td>' + fmtEventCodes(r.eventCodes) + '</td>' +
         '<td><span class="da-week-count">' + fmtNum(r.total) + '</span></td>' +
         '<td>' + statusHtml + '</td>' +
-        '<td><button class="da-view-btn" type="button" data-da-detail="drivers|' + esc(r.empNo) + '">See details</button></td>';
+        '<td class="da-row-actions">' +
+          '<button class="da-view-btn" type="button" data-da-detail="drivers|' + esc(r.empNo) + '">See details</button>' +
+          '<button class="da-action-btn" type="button" data-da-openaction="drivers|' + esc(r.empNo) + '" title="Log a corrective action" aria-label="Log a corrective action for ' + esc(r.empName) + '">&#8942;</button>' +
+        '</td>';
       return tr;
     }
     function buildAssetRow(r){
@@ -7030,7 +7358,10 @@
         '<td>' + fmtEventCodes(r.eventCodes) + '</td>' +
         '<td><span class="da-week-count">' + fmtNum(r.total) + '</span></td>' +
         '<td>' + esc(fmtSyncSecondsShort(r.avgSyncSeconds)) + '</td>' +
-        '<td><button class="da-view-btn" type="button" data-da-detail="assets|' + esc(r.assetId) + '">See details</button></td>';
+        '<td class="da-row-actions">' +
+          '<button class="da-view-btn" type="button" data-da-detail="assets|' + esc(r.assetId) + '">See details</button>' +
+          '<button class="da-action-btn" type="button" data-da-openaction="assets|' + esc(r.assetId) + '" title="Log a corrective action" aria-label="Log a corrective action for ' + esc(r.assetId) + '">&#8942;</button>' +
+        '</td>';
       return tr;
     }
 
@@ -7052,6 +7383,7 @@
         var st = summaryState[kind];
         if(st.sort === col) st.dir = st.dir === 'asc' ? 'desc' : 'asc';
         else { st.sort = col; st.dir = col === 'total' ? 'desc' : 'asc'; }
+        st.offset = 0;
         loadSummaryTable(kind);
       });
     });
@@ -7120,8 +7452,30 @@
       var realEmpNos = empNos.filter(function(n){ return n !== 'UNSPECIFIED'; });
 
       var st = summaryState.drivers;
-      driversBulkApply.disabled = true;
-      driversBulkApply.textContent = 'Applying…';
+      var actionType = driversBulkAction.value;
+      var actionDate = driversBulkDate.value || null;
+      var statusValue = driversBulkStatus.value;
+      var remarks = isOther ? driversBulkOther.value.trim() : null;
+
+      // ---- Optimistic update: reflect the action in the UI immediately,
+      // before the database confirms it — the write happens in the
+      // background while the operator can already see it's done and keep
+      // working. Snapshot each affected row's prior `done` value first so
+      // a failed write can put it back exactly as it was (only `done`
+      // changes here — dds_driver_event_summary never told the client the
+      // underlying per-event action_type/status_value/remarks, so there's
+      // nothing else on this row to optimistically show or roll back).
+      var affectedRows = st.rows.filter(function(r){ return empNos.indexOf(r.empNo) !== -1; });
+      var revertSnapshot = affectedRows.map(function(r){ return { row: r, done: r.done }; });
+      affectedRows.forEach(function(r){ r.done = true; });
+      renderSummaryTable('drivers');
+      window.__ddsCache.set(summaryCacheKey('drivers'), { rows: st.rows, total: st.total });
+
+      driversBulkAction.value = ''; driversBulkOther.value = ''; driversBulkOther.classList.remove('on'); driversBulkDate.value = ''; driversBulkStatus.value = 'Logged';
+      driversTbody.querySelectorAll('[data-da-driver-check]').forEach(function(cb){ cb.checked = false; });
+      updateDriversBulkBar();
+
+      var jobId = syncJobStart(affectedRows.length || 1);
 
       // One set-based RPC (0039_bulk_log_case_by_driver) selects and writes
       // every matching event in a single indexed statement, instead of
@@ -7136,21 +7490,26 @@
         p_from: st.from || null,
         p_to: st.to || null,
         p_shift: st.shift || null,
-        p_action_type: driversBulkAction.value,
+        p_action_type: actionType,
         p_action_is_other: isOther,
-        p_action_date: driversBulkDate.value || null,
-        p_status_value: driversBulkStatus.value,
-        p_remarks: isOther ? driversBulkOther.value.trim() : null
+        p_action_date: actionDate,
+        p_status_value: statusValue,
+        p_remarks: remarks
       }).then(function(res){
         if(res.error) throw res.error;
-        driversBulkAction.value = ''; driversBulkOther.value = ''; driversBulkOther.classList.remove('on'); driversBulkDate.value = ''; driversBulkStatus.value = 'Logged';
-        loadSummaryTable('drivers');
+        syncJobProgress(jobId, affectedRows.length || 1);
+        syncJobDone(jobId);
+        // Quiet re-fetch to reconcile with the server's actual done/total
+        // values (e.g. another user's change, or a driver whose events
+        // span outside the naive optimistic guess) — doesn't disturb the
+        // already-updated table unless something genuinely differs.
+        loadSummaryTable('drivers', { silent: true });
       }).catch(function(err){
         console.error('Bulk driver action failed', err);
-        alert('Could not save: ' + ((err && err.message) || 'unknown error'));
-      }).finally(function(){
-        driversBulkApply.disabled = false;
-        driversBulkApply.textContent = 'Apply to selected';
+        revertSnapshot.forEach(function(entry){ entry.row.done = entry.done; });
+        renderSummaryTable('drivers');
+        window.__ddsCache.set(summaryCacheKey('drivers'), { rows: st.rows, total: st.total });
+        syncJobError(jobId, 'Could not save — changes reverted');
       });
     });
 
@@ -7205,6 +7564,7 @@
       input.addEventListener('input', function(){
         var kind = input.getAttribute('data-da-search');
         summaryState[kind].search = input.value.trim();
+        summaryState[kind].offset = 0;
         clearTimeout(searchTimers[kind]);
         searchTimers[kind] = setTimeout(function(){ loadSummaryTable(kind); }, 250);
       });
@@ -7218,12 +7578,12 @@
       var refreshEl = document.getElementById('da-refresh-' + kind);
       var clearEl = document.getElementById('da-clear-' + kind);
       var searchEl = document.querySelector('[data-da-search="' + kind + '"]');
-      if(fromEl) fromEl.addEventListener('change', function(){ summaryState[kind].from = fromEl.value || null; loadSummaryTable(kind); });
-      if(toEl) toEl.addEventListener('change', function(){ summaryState[kind].to = toEl.value || null; loadSummaryTable(kind); });
-      if(shiftEl) shiftEl.addEventListener('change', function(){ summaryState[kind].shift = shiftEl.value || null; loadSummaryTable(kind); });
+      if(fromEl) fromEl.addEventListener('change', function(){ summaryState[kind].from = fromEl.value || null; summaryState[kind].offset = 0; loadSummaryTable(kind); });
+      if(toEl) toEl.addEventListener('change', function(){ summaryState[kind].to = toEl.value || null; summaryState[kind].offset = 0; loadSummaryTable(kind); });
+      if(shiftEl) shiftEl.addEventListener('change', function(){ summaryState[kind].shift = shiftEl.value || null; summaryState[kind].offset = 0; loadSummaryTable(kind); });
       if(refreshEl) refreshEl.addEventListener('click', function(){ loadSummaryTable(kind); });
       if(clearEl) clearEl.addEventListener('click', function(){
-        summaryState[kind].from = null; summaryState[kind].to = null; summaryState[kind].shift = null; summaryState[kind].search = '';
+        summaryState[kind].from = null; summaryState[kind].to = null; summaryState[kind].shift = null; summaryState[kind].search = ''; summaryState[kind].offset = 0;
         if(fromEl) fromEl.value = '';
         if(toEl) toEl.value = '';
         if(shiftEl) shiftEl.value = '';
@@ -7262,7 +7622,22 @@
     function openActionModal(key){
       var parts = key.split('|'); var kind = parts[0], id = parts[1];
       var rec = findRecord(kind, id);
-      if(!rec) return;
+      if(!rec){
+        // The weekly-risk background fetch (fetchWeekly(), populates this
+        // modal's `state`) can still be in flight when a user clicks the
+        // action button on a row that already rendered from the faster
+        // summary-table fetch. Rather than a silent no-op, fall back to a
+        // minimal record from what the visible row actually has.
+        var visible = (summaryState[kind].rows || []).find(function(r){
+          return (kind === 'drivers' ? r.empNo : r.assetId) === id;
+        });
+        if(!visible) return;
+        rec = {
+          id: id,
+          name: kind === 'drivers' ? visible.empName : visible.assetId,
+          days: {}
+        };
+      }
       currentTarget = { kind:kind, id:id };
       selectedType = null;
 
@@ -7553,8 +7928,15 @@
       bulkBar.style.display = kind === 'drivers' ? '' : 'none';
       instMask.classList.add('on');
 
+      // Scoped to the table's own active from/to/shift filter — same as the
+      // bulk-apply path below — so the total shown here always matches what
+      // the filtered row on the table just showed, instead of silently
+      // widening to all-time.
+      var st = summaryState[kind];
       var fn = kind === 'drivers' ? 'dds_driver_alert_instances' : 'dds_asset_alert_instances';
-      var params = kind === 'drivers' ? { p_emp_no: id, p_from: null, p_to: null } : { p_asset_id: id, p_from: null, p_to: null };
+      var params = kind === 'drivers'
+        ? { p_emp_no: id, p_from: st.from || null, p_to: st.to || null }
+        : { p_asset_id: id, p_from: st.from || null, p_to: st.to || null };
       DB.rpc(fn, params).then(function(res){
         if(!instGuard.isCurrent(token)) return;
         if(res.error) throw res.error;
