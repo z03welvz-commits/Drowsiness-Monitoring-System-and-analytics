@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -23,6 +23,26 @@
        selectors via var() so light and dark share one source of truth
        instead of a second hand-maintained dark color list. */
     --surface2:#fbfcfe; --text-dim:#1e293b;
+
+    /* Type scale, named by role rather than by pixel value. Documents the
+       tiers that already exist in practice (surveyed live: 23 distinct
+       font-size values across 243 declarations) rather than changing
+       rendered sizes — several apparent near-duplicates (9px vs 9.5px,
+       11px vs 11.5px) turned out to be two real, separately-used tiers on
+       closer read (9px = badge/pill/status-tag text, 9.5px = table
+       headers/KPI labels/muted metadata; 11px = compact control text,
+       11.5px = the app's default body/button size), not drift — so this
+       intentionally does NOT collapse them. New rules should reach for one
+       of these tokens by name; a value that doesn't fit any tier here is
+       the signal to extend the scale deliberately, not add another
+       one-off pixel value. */
+    --fs-badge:9px;      /* pill badges, status tags, file-type icon letters */
+    --fs-label:9.5px;    /* table headers, KPI labels, muted secondary metadata */
+    --fs-caption:10.5px; /* compact controls, toggle buttons, secondary buttons */
+    --fs-body:11.5px;    /* default body text, primary buttons, table cell text */
+    --fs-subhead:13.5px; /* card sub-headings, section intros */
+    --fs-heading:15px;   /* card/chart titles */
+    --fs-display:29px;   /* page title (h1) */
   }
   /* Dark theme — applied via [data-theme="dark"] on <html>, toggled from
      Settings > Personalization or the sidebar's Dark mode switch
@@ -68,8 +88,8 @@
   .brand-sub{font-size:10px;color:#b9d7fb;margin-top:5px}
 
   .nav{padding:22px 14px;overflow-y:auto;flex:1 1 auto}
-  .section-label{font-size:9px;letter-spacing:.08em;color:#7fa3d6;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase}
-  .nav-item{all:unset;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:13.5px;margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
+  .section-label{font-size:var(--fs-badge);letter-spacing:.08em;color:#7fa3d6;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase}
+  .nav-item{all:unset;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
   .nav-item:hover{background:rgba(255,255,255,.07)}
   .nav-item:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .nav-item.active{background:#1361d8;color:#fff;font-weight:600}
@@ -87,7 +107,7 @@
 
   .main{min-width:0;flex:1;padding:20px 26px 30px;background:var(--bg)}
   .card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);transition:box-shadow .2s}
-  button.btn,.control{height:38px;border:1px solid var(--border);background:var(--card);border-radius:9px;color:var(--text-dim);font-size:11.5px;padding:0 12px;transition:border-color .15s,box-shadow .15s,background-color .15s}
+  button.btn,.control{height:38px;border:1px solid var(--border);background:var(--card);border-radius:9px;color:var(--text-dim);font-size:var(--fs-body);padding:0 12px;transition:border-color .15s,box-shadow .15s,background-color .15s}
   button.btn:hover,.control:hover{border-color:var(--border)}
   button.btn:focus-visible,.control:focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--blue)}
 
@@ -104,7 +124,7 @@
   .topbar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;
     position:sticky;top:0;z-index:5;background:var(--bg);padding-top:20px;margin-top:-20px}
   .page-sticky-filters{position:sticky;z-index:4;background:var(--bg)}
-  .title h1{font-size:29px;margin:0;font-weight:800;color:var(--text-dim);line-height:1.05;letter-spacing:-.01em}
+  .title h1{font-size:var(--fs-display);margin:0;font-weight:800;color:var(--text-dim);line-height:1.05;letter-spacing:-.01em}
   .title p{font-size:12.5px;color:var(--muted);margin:7px 0 0}
   .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
   .user{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:650;margin-right:2px;white-space:nowrap}
@@ -122,8 +142,8 @@
   .hero-text h2{margin:0;font-size:19px;font-weight:750;letter-spacing:-.01em}
   .hero-text p{margin:5px 0 0;font-size:12.5px;color:#c9defb}
   .hero-status{text-align:right;flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
-  .hero-status-label{font-size:10.5px;color:#a9c8f0;letter-spacing:.02em}
-  .status-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);font-size:11.5px;font-weight:650}
+  .hero-status-label{font-size:var(--fs-caption);color:#a9c8f0;letter-spacing:.02em}
+  .status-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);font-size:var(--fs-body);font-weight:650}
   .status-pill .livedot{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.25)}
 
   /* ---------- kpi row ---------- */
@@ -135,7 +155,7 @@
   .kpi-icon svg{width:16px;height:16px}
   .red{background:#fee8e8;color:#ef4444}.pink{background:#fde7ec;color:#ec4a75}.amber{background:#fdf0dc;color:#e8952e}
   .bluebg{background:#e3edfd;color:#3b7cf6}.greenbg{background:#dff5ea;color:#18a05e}.purplebg{background:#f0e9fc;color:#7c3aed}
-  .kpi-value{font-size:29px;font-weight:800;margin-top:11px;letter-spacing:-.02em}
+  .kpi-value{font-size:var(--fs-display);font-weight:800;margin-top:11px;letter-spacing:-.02em}
   .kpi-sub{font-size:11px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:5px}
   .kpi-sub .delta{font-weight:700}
   .kpi-sub .delta.down{color:#dc2626}
@@ -172,13 +192,13 @@
   .chart-title-group{display:flex;align-items:center;gap:10px}
   .chart-icon{width:28px;height:28px;border-radius:8px;background:#eaf1fd;display:grid;place-items:center;flex:0 0 auto}
   .chart-icon svg{width:14px;height:14px;color:#2563eb}
-  .chart-title{font-size:13.5px;font-weight:700;color:#1259b6}
+  .chart-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6}
   .event-filter{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--border);border-radius:9px;font-size:11px;color:var(--text-dim);background:var(--card);cursor:pointer}
   .event-filter svg{width:11px;height:11px;color:var(--muted)}
 
   .chart-area{padding-top:6px}
   .chart-area svg{width:100%;height:auto}
-  .axis{font-size:9px;fill:#64748b}
+  .axis{font-size:var(--fs-badge);fill:#64748b}
   .gridline{stroke:var(--grid);stroke-width:1}
   .hourbar.critical{fill:#e53553}
   .hourbar.high{fill:#f0902e}
@@ -197,18 +217,18 @@
   .stat-tile-icon.red{background:#fee8e8;color:#ef4444}
   .stat-tile-icon.blue{background:#e3edfd;color:#3b7cf6}
   .stat-tile-body{min-width:0}
-  .stat-tile-label{font-size:11.5px;font-weight:650;color:var(--text-dim)}
+  .stat-tile-label{font-size:var(--fs-body);font-weight:650;color:var(--text-dim)}
   .stat-tile-value{font-size:21px;font-weight:800;margin-top:5px;letter-spacing:-.01em}
-  .stat-tile-caption{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .stat-tile-caption{font-size:var(--fs-caption);color:var(--muted);margin-top:3px}
 
   /* trend line chart (7-day total alerts) */
   .trend-line{fill:none;stroke:#2563eb;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
   .trend-area{fill:url(#trendFill);opacity:1}
   .trend-mean{stroke:#cbd5e1;stroke-width:1.25;stroke-dasharray:4 4}
-  .trend-mean-label{font-size:9px;fill:#94a3b8}
+  .trend-mean-label{font-size:var(--fs-badge);fill:#94a3b8}
   .trend-dot{fill:#fff;stroke:#2563eb;stroke-width:2.5}
   .trend-dot.peak{stroke:#e53553;fill:#e53553}
-  .trend-badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px}
+  .trend-badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-caption);font-weight:700;padding:4px 10px;border-radius:999px}
   .trend-badge.down{background:#dff5ea;color:#12805f}
   .trend-badge.up{background:#fdeaea;color:#c0271f}
 
@@ -220,7 +240,7 @@
   .feed-icon svg{width:14px;height:14px}
   .feed-icon.blue{background:#2e80e9;color:#fff}
   .feed-icon.green{background:#16a34a;color:#fff}
-  .feed-title{font-size:13.5px;font-weight:750;color:#1259b6}
+  .feed-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6}
   .feed-title.green-title{color:#16803c}
   .view-all{background:none;border:none;color:#2563eb;font-size:11px;font-weight:650;cursor:pointer;padding:4px 6px;border-radius:6px}
   .view-all:hover{background:#edf5ff}
@@ -241,8 +261,8 @@
   .feed-main{font-size:12px;color:var(--text-dim);font-weight:650;line-height:1.4}
   .feed-main .unit-tag{color:#1259b6}
   .feed-main .repeat-tag{color:#c0271f;font-weight:700}
-  .feed-sub{font-size:10.5px;color:var(--muted);margin-top:2px}
-  .feed-sev{font-size:9px;font-weight:750;padding:3px 8px;border-radius:6px;flex:0 0 auto;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;align-self:flex-start;margin-top:1px}
+  .feed-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:2px}
+  .feed-sev{font-size:var(--fs-badge);font-weight:750;padding:3px 8px;border-radius:6px;flex:0 0 auto;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;align-self:flex-start;margin-top:1px}
   .feed-sev.critical{background:#fdeaea;color:#e53553}
   .feed-sev.high{background:#fdf0dc;color:#e8952e}
   .feed-sev.moderate{background:#e3edfd;color:#3b7cf6}
@@ -250,7 +270,7 @@
   .feed-sev.active{background:#e3edfd;color:#3b7cf6}
 
   .feed-footer{padding:11px 17px;display:flex;justify-content:center;border-top:1px solid var(--border)}
-  .feed-footer button{background:none;border:none;color:#1259b6;font-size:11.5px;font-weight:650;padding:6px 12px;border-radius:7px;transition:background-color .15s;display:inline-flex;align-items:center;gap:6px}
+  .feed-footer button{background:none;border:none;color:#1259b6;font-size:var(--fs-body);font-weight:650;padding:6px 12px;border-radius:7px;transition:background-color .15s;display:inline-flex;align-items:center;gap:6px}
   .feed-footer button:hover{background:#edf5ff}
   .feed-footer button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
   .feed-footer svg{width:11px;height:11px}
@@ -265,8 +285,8 @@
   .action-main{font-size:12px;color:var(--text-dim);line-height:1.4}
   .action-main strong{font-weight:700}
   .action-main .time-ago{color:var(--muted);font-weight:500}
-  .action-sub{font-size:10.5px;color:var(--muted);margin-top:2px}
-  .action-badge{font-size:9px;font-weight:750;padding:3px 8px;border-radius:6px;flex:0 0 auto;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;align-self:flex-start;margin-top:1px}
+  .action-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:2px}
+  .action-badge{font-size:var(--fs-badge);font-weight:750;padding:3px 8px;border-radius:6px;flex:0 0 auto;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;align-self:flex-start;margin-top:1px}
   .action-badge.resolved{background:#dff5ea;color:#18a05e}
   .action-badge.active{background:#e3edfd;color:#3b7cf6}
 
@@ -282,7 +302,7 @@
      shadow still come from .card everywhere — the .an- prefix below only
      covers what's genuinely Analytics-specific. */
   .an-insights-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-  .an-synced-note{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#18a05e;font-weight:500}
+  .an-synced-note{display:flex;align-items:center;gap:6px;font-size:var(--fs-body);color:#18a05e;font-weight:500}
   .an-synced-note::before{content:'';width:6px;height:6px;border-radius:50%;background:#18a05e;flex:0 0 auto}
 
   /* Key Insights: 4 KPI columns + 1 wider "alert type count" column, divided
@@ -295,9 +315,9 @@
   .an-kpi-head{display:flex;align-items:center;gap:8px}
   .an-kpi-icon{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto}
   .an-kpi-icon svg{width:14px;height:14px}
-  .an-kpi-label{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.03em}
+  .an-kpi-label{font-size:var(--fs-caption);font-weight:700;color:var(--muted);letter-spacing:.03em}
   .an-kpi-value{font-size:23px;font-weight:800;color:var(--text);margin-top:8px}
-  .an-kpi-sub{font-size:11.5px;margin-top:3px;color:var(--muted)}
+  .an-kpi-sub{font-size:var(--fs-body);margin-top:3px;color:var(--muted)}
   .an-kpi-sub .delta{font-weight:650}
   .an-kpi-sub .delta.up{color:#18a05e}
   .an-kpi-sub .delta.down{color:#e53553}
@@ -319,8 +339,8 @@
   .an-row-wide-table{grid-template-columns:1.55fr 1fr}
   .an-chart-card{padding:0 14px 12px;overflow:hidden}
   .an-chart-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-  .an-chart-title{font-size:14.5px;font-weight:700;color:var(--text)}
-  .an-legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);font-weight:500}
+  .an-chart-title{font-size:14.5px;font-weight:750;color:var(--text)}
+  .an-legend{display:flex;gap:14px;font-size:var(--fs-body);color:var(--muted);font-weight:500}
   .an-legend span{display:flex;align-items:center;gap:5px}
   .an-swatch{width:16px;height:2px;border-radius:2px;flex:0 0 auto;display:inline-block}
   .an-swatch.dashed{background:none!important;border-top:2px dashed #2954e8}
@@ -351,17 +371,17 @@
 
   /* Contributing Factors table (real data — jsx shows only a static empty
      state; this table replaces that placeholder whenever factors exist) */
-  .an-factor-table{width:100%;border-collapse:collapse;font-size:11.5px}
-  .an-factor-table th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:650;padding:0 8px 8px;border-bottom:1px solid var(--border)}
+  .an-factor-table{width:100%;border-collapse:collapse;font-size:var(--fs-body)}
+  .an-factor-table th{text-align:left;font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:650;padding:0 8px 8px;border-bottom:1px solid var(--border)}
   .an-factor-table td{padding:9px 8px;border-bottom:1px solid var(--border);color:var(--text-dim);vertical-align:middle}
   .an-factor-table tr:last-child td{border-bottom:none}
-  .an-impact-badge{font-size:9px;font-weight:750;padding:3px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+  .an-impact-badge{font-size:var(--fs-badge);font-weight:750;padding:3px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
   .an-impact-badge.high{background:#fdeaea;color:#e53553}
   .an-impact-badge.medium{background:#fdf0dc;color:#e8952e}
   .an-impact-badge.low{background:#dff5ea;color:#18a05e}
   .an-factor-link{background:none;border:none;color:#2563eb;font-size:11px;font-weight:650;cursor:pointer;padding:0}
   .an-factor-link:hover{text-decoration:underline}
-  .an-factor-detail{font-size:10.5px;color:var(--muted);padding:0 8px 9px;margin-top:-4px}
+  .an-factor-detail{font-size:var(--fs-caption);color:var(--muted);padding:0 8px 9px;margin-top:-4px}
   .an-factors-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0;text-align:center}
   .an-factors-empty-icon{width:54px;height:54px;border-radius:12px;background:#f1f3f8;display:grid;place-items:center;margin-bottom:12px;color:var(--muted)}
   .an-factors-empty-text{font-size:12.5px;color:var(--muted);font-weight:500}
@@ -373,8 +393,8 @@
   .an-donut-wrap svg{width:100%;height:100%}
   .an-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .an-donut-center b{font-size:16px;font-weight:800;color:var(--text)}
-  .an-donut-center span{font-size:9.5px;color:var(--muted)}
-  .an-donut-legend{display:flex;flex-direction:column;gap:8px;font-size:11.5px;flex:1;min-width:0}
+  .an-donut-center span{font-size:var(--fs-label);color:var(--muted)}
+  .an-donut-legend{display:flex;flex-direction:column;gap:8px;font-size:var(--fs-body);flex:1;min-width:0}
   .an-donut-legend-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .an-donut-legend-name{display:flex;align-items:center;gap:6px;color:var(--text);font-weight:500;min-width:0}
   .an-donut-legend-name i{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
@@ -383,13 +403,15 @@
 
   /* Recent Alerts Overview table (page-local — Alert Logs owns the full paginated table) */
   .an-alerts-table{width:100%;border-collapse:collapse;font-size:12.5px}
-  .an-alerts-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:700;padding:0 10px 10px 0;border-bottom:1px solid var(--border);white-space:nowrap}
+  .an-alerts-table th{text-align:left;font-size:var(--fs-caption);text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:700;padding:0 10px 10px 0;border-bottom:1px solid var(--border);white-space:nowrap}
+  .an-alerts-table th[data-sort]{cursor:pointer;user-select:none}
+  .an-alerts-table th[data-sort]:hover{color:#1259b6}
+  .an-alerts-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
+  .an-alerts-table th[data-sort].sorted.asc::after{content:' ▴'}
   .an-alerts-table td{padding:9px 10px 9px 0;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
   .an-alerts-table tbody tr:hover td{background:var(--surface2)}
   .an-alert-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
-  .an-alerts-foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:11.5px;color:var(--muted)}
-  .an-alerts-pages{display:flex;align-items:center;gap:4px}
-  .an-page-btn{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;color:var(--muted);cursor:default}
+  .an-alerts-foot{display:flex;align-items:center;margin-top:14px;font-size:var(--fs-body);color:var(--muted)}
 
   /* ---------- Alert Logs page (al- prefix avoids colliding with Overview/Analytics chrome classes) ---------- */
   .al-summary{display:grid;grid-template-columns:1.15fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px}
@@ -397,16 +419,16 @@
   .al-sc.crit{border-left-color:#e53553}
   .al-sc.pend{border-left-color:#e8952e}
   .al-sc.act{border-left-color:#18a05e}
-  .al-sc-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+  .al-sc-label{font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
   .al-sc-value{font-size:24px;font-weight:800;margin-top:8px;letter-spacing:-.01em}
-  .al-sc-sub{font-size:10.5px;color:var(--muted);margin-top:4px}
+  .al-sc-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:4px}
 
   .al-table-card{padding:0}
   .al-table-head{min-height:54px;padding:14px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .al-table-title{font-size:13.5px;font-weight:750;color:#1259b6;flex:0 0 auto}
-  .al-table-title small{font-size:10.5px;color:var(--muted);font-weight:500;margin-left:8px}
+  .al-table-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6;flex:0 0 auto}
+  .al-table-title small{font-size:var(--fs-caption);color:var(--muted);font-weight:500;margin-left:8px}
   .al-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:0 0 auto}
-  .al-toggle button{all:unset;box-sizing:border-box;cursor:pointer;font-size:10.5px;padding:7px 13px;color:var(--muted);font-weight:600}
+  .al-toggle button{all:unset;box-sizing:border-box;cursor:pointer;font-size:var(--fs-caption);padding:7px 13px;color:var(--muted);font-weight:600}
   .al-toggle button.on{background:#eaf1fd;color:#1259b6}
 
   .al-filters{padding:11px 17px;display:flex;align-items:center;gap:9px;flex-wrap:nowrap;border-bottom:1px solid var(--border);background:var(--surface2)}
@@ -421,7 +443,7 @@
   .al-table-wrap{overflow-x:auto;overflow-y:auto}
   .al-table{width:100%;border-collapse:collapse;min-width:1500px}
   .al-table thead th{position:sticky;top:0;z-index:1}
-  .al-table th{height:34px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 11px;background:var(--surface2);white-space:nowrap}
+  .al-table th{height:34px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 11px;background:var(--surface2);white-space:nowrap}
   .al-table th[data-sort]{cursor:pointer;user-select:none}
   .al-table th[data-sort]:hover{color:#1259b6}
   .al-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
@@ -441,11 +463,11 @@
   #page-alerts.active .al-summary{flex:0 0 auto}
   #page-alerts.active .al-table-card{flex:1;min-height:0;display:flex;flex-direction:column}
   #page-alerts.active .al-table-wrap{flex:1;min-height:0}
-  .al-badge{display:inline-flex;height:21px;align-items:center;border-radius:999px;padding:0 9px;font-size:9px;font-weight:750;text-transform:uppercase;letter-spacing:.02em}
+  .al-badge{display:inline-flex;height:21px;align-items:center;border-radius:999px;padding:0 9px;font-size:var(--fs-badge);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .al-badge.critical{background:#fdeaea;color:#e53553}
   .al-badge.high{background:#fdf0dc;color:#e8952e}
   .al-badge.moderate{background:#e3edfd;color:#3b7cf6}
-  .al-status{font-size:10.5px;font-weight:650;display:inline-flex;align-items:center;gap:5px}
+  .al-status{font-size:var(--fs-caption);font-weight:650;display:inline-flex;align-items:center;gap:5px}
   .al-status::before{content:'';width:6px;height:6px;border-radius:50%;flex:0 0 auto}
   .al-status.reviewed{color:#18a05e}
   .al-status.reviewed::before{background:#18a05e}
@@ -473,18 +495,18 @@
   .al-action-other.on{display:block}
   td[data-al-empname].unknown{color:#e53553}
 
-  .al-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:10.5px;flex-wrap:wrap;gap:8px}
+  .al-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
   .al-pages{display:flex;gap:5px;align-items:center}
-  .al-page{all:unset;box-sizing:border-box;cursor:pointer;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;display:grid;place-items:center;background:var(--card);font-size:10.5px;color:var(--text-dim)}
+  .al-page{all:unset;box-sizing:border-box;cursor:pointer;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;display:grid;place-items:center;background:var(--card);font-size:var(--fs-caption);color:var(--text-dim)}
   .al-page.on{background:#1259b6;color:#fff;border-color:#1259b6}
   .al-page:disabled{opacity:.45;cursor:default}
 
   /* ---------- Data Management page (dm- prefix) ---------- */
   .dm-sync{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:7px 14px;flex:0 0 auto}
-  .dm-sync-top{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:650;color:var(--text-dim)}
+  .dm-sync-top{display:flex;align-items:center;gap:6px;font-size:var(--fs-body);font-weight:650;color:var(--text-dim)}
   .dm-sync-dot{width:6px;height:6px;border-radius:50%;background:#18a05e;flex:0 0 auto}
   .dm-sync-date{font-size:10px;color:var(--muted);padding-left:12px}
-  button.dm-btn-primary{all:unset;box-sizing:border-box;cursor:pointer;height:38px;display:inline-flex;align-items:center;gap:8px;padding:0 15px;border-radius:9px;background:var(--blue);color:#fff;font-size:11.5px;font-weight:650}
+  button.dm-btn-primary{all:unset;box-sizing:border-box;cursor:pointer;height:38px;display:inline-flex;align-items:center;gap:8px;padding:0 15px;border-radius:9px;background:var(--blue);color:#fff;font-size:var(--fs-body);font-weight:650}
   button.dm-btn-primary:hover{background:#1d4fd1}
   button.dm-btn-primary svg{width:13px;height:13px}
   button.control.dm-refresh{display:inline-flex;align-items:center;gap:7px}
@@ -503,8 +525,8 @@
   .dm-toprow{display:flex;gap:14px;align-items:stretch;margin-bottom:14px;flex-wrap:wrap}
   .dm-toprow > .card{flex:1 1 0;min-width:280px;display:flex;flex-direction:column}
   .dm-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
-  .dm-card-title{font-size:13.5px;font-weight:750;color:var(--text-dim)}
-  .dm-card-sub{font-size:10.5px;color:var(--muted);margin-top:3px;font-weight:500}
+  .dm-card-title{font-size:var(--fs-subhead);font-weight:750;color:var(--text-dim)}
+  .dm-card-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:3px;font-weight:500}
   .dm-panel{padding:18px 20px 20px}
 
   .dm-dropzone{border:1.5px dashed var(--border);border-radius:12px;background:var(--surface2);flex:1;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:20px;text-align:center;transition:border-color .15s,background-color .15s}
@@ -512,7 +534,7 @@
   .dm-dropzone.busy{border-style:solid;border-color:var(--blue);background:var(--card)}
   .dm-progress-track{width:100%;max-width:220px;height:7px;background:var(--surface2);border-radius:99px;overflow:hidden;margin:4px 0}
   .dm-progress-fill{height:100%;background:var(--blue);border-radius:99px;transition:width .2s ease}
-  .dm-upload-cancel{all:unset;box-sizing:border-box;cursor:pointer;font-size:10.5px;font-weight:650;color:#c0271f;padding:4px 10px;border-radius:6px;border:1px solid #f3c9c9;margin-top:2px}
+  .dm-upload-cancel{all:unset;box-sizing:border-box;cursor:pointer;font-size:var(--fs-caption);font-weight:650;color:#c0271f;padding:4px 10px;border-radius:6px;border:1px solid #f3c9c9;margin-top:2px}
   .dm-upload-cancel:hover{background:#fdeaea}
   .dm-drop-note.error{color:#c0271f;font-weight:600}
   .dm-drop-note.success{color:#18a05e;font-weight:600}
@@ -522,18 +544,18 @@
   .dm-drop-or{font-size:10px;color:var(--muted);margin:2px 0}
   button.dm-choose{all:unset;box-sizing:border-box;cursor:pointer;height:35px;padding:0 16px;border-radius:8px;background:var(--blue);color:#fff;font-size:11px;font-weight:650;margin:2px 0 10px}
   button.dm-choose:hover{background:#1d4fd1}
-  .dm-drop-note{font-size:9.5px;color:var(--muted);line-height:1.6}
+  .dm-drop-note{font-size:var(--fs-label);color:var(--muted);line-height:1.6}
 
   /* upload history list (compact, lives in the upper row) */
   .dm-hist-list{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto;max-height:230px}
   .dm-hist-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid var(--border)}
   .dm-hist-row:first-child{border-top:none}
-  .dm-hist-icon{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;font-size:9px;font-weight:800;color:#fff;flex:0 0 auto}
+  .dm-hist-icon{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;font-size:var(--fs-badge);font-weight:800;color:#fff;flex:0 0 auto}
   .dm-hist-body{flex:1;min-width:0}
   .dm-hist-name{font-size:11px;font-weight:650;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .dm-hist-meta{font-size:9.5px;color:var(--muted);margin-top:1px}
+  .dm-hist-meta{font-size:var(--fs-label);color:var(--muted);margin-top:1px}
   .dm-hist-status{font-size:8.5px;font-weight:750;padding:3px 8px;border-radius:999px;background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em;flex:0 0 auto;white-space:nowrap}
-  .dm-hist-link{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:10.5px;font-weight:650;display:inline-flex;align-items:center;gap:4px}
+  .dm-hist-link{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:var(--fs-caption);font-weight:650;display:inline-flex;align-items:center;gap:4px}
   .dm-hist-link:hover{text-decoration:underline}
   .dm-hist-link svg{width:10px;height:10px}
 
@@ -541,17 +563,17 @@
   .dm-manual-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:10px 6px}
   .dm-manual-icon{width:48px;height:48px;border-radius:50%;background:#f0e9fc;display:grid;place-items:center}
   .dm-manual-icon svg{width:21px;height:21px;color:#7c3aed}
-  .dm-manual-text{font-size:10.5px;color:var(--muted);line-height:1.5;max-width:220px}
-  button.dm-manual-btn{all:unset;box-sizing:border-box;cursor:pointer;height:37px;padding:0 18px;border-radius:8px;background:#7c3aed;color:#fff;font-size:11.5px;font-weight:650;display:inline-flex;align-items:center;gap:7px}
+  .dm-manual-text{font-size:var(--fs-caption);color:var(--muted);line-height:1.5;max-width:220px}
+  button.dm-manual-btn{all:unset;box-sizing:border-box;cursor:pointer;height:37px;padding:0 18px;border-radius:8px;background:var(--blue);color:#fff;font-size:var(--fs-body);font-weight:650;display:inline-flex;align-items:center;gap:7px}
   button.dm-manual-btn:hover{background:#6b28d9}
   button.dm-manual-btn svg{width:13px;height:13px}
-  .dm-manual-recent{font-size:9.5px;color:var(--muted);margin-top:2px}
+  .dm-manual-recent{font-size:var(--fs-label);color:var(--muted);margin-top:2px}
 
   /* full-width records table */
   .dm-records-card{padding:0}
   .dm-records-head{padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
   .dm-records-title{font-size:14px;font-weight:750;color:var(--text-dim)}
-  .dm-records-title small{font-size:10.5px;color:var(--muted);font-weight:500;margin-left:8px}
+  .dm-records-title small{font-size:var(--fs-caption);color:var(--muted);font-weight:500;margin-left:8px}
   .dm-search{flex:1 1 340px;max-width:520px;height:36px;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 11px}
   .dm-search svg{width:13px;height:13px;flex:0 0 auto;color:var(--muted)}
   .dm-search input{all:unset;box-sizing:border-box;flex:1;min-width:0;font-size:11px;color:var(--text-dim)}
@@ -559,20 +581,24 @@
 
   .dm-table-wrap{overflow-x:auto}
   .dm-table{width:100%;border-collapse:collapse;min-width:660px}
-  .dm-table th{height:36px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
+  .dm-table th{height:36px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
+  .dm-table th[data-sort]{cursor:pointer;user-select:none}
+  .dm-table th[data-sort]:hover{color:#1259b6}
+  .dm-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
+  .dm-table th[data-sort].sorted.asc::after{content:' ▴'}
   .dm-table td{height:50px;border-bottom:1px solid var(--border);padding:0 10px;font-size:11px;color:var(--text-dim);white-space:nowrap}
   .dm-table tr:last-child td{border-bottom:none}
   .dm-table tr:hover td{background:var(--surface2)}
   .dm-file{display:flex;align-items:center;gap:9px;font-weight:650;color:var(--text-dim)}
-  .dm-file-icon{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;font-size:9px;font-weight:800;color:#fff;flex:0 0 auto}
+  .dm-file-icon{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;font-size:var(--fs-badge);font-weight:800;color:#fff;flex:0 0 auto}
   .dm-tag{font-size:10px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap}
-  .dm-status{font-size:9.5px;font-weight:750;padding:4px 10px;border-radius:999px;background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em}
+  .dm-status{font-size:var(--fs-label);font-weight:750;padding:4px 10px;border-radius:999px;background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em}
   .dm-row-actions{display:flex;align-items:center;gap:6px}
   button.dm-icon-btn{all:unset;box-sizing:border-box;cursor:pointer;width:27px;height:27px;border:1px solid var(--border);border-radius:7px;display:grid;place-items:center;color:var(--muted)}
   button.dm-icon-btn:hover{border-color:var(--border);background:var(--surface2)}
   button.dm-icon-btn svg{width:12px;height:12px}
-  .dm-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:var(--muted);font-size:10.5px;flex-wrap:wrap;gap:8px}
-  .dm-no-results{padding:40px 18px;text-align:center;color:var(--muted);font-size:11.5px}
+  .dm-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
+  .dm-no-results{padding:40px 18px;text-align:center;color:var(--muted);font-size:var(--fs-body)}
 
   /* manual-add modal */
   .dm-modal-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
@@ -580,21 +606,21 @@
   .dm-modal{background:var(--card);border-radius:14px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(15,23,42,.25)}
   .dm-modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border)}
   .dm-modal-title{font-size:14px;font-weight:750;color:var(--text-dim)}
-  .dm-modal-sub{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .dm-modal-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:3px}
   button.dm-modal-close{all:unset;box-sizing:border-box;cursor:pointer;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--muted)}
   button.dm-modal-close:hover{background:var(--surface2)}
   button.dm-modal-close svg{width:14px;height:14px}
   .dm-modal-body{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
   .dm-modal-field label{display:block;font-size:11px;font-weight:700;color:var(--text-dim);margin-bottom:6px}
-  .dm-modal-field input,.dm-modal-field select{all:unset;box-sizing:border-box;width:100%;height:38px;border:1px solid var(--border);border-radius:8px;background:var(--card);padding:0 11px;font-size:11.5px;color:var(--text-dim)}
+  .dm-modal-field input,.dm-modal-field select{all:unset;box-sizing:border-box;width:100%;height:38px;border:1px solid var(--border);border-radius:8px;background:var(--card);padding:0 11px;font-size:var(--fs-body);color:var(--text-dim)}
   .dm-modal-field input:focus-visible,.dm-modal-field select:focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--blue)}
   .dm-modal-field input::placeholder{color:var(--muted)}
   .dm-modal-row{display:flex;gap:12px}
   .dm-modal-row > .dm-modal-field{flex:1;min-width:0}
   .dm-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 20px;border-top:1px solid var(--border)}
-  button.dm-modal-cancel{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:11.5px;font-weight:650}
+  button.dm-modal-cancel{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:var(--fs-body);font-weight:650}
   button.dm-modal-cancel:hover{border-color:var(--border);background:var(--surface2)}
-  button.dm-modal-save{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 18px;border-radius:8px;background:#7c3aed;color:#fff;font-size:11.5px;font-weight:650}
+  button.dm-modal-save{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 18px;border-radius:8px;background:var(--blue);color:#fff;font-size:var(--fs-body);font-weight:650}
   button.dm-modal-save:hover{background:#6b28d9}
 
 
@@ -604,23 +630,23 @@
   .da-sc.high{border-left-color:#e53553}
   .da-sc.med{border-left-color:#e8952e}
   .da-sc.low{border-left-color:#18a05e}
-  .da-sc-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+  .da-sc-label{font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
   .da-sc-value{font-size:24px;font-weight:800;margin-top:8px;letter-spacing:-.01em}
-  .da-sc-sub{font-size:10.5px;color:var(--muted);margin-top:4px}
+  .da-sc-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:4px}
 
   .da-tabs{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border);margin-bottom:14px}
   .da-tab{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:11px 16px 12px;font-size:12.5px;font-weight:650;color:var(--muted);border-bottom:2px solid transparent}
   .da-tab:hover{color:var(--text-dim)}
   .da-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
-  .da-tab-count{font-size:9.5px;font-weight:750;background:var(--surface2);color:var(--text-dim);padding:2px 7px;border-radius:999px}
+  .da-tab-count{font-size:var(--fs-label);font-weight:750;background:var(--surface2);color:var(--text-dim);padding:2px 7px;border-radius:999px}
   .da-tab.on .da-tab-count{background:#dbe8fd;color:#1259b6}
   .da-view{display:none}
   .da-view.on{display:block}
 
   .da-table-card{padding:0;margin-bottom:14px}
   .da-table-head{min-height:54px;padding:14px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .da-table-title{font-size:13.5px;font-weight:750;color:#1259b6;display:flex;align-items:center;gap:8px;flex:0 0 auto}
-  .da-table-title small{font-size:10.5px;color:var(--muted);font-weight:500}
+  .da-table-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6;display:flex;align-items:center;gap:8px;flex:0 0 auto}
+  .da-table-title small{font-size:var(--fs-caption);color:var(--muted);font-weight:500}
   .da-table-head-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap}
   .da-history-link{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:11px;font-weight:650;padding:6px 10px;border-radius:7px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
   .da-history-link:hover{background:#edf5ff}
@@ -676,12 +702,12 @@
 
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
-  .da-table th{height:38px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
+  .da-table th{height:38px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
   .da-table th[data-da-sort]{cursor:pointer;user-select:none}
   .da-table th[data-da-sort]:hover{color:#1259b6}
   .da-table th[data-da-sort].sorted::after{content:' ▾';font-size:8px}
   .da-table th[data-da-sort].sorted.asc::after{content:' ▴'}
-  .da-table td{height:56px;border-bottom:1px solid var(--border);padding:0 14px;font-size:11.5px;color:var(--text-dim);white-space:nowrap}
+  .da-table td{height:56px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap}
   .da-table tr:hover td{background:var(--surface2)}
   .da-table tr.flag-high td{background:#fff9f9}
   .da-table tr.flag-high:hover td{background:#fef2f2}
@@ -691,7 +717,7 @@
   .da-avatar.asset{background:#f0e9fc;color:#7c3aed;border-radius:8px}
   .da-id-sub{font-size:10px;color:var(--muted);font-weight:500;margin-top:1px}
 
-  .da-risk{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:999px;padding:0 10px;font-size:9.5px;font-weight:750;text-transform:uppercase;letter-spacing:.02em}
+  .da-risk{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:999px;padding:0 10px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .da-risk::before{content:'';width:6px;height:6px;border-radius:50%;flex:0 0 auto}
   .da-risk.high{background:#fdeaea;color:#e53553}
   .da-risk.high::before{background:#e53553}
@@ -705,11 +731,11 @@
   .da-pattern{font-size:10px;color:var(--muted);margin-top:2px}
   .da-pattern strong{color:#c0271f;font-weight:700}
 
-  .da-status{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:6px;padding:0 9px;font-size:9.5px;font-weight:750;text-transform:uppercase;letter-spacing:.02em}
+  .da-status{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:6px;padding:0 9px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .da-status.required{background:#fdeaea;color:#e53553}
   .da-status.actioned{background:#dff5ea;color:#18a05e}
 
-  .da-rec{font-size:10.5px;font-weight:650;display:flex;align-items:center;gap:6px}
+  .da-rec{font-size:var(--fs-caption);font-weight:650;display:flex;align-items:center;gap:6px}
   .da-rec-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
   .da-rec.spare .da-rec-dot{background:#e53553}
   .da-rec.spare{color:#c0271f}
@@ -718,17 +744,17 @@
   .da-rec.continue .da-rec-dot{background:#18a05e}
   .da-rec.continue{color:#12805f}
 
-  .da-act-btn{all:unset;box-sizing:border-box;cursor:pointer;height:29px;padding:0 12px;border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:7px;font-size:10.5px;font-weight:650}
+  .da-act-btn{all:unset;box-sizing:border-box;cursor:pointer;height:29px;padding:0 12px;border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:7px;font-size:var(--fs-caption);font-weight:650}
   .da-act-btn:hover{background:#1d4fd1}
-  .da-view-btn{all:unset;box-sizing:border-box;cursor:pointer;height:29px;padding:0 11px;border:1px solid var(--border);background:var(--card);color:#3b5b82;border-radius:7px;font-size:10.5px;font-weight:650;margin-left:6px}
+  .da-view-btn{all:unset;box-sizing:border-box;cursor:pointer;height:29px;padding:0 11px;border:1px solid var(--border);background:var(--card);color:#3b5b82;border-radius:7px;font-size:var(--fs-caption);font-weight:650;margin-left:6px}
   .da-view-btn:hover{border-color:var(--border);background:var(--surface2)}
   .da-row-actions{display:flex;align-items:center;justify-content:flex-end;white-space:nowrap}
   .da-action-btn{all:unset;box-sizing:border-box;cursor:pointer;width:29px;height:29px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--card);color:var(--muted);border-radius:7px;font-size:14px;line-height:1;margin-left:6px}
   .da-action-btn:hover{border-color:var(--border);background:var(--surface2);color:var(--text)}
   .da-action-btn:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 
-  .da-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:10.5px;flex-wrap:wrap;gap:8px}
-  .da-empty{padding:44px 18px;text-align:center;color:var(--muted);font-size:11.5px}
+  .da-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
+  .da-empty{padding:44px 18px;text-align:center;color:var(--muted);font-size:var(--fs-body)}
   .da-empty svg{width:30px;height:30px;color:var(--border);margin-bottom:10px}
 
   /* history/resolved table — same shape, muted */
@@ -742,7 +768,7 @@
   .da-modal{background:var(--card);border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(15,23,42,.25)}
   .da-modal-head{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border)}
   .da-modal-title{font-size:14px;font-weight:750;color:var(--text-dim)}
-  .da-modal-sub{font-size:10.5px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .da-modal-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   button.da-modal-close{all:unset;box-sizing:border-box;cursor:pointer;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--muted);flex:0 0 auto}
   button.da-modal-close:hover{background:var(--surface2)}
   button.da-modal-close svg{width:14px;height:14px}
@@ -754,10 +780,10 @@
 
   .da-field label{display:block;font-size:11px;font-weight:700;color:var(--text-dim);margin-bottom:8px}
   .da-type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-  .da-type-opt{all:unset;box-sizing:border-box;cursor:pointer;height:38px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11.5px;color:var(--text-dim);font-weight:600;text-align:center;padding:0 8px}
+  .da-type-opt{all:unset;box-sizing:border-box;cursor:pointer;height:38px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:var(--fs-body);color:var(--text-dim);font-weight:600;text-align:center;padding:0 8px}
   .da-type-opt:hover{border-color:var(--border);background:var(--surface2)}
   .da-type-opt.sel{border-color:var(--blue);background:#eef5ff;color:#1259b6;font-weight:700}
-  .da-modal-field input,.da-modal-field textarea{all:unset;box-sizing:border-box;width:100%;border:1px solid var(--border);border-radius:8px;background:var(--card);padding:10px 11px;font-size:11.5px;color:var(--text-dim);font-family:inherit}
+  .da-modal-field input,.da-modal-field textarea{all:unset;box-sizing:border-box;width:100%;border:1px solid var(--border);border-radius:8px;background:var(--card);padding:10px 11px;font-size:var(--fs-body);color:var(--text-dim);font-family:inherit}
   .da-modal-field textarea{min-height:80px;line-height:1.5;resize:vertical}
   .da-modal-field input:focus-visible,.da-modal-field textarea:focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--blue)}
   .da-modal-field input::placeholder,.da-modal-field textarea::placeholder{color:var(--muted)}
@@ -765,9 +791,9 @@
   .da-other-input.on{display:block}
 
   .da-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 20px;border-top:1px solid var(--border)}
-  button.da-modal-cancel{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:11.5px;font-weight:650}
+  button.da-modal-cancel{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:var(--fs-body);font-weight:650}
   button.da-modal-cancel:hover{border-color:var(--border);background:var(--surface2)}
-  button.da-modal-save{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 18px;border-radius:8px;background:var(--blue);color:#fff;font-size:11.5px;font-weight:650}
+  button.da-modal-save{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 18px;border-radius:8px;background:var(--blue);color:#fff;font-size:var(--fs-body);font-weight:650}
   button.da-modal-save:hover{background:#1d4fd1}
   button.da-modal-save:disabled{opacity:.5;cursor:default}
 
@@ -778,12 +804,12 @@
   .da-drawer.on{transform:translateX(0)}
   .da-drawer-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex:0 0 auto}
   .da-drawer-title{font-size:14.5px;font-weight:750;color:var(--text-dim)}
-  .da-drawer-sub{font-size:10.5px;color:var(--muted);margin-top:4px}
+  .da-drawer-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:4px}
   .da-drawer-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:18px}
-  .da-drawer-section-title{font-size:10.5px;font-weight:750;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:10px}
+  .da-drawer-section-title{font-size:var(--fs-caption);font-weight:750;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:10px}
   .da-drawer-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .da-drawer-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
-  .da-drawer-kpi-label{font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+  .da-drawer-kpi-label{font-size:var(--fs-label);color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
   .da-drawer-kpi-value{font-size:17px;font-weight:800;margin-top:5px}
 
   .da-daybar-row{display:flex;align-items:center;gap:8px;height:24px;font-size:10px;color:var(--text-dim)}
@@ -799,7 +825,7 @@
   .da-tl-dot{width:8px;height:8px;border-radius:50%;background:#3b82f6;flex:0 0 auto;margin-top:5px}
   .da-tl-dot.action{background:#18a05e}
   .da-tl-body{flex:1;min-width:0}
-  .da-tl-main{font-size:11.5px;color:var(--text-dim);font-weight:650;line-height:1.4}
+  .da-tl-main{font-size:var(--fs-body);color:var(--text-dim);font-weight:650;line-height:1.4}
   .da-tl-sub{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.5}
   .da-tl-empty{font-size:11px;color:var(--muted);padding:14px 0;text-align:center}
 
@@ -807,19 +833,19 @@
   .da-modal.wide{max-width:960px}
   .da-inst-summary{display:flex;align-items:center;gap:18px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface2);flex-wrap:wrap}
   .da-inst-stat{display:flex;flex-direction:column;gap:2px}
-  .da-inst-stat-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700}
+  .da-inst-stat-label{font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700}
   .da-inst-stat-value{font-size:15px;font-weight:800;color:var(--text-dim)}
 
   /* bulk-edit toolbar: hidden until >=1 row is checked */
   .da-bulk-bar{display:none;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--border);background:#eef5ff;flex-wrap:wrap}
   .da-bulk-bar.on{display:flex}
-  .da-bulk-count{font-size:11.5px;font-weight:700;color:#1259b6;white-space:nowrap}
-  .da-bulk-bar select,.da-bulk-bar input[type="text"],.da-bulk-bar input[type="date"]{all:unset;box-sizing:border-box;height:34px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:11.5px;color:var(--text-dim);min-width:0}
+  .da-bulk-count{font-size:var(--fs-body);font-weight:700;color:#1259b6;white-space:nowrap}
+  .da-bulk-bar select,.da-bulk-bar input[type="text"],.da-bulk-bar input[type="date"]{all:unset;box-sizing:border-box;height:34px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:var(--fs-body);color:var(--text-dim);min-width:0}
   .da-bulk-bar select{cursor:pointer}
   .da-bulk-bar input[type="text"].da-bulk-other{width:150px;display:none}
   .da-bulk-bar input[type="text"].da-bulk-other.on{display:block}
   .da-bulk-date{width:132px}
-  .da-bulk-apply{all:unset;box-sizing:border-box;cursor:pointer;height:34px;padding:0 16px;border-radius:7px;background:var(--blue);color:#fff;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .da-bulk-apply{all:unset;box-sizing:border-box;cursor:pointer;height:34px;padding:0 16px;border-radius:7px;background:var(--blue);color:#fff;font-size:var(--fs-body);font-weight:650;white-space:nowrap}
   .da-bulk-apply:hover{background:#1d4fd1}
   .da-bulk-apply:disabled{opacity:.5;cursor:default}
   .da-bulk-clear{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:650;color:var(--muted);padding:0 4px;white-space:nowrap}
@@ -843,30 +869,30 @@
   :root[data-theme="dark"] .da-sync-status.error{background:#2a1518}
 
   .da-inst-table{width:100%;border-collapse:collapse;min-width:900px}
-  .da-inst-table th{height:36px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
+  .da-inst-table th{height:36px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
   .da-inst-table td{height:48px;border-bottom:1px solid var(--border);padding:0 10px;font-size:11px;color:var(--text-dim);white-space:nowrap}
   .da-inst-table tr:hover td{background:var(--surface2)}
   .da-inst-table .chk-col{width:34px;text-align:center;padding:0}
   .da-inst-table input[type="checkbox"]{width:15px;height:15px;cursor:pointer;accent-color:var(--blue)}
-  .da-inst-status{font-size:9.5px;font-weight:750;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+  .da-inst-status{font-size:var(--fs-label);font-weight:750;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
   .da-inst-status.done{background:#dff5ea;color:#18a05e}
-  .da-inst-status.pending{background:#fdeaea;color:#e53553}
-  .da-inst-row-action{font-size:10.5px;color:var(--text-dim)}
+  .da-inst-status.pending{background:#fdf0dc;color:#e8952e}
+  .da-inst-row-action{font-size:var(--fs-caption);color:var(--text-dim)}
   .da-inst-row-action .name{font-weight:650;color:var(--text-dim)}
 
   /* ---------- Summary page (su- prefix; running 7-day report) ---------- */
-  .su-range{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 13px;font-size:11.5px;color:var(--text-dim);font-weight:650}
+  .su-range{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 13px;font-size:var(--fs-body);color:var(--text-dim);font-weight:650}
   .su-range svg{width:13px;height:13px;color:var(--muted)}
-  button.su-export{all:unset;box-sizing:border-box;cursor:pointer;height:38px;display:inline-flex;align-items:center;gap:8px;padding:0 15px;border-radius:9px;background:var(--blue);color:#fff;font-size:11.5px;font-weight:650}
+  button.su-export{all:unset;box-sizing:border-box;cursor:pointer;height:38px;display:inline-flex;align-items:center;gap:8px;padding:0 15px;border-radius:9px;background:var(--blue);color:#fff;font-size:var(--fs-body);font-weight:650}
   button.su-export:hover{background:#1d4fd1}
   button.su-export svg{width:13px;height:13px}
 
   .su-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:14px}
   .su-kpi{padding:15px 16px}
-  .su-kpi-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
+  .su-kpi-label{font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
   .su-kpi-dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
   .su-kpi-value{font-size:25px;font-weight:800;margin-top:10px;letter-spacing:-.01em}
-  .su-kpi-sub{font-size:10.5px;color:var(--muted);margin-top:5px}
+  .su-kpi-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:5px}
   .su-kpi-sub .delta{font-weight:700}
   .su-kpi-sub .delta.down{color:#12805f}
   .su-kpi-sub .delta.up{color:#dc2626}
@@ -874,7 +900,7 @@
 
   .su-trend-card{padding:0 16px 14px}
   .su-trend-head{min-height:48px;padding:14px 0 4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-  .su-trend-title{font-size:13.5px;font-weight:700;color:#1259b6;display:flex;align-items:center;gap:10px}
+  .su-trend-title{font-size:var(--fs-subhead);font-weight:700;color:#1259b6;display:flex;align-items:center;gap:10px}
   .su-trend-title-icon{width:28px;height:28px;border-radius:8px;background:#eaf1fd;display:grid;place-items:center;flex:0 0 auto}
   .su-trend-title-icon svg{width:14px;height:14px;color:#2563eb}
 
@@ -886,8 +912,8 @@
   .su-section-head{padding:15px 17px 4px;display:flex;align-items:center;gap:10px}
   .su-section-icon{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto}
   .su-section-icon svg{width:14px;height:14px;color:#fff}
-  .su-section-title{font-size:13.5px;font-weight:750;color:var(--text-dim)}
-  .su-section-sub{font-size:10.5px;color:var(--muted);margin-top:1px}
+  .su-section-title{font-size:var(--fs-subhead);font-weight:750;color:var(--text-dim)}
+  .su-section-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:1px}
 
   .su-insight-list{display:flex;flex-direction:column;padding:8px 17px 14px;max-height:392px;overflow-y:auto}
   .su-insight-row{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-top:1px solid var(--border)}
@@ -896,8 +922,8 @@
   .su-insight-icon svg{width:14px;height:14px}
   .su-insight-body{flex:1;min-width:0}
   .su-insight-main{font-size:12px;color:var(--text-dim);font-weight:650;line-height:1.4}
-  .su-insight-sub{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.5}
-  .su-insight-tag{font-size:9px;font-weight:750;padding:3px 8px;border-radius:6px;flex:0 0 auto;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;align-self:flex-start;margin-top:1px}
+  .su-insight-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:2px;line-height:1.5}
+  .su-insight-tag{font-size:var(--fs-badge);font-weight:750;padding:3px 8px;border-radius:6px;flex:0 0 auto;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;align-self:flex-start;margin-top:1px}
   .su-insight-tag.up{background:#fdeaea;color:#e53553}
   .su-insight-tag.down{background:#dff5ea;color:#18a05e}
   .su-insight-tag.flat{background:var(--surface2);color:var(--text-dim)}
@@ -910,30 +936,30 @@
   .su-open-value.warn{color:#c0271f}
   .su-open-value.good{color:#12805f}
   .su-open-cta{margin:2px 17px 15px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:center}
-  .su-open-cta button{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:11.5px;font-weight:650;padding:6px 12px;border-radius:7px;display:inline-flex;align-items:center;gap:6px}
+  .su-open-cta button{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:var(--fs-body);font-weight:650;padding:6px 12px;border-radius:7px;display:inline-flex;align-items:center;gap:6px}
   .su-open-cta button:hover{background:#edf5ff}
   .su-open-cta svg{width:11px;height:11px}
 
   .su-risk-card{padding:0;margin-top:14px}
   .su-risk-head{height:54px;padding:0 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-  .su-risk-title{font-size:13.5px;font-weight:750;color:#1259b6;display:flex;align-items:center;gap:8px}
-  .su-risk-title small{font-size:10.5px;color:var(--muted);font-weight:500}
+  .su-risk-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6;display:flex;align-items:center;gap:8px}
+  .su-risk-title small{font-size:var(--fs-caption);color:var(--muted);font-weight:500}
   .su-risk-goto{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:11px;font-weight:650;padding:6px 10px;border-radius:7px;display:inline-flex;align-items:center;gap:6px}
   .su-risk-goto:hover{background:#edf5ff}
   .su-risk-goto svg{width:11px;height:11px}
   .su-risk-table{width:100%;border-collapse:collapse}
-  .su-risk-table th{height:36px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 17px;background:var(--surface2);white-space:nowrap}
-  .su-risk-table td{height:48px;border-bottom:1px solid var(--border);padding:0 17px;font-size:11.5px;color:var(--text-dim)}
+  .su-risk-table th{height:36px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 17px;background:var(--surface2);white-space:nowrap}
+  .su-risk-table td{height:48px;border-bottom:1px solid var(--border);padding:0 17px;font-size:var(--fs-body);color:var(--text-dim)}
   .su-risk-table tr:last-child td{border-bottom:none}
   .su-risk-table tr:hover td{background:var(--surface2)}
   .su-risk-name{font-weight:700;color:var(--text-dim)}
-  .su-risk-name small{display:block;font-weight:500;color:var(--muted);font-size:9.5px;margin-top:1px}
-  .su-risk-kind{font-size:9px;font-weight:750;padding:3px 7px;border-radius:5px;background:var(--surface2);color:var(--text-dim);text-transform:uppercase;letter-spacing:.02em}
-  .su-empty{padding:34px 17px;text-align:center;color:var(--muted);font-size:11.5px}
+  .su-risk-name small{display:block;font-weight:500;color:var(--muted);font-size:var(--fs-label);margin-top:1px}
+  .su-risk-kind{font-size:var(--fs-badge);font-weight:750;padding:3px 7px;border-radius:5px;background:var(--surface2);color:var(--text-dim);text-transform:uppercase;letter-spacing:.02em}
+  .su-empty{padding:34px 17px;text-align:center;color:var(--muted);font-size:var(--fs-body)}
 
   .su-actions-card{padding:0;margin-top:14px}
   .su-actions-head{height:54px;padding:0 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .su-actions-title{font-size:13.5px;font-weight:750;color:#16803c;display:flex;align-items:center;gap:8px}
+  .su-actions-title{font-size:var(--fs-subhead);font-weight:750;color:#16803c;display:flex;align-items:center;gap:8px}
   .su-actions-list{display:flex;flex-direction:column}
   .su-action-row{display:flex;align-items:flex-start;gap:11px;padding:11px 17px;border-top:1px solid var(--border)}
   .su-action-row:first-child{border-top:none}
@@ -941,7 +967,7 @@
   .su-action-body{flex:1;min-width:0}
   .su-action-main{font-size:12px;color:var(--text-dim);font-weight:650;line-height:1.4}
   .su-action-main .tag{font-weight:700;color:#1259b6}
-  .su-action-sub{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .su-action-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:2px}
   .su-action-when{font-size:10px;color:var(--muted);flex:0 0 auto;white-space:nowrap;padding-top:1px}
 
   @media print{
@@ -963,7 +989,7 @@
 
   .se-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap}
   .se-card-title{font-size:14px;font-weight:750;color:var(--text-dim)}
-  .se-card-sub{font-size:10.5px;color:var(--muted);margin-top:3px;font-weight:500}
+  .se-card-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:3px;font-weight:500}
   .se-panel{padding:20px}
 
   /* Personal Info */
@@ -971,31 +997,31 @@
   .se-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#0a4bb0,#1972d2);color:#fff;display:grid;place-items:center;font-size:20px;font-weight:750;flex:0 0 auto}
   .se-profile-name{font-size:15px;font-weight:750;color:var(--text-dim)}
   .se-profile-role{font-size:11px;color:var(--muted);margin-top:3px}
-  .se-profile-badge{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font-size:9.5px;font-weight:750;padding:3px 9px;border-radius:999px;background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em}
+  .se-profile-badge{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font-size:var(--fs-label);font-weight:750;padding:3px 9px;border-radius:999px;background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em}
   .se-profile-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:#18a05e}
   .se-profile-badge.pending{background:#fdf0dc;color:#e8952e}
   .se-profile-badge.pending::before{background:#e8952e}
 
   .se-field{display:flex;flex-direction:column;gap:6px}
   .se-field label{font-size:11px;font-weight:700;color:var(--text-dim)}
-  .se-field input{all:unset;box-sizing:border-box;width:100%;height:38px;border:1px solid var(--border);border-radius:8px;background:var(--card);padding:0 12px;font-size:11.5px;color:var(--text-dim)}
+  .se-field input{all:unset;box-sizing:border-box;width:100%;height:38px;border:1px solid var(--border);border-radius:8px;background:var(--card);padding:0 12px;font-size:var(--fs-body);color:var(--text-dim)}
   .se-field input:focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--blue)}
   .se-field input:disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed}
   .se-field input::placeholder{color:var(--muted)}
   .se-field-hint{font-size:10px;color:var(--muted)}
   .se-field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
   .se-field-row:last-of-type{margin-bottom:0}
-  .se-section-label{font-size:11.5px;font-weight:750;color:var(--text-dim);margin:22px 0 14px;padding-top:20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .se-section-label{font-size:var(--fs-body);font-weight:750;color:var(--text-dim);margin:22px 0 14px;padding-top:20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
   .se-section-label:first-child{margin-top:0;padding-top:0;border-top:none}
   .se-section-label svg{width:14px;height:14px;color:var(--muted)}
 
   .se-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 20px;border-top:1px solid var(--border);background:var(--surface2)}
-  button.se-btn-primary{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 18px;border-radius:8px;background:var(--blue);color:#fff;font-size:11.5px;font-weight:650;display:inline-flex;align-items:center;gap:7px}
+  button.se-btn-primary{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 18px;border-radius:8px;background:var(--blue);color:#fff;font-size:var(--fs-body);font-weight:650;display:inline-flex;align-items:center;gap:7px}
   button.se-btn-primary:hover{background:#1d4fd1}
   button.se-btn-primary svg{width:13px;height:13px}
-  button.se-btn-ghost{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:11.5px;font-weight:650}
+  button.se-btn-ghost{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:var(--fs-body);font-weight:650}
   button.se-btn-ghost:hover{border-color:var(--border);background:var(--surface2)}
-  button.se-btn-danger{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 16px;border-radius:8px;border:1px solid #f3c8c8;background:var(--card);color:#c0271f;font-size:11.5px;font-weight:650}
+  button.se-btn-danger{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 16px;border-radius:8px;border:1px solid #f3c8c8;background:var(--card);color:#c0271f;font-size:var(--fs-body);font-weight:650}
   button.se-btn-danger:hover{background:#fdeaea}
   button.se-btn-danger.solid{background:#c0271f;color:#fff;border-color:#c0271f}
   button.se-btn-danger.solid:hover{background:#a51f19}
@@ -1010,7 +1036,7 @@
   .se-pref-icon svg{width:17px;height:17px}
   .se-pref-text{flex:1;min-width:0}
   .se-pref-label{font-size:12.5px;font-weight:700;color:var(--text-dim)}
-  .se-pref-sub{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .se-pref-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:2px}
   .se-pref-control{flex:0 0 auto;display:flex;align-items:center;gap:10px}
 
   .se-switch{all:unset;box-sizing:border-box;cursor:pointer;width:44px;height:25px;border-radius:999px;background:var(--surface2);position:relative;transition:background-color .15s;flex:0 0 auto}
@@ -1024,7 +1050,7 @@
   .se-brightness input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;height:5px;border-radius:999px;background:var(--surface2);outline:none}
   .se-brightness input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:17px;height:17px;border-radius:50%;background:var(--blue);cursor:pointer;box-shadow:0 1px 3px rgba(15,23,42,.3)}
   .se-brightness input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--blue);cursor:pointer;border:none;box-shadow:0 1px 3px rgba(15,23,42,.3)}
-  .se-brightness-val{font-size:10.5px;color:var(--muted);font-weight:650;width:32px;text-align:right;flex:0 0 auto;font-variant-numeric:tabular-nums}
+  .se-brightness-val{font-size:var(--fs-caption);color:var(--muted);font-weight:650;width:32px;text-align:right;flex:0 0 auto;font-variant-numeric:tabular-nums}
 
   .se-theme-group{display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden}
   .se-theme-opt{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;font-size:11px;font-weight:650;color:var(--muted)}
@@ -1037,15 +1063,15 @@
   .se-users-count{font-size:11px;color:var(--muted)}
   .se-table-wrap{overflow-x:auto}
   .se-table{width:100%;border-collapse:collapse;min-width:680px}
-  .se-table th{height:38px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
-  .se-table td{height:56px;border-bottom:1px solid var(--border);padding:0 14px;font-size:11.5px;color:var(--text-dim);white-space:nowrap}
+  .se-table th{height:38px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
+  .se-table td{height:56px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap}
   .se-table tr:last-child td{border-bottom:none}
   .se-table tr:hover td{background:var(--surface2)}
   .se-user-name{display:flex;align-items:center;gap:10px;font-weight:650;color:var(--text-dim)}
   .se-user-avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:750;color:#fff;flex:0 0 auto}
-  .se-role-badge{font-size:9.5px;font-weight:700;padding:4px 9px;border-radius:6px;background:var(--surface2);color:var(--text-dim)}
+  .se-role-badge{font-size:var(--fs-label);font-weight:700;padding:4px 9px;border-radius:6px;background:var(--surface2);color:var(--text-dim)}
   .se-role-badge.admin{background:#f0e9fc;color:#7c3aed}
-  .se-status-badge{font-size:9.5px;font-weight:650;display:inline-flex;align-items:center;gap:5px}
+  .se-status-badge{font-size:var(--fs-label);font-weight:650;display:inline-flex;align-items:center;gap:5px}
   .se-status-badge::before{content:'';width:6px;height:6px;border-radius:50%;flex:0 0 auto}
   .se-status-badge.active{color:#18a05e}
   .se-status-badge.active::before{background:#18a05e}
@@ -1065,23 +1091,23 @@
   button.se-addform-close:hover{background:var(--surface2)}
   button.se-addform-close svg{width:14px;height:14px}
   .se-addform-body{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
-  .se-addform-body select{all:unset;box-sizing:border-box;width:100%;height:38px;border:1px solid var(--border);border-radius:8px;background:var(--card);padding:0 11px;font-size:11.5px;color:var(--text-dim)}
+  .se-addform-body select{all:unset;box-sizing:border-box;width:100%;height:38px;border:1px solid var(--border);border-radius:8px;background:var(--card);padding:0 11px;font-size:var(--fs-body);color:var(--text-dim)}
   .se-addform-body select:focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--blue)}
-  .se-addform-err{font-size:10.5px;color:#c0271f;display:none}
+  .se-addform-err{font-size:var(--fs-caption);color:#c0271f;display:none}
   .se-addform-err.on{display:block}
 
   /* System Management */
-  .se-wip-badge{display:inline-flex;align-items:center;height:18px;padding:0 8px;border-radius:999px;font-size:9px;font-weight:750;text-transform:uppercase;letter-spacing:.02em;background:#fdf0dc;color:#e8952e;white-space:nowrap;vertical-align:middle;margin-left:6px}
+  .se-wip-badge{display:inline-flex;align-items:center;height:18px;padding:0 8px;border-radius:999px;font-size:var(--fs-badge);font-weight:750;text-transform:uppercase;letter-spacing:.02em;background:#fdf0dc;color:#e8952e;white-space:nowrap;vertical-align:middle;margin-left:6px}
   .se-tab .se-wip-badge{margin-left:2px}
   .se-sys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:20px 20px 6px}
   .se-sys-tile{border:1px solid var(--border);border-radius:12px;padding:16px}
   .se-sys-tile-head{display:flex;align-items:center;gap:9px;margin-bottom:12px}
   .se-sys-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto}
   .se-sys-icon svg{width:14px;height:14px}
-  .se-sys-tile-title{font-size:11.5px;font-weight:750;color:var(--text-dim)}
+  .se-sys-tile-title{font-size:var(--fs-body);font-weight:750;color:var(--text-dim)}
   .se-sys-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:11px;color:var(--text-dim)}
   .se-sys-row strong{color:var(--text-dim);font-weight:700}
-  .se-conf-badge{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:999px;padding:0 10px;font-size:9.5px;font-weight:750;text-transform:uppercase;letter-spacing:.02em}
+  .se-conf-badge{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:999px;padding:0 10px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .se-conf-badge::before{content:'';width:6px;height:6px;border-radius:50%}
   .se-conf-badge.high{background:#dff5ea;color:#18a05e}
   .se-conf-badge.high::before{background:#18a05e}
@@ -1090,7 +1116,7 @@
   .se-sys-note{font-size:10px;color:var(--muted);margin-top:10px;line-height:1.6}
 
   .se-sys-actions{display:flex;gap:12px;padding:16px 20px 20px;flex-wrap:wrap;border-top:1px solid var(--border);margin-top:6px}
-  button.se-sys-btn{all:unset;box-sizing:border-box;cursor:pointer;height:40px;display:inline-flex;align-items:center;gap:8px;padding:0 16px;border-radius:9px;border:1px solid var(--border);background:var(--card);font-size:11.5px;font-weight:650;color:var(--text-dim)}
+  button.se-sys-btn{all:unset;box-sizing:border-box;cursor:pointer;height:40px;display:inline-flex;align-items:center;gap:8px;padding:0 16px;border-radius:9px;border:1px solid var(--border);background:var(--card);font-size:var(--fs-body);font-weight:650;color:var(--text-dim)}
   button.se-sys-btn:hover{border-color:var(--border);background:var(--surface2)}
   button.se-sys-btn svg{width:14px;height:14px}
   button.se-sys-btn.danger{border-color:#f3c8c8;color:#c0271f}
@@ -1104,7 +1130,7 @@
   .se-confirm-icon{width:48px;height:48px;border-radius:50%;background:#fdeaea;color:#e53553;display:grid;place-items:center;margin:0 auto 14px}
   .se-confirm-icon svg{width:22px;height:22px}
   .se-confirm-title{font-size:14.5px;font-weight:750;color:var(--text-dim)}
-  .se-confirm-body{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6}
+  .se-confirm-body{font-size:var(--fs-body);color:var(--muted);margin-top:8px;line-height:1.6}
   .se-confirm-actions{display:flex;gap:10px;margin-top:20px}
   .se-confirm-actions button{flex:1}
 
@@ -1312,7 +1338,7 @@
           <div class="chart-head">
             <div class="chart-title-group">
               <span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-4 4"/></svg></span>
-              <span class="chart-title">Total Alerts — Last 7 Days</span>
+              <h3 class="chart-title">Total Alerts — Last 7 Days</h3>
             </div>
             <span class="trend-badge down" id="ov-trend-badge">—</span>
           </div>
@@ -1344,7 +1370,7 @@
           <div class="chart-head">
             <div class="chart-title-group">
               <span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span>
-              <span class="chart-title">Alerts by Hour — <span id="ov-hourly-daylabel">Today</span></span>
+              <h3 class="chart-title">Alerts by Hour — <span id="ov-hourly-daylabel">Today</span></h3>
             </div>
           </div>
           <div class="chart-area">
@@ -1468,7 +1494,7 @@
 
       <section class="card an-insights-bar" aria-label="Key insights">
         <div class="an-insights-head">
-          <div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><span class="chart-title">Key Insights</span></div>
+          <div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><h3 class="chart-title">Key Insights</h3></div>
           <span class="an-synced-note" id="an-synced-note">Data synced just now</span>
         </div>
         <div class="an-kpis" id="an-kpi-row">
@@ -1507,7 +1533,7 @@
 
       <section class="an-charts-top">
         <div class="card an-chart-card" style="flex:1.35" id="anAssetVolumeCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><div class="chart-title an-chart-title">Alert Trend (Last 30 Days)</div></div><div class="an-legend"><span><i class="an-swatch" style="background:#f5a524"></i>Total Alerts</span><span><i class="an-swatch dashed"></i>Distinct Assets</span></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend (Last 30 Days)</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:#f5a524"></i>Total Alerts</span><span><i class="an-swatch dashed"></i>Distinct Assets</span></div></div>
           <div class="an-chart-area">
             <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-trend-svg">
               <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
@@ -1520,7 +1546,7 @@
         </div>
 
         <div class="card an-chart-card" id="anHourlyCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><div class="chart-title an-chart-title">Hourly Trend</div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><h3 class="chart-title an-chart-title">Hourly Trend</h3></div>
             <div class="an-toggle" role="group" aria-label="Hourly trend view">
               <button type="button" class="active" data-hourly-view="hour" id="an-hourly-view-hour">By Hour</button><button type="button" data-hourly-view="month" id="an-hourly-view-month">By Month</button>
             </div>
@@ -1536,7 +1562,7 @@
         </div>
 
         <div class="card an-chart-card" id="anSyncIntervalCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span><div class="chart-title an-chart-title">Alert Sync Time</div></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span><h3 class="chart-title an-chart-title">Alert Sync Time</h3></div></div>
           <div class="an-chart-area">
             <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-sync-svg">
               <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
@@ -1550,21 +1576,21 @@
 
       <section class="an-charts-bottom">
         <div class="card an-chart-card" id="anTopAssetsCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><div class="chart-title an-chart-title">Top Assets by Alerts</div></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><h3 class="chart-title an-chart-title">Top Assets by Alerts</h3></div></div>
           <div id="an-topassets-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
             <div class="da-empty">Loading&hellip;</div>
           </div>
         </div>
 
         <div class="card an-chart-card" id="anTopDriversCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><div class="chart-title an-chart-title">Top Employees by Alerts</div></div><button class="view-all" type="button" data-goto="alerts">View all employees</button></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><h3 class="chart-title an-chart-title">Top Employees by Alerts</h3></div><button class="view-all" type="button" data-goto="alerts">View all employees</button></div>
           <div id="an-topdrivers-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
             <div class="da-empty">Loading&hellip;</div>
           </div>
         </div>
 
         <div class="card an-chart-card" id="anAlertTypeDonutCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><div class="chart-title an-chart-title">Alert Type Distribution</div></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><h3 class="chart-title an-chart-title">Alert Type Distribution</h3></div></div>
           <div class="an-donut-card">
             <div class="an-donut-wrap">
               <svg viewBox="0 0 190 190">
@@ -1580,25 +1606,20 @@
 
       <section class="an-charts-bottom an-row-wide-table">
         <div class="card an-chart-card" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><div class="chart-title an-chart-title">Recent Alerts Overview</div></div><button class="view-all" type="button" data-goto="alerts">View all alerts</button></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><h3 class="chart-title an-chart-title">Recent Alerts Overview</h3></div><button class="view-all" type="button" data-goto="alerts">View all alerts</button></div>
           <div style="overflow-x:auto;flex:1">
             <table class="an-alerts-table">
-              <thead><tr><th>Time</th><th>Driver</th><th>Asset ID</th><th>Event Type</th><th>Event Count</th><th>Shift</th></tr></thead>
+              <thead><tr><th data-sort="time">Time</th><th data-sort="operator">Driver</th><th data-sort="asset">Asset ID</th><th data-sort="eventCode">Event Type</th><th data-sort="count">Event Count</th><th>Shift</th></tr></thead>
               <tbody id="an-recent-alerts-body"><tr><td colspan="6" style="color:var(--muted);padding:14px 10px">Loading&hellip;</td></tr></tbody>
             </table>
           </div>
           <div class="an-alerts-foot">
             <span id="an-recent-alerts-showing">&mdash;</span>
-            <div class="an-alerts-pages" aria-hidden="true">
-              <span class="an-page-btn">&lsaquo;</span>
-              <span class="an-page-btn" style="background:#2954e8;color:#fff">1</span>
-              <span class="an-page-btn">&rsaquo;</span>
-            </div>
           </div>
         </div>
 
         <div class="card an-chart-card" id="anFactorImpactCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11Z"/></svg></span><div class="chart-title an-chart-title">Contributing Factors</div></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11Z"/></svg></span><h3 class="chart-title an-chart-title">Contributing Factors</h3></div></div>
           <div id="an-factors-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
             <div class="da-empty">Loading&hellip;</div>
           </div>
@@ -1612,6 +1633,10 @@
         <div class="title">
           <h1>Alert Logs</h1>
           <p>Review detected events, severity, and actions taken</p>
+        </div>
+        <div class="da-sync-status" id="al-sync-status" role="status" aria-live="polite">
+          <span class="da-sync-dot" aria-hidden="true"></span>
+          <span id="al-sync-status-text">Updating database…</span>
         </div>
       </header>
 
@@ -1640,7 +1665,8 @@
 
       <section class="card al-table-card">
         <div class="al-table-head">
-          <div class="al-table-title">Detected Events <small id="al-table-showing">Loading…</small></div>
+          <h3 class="al-table-title">Detected Events <small id="al-table-showing">Loading…</small></h3>
+          <button class="al-filter" type="button" id="al-find-dupes" style="cursor:pointer;flex:0 0 auto" title="Find events on the same asset and event code logged within 60 seconds of each other in the current date range — a common sign of a duplicate log entry">Find duplicates</button>
           <button class="al-filter" type="button" id="al-select-toggle" style="cursor:pointer;flex:0 0 auto">Select</button>
         </div>
         <div class="al-filters">
@@ -1659,9 +1685,10 @@
           <button class="al-filter" type="button" id="al-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
           <button class="al-clear" type="button" id="al-clear-filters">Clear filters</button>
         </div>
+        <div id="al-dupes-panel" style="display:none;padding:11px 17px;border-bottom:1px solid var(--border);background:var(--surface2);font-size:11px;color:var(--text-dim)"></div>
         <div class="da-bulk-bar" id="al-bulk-bar">
           <span class="da-bulk-count" id="al-bulk-count">0 selected</span>
-          <input type="text" id="al-bulk-empno" aria-label="Emp ID" placeholder="Emp ID (optional)" style="all:unset;box-sizing:border-box;height:34px;width:110px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:11.5px;color:var(--text-dim)">
+          <input type="text" id="al-bulk-empno" aria-label="Emp ID" placeholder="Emp ID (optional)" style="all:unset;box-sizing:border-box;height:34px;width:110px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:var(--fs-body);color:var(--text-dim)">
           <select id="al-bulk-action" aria-label="Action performed">
             <option value="">Action performed…</option>
             <option value="Reviewed">Reviewed</option>
@@ -1680,7 +1707,7 @@
           </select>
           <input type="text" class="da-bulk-other" id="al-bulk-status-other" placeholder="Describe status...">
           <input type="date" class="da-bulk-date" id="al-bulk-date" aria-label="Action date">
-          <input type="text" id="al-bulk-remarks" aria-label="Remarks" placeholder="Remarks (optional)" style="all:unset;box-sizing:border-box;height:34px;flex:1 1 160px;min-width:120px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:11.5px;color:var(--text-dim)">
+          <input type="text" id="al-bulk-remarks" aria-label="Remarks" placeholder="Remarks (optional)" style="all:unset;box-sizing:border-box;height:34px;flex:1 1 160px;min-width:120px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:var(--fs-body);color:var(--text-dim)">
           <button class="da-bulk-apply" type="button" id="al-bulk-apply" disabled>Apply to selected</button>
         </div>
         <div class="al-table-wrap">
@@ -1762,7 +1789,7 @@
       <div class="dm-source on" id="dm-source-dds">
         <section class="dm-toprow">
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload Data</div><div class="dm-card-sub">CSV or XLSX export from the DDS device logs</div></div></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Upload Data</h3><div class="dm-card-sub">CSV or XLSX export from the DDS device logs</div></div></div>
             <div class="dm-dropzone" id="dm-dropzone-dds" data-dm-source="dds">
               <div class="dm-drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
               <div class="dm-drop-title" id="dm-drop-title-dds">Drag &amp; drop or click to upload</div>
@@ -1774,7 +1801,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Manual Add Record</div><div class="dm-card-sub">Encode a single event by hand</div></div></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Manual Add Record</h3><div class="dm-card-sub">Encode a single event by hand</div></div></div>
             <div class="dm-manual-body">
               <div class="dm-manual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div>
               <div class="dm-manual-text">Missed an event during import? Add it directly to the DDS dataset.</div>
@@ -1783,7 +1810,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="dds">View all</a></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Upload History</h3><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="dds">View all</a></div>
             <div class="dm-hist-list">
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#e53553">X</span><div class="dm-hist-body"><div class="dm-hist-name">DDS_EVENTS_20250630.xlsx</div><div class="dm-hist-meta">1,842 records · Jun 30, 11:28 AM</div></div><span class="dm-hist-status">Success</span></div>
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#e53553">X</span><div class="dm-hist-body"><div class="dm-hist-name">DDS_EVENTS_20250629.xlsx</div><div class="dm-hist-meta">1,715 records · Jun 29, 11:10 AM</div></div><span class="dm-hist-status">Success</span></div>
@@ -1794,12 +1821,12 @@
 
         <section class="card dm-records-card">
           <div class="dm-records-head">
-            <div class="dm-records-title">All DDS Records <small>Showing 8 of 1,842</small></div>
+            <h3 class="dm-records-title">All DDS Records <small>Showing 8 of 1,842</small></h3>
             <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search timestamp, asset, driver, or event..." data-search-table="dm-table-dds"></div>
           </div>
           <div class="dm-table-wrap">
             <table class="dm-table" id="dm-table-dds">
-              <thead><tr><th>Timestamp</th><th>Event</th><th>Asset</th><th>Driver</th><th>Severity</th><th>Action</th></tr></thead>
+              <thead><tr><th data-sort="start_time">Timestamp</th><th>Event</th><th data-sort="asset_id">Asset</th><th data-sort="driver">Driver</th><th>Severity</th><th>Action</th></tr></thead>
               <tbody>
                 <tr><td>30 Jun · 11:28</td><td>Drowsiness Alert — DB-17</td><td>DT-233</td><td>R. Santos</td><td><span class="al-badge high">High</span></td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
                 <tr><td>30 Jun · 11:05</td><td>Drowsiness Alert — SH-11</td><td>DT-235</td><td>J. Reyes</td><td><span class="al-badge moderate">Moderate</span></td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
@@ -1820,7 +1847,7 @@
       <div class="dm-source" id="dm-source-minestat">
         <section class="dm-toprow">
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload Data</div><div class="dm-card-sub">MIE STAT, POLIHON, SANY, Fuel, Rainfall &amp; more</div></div></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Upload Data</h3><div class="dm-card-sub">MIE STAT, POLIHON, SANY, Fuel, Rainfall &amp; more</div></div></div>
             <div class="dm-dropzone" id="dm-dropzone-minestat" data-dm-source="minestat">
               <div class="dm-drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
               <div class="dm-drop-title" id="dm-drop-title-minestat">Drag &amp; drop or click to upload</div>
@@ -1832,7 +1859,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Manual Add Record</div><div class="dm-card-sub">Encode a single reading by hand</div></div></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Manual Add Record</h3><div class="dm-card-sub">Encode a single reading by hand</div></div></div>
             <div class="dm-manual-body">
               <div class="dm-manual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div>
               <div class="dm-manual-text">Add a production, telemetry, or fuel record directly to a Minestat dataset.</div>
@@ -1841,7 +1868,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="minestat">View all</a></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Upload History</h3><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="minestat">View all</a></div>
             <div class="dm-hist-list">
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#18a05e">X</span><div class="dm-hist-body"><div class="dm-hist-name">MIE_STAT_20250630.xlsx</div><div class="dm-hist-meta">1,842 records · Jun 30, 11:28 AM</div></div><span class="dm-hist-status">Success</span></div>
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#7c3aed">X</span><div class="dm-hist-body"><div class="dm-hist-name">POLIHON_20250630.xlsx</div><div class="dm-hist-meta">1,523 records · Jun 30, 11:15 AM</div></div><span class="dm-hist-status">Success</span></div>
@@ -1854,12 +1881,13 @@
 
         <section class="card dm-records-card">
           <div class="dm-records-head">
-            <div class="dm-records-title">All Minestat Records <small>Showing 8 of 77,983</small></div>
+            <h3 class="dm-records-title">All Minestat Records <small>Showing 8 of 77,983</small></h3>
             <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search dataset, file, or uploader..." data-search-table="dm-table-minestat"></div>
+            <button class="al-filter" type="button" id="dm-minestat-recheck" style="cursor:pointer" title="Re-run name matching for any Minestat operator still awaiting review, against the masterlist as it stands right now — useful after correcting a name or adding an alias">↻&nbsp; Re-check unresolved names</button>
           </div>
           <div class="dm-table-wrap">
             <table class="dm-table" id="dm-table-minestat">
-              <thead><tr><th>File Name</th><th>Dataset</th><th>Upload Type</th><th>Records</th><th>Uploaded By</th><th>Uploaded At</th><th>Status</th><th>Action</th></tr></thead>
+              <thead><tr><th data-sort="original_name">File Name</th><th>Dataset</th><th>Upload Type</th><th data-sort="row_count">Records</th><th>Uploaded By</th><th data-sort="created_at">Uploaded At</th><th>Status</th><th>Action</th></tr></thead>
               <tbody>
                 <tr><td><div class="dm-file"><span class="dm-file-icon" style="background:#18a05e">X</span>MIE_STAT_20250630.xlsx</div></td><td><span class="dm-tag bluebg">MIE STAT</span></td><td>Append</td><td>1,842</td><td>z_03welvz</td><td>Jun 30, 2025 11:28 AM</td><td><span class="dm-status">Success</span></td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg></button></div></td></tr>
                 <tr><td><div class="dm-file"><span class="dm-file-icon" style="background:#7c3aed">X</span>POLIHON_20250630.xlsx</div></td><td><span class="dm-tag purplebg">POLIHON</span></td><td>Append</td><td>1,523</td><td>z_03welvz</td><td>Jun 30, 2025 11:15 AM</td><td><span class="dm-status">Success</span></td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg></button></div></td></tr>
@@ -1877,7 +1905,7 @@
       <div class="dm-source" id="dm-source-masterlist">
         <section class="dm-toprow">
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload Data</div><div class="dm-card-sub">Employee masterlist from HR</div></div></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Upload Data</h3><div class="dm-card-sub">Employee masterlist from HR</div></div></div>
             <div class="dm-dropzone" id="dm-dropzone-masterlist" data-dm-source="masterlist">
               <div class="dm-drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
               <div class="dm-drop-title" id="dm-drop-title-masterlist">Drag &amp; drop or click to upload</div>
@@ -1889,7 +1917,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Manual Add Record</div><div class="dm-card-sub">Encode a single employee by hand</div></div></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Manual Add Record</h3><div class="dm-card-sub">Encode a single employee by hand</div></div></div>
             <div class="dm-manual-body">
               <div class="dm-manual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div>
               <div class="dm-manual-text">New hire or correction? Add the employee record directly to the masterlist.</div>
@@ -1898,7 +1926,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="masterlist">View all</a></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Upload History</h3><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="masterlist">View all</a></div>
             <div class="dm-hist-list">
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#3b7cf6">X</span><div class="dm-hist-body"><div class="dm-hist-name">MASTERLIST_20250615.xlsx</div><div class="dm-hist-meta">312 records · Jun 15, 09:00 AM</div></div><span class="dm-hist-status">Success</span></div>
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#3b7cf6">X</span><div class="dm-hist-body"><div class="dm-hist-name">MASTERLIST_20250501.xlsx</div><div class="dm-hist-meta">305 records · May 1, 09:00 AM</div></div><span class="dm-hist-status">Success</span></div>
@@ -1908,12 +1936,12 @@
 
         <section class="card dm-records-card">
           <div class="dm-records-head">
-            <div class="dm-records-title">All Employee Records <small>Showing 8 of 312</small></div>
+            <h3 class="dm-records-title">All Employee Records <small>Showing 8 of 312</small></h3>
             <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search name, ID, or department..." data-search-table="dm-table-masterlist"></div>
           </div>
           <div class="dm-table-wrap">
             <table class="dm-table" id="dm-table-masterlist">
-              <thead><tr><th>Employee ID</th><th>Name</th><th>Department</th><th>Position</th><th>Status</th><th>Action</th></tr></thead>
+              <thead><tr><th data-sort="emp_no">Employee ID</th><th data-sort="full_name">Name</th><th>Department</th><th>Position</th><th>Status</th><th>Action</th></tr></thead>
               <tbody>
                 <tr><td>EMP-0233</td><td>R. Santos</td><td>Hauling</td><td>Dump Truck Operator</td><td><span class="dm-status">Active</span></td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
                 <tr><td>EMP-0235</td><td>J. Reyes</td><td>Hauling</td><td>Dump Truck Operator</td><td><span class="dm-status">Active</span></td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
@@ -1934,7 +1962,7 @@
       <div class="dm-source" id="dm-source-factors">
         <section class="dm-toprow">
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload Data</div><div class="dm-card-sub">Factor tagging exports for incident review</div></div></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Upload Data</h3><div class="dm-card-sub">Factor tagging exports for incident review</div></div></div>
             <div class="dm-dropzone" id="dm-dropzone-factors" data-dm-source="factors">
               <div class="dm-drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
               <div class="dm-drop-title" id="dm-drop-title-factors">Drag &amp; drop or click to upload</div>
@@ -1946,7 +1974,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Manual Add Record</div><div class="dm-card-sub">Encode a single factor by hand</div></div></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Manual Add Record</h3><div class="dm-card-sub">Encode a single factor by hand</div></div></div>
             <div class="dm-manual-body">
               <div class="dm-manual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div>
               <div class="dm-manual-text">Tag a contributing factor to an alert directly, without a bulk import.</div>
@@ -1955,7 +1983,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><div class="dm-card-title">Upload History</div><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="factors">View all</a></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Upload History</h3><div class="dm-card-sub">Most recent imports</div></div><a class="dm-hist-link" role="button" tabindex="0" data-dm-viewall="factors">View all</a></div>
             <div class="dm-hist-list">
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#d88a13">X</span><div class="dm-hist-body"><div class="dm-hist-name">FACTORS_20250630.xlsx</div><div class="dm-hist-meta">126 records · Jun 30, 11:40 AM</div></div><span class="dm-hist-status">Success</span></div>
               <div class="dm-hist-row"><span class="dm-hist-icon" style="background:#d88a13">X</span><div class="dm-hist-body"><div class="dm-hist-name">FACTORS_20250623.xlsx</div><div class="dm-hist-meta">98 records · Jun 23, 11:12 AM</div></div><span class="dm-hist-status">Success</span></div>
@@ -1965,12 +1993,12 @@
 
         <section class="card dm-records-card">
           <div class="dm-records-head">
-            <div class="dm-records-title">All Contributing Factors <small>Showing 8 of 126</small></div>
+            <h3 class="dm-records-title">All Contributing Factors <small>Showing 8 of 126</small></h3>
             <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search factor or category..." data-search-table="dm-table-factors"></div>
           </div>
           <div class="dm-table-wrap">
             <table class="dm-table" id="dm-table-factors">
-              <thead><tr><th>Factor</th><th>Category</th><th>Related Alerts</th><th>Last Updated</th><th>Action</th></tr></thead>
+              <thead><tr><th data-sort="detail">Factor</th><th data-sort="factor_type">Category</th><th>Related Alerts</th><th data-sort="start_time">Last Updated</th><th>Action</th></tr></thead>
               <tbody>
                 <tr><td>Extended shift duration</td><td><span class="dm-tag amber">Fatigue</span></td><td>412</td><td>Jun 30, 2025</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
                 <tr><td>Night shift rotation</td><td><span class="dm-tag amber">Fatigue</span></td><td>388</td><td>Jun 29, 2025</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
@@ -2115,7 +2143,7 @@
       <div class="da-view on" id="da-view-drivers">
         <section class="card da-table-card da-table-card-flex">
           <div class="da-table-head da-table-head-oneline">
-            <div class="da-table-title">Flagged Drivers <small data-da-shown="drivers">Showing 0</small></div>
+            <h3 class="da-table-title">Flagged Drivers <small data-da-shown="drivers">Showing 0</small></h3>
             <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." data-da-search="drivers"></div>
             <input type="date" class="al-filter" id="da-from-drivers" aria-label="From date">
             <input type="date" class="al-filter" id="da-to-drivers" aria-label="To date">
@@ -2176,7 +2204,7 @@
       <div class="da-view" id="da-view-assets">
         <section class="card da-table-card da-table-card-flex">
           <div class="da-table-head da-table-head-oneline">
-            <div class="da-table-title">Flagged Assets <small data-da-shown="assets">Showing 0</small></div>
+            <h3 class="da-table-title">Flagged Assets <small data-da-shown="assets">Showing 0</small></h3>
             <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search asset or unit ID..." data-da-search="assets"></div>
             <input type="date" class="al-filter" id="da-from-assets" aria-label="From date">
             <input type="date" class="al-filter" id="da-to-assets" aria-label="To date">
@@ -2265,10 +2293,10 @@
 
       <div class="card su-trend-card">
         <div class="su-trend-head">
-          <div class="su-trend-title">
+          <h3 class="su-trend-title">
             <span class="su-trend-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-4 4"/></svg></span>
             Total Alerts — 7-Day Trend
-          </div>
+          </h3>
           <span class="trend-badge down">↓ 22% vs prior day</span>
         </div>
         <div class="chart-area">
@@ -2313,7 +2341,7 @@
             <div class="su-section-head">
               <span class="su-section-icon" style="background:#e8952e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span>
               <div>
-                <div class="su-section-title">Top Increases &amp; Key Insights</div>
+                <h2 class="su-section-title">Top Increases &amp; Key Insights</h2>
                 <div class="su-section-sub">Notable shifts from Analytics, this 7-day window</div>
               </div>
             </div>
@@ -2355,7 +2383,7 @@
 
           <div class="card su-risk-card">
             <div class="su-risk-head">
-              <div class="su-risk-title">Top Flagged Drivers &amp; Assets <small>Live from this week's risk model</small></div>
+              <h3 class="su-risk-title">Top Flagged Drivers &amp; Assets <small>Live from this week's risk model</small></h3>
               <button class="su-risk-goto" type="button" data-goto="driver-asset">
                 Open Driver &amp; Asset Monitoring
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -2377,7 +2405,7 @@
             <div class="su-section-head">
               <span class="su-section-icon" style="background:#7c3aed" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
               <div>
-                <div class="su-section-title">Open Items</div>
+                <h2 class="su-section-title">Open Items</h2>
                 <div class="su-section-sub">From Alert Logs, this window</div>
               </div>
             </div>
@@ -2409,10 +2437,10 @@
 
           <div class="card su-actions-card">
             <div class="su-actions-head">
-              <div class="su-actions-title">
+              <h3 class="su-actions-title">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg>
                 Actions Logged This Week
-              </div>
+              </h3>
             </div>
             <div class="su-actions-list" id="su-actions-list"><!-- rows injected by script from live DA state.history --></div>
           </div>
@@ -2463,7 +2491,7 @@
         <section class="card">
           <div class="se-card-head">
             <div>
-              <div class="se-card-title">Personal Info</div>
+              <h3 class="se-card-title">Personal Info</h3>
               <div class="se-card-sub">Update your name, email, or password</div>
             </div>
           </div>
@@ -2477,10 +2505,10 @@
               </div>
             </div>
 
-            <div class="se-section-label">
+            <h3 class="se-section-label">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
               Profile details
-            </div>
+            </h3>
             <div class="se-field-row">
               <div class="se-field">
                 <label for="se-name">Full name</label>
@@ -2498,10 +2526,10 @@
               </div>
             </div>
 
-            <div class="se-section-label">
+            <h3 class="se-section-label">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
               Change password
-            </div>
+            </h3>
             <div class="se-field-row" style="grid-template-columns:1fr">
               <div class="se-field">
                 <label for="se-pw-current">Current password</label>
@@ -2539,7 +2567,7 @@
         <section class="card">
           <div class="se-card-head">
             <div>
-              <div class="se-card-title">Personalization</div>
+              <h3 class="se-card-title">Personalization</h3>
               <div class="se-card-sub">Sound, brightness, and theme for this device</div>
             </div>
           </div>
@@ -2599,7 +2627,7 @@
         <section class="card">
           <div class="se-card-head">
             <div>
-              <div class="se-card-title">Access Management</div>
+              <h3 class="se-card-title">Access Management</h3>
               <div class="se-card-sub">Review pending sign-ups, invite new users, and manage roles</div>
             </div>
           </div>
@@ -4040,7 +4068,10 @@
     }
 
     // ==================== Recent Alerts Overview (page-local preview — Alert Logs owns the full paginated table) ====================
+    var recentAlertsSort = { key: null, dir: 'desc' };
+    var recentAlertsLastCur = null;
     function renderRecentAlerts(cur){
+      recentAlertsLastCur = cur;
       var body = document.getElementById('an-recent-alerts-body');
       if(!body) return;
       var all = cur.recentAlerts || [];
@@ -4050,6 +4081,26 @@
       if(!rows.length){
         body.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:14px 10px">No alerts recorded.</td></tr>';
         return;
+      }
+      // Client-side sort: this widget's own data is already the full,
+      // server-bounded top-list (dds_metrics()'s recentAlerts, capped at
+      // 8 server-side) rather than a paginated fetch, so re-sorting what's
+      // already in hand needs no round trip — unlike the real Alert Logs
+      // table this one links to via "View all alerts", which sorts server-
+      // side because it isn't bounded the same way.
+      var sortKey = recentAlertsSort.key, sortDir = recentAlertsSort.dir;
+      if(sortKey){
+        rows = rows.slice().sort(function(a, b){
+          var av = sortKey === 'time' ? new Date(a.time || 0).getTime()
+            : sortKey === 'count' ? (a.count || 0)
+            : String(a[sortKey] || '').toLowerCase();
+          var bv = sortKey === 'time' ? new Date(b.time || 0).getTime()
+            : sortKey === 'count' ? (b.count || 0)
+            : String(b[sortKey] || '').toLowerCase();
+          if(av < bv) return sortDir === 'asc' ? -1 : 1;
+          if(av > bv) return sortDir === 'asc' ? 1 : -1;
+          return 0;
+        });
       }
       body.innerHTML = rows.map(function(r){
         var t = r.time ? new Date(r.time) : null;
@@ -4064,7 +4115,20 @@
           '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : 'Day') + '</td>' +
           '</tr>';
       }).join('');
+      document.querySelectorAll('.an-alerts-table th[data-sort]').forEach(function(th){
+        var col = th.getAttribute('data-sort');
+        th.classList.toggle('sorted', col === sortKey);
+        th.classList.toggle('asc', col === sortKey && sortDir === 'asc');
+      });
     }
+    document.querySelectorAll('.an-alerts-table th[data-sort]').forEach(function(th){
+      th.addEventListener('click', function(){
+        var col = th.getAttribute('data-sort');
+        if(recentAlertsSort.key === col) recentAlertsSort.dir = recentAlertsSort.dir === 'asc' ? 'desc' : 'asc';
+        else { recentAlertsSort.key = col; recentAlertsSort.dir = col === 'time' || col === 'count' ? 'desc' : 'asc'; }
+        if(recentAlertsLastCur) renderRecentAlerts(recentAlertsLastCur);
+      });
+    });
 
     // ==================== orchestration ====================
     function signedOutState(){
@@ -4843,16 +4907,21 @@
     }
 
     // ==================== DDS Data ====================
-    var ddsState = { search: '', total: 0 };
+    var ddsState = { search: '', total: 0, sort: 'start_time', dir: 'desc' };
     function loadDds(){
       var tbody = document.querySelector('#dm-table-dds tbody');
       var titleSmall = document.querySelector('#dm-source-dds .dm-records-title small');
       var foot = document.querySelector('#dm-source-dds .dm-table-foot span');
       if(!tbody) return;
+      document.querySelectorAll('#dm-table-dds th[data-sort]').forEach(function(th){
+        var col = th.getAttribute('data-sort');
+        th.classList.toggle('sorted', col === ddsState.sort);
+        th.classList.toggle('asc', col === ddsState.sort && ddsState.dir === 'asc');
+      });
       requireSession().then(function(sess){
         if(!sess){ tbody.innerHTML = signedOutRow(6, 'DDS records'); clearCounts(titleSmall, foot); return; }
         return DB.rpc('dds_alert_logs', {
-          p_limit: 8, p_offset: 0, p_sort: 'start_time', p_dir: 'desc',
+          p_limit: 8, p_offset: 0, p_sort: ddsState.sort, p_dir: ddsState.dir,
           p_search: ddsState.search || null
         }).then(function(res){
           if(res.error) throw res.error;
@@ -4868,13 +4937,14 @@
           tbody.innerHTML = rows.map(function(r){
             var sev = severityBadge(r.eventCode);
             var driver = r.driverName || r.operator || 'Unspecified';
+            var editPayload = { id: r.id, startTime: r.startTime, endTime: r.endTime, updateTime: r.updateTime, assetId: r.assetId || '', eventCode: r.eventCode || '', eventCount: r.eventCount || 1, operator: r.operator || '' };
             return '<tr>' +
               '<td>' + esc(fmtDateShort(r.startTime)) + '</td>' +
               '<td>' + esc(r.eventCode || '—') + (r.assetId ? ' — ' + esc(r.assetId) : '') + '</td>' +
               '<td>' + esc(r.assetId || '—') + '</td>' +
               '<td>' + esc(driver) + '</td>' +
               '<td><span class="al-badge ' + sev.tier + '">' + esc(sev.label) + '</span></td>' +
-              '<td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit" disabled title="Editing not available yet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td>' +
+              '<td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit" data-dds-edit=\'' + esc(JSON.stringify(editPayload)) + '\'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td>' +
             '</tr>';
           }).join('');
         });
@@ -4898,16 +4968,21 @@
       if(n.indexOf('RAIN') !== -1) return 'RAINFALL';
       return 'MIE_STAT';
     }
-    var minestatState = { search: '' };
+    var minestatState = { search: '', sort: 'created_at', dir: 'desc' };
     function loadMinestat(){
       var tbody = document.querySelector('#dm-table-minestat tbody');
       var titleSmall = document.querySelector('#dm-source-minestat .dm-records-title small');
       var foot = document.querySelector('#dm-source-minestat .dm-table-foot span');
       if(!tbody) return;
+      document.querySelectorAll('#dm-table-minestat th[data-sort]').forEach(function(th){
+        var col = th.getAttribute('data-sort');
+        th.classList.toggle('sorted', col === minestatState.sort);
+        th.classList.toggle('asc', col === minestatState.sort && minestatState.dir === 'asc');
+      });
       requireSession().then(function(sess){
         if(!sess){ tbody.innerHTML = signedOutRow(8, 'Minestat uploads'); clearCounts(titleSmall, foot); return; }
         var q = DB.from('imports').select('id, original_name, row_count, status, created_at', { count: 'exact' })
-          .eq('kind', 'minestat').order('created_at', { ascending: false }).limit(8);
+          .eq('kind', 'minestat').order(minestatState.sort, { ascending: minestatState.dir === 'asc' }).limit(8);
         if(minestatState.search) q = q.ilike('original_name', '%' + minestatState.search + '%');
         return q.then(function(res){
           if(res.error) throw res.error;
@@ -4936,17 +5011,53 @@
       }).catch(function(err){ tbody.innerHTML = errorRow(8, err); });
     }
 
+    // dds_minestat_reresolve_all() (0027) has existed since the review-
+    // queue feature shipped but had no caller anywhere in the app — a
+    // masterlist correction (fixing a name, adding an alias) only affects
+    // FUTURE Minestat imports; rows already sitting unresolved keep
+    // whatever the masterlist said at import time, with no way to find out
+    // they'd now resolve short of re-uploading the same file. This button
+    // is the minimum reachable fix: makes the existing, already-correct
+    // RPC callable, rather than building the full name-review queue UI
+    // that never shipped (out of scope for a fix — that's a new feature).
+    var minestatRecheckBtn = document.getElementById('dm-minestat-recheck');
+    if(minestatRecheckBtn){
+      minestatRecheckBtn.addEventListener('click', function(){
+        minestatRecheckBtn.disabled = true;
+        var originalText = minestatRecheckBtn.textContent;
+        minestatRecheckBtn.textContent = 'Checking…';
+        requireSession().then(function(sess){
+          if(!sess) throw new Error('Sign in required.');
+          return DB.rpc('dds_minestat_reresolve_all', {});
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var d = res.data || {};
+          minestatRecheckBtn.textContent = (d.resolved || 0) + ' resolved of ' + (d.checked || 0) + ' checked';
+          setTimeout(function(){ minestatRecheckBtn.textContent = originalText; minestatRecheckBtn.disabled = false; }, 3500);
+        }).catch(function(err){
+          console.error('Minestat re-check failed', err);
+          minestatRecheckBtn.textContent = 'Could not check — try again';
+          setTimeout(function(){ minestatRecheckBtn.textContent = originalText; minestatRecheckBtn.disabled = false; }, 3500);
+        });
+      });
+    }
+
     // ==================== Masterlist ====================
-    var masterlistState = { search: '' };
+    var masterlistState = { search: '', sort: 'full_name', dir: 'asc' };
     function loadMasterlist(){
       var tbody = document.querySelector('#dm-table-masterlist tbody');
       var titleSmall = document.querySelector('#dm-source-masterlist .dm-records-title small');
       var foot = document.querySelector('#dm-source-masterlist .dm-table-foot span');
       if(!tbody) return;
+      document.querySelectorAll('#dm-table-masterlist th[data-sort]').forEach(function(th){
+        var col = th.getAttribute('data-sort');
+        th.classList.toggle('sorted', col === masterlistState.sort);
+        th.classList.toggle('asc', col === masterlistState.sort && masterlistState.dir === 'asc');
+      });
       requireSession().then(function(sess){
         if(!sess){ tbody.innerHTML = signedOutRow(6, 'the masterlist'); clearCounts(titleSmall, foot); return; }
         var q = DB.from('drivers').select('emp_no, full_name, status, details', { count: 'exact' })
-          .order('full_name').limit(8);
+          .order(masterlistState.sort || 'full_name', { ascending: masterlistState.dir !== 'desc' }).limit(8);
         if(masterlistState.search){
           var like = '%' + masterlistState.search + '%';
           q = q.or('full_name.ilike.' + like + ',emp_no.ilike.' + like);
@@ -4981,17 +5092,22 @@
 
     // ==================== Contributing Factors ====================
     var CATEGORY_TAG = { 'Power Interruption': 'amber', 'Weather Condition': 'bluebg', 'Others': 'purplebg' };
-    var factorsState = { search: '' };
+    var factorsState = { search: '', sort: 'start_time', dir: 'desc' };
     function loadFactors(){
       var tbody = document.querySelector('#dm-table-factors tbody');
       var titleSmall = document.querySelector('#dm-source-factors .dm-records-title small');
       var foot = document.querySelector('#dm-source-factors .dm-table-foot span');
       if(!tbody) return;
+      document.querySelectorAll('#dm-table-factors th[data-sort]').forEach(function(th){
+        var col = th.getAttribute('data-sort');
+        th.classList.toggle('sorted', col === factorsState.sort);
+        th.classList.toggle('asc', col === factorsState.sort && factorsState.dir === 'asc');
+      });
       requireSession().then(function(sess){
         if(!sess){ tbody.innerHTML = signedOutRow(5, 'contributing factors'); clearCounts(titleSmall, foot); return; }
         var q = DB.from('contributing_factors')
           .select('id, factor_type, detail, start_time, end_time, notes', { count: 'exact' })
-          .order('start_time', { ascending: false }).limit(8);
+          .order(factorsState.sort, { ascending: factorsState.dir === 'asc' }).limit(8);
         if(factorsState.search){
           // Server-side, same as Minestat/Masterlist — searching must see
           // the whole table, not just the 8 most-recent rows already
@@ -5011,12 +5127,13 @@
             }
             tbody.innerHTML = rows.map(function(r){
               var tag = CATEGORY_TAG[r.factor_type] || 'bluebg';
+              var editPayload = { id: r.id, factorType: r.factor_type || '', detail: r.detail || '', startTime: r.start_time };
               return '<tr>' +
                 '<td>' + esc(r.detail || r.factor_type) + '</td>' +
                 '<td><span class="dm-tag ' + tag + '">' + esc(r.factor_type) + '</span></td>' +
                 '<td>—</td>' +
                 '<td>' + esc(fmtDateShort(r.start_time).split(' · ')[0]) + '</td>' +
-                '<td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit" disabled title="Editing not available yet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td>' +
+                '<td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit" data-fac-edit=\'' + esc(JSON.stringify(editPayload)) + '\'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td>' +
               '</tr>';
             }).join('');
           });
@@ -5032,18 +5149,18 @@
       var list = document.querySelector(listSelector);
       if(!list) return;
       if(!kind){
-        list.innerHTML = '<div style="padding:14px 2px;color:var(--muted);font-size:10.5px">Upload history isn\'t tracked server-side for this source yet.</div>';
+        list.innerHTML = '<div style="padding:14px 2px;color:var(--muted);font-size:var(--fs-caption)">Upload history isn\'t tracked server-side for this source yet.</div>';
         return;
       }
       requireSession().then(function(sess){
-        if(!sess){ list.innerHTML = '<div style="padding:14px 2px;color:var(--muted);font-size:10.5px">Sign in to load upload history.</div>'; return; }
+        if(!sess){ list.innerHTML = '<div style="padding:14px 2px;color:var(--muted);font-size:var(--fs-caption)">Sign in to load upload history.</div>'; return; }
         return DB.from('imports').select('original_name, row_count, status, created_at')
           .eq('kind', kind).order('created_at', { ascending: false }).limit(countLimit)
           .then(function(res){
             if(res.error) throw res.error;
             var rows = res.data || [];
             if(!rows.length){
-              list.innerHTML = '<div style="padding:14px 2px;color:var(--muted);font-size:10.5px">No uploads yet.</div>';
+              list.innerHTML = '<div style="padding:14px 2px;color:var(--muted);font-size:var(--fs-caption)">No uploads yet.</div>';
               return;
             }
             list.innerHTML = rows.map(function(r){
@@ -5055,7 +5172,7 @@
                 '<span class="dm-hist-status">' + esc(statusLabel) + '</span></div>';
             }).join('');
           });
-      }).catch(function(err){ list.innerHTML = '<div style="padding:14px 2px;color:#c0271f;font-size:10.5px">' + esc(err.message || 'Could not load history.') + '</div>'; });
+      }).catch(function(err){ list.innerHTML = '<div style="padding:14px 2px;color:#c0271f;font-size:var(--fs-caption)">' + esc(err.message || 'Could not load history.') + '</div>'; });
     }
 
     // ==================== Upload History: "View all" modal ====================
@@ -5155,6 +5272,44 @@
       });
     });
 
+    // ---- sort: same click-to-sort idiom as Alert Logs/Driver & Asset
+    // (th[data-sort], .sorted/.asc CSS state) — DDS Data is the only
+    // Data Management table with server-side sort support today
+    // (dds_alert_logs already accepts p_sort/p_dir); Minestat/Masterlist/
+    // Contributing Factors stay unsorted since their own queries don't.
+    document.querySelectorAll('#dm-table-dds th[data-sort]').forEach(function(th){
+      th.addEventListener('click', function(){
+        var col = th.getAttribute('data-sort');
+        if(ddsState.sort === col) ddsState.dir = ddsState.dir === 'asc' ? 'desc' : 'asc';
+        else { ddsState.sort = col; ddsState.dir = col === 'start_time' ? 'desc' : 'asc'; }
+        loadDds();
+      });
+    });
+    document.querySelectorAll('#dm-table-masterlist th[data-sort]').forEach(function(th){
+      th.addEventListener('click', function(){
+        var col = th.getAttribute('data-sort');
+        if(masterlistState.sort === col) masterlistState.dir = masterlistState.dir === 'asc' ? 'desc' : 'asc';
+        else { masterlistState.sort = col; masterlistState.dir = 'asc'; }
+        loadMasterlist();
+      });
+    });
+    document.querySelectorAll('#dm-table-minestat th[data-sort]').forEach(function(th){
+      th.addEventListener('click', function(){
+        var col = th.getAttribute('data-sort');
+        if(minestatState.sort === col) minestatState.dir = minestatState.dir === 'asc' ? 'desc' : 'asc';
+        else { minestatState.sort = col; minestatState.dir = col === 'created_at' ? 'desc' : 'asc'; }
+        loadMinestat();
+      });
+    });
+    document.querySelectorAll('#dm-table-factors th[data-sort]').forEach(function(th){
+      th.addEventListener('click', function(){
+        var col = th.getAttribute('data-sort');
+        if(factorsState.sort === col) factorsState.dir = factorsState.dir === 'asc' ? 'desc' : 'asc';
+        else { factorsState.sort = col; factorsState.dir = col === 'start_time' ? 'desc' : 'asc'; }
+        loadFactors();
+      });
+    });
+
     // ---- manual-add modal: content swaps per source, opened via any [data-manual-add] button ----
     var modalMask = document.getElementById('dm-modal-mask');
     var modalSub = document.getElementById('dm-modal-sub');
@@ -5196,10 +5351,9 @@
     // reusing the exact same "Add Record" modal/save path with the row's
     // existing emp_no pre-filled (and locked, so an edit can't accidentally
     // fork a new row under a mistyped ID) IS an edit, not a new feature.
-    // DDS Data and Contributing Factors intentionally stay un-editable here
-    // (raw sensor events with generated/derived columns and downstream
-    // triggers are a materially different, riskier edit surface than a
-    // roster record) — Download-only Minestat rows are unrelated to this.
+    // Download-only Minestat rows are unrelated to any of this (that Edit
+    // icon is actually a Download button — a different, lower-stakes
+    // affordance needing real file storage, intentionally left as-is).
     function openMasterlistEdit(row){
       openManualAdd('masterlist');
       editState = { key: 'masterlist', empNo: row.empNo };
@@ -5221,6 +5375,65 @@
         if(otherEl){ otherEl.value = row.statusLabel; otherEl.style.display = ''; otherEl.classList.add('on'); }
       }
     }
+    // DDS Data edit: shift/shift_date/actionable/sync_seconds on `events`
+    // are all GENERATED ALWAYS ... STORED (0001_init.sql) — Postgres
+    // recomputes them from start_time/end_time/update_time automatically
+    // on UPDATE, so there is no path for this edit to leave them stale.
+    // Writes through dds_update_event() (0050), a narrow single-row RPC
+    // separate from dds_ingest()'s insert-only, natural-key-keyed path —
+    // dds_ingest can't be reused here since editing asset_id/start_time/
+    // event_code (the natural key) would try to insert a "new" row rather
+    // than update this one.
+    function dtLocalValue(isoOrMdy){
+      if(!isoOrMdy) return '';
+      var d = new Date(isoOrMdy);
+      if(isNaN(d)) return '';
+      var p = function(n){ return String(n).padStart(2,'0'); };
+      return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+    function openDdsEdit(row){
+      openManualAdd('dds');
+      editState = { key: 'dds', eventId: row.id };
+      if(modalTitleEl) modalTitleEl.textContent = 'Edit Record';
+      modalSub.textContent = 'Update this DDS event';
+      document.getElementById('dm-dds-start').value = dtLocalValue(row.startTime);
+      document.getElementById('dm-dds-update').value = dtLocalValue(row.updateTime);
+      document.getElementById('dm-dds-end').value = dtLocalValue(row.endTime);
+      document.getElementById('dm-dds-eventcount').value = row.eventCount || 1;
+      document.getElementById('dm-dds-asset').value = row.assetId || '';
+      document.getElementById('dm-dds-driver').value = row.operator || '';
+      var codeSel = document.getElementById('dm-dds-eventcode');
+      var knownCode = ['Drowsiness Alert', 'Sleep Alert'].indexOf(row.eventCode) !== -1;
+      if(knownCode){
+        codeSel.value = row.eventCode;
+      } else if(row.eventCode) {
+        codeSel.value = '__other__';
+        var otherEl = document.getElementById('dm-dds-eventcode-other');
+        if(otherEl){ otherEl.value = row.eventCode; otherEl.style.display = ''; otherEl.classList.add('on'); }
+      }
+    }
+    // Contributing Factors edit: unlike DDS/Masterlist, this table has a
+    // real `for update using (auth.uid() is not null)` RLS policy
+    // (0003_contributing_factors.sql) with no ownership check — any
+    // signed-in user can already update any row directly, same as
+    // saveFactor()'s own insert already writes through the client SDK
+    // rather than an RPC. No new backend object needed.
+    function openFactorEdit(row){
+      openManualAdd('factors');
+      editState = { key: 'factors', factorId: row.id };
+      if(modalTitleEl) modalTitleEl.textContent = 'Edit Record';
+      modalSub.textContent = 'Update this contributing factor';
+      document.getElementById('dm-fac-factor').value = row.detail;
+      var catSel = document.getElementById('dm-fac-category');
+      var knownCat = ['Fatigue', 'Environment', 'Medical', 'Route'].indexOf(row.factorType) !== -1;
+      if(knownCat){
+        catSel.value = row.factorType;
+      } else if(row.factorType) {
+        catSel.value = '__other__';
+        var otherEl = document.getElementById('dm-fac-category-other');
+        if(otherEl){ otherEl.value = row.factorType; otherEl.style.display = ''; otherEl.classList.add('on'); }
+      }
+    }
     function closeManualAdd(){
       modalMask.classList.remove('on');
       editState = null;
@@ -5233,6 +5446,16 @@
       var btn = e.target.closest('[data-ml-edit]');
       if(!btn) return;
       openMasterlistEdit(JSON.parse(btn.getAttribute('data-ml-edit')));
+    });
+    document.querySelector('#dm-table-dds tbody').addEventListener('click', function(e){
+      var btn = e.target.closest('[data-dds-edit]');
+      if(!btn) return;
+      openDdsEdit(JSON.parse(btn.getAttribute('data-dds-edit')));
+    });
+    document.querySelector('#dm-table-factors tbody').addEventListener('click', function(e){
+      var btn = e.target.closest('[data-fac-edit]');
+      if(!btn) return;
+      openFactorEdit(JSON.parse(btn.getAttribute('data-fac-edit')));
     });
     document.getElementById('dm-modal-close').addEventListener('click', closeManualAdd);
     document.getElementById('dm-modal-cancel').addEventListener('click', closeManualAdd);
@@ -6318,11 +6541,58 @@
       });
     }
 
+    function saveDdsEdit(){
+      var startVal = document.getElementById('dm-dds-start').value;
+      var updateVal = document.getElementById('dm-dds-update').value;
+      var endVal = document.getElementById('dm-dds-end').value;
+      var eventCode = selectOrOther('dm-dds-eventcode');
+      var eventCount = document.getElementById('dm-dds-eventcount').value;
+      var asset = document.getElementById('dm-dds-asset').value.trim();
+      var driver = document.getElementById('dm-dds-driver').value.trim();
+      if(!startVal || !asset) throw new Error('Start Time and Asset are required.');
+      if(!eventCode) throw new Error('Event Code is required — enter a value for "Other".');
+      var countNum = parseInt(eventCount, 10);
+      if(!countNum || countNum < 1) throw new Error('Event Count must be a positive integer.');
+      return requireSession().then(function(sess){
+        if(!sess) throw new Error('Sign in required to save records.');
+        return DB.rpc('dds_update_event', {
+          p_event_id: editState.eventId,
+          p_start_time: toCanonical(new Date(startVal)),
+          p_end_time: endVal ? toCanonical(new Date(endVal)) : null,
+          p_update_time: updateVal ? toCanonical(new Date(updateVal)) : null,
+          p_asset_id: asset, p_event_code: eventCode, p_event_count: countNum,
+          p_operator: driver || null
+        });
+      });
+    }
+
+    function saveFactorEdit(){
+      var factor = document.getElementById('dm-fac-factor').value.trim();
+      var category = selectOrOther('dm-fac-category');
+      if(!factor) throw new Error('Factor is required.');
+      if(!category) throw new Error('Category is required — enter a value for "Other".');
+      return requireSession().then(function(sess){
+        if(!sess) throw new Error('Sign in required to save records.');
+        return DB.from('contributing_factors')
+          .update({ factor_type: category, detail: factor })
+          .eq('id', editState.factorId);
+      });
+    }
+
     var SAVERS = { dds: saveDds, minestat: saveMinestat, masterlist: saveMasterlist, factors: saveFactor };
 
     saveBtn.addEventListener('click', function(){
       var key = modalMask.getAttribute('data-current-source');
-      var saver = SAVERS[key];
+      // An in-progress edit (editState set by openDdsEdit/openFactorEdit)
+      // routes to its own update function instead of the Add path's saver —
+      // DDS can't reuse saveDds()'s insert-only ingest (editing the natural
+      // key would create a new row, not update this one); Factors could
+      // technically reuse saveFactor() since it's already a direct update-
+      // shaped client call, but a distinct function keeps "add" vs "edit"
+      // intent explicit rather than inferred from editState inside saveFactor.
+      var saver = editState && editState.key === 'dds' ? saveDdsEdit
+        : editState && editState.key === 'factors' ? saveFactorEdit
+        : SAVERS[key];
       if(!saver) { closeManualAdd(); return; }
       saveBtn.disabled = true;
       saveBtn.textContent = 'Saving…';
@@ -6613,6 +6883,60 @@
         detailBody.innerHTML = '<div class="da-empty" style="padding:30px 0;color:#c0271f">Could not load: ' + esc(err.message || 'unknown error') + '</div>';
       });
     }
+    // ---- sync status pill: same pattern as Driver & Asset Monitoring's
+    // #da-sync-status (own IIFE, own DOM ids, identical logic) — every
+    // inline edit below (Emp ID, Action Performed) reports through this
+    // instead of a blocking alert() on failure, so a failed inline save
+    // reads the same way a failed bulk save already does on that page.
+    var alSyncEl = document.getElementById('al-sync-status');
+    var alSyncTextEl = document.getElementById('al-sync-status-text');
+    var alSyncJobs = {};
+    var alSyncJobSeq = 0;
+    var alSyncDoneTimer = null;
+    function alSyncTotals(){
+      var done = 0, total = 0;
+      Object.keys(alSyncJobs).forEach(function(id){
+        done += alSyncJobs[id].done;
+        total += alSyncJobs[id].total;
+      });
+      return { done: done, total: total };
+    }
+    function alSyncRender(){
+      var t = alSyncTotals();
+      if(t.total === 0) return;
+      alSyncEl.classList.remove('done','error');
+      alSyncEl.classList.add('on');
+      var pct = Math.round((t.done / t.total) * 100);
+      alSyncTextEl.textContent = 'Updating database… ' + pct + '%';
+    }
+    function alSyncJobStart(total){
+      clearTimeout(alSyncDoneTimer);
+      var id = ++alSyncJobSeq;
+      alSyncJobs[id] = { done: 0, total: total };
+      alSyncRender();
+      return id;
+    }
+    function alSyncJobDone(id){
+      delete alSyncJobs[id];
+      var t = alSyncTotals();
+      if(t.total > 0){ alSyncRender(); return; }
+      alSyncEl.classList.remove('error');
+      alSyncEl.classList.add('on', 'done');
+      alSyncTextEl.textContent = 'All changes saved';
+      clearTimeout(alSyncDoneTimer);
+      alSyncDoneTimer = setTimeout(function(){ alSyncEl.classList.remove('on','done'); }, 2200);
+    }
+    function alSyncJobError(id, message){
+      delete alSyncJobs[id];
+      var t = alSyncTotals();
+      if(t.total > 0){ alSyncRender(); return; }
+      alSyncEl.classList.remove('done');
+      alSyncEl.classList.add('on', 'error');
+      alSyncTextEl.textContent = message || 'Could not save — changes reverted';
+      clearTimeout(alSyncDoneTimer);
+      alSyncDoneTimer = setTimeout(function(){ alSyncEl.classList.remove('on','error'); }, 4500);
+    }
+
     var alTbody = document.getElementById('al-tbody');
     // Clicking a row (anywhere except its checkbox) opens the same
     // read-only group-detail view the old "View" column's button did —
@@ -6657,6 +6981,7 @@
       if(!empNo) return;
       if(input.dataset.alLastCommitted === empNo) return;
       input.dataset.alLastCommitted = empNo;
+      var jobId = alSyncJobStart(1);
       loadDriversMap().then(function(){
         renderEmpNameCell(id, empNo);
         return requireSession();
@@ -6669,9 +6994,10 @@
         });
       }).then(function(res){
         if(res && res.error) throw res.error;
+        alSyncJobDone(jobId);
       }).catch(function(err){
         console.error('Emp ID save failed', err);
-        alert('Could not save Emp ID: ' + ((err && err.message) || 'unknown error'));
+        alSyncJobError(jobId, 'Could not save Emp ID: ' + ((err && err.message) || 'unknown error'));
       });
     }
     var empIdCommitTimers = {};
@@ -6699,6 +7025,7 @@
     });
 
     function commitInlineAction(id, actionType, isOther){
+      var jobId = alSyncJobStart(1);
       requireSession().then(function(sess){
         if(!sess) return;
         return DB.rpc('dds_bulk_log_case_action', {
@@ -6708,9 +7035,10 @@
         });
       }).then(function(res){
         if(res && res.error) throw res.error;
+        alSyncJobDone(jobId);
       }).catch(function(err){
         console.error('Inline action save failed', err);
-        alert('Could not save action: ' + ((err && err.message) || 'unknown error'));
+        alSyncJobError(jobId, 'Could not save action: ' + ((err && err.message) || 'unknown error'));
       });
     }
     alTbody.addEventListener('change', function(e){
@@ -6844,6 +7172,7 @@
 
       bulkApplyBtn.disabled = true;
       bulkApplyBtn.textContent = 'Applying…';
+      var jobId = alSyncJobStart(ids.length);
 
       DB.rpc('dds_bulk_log_case_action', {
         p_event_ids: ids, p_action_type: actionType, p_action_is_other: isActionOther,
@@ -6880,11 +7209,12 @@
         }));
         return Promise.all(calls);
       }).then(function(){
+        alSyncJobDone(jobId);
         resetBulkForm();
         load();
       }).catch(function(err){
         console.error('Bulk alert action failed', err);
-        alert('Could not save: ' + ((err && err.message) || 'unknown error'));
+        alSyncJobError(jobId, 'Could not save: ' + ((err && err.message) || 'unknown error'));
       }).then(function(){
         bulkApplyBtn.disabled = false;
         bulkApplyBtn.textContent = 'Apply to selected';
@@ -6898,6 +7228,45 @@
     document.getElementById('al-shift').addEventListener('change', function(e){ state.shift = e.target.value || null; state.offset = 0; load(); });
     document.getElementById('al-status').addEventListener('change', function(e){ state.status = e.target.value; state.offset = 0; load(); });
     document.getElementById('al-refresh').addEventListener('click', function(){ load(); });
+
+    // ---- Find duplicates: near-duplicate events already in the database,
+    // not just at upload time (Data Management's preflight only checks a
+    // file being uploaded against what's already there — nothing existed
+    // to check what's already there against itself). Same asset+event
+    // code within 60 seconds is the realistic double-log signature, not
+    // an exact-key match (uq_events_natural already makes those impossible).
+    var findDupesBtn = document.getElementById('al-find-dupes');
+    var dupesPanel = document.getElementById('al-dupes-panel');
+    findDupesBtn.addEventListener('click', function(){
+      findDupesBtn.disabled = true;
+      var originalText = findDupesBtn.textContent;
+      findDupesBtn.textContent = 'Checking…';
+      DB.rpc('dds_find_near_duplicate_events', {
+        p_from: state.from || null, p_to: state.to || null, p_window_seconds: 60, p_limit: 20
+      }).then(function(res){
+        if(res.error) throw res.error;
+        var pairs = (res.data && res.data.pairs) || [];
+        var total = (res.data && res.data.total) || 0;
+        if(!pairs.length){
+          dupesPanel.innerHTML = 'No likely duplicates found in the current date range (same asset + event code within 60 seconds of each other).';
+        } else {
+          dupesPanel.innerHTML = '<div style="margin-bottom:6px;font-weight:650;color:var(--text-dim)">' + fmtNum(total) + ' likely duplicate pair(s) found' + (total > pairs.length ? ' (showing first ' + pairs.length + ')' : '') + ':</div>' +
+            pairs.map(function(p){
+              return '<div style="padding:3px 0">' + esc(p.assetId) + ' — ' + esc(p.eventCode) + ' — ' +
+                esc(p.driverDisplay) + ' — ' + p.gapSeconds + 's apart (' +
+                esc(fmtDateShort(p.startTimeA)) + ' / ' + esc(fmtDateShort(p.startTimeB)) + ')</div>';
+            }).join('');
+        }
+        dupesPanel.style.display = 'block';
+      }).catch(function(err){
+        console.error('Find duplicates failed', err);
+        dupesPanel.innerHTML = 'Could not check for duplicates: ' + esc((err && err.message) || 'unknown error');
+        dupesPanel.style.display = 'block';
+      }).then(function(){
+        findDupesBtn.disabled = false;
+        findDupesBtn.textContent = originalText;
+      });
+    });
 
     var searchTimer = null;
     document.getElementById('al-search').addEventListener('input', function(e){
