@@ -24,6 +24,15 @@
        instead of a second hand-maintained dark color list. */
     --surface2:#fbfcfe; --text-dim:#1e293b;
 
+    /* Strong-blue accent used for card/table/chart titles, active-toggle
+       text, and sort-hover states (~25 uses, surveyed live) — was a
+       hardcoded #1259b6 with no dark-mode counterpart, so every one of
+       those elements read at 2.56:1 against the dark card background
+       (var(--card) in dark mode), failing WCAG AA's 4.5:1 floor for normal
+       text. Redefined below for dark mode at a lighter tint that clears
+       8:1 against the dark card. */
+    --heading-blue:#1259b6;
+
     /* Type scale, named by role rather than by pixel value. Documents the
        tiers that already exist in practice (surveyed live: 23 distinct
        font-size values across 243 declarations) rather than changing
@@ -60,6 +69,7 @@
     --bg:#0b1220; --card:#151b2b; --surface2:#111726; --text:#e7ecf5; --text-dim:#e7ecf5;
     --muted:#8a94ab; --border:#262f45; --grid:#1f2740;
     --shadow:0 3px 12px rgba(0,0,0,.35); --shadow-hover:0 6px 20px rgba(0,0,0,.5);
+    --heading-blue:#7eb6f5; /* 8.08:1 against --card (#151b2b); light mode's #1259b6 is 6.71:1 against #fff */
   }
   :root[data-theme="dark"] .sidebar{background:#01193d}
   :root[data-theme="dark"] .brand{border-bottom-color:rgba(255,255,255,.08)}
@@ -131,7 +141,7 @@
   .online{width:7px;height:7px;border-radius:50%;background:#079669;flex:0 0 auto}
   .clock-chip{display:flex;align-items:center;gap:9px;padding:8px 14px}
   .clock-chip svg{width:17px;height:17px;color:#2563eb;flex:0 0 auto}
-  .clock-chip .time{font-size:15px;font-weight:750;color:#1259b6;line-height:1.15;font-variant-numeric:tabular-nums}
+  .clock-chip .time{font-size:15px;font-weight:750;color:var(--heading-blue);line-height:1.15;font-variant-numeric:tabular-nums}
   .clock-chip .date{font-size:10px;color:var(--muted);margin-top:1px}
 
   /* ---------- hero band ---------- */
@@ -192,13 +202,14 @@
   .chart-title-group{display:flex;align-items:center;gap:10px}
   .chart-icon{width:28px;height:28px;border-radius:8px;background:#eaf1fd;display:grid;place-items:center;flex:0 0 auto}
   .chart-icon svg{width:14px;height:14px;color:#2563eb}
-  .chart-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6}
+  .chart-title{font-size:var(--fs-subhead);font-weight:750;color:var(--heading-blue)}
   .event-filter{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--border);border-radius:9px;font-size:11px;color:var(--text-dim);background:var(--card);cursor:pointer}
   .event-filter svg{width:11px;height:11px;color:var(--muted)}
 
   .chart-area{padding-top:6px}
   .chart-area svg{width:100%;height:auto}
   .axis{font-size:var(--fs-badge);fill:#64748b}
+  .axis.axis-today{fill:var(--heading-blue)}
   .gridline{stroke:var(--grid);stroke-width:1}
   .hourbar.critical{fill:#e53553}
   .hourbar.high{fill:#f0902e}
@@ -240,7 +251,7 @@
   .feed-icon svg{width:14px;height:14px}
   .feed-icon.blue{background:#2e80e9;color:#fff}
   .feed-icon.green{background:#16a34a;color:#fff}
-  .feed-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6}
+  .feed-title{font-size:var(--fs-subhead);font-weight:750;color:var(--heading-blue)}
   .feed-title.green-title{color:#16803c}
   .view-all{background:none;border:none;color:#2563eb;font-size:11px;font-weight:650;cursor:pointer;padding:4px 6px;border-radius:6px}
   .view-all:hover{background:#edf5ff}
@@ -259,7 +270,7 @@
   .feed-dot.active{background:#3b82f6}
   .feed-body{flex:1;min-width:0}
   .feed-main{font-size:12px;color:var(--text-dim);font-weight:650;line-height:1.4}
-  .feed-main .unit-tag{color:#1259b6}
+  .feed-main .unit-tag{color:var(--heading-blue)}
   .feed-main .repeat-tag{color:#c0271f;font-weight:700}
   .feed-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:2px}
   .feed-sev{font-size:var(--fs-badge);font-weight:750;padding:3px 8px;border-radius:6px;flex:0 0 auto;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;align-self:flex-start;margin-top:1px}
@@ -270,7 +281,7 @@
   .feed-sev.active{background:#e3edfd;color:#3b7cf6}
 
   .feed-footer{padding:11px 17px;display:flex;justify-content:center;border-top:1px solid var(--border)}
-  .feed-footer button{background:none;border:none;color:#1259b6;font-size:var(--fs-body);font-weight:650;padding:6px 12px;border-radius:7px;transition:background-color .15s;display:inline-flex;align-items:center;gap:6px}
+  .feed-footer button{background:none;border:none;color:var(--heading-blue);font-size:var(--fs-body);font-weight:650;padding:6px 12px;border-radius:7px;transition:background-color .15s;display:inline-flex;align-items:center;gap:6px}
   .feed-footer button:hover{background:#edf5ff}
   .feed-footer button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
   .feed-footer svg{width:11px;height:11px}
@@ -405,7 +416,7 @@
   .an-alerts-table{width:100%;border-collapse:collapse;font-size:12.5px}
   .an-alerts-table th{text-align:left;font-size:var(--fs-caption);text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:700;padding:0 10px 10px 0;border-bottom:1px solid var(--border);white-space:nowrap}
   .an-alerts-table th[data-sort]{cursor:pointer;user-select:none}
-  .an-alerts-table th[data-sort]:hover{color:#1259b6}
+  .an-alerts-table th[data-sort]:hover{color:var(--heading-blue)}
   .an-alerts-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
   .an-alerts-table th[data-sort].sorted.asc::after{content:' ▴'}
   .an-alerts-table td{padding:9px 10px 9px 0;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
@@ -425,11 +436,11 @@
 
   .al-table-card{padding:0}
   .al-table-head{min-height:54px;padding:14px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .al-table-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6;flex:0 0 auto}
+  .al-table-title{font-size:var(--fs-subhead);font-weight:750;color:var(--heading-blue);flex:0 0 auto}
   .al-table-title small{font-size:var(--fs-caption);color:var(--muted);font-weight:500;margin-left:8px}
   .al-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:0 0 auto}
   .al-toggle button{all:unset;box-sizing:border-box;cursor:pointer;font-size:var(--fs-caption);padding:7px 13px;color:var(--muted);font-weight:600}
-  .al-toggle button.on{background:#eaf1fd;color:#1259b6}
+  .al-toggle button.on{background:#eaf1fd;color:var(--heading-blue)}
 
   .al-filters{padding:11px 17px;display:flex;align-items:center;gap:9px;flex-wrap:nowrap;border-bottom:1px solid var(--border);background:var(--surface2)}
   .al-search{flex:0 0 40%;min-width:0;height:36px;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 11px;color:var(--muted);font-size:11px}
@@ -445,7 +456,7 @@
   .al-table thead th{position:sticky;top:0;z-index:1}
   .al-table th{height:34px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 11px;background:var(--surface2);white-space:nowrap}
   .al-table th[data-sort]{cursor:pointer;user-select:none}
-  .al-table th[data-sort]:hover{color:#1259b6}
+  .al-table th[data-sort]:hover{color:var(--heading-blue)}
   .al-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
   .al-table th[data-sort].sorted.asc::after{content:' ▴'}
   .al-table td{height:40px;border-bottom:1px solid var(--border);padding:0 11px;font-size:11px;color:var(--text-dim);white-space:nowrap}
@@ -453,7 +464,7 @@
   .al-table td.al-remarks{max-width:220px;overflow:hidden;text-overflow:ellipsis}
   .al-time{color:var(--muted)}
   .al-event{font-weight:650;color:var(--text-dim)}
-  .al-asset{font-weight:700;color:#1259b6}
+  .al-asset{font-weight:700;color:var(--heading-blue)}
 
   /* Fit-to-viewport: same pattern as #page-driver-asset (see that page's
      own comment for the full reasoning) — only the table-wrap scrolls
@@ -482,7 +493,7 @@
      together once #al-table has the .selecting class. */
   .al-table .al-check-cell{display:none}
   .al-table.selecting .al-check-cell{display:table-cell}
-  #al-select-toggle.on{background:#eaf1fd;color:#1259b6;border-color:#bcd6fb}
+  #al-select-toggle.on{background:#eaf1fd;color:var(--heading-blue);border-color:#bcd6fb}
 
   /* Inline-editable cells (Emp ID, Action Performed) — kept visually close
      to a plain table cell rather than looking like a form, since most of
@@ -498,7 +509,7 @@
   .al-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
   .al-pages{display:flex;gap:5px;align-items:center}
   .al-page{all:unset;box-sizing:border-box;cursor:pointer;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;display:grid;place-items:center;background:var(--card);font-size:var(--fs-caption);color:var(--text-dim)}
-  .al-page.on{background:#1259b6;color:#fff;border-color:#1259b6}
+  .al-page.on{background:var(--heading-blue);color:#fff;border-color:var(--heading-blue)}
   .al-page:disabled{opacity:.45;cursor:default}
 
   /* ---------- Data Management page (dm- prefix) ---------- */
@@ -583,7 +594,7 @@
   .dm-table{width:100%;border-collapse:collapse;min-width:660px}
   .dm-table th{height:36px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
   .dm-table th[data-sort]{cursor:pointer;user-select:none}
-  .dm-table th[data-sort]:hover{color:#1259b6}
+  .dm-table th[data-sort]:hover{color:var(--heading-blue)}
   .dm-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
   .dm-table th[data-sort].sorted.asc::after{content:' ▴'}
   .dm-table td{height:50px;border-bottom:1px solid var(--border);padding:0 10px;font-size:11px;color:var(--text-dim);white-space:nowrap}
@@ -639,13 +650,13 @@
   .da-tab:hover{color:var(--text-dim)}
   .da-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
   .da-tab-count{font-size:var(--fs-label);font-weight:750;background:var(--surface2);color:var(--text-dim);padding:2px 7px;border-radius:999px}
-  .da-tab.on .da-tab-count{background:#dbe8fd;color:#1259b6}
+  .da-tab.on .da-tab-count{background:#dbe8fd;color:var(--heading-blue)}
   .da-view{display:none}
   .da-view.on{display:block}
 
   .da-table-card{padding:0;margin-bottom:14px}
   .da-table-head{min-height:54px;padding:14px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .da-table-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6;display:flex;align-items:center;gap:8px;flex:0 0 auto}
+  .da-table-title{font-size:var(--fs-subhead);font-weight:750;color:var(--heading-blue);display:flex;align-items:center;gap:8px;flex:0 0 auto}
   .da-table-title small{font-size:var(--fs-caption);color:var(--muted);font-weight:500}
   .da-table-head-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap}
   .da-history-link{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:11px;font-weight:650;padding:6px 10px;border-radius:7px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -659,7 +670,7 @@
   .da-search input{all:unset;box-sizing:border-box;flex:1;min-width:0;font-size:11px;color:var(--text-dim)}
   .da-search input::placeholder{color:var(--muted)}
   .da-filter{all:unset;box-sizing:border-box;cursor:pointer;height:36px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:0 11px;display:flex;align-items:center;gap:7px;color:var(--text-dim);font-size:11px}
-  .da-filter.on{border-color:var(--blue);color:#1259b6;background:#eef5ff}
+  .da-filter.on{border-color:var(--blue);color:var(--heading-blue);background:#eef5ff}
   .da-sort-note{margin-left:auto;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px}
   .da-sort-note svg{width:11px;height:11px}
 
@@ -704,7 +715,7 @@
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
   .da-table th{height:38px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
   .da-table th[data-da-sort]{cursor:pointer;user-select:none}
-  .da-table th[data-da-sort]:hover{color:#1259b6}
+  .da-table th[data-da-sort]:hover{color:var(--heading-blue)}
   .da-table th[data-da-sort].sorted::after{content:' ▾';font-size:8px}
   .da-table th[data-da-sort].sorted.asc::after{content:' ▴'}
   .da-table td{height:56px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap}
@@ -782,7 +793,7 @@
   .da-type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
   .da-type-opt{all:unset;box-sizing:border-box;cursor:pointer;height:38px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:var(--fs-body);color:var(--text-dim);font-weight:600;text-align:center;padding:0 8px}
   .da-type-opt:hover{border-color:var(--border);background:var(--surface2)}
-  .da-type-opt.sel{border-color:var(--blue);background:#eef5ff;color:#1259b6;font-weight:700}
+  .da-type-opt.sel{border-color:var(--blue);background:#eef5ff;color:var(--heading-blue);font-weight:700}
   .da-modal-field input,.da-modal-field textarea{all:unset;box-sizing:border-box;width:100%;border:1px solid var(--border);border-radius:8px;background:var(--card);padding:10px 11px;font-size:var(--fs-body);color:var(--text-dim);font-family:inherit}
   .da-modal-field textarea{min-height:80px;line-height:1.5;resize:vertical}
   .da-modal-field input:focus-visible,.da-modal-field textarea:focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--blue)}
@@ -839,7 +850,7 @@
   /* bulk-edit toolbar: hidden until >=1 row is checked */
   .da-bulk-bar{display:none;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--border);background:#eef5ff;flex-wrap:wrap}
   .da-bulk-bar.on{display:flex}
-  .da-bulk-count{font-size:var(--fs-body);font-weight:700;color:#1259b6;white-space:nowrap}
+  .da-bulk-count{font-size:var(--fs-body);font-weight:700;color:var(--heading-blue);white-space:nowrap}
   .da-bulk-bar select,.da-bulk-bar input[type="text"],.da-bulk-bar input[type="date"]{all:unset;box-sizing:border-box;height:34px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:var(--fs-body);color:var(--text-dim);min-width:0}
   .da-bulk-bar select{cursor:pointer}
   .da-bulk-bar input[type="text"].da-bulk-other{width:150px;display:none}
@@ -900,7 +911,7 @@
 
   .su-trend-card{padding:0 16px 14px}
   .su-trend-head{min-height:48px;padding:14px 0 4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-  .su-trend-title{font-size:var(--fs-subhead);font-weight:700;color:#1259b6;display:flex;align-items:center;gap:10px}
+  .su-trend-title{font-size:var(--fs-subhead);font-weight:700;color:var(--heading-blue);display:flex;align-items:center;gap:10px}
   .su-trend-title-icon{width:28px;height:28px;border-radius:8px;background:#eaf1fd;display:grid;place-items:center;flex:0 0 auto}
   .su-trend-title-icon svg{width:14px;height:14px;color:#2563eb}
 
@@ -942,7 +953,7 @@
 
   .su-risk-card{padding:0;margin-top:14px}
   .su-risk-head{height:54px;padding:0 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-  .su-risk-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6;display:flex;align-items:center;gap:8px}
+  .su-risk-title{font-size:var(--fs-subhead);font-weight:750;color:var(--heading-blue);display:flex;align-items:center;gap:8px}
   .su-risk-title small{font-size:var(--fs-caption);color:var(--muted);font-weight:500}
   .su-risk-goto{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:11px;font-weight:650;padding:6px 10px;border-radius:7px;display:inline-flex;align-items:center;gap:6px}
   .su-risk-goto:hover{background:#edf5ff}
@@ -966,7 +977,7 @@
   .su-action-dot{width:8px;height:8px;border-radius:50%;background:#16a34a;flex:0 0 auto;margin-top:5px}
   .su-action-body{flex:1;min-width:0}
   .su-action-main{font-size:12px;color:var(--text-dim);font-weight:650;line-height:1.4}
-  .su-action-main .tag{font-weight:700;color:#1259b6}
+  .su-action-main .tag{font-weight:700;color:var(--heading-blue)}
   .su-action-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:2px}
   .su-action-when{font-size:10px;color:var(--muted);flex:0 0 auto;white-space:nowrap;padding-top:1px}
 
@@ -1055,7 +1066,7 @@
   .se-theme-group{display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden}
   .se-theme-opt{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;font-size:11px;font-weight:650;color:var(--muted)}
   .se-theme-opt svg{width:13px;height:13px}
-  .se-theme-opt.on{background:#eaf1fd;color:#1259b6}
+  .se-theme-opt.on{background:#eaf1fd;color:var(--heading-blue)}
   .se-theme-opt + .se-theme-opt{border-left:1px solid var(--border)}
 
   /* Access Management */
@@ -1121,6 +1132,9 @@
   button.se-sys-btn svg{width:14px;height:14px}
   button.se-sys-btn.danger{border-color:#f3c8c8;color:#c0271f}
   button.se-sys-btn.danger:hover{background:#fdeaea}
+  button.se-sys-btn:disabled{cursor:not-allowed;opacity:.5}
+  button.se-sys-btn:disabled:hover{background:var(--card)}
+  button.se-sys-btn.danger:disabled:hover{background:var(--card)}
   .se-sys-spin{animation:se-spin .8s linear infinite}
   @keyframes se-spin{to{transform:rotate(360deg)}}
 
@@ -2326,7 +2340,7 @@
             <text x="339" y="182" class="axis" text-anchor="middle">Sat</text>
             <text x="432" y="182" class="axis" text-anchor="middle">Sun</text>
             <text x="525" y="182" class="axis" text-anchor="middle">Mon</text>
-            <text x="618" y="182" class="axis" text-anchor="middle" font-weight="700" fill="#1259b6">Tue</text>
+            <text x="618" y="182" class="axis axis-today" text-anchor="middle" font-weight="700">Tue</text>
           </svg>
           <div class="hour-legend">
             <span><i style="background:#2563eb"></i>Total alerts</span>
@@ -3278,8 +3292,8 @@
           var dateLabel = new Date(t.date.split('/')[2], t.date.split('/')[0]-1, t.date.split('/')[1])
             .toLocaleDateString('en-US', { month:'short', day:'numeric' });
           var isToday = i === trend.length - 1;
-          return '<text x="' + xFor(i).toFixed(1) + '" y="182" class="axis" text-anchor="middle"' +
-            (isToday ? ' font-weight="700" fill="#1259b6"' : '') + '>' + esc(dateLabel) + '</text>';
+          return '<text x="' + xFor(i).toFixed(1) + '" y="182" class="axis' + (isToday ? ' axis-today' : '') + '" text-anchor="middle"' +
+            (isToday ? ' font-weight="700"' : '') + '>' + esc(dateLabel) + '</text>';
         }).join('');
       }
 
@@ -4332,9 +4346,12 @@
   })();
 
   // ---------- Settings: tabs, personalization, access management, system management ----------
-  // Everything here is visual-only for this mock — nothing persists to localStorage,
-  // and no request is actually sent. State lives in memory for the session only,
-  // same lifespan as e.g. Alert Logs' filter buttons.
+  // Tab switching is visual-only (in-memory, same lifespan as e.g. Alert
+  // Logs' filter buttons). Personal Info, Personalization, and Access
+  // Management below are real, persisted reads/writes against
+  // profiles/user_settings/Supabase Auth (see each section's own comment).
+  // System Management's backup/sync/delete actions are disabled, not
+  // simulated — see that section's own comment for why.
   (function(){
 
     // ---- tabs ----
@@ -4820,67 +4837,32 @@
     window.__ddsPageLoad.settings = function(){ loadPersonalInfo(); loadUsers(); };
     loadUsers();
 
-    // ---- System Management: backup / sync (simulated) / delete (confirm-gated) ----
-    function withSpinner(btn, label, doneLabel, cb){
-      var original = btn.innerHTML;
+    // ---- System Management: backup / sync / delete — disabled, not simulated ----
+    // These three used to run a fake spinner->success animation on click with
+    // no request ever sent (confirmed: no fetch/RPC anywhere in this block) —
+    // "Backup loaded"/"Synced"/"All data deleted" toasts that lied about
+    // having done something. A real "delete all fleet data" RPC does exist
+    // server-side (dds_reset_fleet_data(), admin-gated as of migration 0052)
+    // but nothing here calls it. Rather than keep faking success, or wire an
+    // unconfirmed direct line to a full-fleet-data TRUNCATE without a
+    // deliberate design pass on the confirmation flow, these are disabled
+    // outright until a real backend exists for backup/sync and a real,
+    // reviewed confirmation flow is built for delete.
+    ['se-backup-btn', 'se-sync-btn', 'se-delete-btn'].forEach(function(id){
+      var btn = document.getElementById(id);
+      if(!btn) return;
       btn.disabled = true;
-      btn.style.opacity = '.65';
-      btn.innerHTML = '<svg class="se-sys-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg>' + label;
-      setTimeout(function(){
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' + doneLabel;
-        setTimeout(function(){
-          btn.innerHTML = original;
-          btn.disabled = false;
-          btn.style.opacity = '';
-          if(cb) cb();
-        }, 1400);
-      }, 1100);
-    }
-
-    var backupBtn = document.getElementById('se-backup-btn');
-    if(backupBtn){
-      backupBtn.addEventListener('click', function(){
-        withSpinner(backupBtn, 'Loading backup…', 'Backup loaded');
-      });
-    }
-    var syncBtn = document.getElementById('se-sync-btn');
-    if(syncBtn){
-      syncBtn.addEventListener('click', function(){
-        withSpinner(syncBtn, 'Syncing…', 'Synced', function(){
-          // first tile's second row is "Last sync" — refresh it to read "Just now"
-          var rows = document.querySelectorAll('#se-pane-system .se-sys-tile:first-child .se-sys-row');
-          if(rows[1]) rows[1].querySelector('strong').textContent = 'Just now';
-        });
-      });
-    }
-
-    // ---- System Management: delete all data (destructive, confirm-gated) ----
-    var confirmMask = document.getElementById('se-confirm-mask');
-    var deleteBtn = document.getElementById('se-delete-btn');
-    var confirmCancelBtn = document.getElementById('se-confirm-cancel');
-    var confirmOkBtn = document.getElementById('se-confirm-ok');
-
-    if(deleteBtn) deleteBtn.addEventListener('click', function(){ confirmMask.classList.add('on'); });
-    if(confirmCancelBtn) confirmCancelBtn.addEventListener('click', function(){ confirmMask.classList.remove('on'); });
-    if(confirmMask) confirmMask.addEventListener('click', function(e){ if(e.target === confirmMask) confirmMask.classList.remove('on'); });
-    if(confirmOkBtn){
-      confirmOkBtn.addEventListener('click', function(){
-        confirmMask.classList.remove('on');
-        // Visual-only mock: no actual data store is cleared. A real implementation
-        // would clear the relevant state/localStorage here and likely redirect
-        // to a confirmation screen rather than staying on this page silently.
-        withSpinner(deleteBtn, 'Deleting…', 'All data deleted');
-      });
-    }
+      btn.title = 'Not available yet';
+    });
   })();
 
-  // ---------- Data Management: real Supabase-backed data (Phase 3) ----------
-  // Wires DDS/Minestat/Masterlist/Contributing Factors to the same tables and
-  // RPCs index.html's own Cloud.* helpers already use — see MIGRATION_STATUS.md
-  // Phase 3 for the reconciliation. Real list/count/search/manual-add and
-  // file-upload/drag-drop are wired for all 4 sources below; row-level Edit
-  // is still NOT wired (flagged in MIGRATION_STATUS.md, not silently
-  // skipped) — the Edit buttons stay visually in place but inert.
+  // ---------- Data Management: real Supabase-backed data ----------
+  // Wires DDS/Minestat/Masterlist/Contributing Factors to their tables and
+  // RPCs (dds_ingest/dds_minestat_ingest/dds_upsert_drivers, all above).
+  // Real list/count/search/manual-add, file-upload/drag-drop, and row-level
+  // Edit (openDdsEdit/openMasterlistEdit/openFactorEdit below, writing
+  // through dds_update_event()/direct table updates) are all wired for the
+  // 4 sources below.
   (function(){
     function fmtDateShort(iso){
       if(!iso) return '—';
