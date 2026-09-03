@@ -80,6 +80,25 @@
   :root[data-theme="dark"] .al-status.ack::before{background:#8a94ab}
   :root[data-theme="dark"] .dm-empty,:root[data-theme="dark"] .da-empty{color:var(--muted)}
   :root[data-theme="dark"] .da-bulk-bar{background:#132542}
+  /* KPI/stat-tile/feed/action icon-chip tints: these kept their light-mode
+     pastel backgrounds (#fee8e8 etc.) in dark mode — a design audit found
+     this reads as a bright, un-themed patch sitting on the dark card,
+     inconsistent with the rest of the dark palette (icon/text color is
+     unchanged, only the background darkens, matching how .al-badge.moderate
+     and .da-bulk-bar above already handle the same class of element). */
+  :root[data-theme="dark"] .red{background:#3a1a1a}
+  :root[data-theme="dark"] .pink{background:#3a1826}
+  :root[data-theme="dark"] .amber{background:#3a2a12}
+  :root[data-theme="dark"] .bluebg{background:#142a4a}
+  :root[data-theme="dark"] .greenbg{background:#123024}
+  :root[data-theme="dark"] .purplebg{background:#241a3a}
+  :root[data-theme="dark"] .stat-tile-icon.red{background:#3a1a1a}
+  :root[data-theme="dark"] .stat-tile-icon.blue{background:#142a4a}
+  :root[data-theme="dark"] .feed-sev.critical{background:#3a1a1a}
+  :root[data-theme="dark"] .feed-sev.high{background:#3a2a12}
+  :root[data-theme="dark"] .feed-sev.moderate,:root[data-theme="dark"] .feed-sev.active{background:#142a4a}
+  :root[data-theme="dark"] .feed-sev.resolved,:root[data-theme="dark"] .action-badge.resolved{background:#123024}
+  :root[data-theme="dark"] .action-badge.active{background:#142a4a}
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   html,body{margin:0;width:100%;min-height:100%;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--text);background:var(--bg)}
@@ -2265,7 +2284,7 @@
           <p>Running 7-day report across alerts, insights, and flagged drivers &amp; assets</p>
         </div>
         <div class="controls">
-          <div class="user"><span class="online" aria-hidden="true"></span>z_03welvz</div>
+          <div class="user"><span class="online" aria-hidden="true"></span><span id="su-username">—</span></div>
           <div class="su-range card">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             <span id="su-range-label">Wed–Tue · 7 days</span>
@@ -2277,31 +2296,31 @@
         </div>
       </header>
 
-      <section class="su-kpis" aria-label="7-day totals">
+      <section class="su-kpis" aria-label="7-day totals" id="su-kpi-row">
         <div class="card su-kpi">
           <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#ef4444"></span>TOTAL ALERTS</div>
-          <div class="su-kpi-value">7</div>
-          <div class="su-kpi-sub">7-day avg <strong>8</strong>/day · <span class="delta down">↓ 18% vs prior 7d</span></div>
+          <div class="su-kpi-value" id="su-kpi-total-value">—</div>
+          <div class="su-kpi-sub" id="su-kpi-total-sub">Sign in to load real data</div>
         </div>
         <div class="card su-kpi">
           <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#ec4a75"></span>SLEEP ALERTS</div>
-          <div class="su-kpi-value">4</div>
-          <div class="su-kpi-sub"><span class="delta down">↓ 21% vs prior 7d</span></div>
+          <div class="su-kpi-value" id="su-kpi-sleep-value">—</div>
+          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-sleep-delta">Sign in to load real data</span></div>
         </div>
         <div class="card su-kpi">
           <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#e8952e"></span>DROWSINESS ALERTS</div>
-          <div class="su-kpi-value">3</div>
-          <div class="su-kpi-sub"><span class="delta down">↓ 12% vs prior 7d</span></div>
+          <div class="su-kpi-value" id="su-kpi-drowsy-value">—</div>
+          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-drowsy-delta">Sign in to load real data</span></div>
         </div>
         <div class="card su-kpi">
           <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#3b7cf6"></span>DRIVERS INVOLVED</div>
-          <div class="su-kpi-value">6</div>
-          <div class="su-kpi-sub"><span class="delta up">↑ 7% vs prior 7d</span></div>
+          <div class="su-kpi-value" id="su-kpi-drivers-value">—</div>
+          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-drivers-delta">Sign in to load real data</span></div>
         </div>
         <div class="card su-kpi">
           <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#18a05e"></span>ASSETS REPORTING</div>
-          <div class="su-kpi-value">6</div>
-          <div class="su-kpi-sub"><span class="delta flat">— 0% vs prior 7d</span></div>
+          <div class="su-kpi-value" id="su-kpi-assets-value">—</div>
+          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-assets-delta">Sign in to load real data</span></div>
         </div>
       </section>
 
@@ -2311,10 +2330,10 @@
             <span class="su-trend-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-4 4"/></svg></span>
             Total Alerts — 7-Day Trend
           </h3>
-          <span class="trend-badge down">↓ 22% vs prior day</span>
+          <span class="trend-badge flat" id="su-trend-badge">—</span>
         </div>
         <div class="chart-area">
-          <svg viewBox="0 0 720 200" role="img" aria-label="Line chart of total alerts over the last 7 days: Wednesday 9, Thursday 6, Friday 12, Saturday 5, Sunday 9, Monday 9, Tuesday 7 (today), with a 7-day average of 8">
+          <svg viewBox="0 0 720 200" role="img" aria-label="Line chart of total alerts over the last 7 days" id="su-trend-svg">
             <defs>
               <linearGradient id="suTrendFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#2563eb" stop-opacity="0.16"/>
@@ -2322,29 +2341,17 @@
               </linearGradient>
             </defs>
             <line class="gridline" x1="40" y1="15" x2="700" y2="15"/><line class="gridline" x1="40" y1="52.5" x2="700" y2="52.5"/><line class="gridline" x1="40" y1="90" x2="700" y2="90"/><line class="gridline" x1="40" y1="127.5" x2="700" y2="127.5"/><line class="gridline" x1="40" y1="160" x2="700" y2="160"/>
-            <text x="30" y="19" class="axis" text-anchor="end">12</text><text x="30" y="56.5" class="axis" text-anchor="end">9</text><text x="30" y="94" class="axis" text-anchor="end">6</text><text x="30" y="131.5" class="axis" text-anchor="end">3</text><text x="30" y="164" class="axis" text-anchor="end">0</text>
-            <line class="trend-mean" x1="40" y1="61.6" x2="700" y2="61.6"/>
-            <text x="695" y="57.6" class="trend-mean-label" text-anchor="end">7d avg: 8</text>
-            <path class="trend-area" d="M60,51.2 L153,87.5 L246,15 L339,99.6 L432,51.2 L525,51.2 L618,75.4 L618,160 L60,160 Z" fill="url(#suTrendFill)"/>
-            <polyline class="trend-line" points="60,51.2 153,87.5 246,15 339,99.6 432,51.2 525,51.2 618,75.4"/>
-            <circle class="trend-dot" cx="60" cy="51.2" r="4"/>
-            <circle class="trend-dot" cx="153" cy="87.5" r="4"/>
-            <circle class="trend-dot peak" cx="246" cy="15" r="4.5"/>
-            <circle class="trend-dot" cx="339" cy="99.6" r="4"/>
-            <circle class="trend-dot" cx="432" cy="51.2" r="4"/>
-            <circle class="trend-dot" cx="525" cy="51.2" r="4"/>
-            <circle class="trend-dot" cx="618" cy="75.4" r="4.5"/>
-            <text x="60" y="182" class="axis" text-anchor="middle">Wed</text>
-            <text x="153" y="182" class="axis" text-anchor="middle">Thu</text>
-            <text x="246" y="182" class="axis" text-anchor="middle">Fri</text>
-            <text x="339" y="182" class="axis" text-anchor="middle">Sat</text>
-            <text x="432" y="182" class="axis" text-anchor="middle">Sun</text>
-            <text x="525" y="182" class="axis" text-anchor="middle">Mon</text>
-            <text x="618" y="182" class="axis axis-today" text-anchor="middle" font-weight="700">Tue</text>
+            <g id="su-trend-yaxis"></g>
+            <line class="trend-mean" id="su-trend-mean-line" x1="40" y1="87.5" x2="700" y2="87.5"/>
+            <text x="695" y="83.5" class="trend-mean-label" text-anchor="end" id="su-trend-mean-label">7d avg: —</text>
+            <path class="trend-area" id="su-trend-area" d=""/>
+            <polyline class="trend-line" id="su-trend-line" points=""/>
+            <g id="su-trend-dots"></g>
+            <g id="su-trend-xaxis"></g>
           </svg>
           <div class="hour-legend">
             <span><i style="background:#2563eb"></i>Total alerts</span>
-            <span><i class="dot" style="background:#e53553"></i>Peak day (Fri · 12)</span>
+            <span><i class="dot" style="background:#e53553"></i><span id="su-trend-peak-label">Peak day</span></span>
           </div>
         </div>
       </div>
@@ -2355,43 +2362,12 @@
             <div class="su-section-head">
               <span class="su-section-icon" style="background:#e8952e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span>
               <div>
-                <h2 class="su-section-title">Top Increases &amp; Key Insights</h2>
+                <h2 class="su-section-title">Top Increases &amp; Key Insights <span class="se-wip-badge">Ongoing improvement</span></h2>
                 <div class="su-section-sub">Notable shifts from Analytics, this 7-day window</div>
               </div>
             </div>
             <div class="su-insight-list">
-              <div class="su-insight-row">
-                <span class="su-insight-icon" style="background:#fee8e8;color:#ef4444" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>
-                <div class="su-insight-body">
-                  <div class="su-insight-main">Assets reporting ticked up</div>
-                  <div class="su-insight-sub">42 assets reporting this week, slightly above the 7-day baseline.</div>
-                </div>
-                <span class="su-insight-tag up">↑ 4%</span>
-              </div>
-              <div class="su-insight-row">
-                <span class="su-insight-icon" style="background:#fdf0dc;color:#e8952e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
-                <div class="su-insight-body">
-                  <div class="su-insight-main">Brownout &amp; long sync intervals remain the strongest factors</div>
-                  <div class="su-insight-sub">54% of events this week fall in the 10h+ sync bucket; brownout conditions show the tightest association with alerts.</div>
-                </div>
-                <span class="su-insight-tag flat">Ongoing</span>
-              </div>
-              <div class="su-insight-row">
-                <span class="su-insight-icon" style="background:#e3edfd;color:#3b7cf6" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>
-                <div class="su-insight-body">
-                  <div class="su-insight-main">M. Rabe leads driver alert volume</div>
-                  <div class="su-insight-sub">Top 3 drivers (M. Rabe, R. Jade, Medalla) account for the largest share of alerts this week — see flagged table below.</div>
-                </div>
-                <span class="su-insight-tag flat">Watch</span>
-              </div>
-              <div class="su-insight-row">
-                <span class="su-insight-icon" style="background:#dff5ea;color:#18a05e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>
-                <div class="su-insight-body">
-                  <div class="su-insight-main">Total &amp; sleep alerts trending down</div>
-                  <div class="su-insight-sub">Total alerts down 18% and sleep alerts down 21% vs the prior 7-day window.</div>
-                </div>
-                <span class="su-insight-tag down">↓ 18%</span>
-              </div>
+              <div class="su-empty">Automated insight generation isn't wired up yet — this used to show fixed example text regardless of your real data. See Analytics for the full breakdown of factors, top drivers, and trends.</div>
             </div>
           </div>
 
@@ -2426,19 +2402,19 @@
             <div class="su-open-list">
               <div class="su-open-row">
                 <span class="su-open-label">Events in view</span>
-                <span class="su-open-value">1,842</span>
+                <span class="su-open-value" id="su-open-total">—</span>
               </div>
               <div class="su-open-row">
                 <span class="su-open-label">Critical severity</span>
-                <span class="su-open-value warn">126</span>
+                <span class="su-open-value warn" id="su-open-critical">—</span>
               </div>
               <div class="su-open-row">
                 <span class="su-open-label">Pending review</span>
-                <span class="su-open-value warn">18</span>
+                <span class="su-open-value" id="su-open-pending" title="Not tracked yet — no metric currently computes this">Not tracked yet</span>
               </div>
               <div class="su-open-row">
                 <span class="su-open-label">Actioned (of actionable)</span>
-                <span class="su-open-value good">94%</span>
+                <span class="su-open-value good" id="su-open-actioned">—</span>
               </div>
             </div>
             <div class="su-open-cta">
@@ -2469,7 +2445,7 @@
           <p>Manage your account, preferences, users, and system data</p>
         </div>
         <div class="controls">
-          <div class="user"><span class="online" aria-hidden="true"></span>z_03welvz</div>
+          <div class="user"><span class="online" aria-hidden="true"></span><span id="se-username-chip">—</span></div>
           <div class="card clock-chip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
             <div>
@@ -3035,6 +3011,67 @@
       return __session;
     });
   }
+
+  // ---------- Universal modal accessibility (Escape / focus trap / focus return) ----------
+  // Every one of this app's ~12 dialogs (id="*-mask", all opened/closed via
+  // classList.add('on')/remove('on') at their own call sites) had correct
+  // role="dialog"/aria-modal/aria-labelledby markup but none of the WAI-ARIA
+  // Dialog Pattern's other expectations: focus moving into the dialog on
+  // open, Tab staying trapped inside while it's open, Escape dismissing it,
+  // and focus returning to whatever triggered it on close. Implemented once
+  // here via a MutationObserver on each mask's class attribute, rather than
+  // touching all ~24 individual open/close call sites, so it applies
+  // uniformly without risking each dialog's own existing logic.
+  // dm-upload-mask is deliberately excluded from Escape-to-close: it's a
+  // blocking upload-progress dialog with only Cancel/Retry actions and,
+  // by design, no backdrop-click-to-dismiss either (see its own comment).
+  (function(){
+    var NO_ESCAPE = { 'dm-upload-mask': true };
+    var lastFocused = null;
+
+    function focusablesIn(root){
+      return Array.prototype.filter.call(
+        root.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'),
+        function(el){ return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length); }
+      );
+    }
+    function openMasks(){
+      return Array.prototype.filter.call(document.querySelectorAll('[id$="-mask"]'), function(m){ return m.classList.contains('on'); });
+    }
+    function closeMask(mask){
+      mask.classList.remove('on');
+      if(lastFocused && document.contains(lastFocused)) lastFocused.focus();
+      lastFocused = null;
+    }
+
+    document.querySelectorAll('[id$="-mask"]').forEach(function(mask){
+      new MutationObserver(function(){
+        if(mask.classList.contains('on')){
+          lastFocused = document.activeElement;
+          var f = focusablesIn(mask);
+          if(f.length) f[0].focus();
+        }
+      }).observe(mask, { attributes: true, attributeFilter: ['class'] });
+    });
+
+    document.addEventListener('keydown', function(e){
+      if(e.key !== 'Escape' && e.key !== 'Tab') return;
+      var open = openMasks();
+      if(!open.length) return;
+      var mask = open[open.length - 1];
+      if(e.key === 'Escape'){
+        if(NO_ESCAPE[mask.id]) return;
+        e.preventDefault();
+        closeMask(mask);
+        return;
+      }
+      var f = focusablesIn(mask);
+      if(!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    });
+  })();
 
   // Sets the header username chip (`.user` span with id="*-username" —
   // each page's own markup) from a real signed-in session. Previously
@@ -4178,7 +4215,11 @@
       requireSession().then(function(sess){
         if(!guard.isCurrent(token)) return;
         if(!sess){ signedOutState(); return; }
-        setHeaderUsername(sess, 'an-username');
+        // No 'an-username' element exists in this page's topbar (Analytics'
+        // topbar is just a clock chip + Export button, unlike Overview/
+        // Summary/Settings) — this call was always a dead no-op. Removed
+        // rather than left as confusing dead code; add a chip here too if
+        // this page is ever given one.
 
         var today = new Date(); today.setHours(0,0,0,0);
         var sixAgo = new Date(today); sixAgo.setDate(sixAgo.getDate()-6);
@@ -4333,16 +4374,191 @@
       renderActionsList();
     }
 
+    // ==================== 7-day totals: real dds_metrics() data ====================
+    // The KPI row, trend chart, and Open Items panel used to be static
+    // example numbers baked into the markup — shown identically to every
+    // user regardless of real data, and never replaced even when signed
+    // in (found in a design audit: this page's own subtitle already
+    // promises "Running 7-day report", so it's wired to the exact same
+    // trailing-7-day dds_metrics() window Overview uses, not a new metric
+    // definition). "Top Increases & Key Insights" is NOT wired here —
+    // that panel's content was hand-written narrative text (specific
+    // driver names, factor-correlation claims), not a value display; see
+    // that panel's own "Ongoing improvement" note.
+    function summaryDeltaText(cur, prev){
+      if(prev == null || cur == null) return { cls:'flat', text:'—' };
+      var delta = cur - prev;
+      if(delta === 0) return { cls:'flat', text:'— 0% vs prior 7d' };
+      var pct = prev === 0 ? 100 : Math.round(Math.abs(delta) / prev * 100);
+      return { cls: delta > 0 ? 'up' : 'down', text: (delta > 0 ? '↑ ' : '↓ ') + pct + '% vs prior 7d' };
+    }
+    function summaryCountByTier(eventCodeDistribution, tier){
+      return (eventCodeDistribution || []).filter(function(c){ return severityBadge(c.code).tier === tier; })
+        .reduce(function(sum, c){ return sum + (c.units || 0); }, 0);
+    }
+    function setSummaryKpi(key, cur, prev){
+      var valueEl = document.getElementById('su-kpi-' + key + '-value');
+      if(valueEl) valueEl.textContent = fmtNum(cur);
+      var deltaEl = document.getElementById('su-kpi-' + key + '-delta');
+      if(deltaEl){
+        var d = summaryDeltaText(cur, prev);
+        deltaEl.className = 'delta ' + d.cls;
+        deltaEl.textContent = d.text;
+      }
+    }
+    function fetchSummaryMetrics(from, to){
+      return DB.rpc('dds_metrics', { p_from: from, p_to: to, p_shift: null, p_actionable_only: false })
+        .then(function(res){ if(res.error) throw res.error; return res.data; });
+    }
+    function renderSummaryTrend(cur){
+      var trend = (cur.trend || []).slice(-7);
+      var svg = document.getElementById('su-trend-svg');
+      if(!svg || !trend.length) return;
+      var L = 40, R = 700, T = 15, B = 160;
+      var max = Math.max.apply(null, trend.map(function(t){ return t.units; }).concat([1]));
+      var top = Math.max(max, 4);
+      var yFor = function(v){ return B - (v / top) * (B - T); };
+      var xFor = function(i){ return trend.length === 1 ? (L+R)/2 : L + (i / (trend.length - 1)) * (R - L); };
+
+      var yaxis = document.getElementById('su-trend-yaxis');
+      if(yaxis){
+        var steps = 4, html = '';
+        for(var s=0;s<=steps;s++){
+          var v = Math.round(top - (top/steps)*s);
+          var y = T + ((B-T)/steps)*s;
+          html += '<text x="30" y="' + (y+4) + '" class="axis" text-anchor="end">' + fmtNum(v) + '</text>';
+        }
+        yaxis.innerHTML = html;
+      }
+
+      var pts = trend.map(function(t, i){ return xFor(i).toFixed(1) + ',' + yFor(t.units).toFixed(1); });
+      var line = document.getElementById('su-trend-line');
+      if(line) line.setAttribute('points', pts.join(' '));
+      var area = document.getElementById('su-trend-area');
+      if(area) area.setAttribute('d', 'M' + pts.join(' L') + ' L' + xFor(trend.length-1).toFixed(1) + ',' + B + ' L' + xFor(0).toFixed(1) + ',' + B + ' Z');
+
+      var peakIdx = 0;
+      trend.forEach(function(t, i){ if(t.units > trend[peakIdx].units) peakIdx = i; });
+      var dotsEl = document.getElementById('su-trend-dots');
+      if(dotsEl){
+        dotsEl.innerHTML = trend.map(function(t, i){
+          var isPeak = i === peakIdx;
+          return '<circle class="trend-dot' + (isPeak ? ' peak' : '') + '" cx="' + xFor(i).toFixed(1) +
+            '" cy="' + yFor(t.units).toFixed(1) + '" r="' + (isPeak ? 4.5 : 4) + '"></circle>';
+        }).join('');
+      }
+
+      var xaxis = document.getElementById('su-trend-xaxis');
+      if(xaxis){
+        xaxis.innerHTML = trend.map(function(t, i){
+          var dateLabel = new Date(t.date.split('/')[2], t.date.split('/')[0]-1, t.date.split('/')[1])
+            .toLocaleDateString('en-US', { weekday:'short' });
+          var isToday = i === trend.length - 1;
+          return '<text x="' + xFor(i).toFixed(1) + '" y="182" class="axis' + (isToday ? ' axis-today' : '') + '" text-anchor="middle"' +
+            (isToday ? ' font-weight="700"' : '') + '>' + esc(dateLabel) + '</text>';
+        }).join('');
+      }
+
+      var avg = trend.reduce(function(s,t){ return s + t.units; }, 0) / trend.length;
+      var meanLine = document.getElementById('su-trend-mean-line');
+      var meanY = yFor(avg);
+      if(meanLine){ meanLine.setAttribute('y1', meanY.toFixed(1)); meanLine.setAttribute('y2', meanY.toFixed(1)); }
+      var meanLabel = document.getElementById('su-trend-mean-label');
+      if(meanLabel){ meanLabel.setAttribute('y', (meanY-4).toFixed(1)); meanLabel.textContent = '7d avg: ' + Math.round(avg); }
+
+      var peakLabel = document.getElementById('su-trend-peak-label');
+      if(peakLabel) peakLabel.textContent = 'Peak day (' + fmtNum(trend[peakIdx].units) + ')';
+
+      var badge = document.getElementById('su-trend-badge');
+      if(badge && trend.length >= 2){
+        var todayV = trend[trend.length-1].units, prevV = trend[trend.length-2].units;
+        var d = summaryDeltaText(todayV, prevV);
+        badge.className = 'trend-badge ' + d.cls;
+        badge.textContent = d.text.replace('vs prior 7d', 'vs prior day');
+      }
+    }
+    function summaryEmptyTotals(msg){
+      ['total','sleep','drowsy','drivers','assets'].forEach(function(key){
+        var v = document.getElementById('su-kpi-' + key + '-value');
+        if(v) v.textContent = '—';
+        var d = document.getElementById('su-kpi-' + key + '-delta') || document.getElementById('su-kpi-' + key + '-sub');
+        if(d) d.textContent = msg;
+      });
+      var badge = document.getElementById('su-trend-badge');
+      if(badge){ badge.className = 'trend-badge flat'; badge.textContent = '—'; }
+      ['su-open-total','su-open-critical','su-open-actioned'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.textContent = '—';
+      });
+    }
+    function loadSummaryTotals(){
+      requireSession().then(function(sess){
+        if(!sess){ summaryEmptyTotals('Sign in to load real data'); return; }
+        setHeaderUsername(sess, 'su-username');
+
+        var today = new Date(); today.setHours(0,0,0,0);
+        var weekStart = new Date(today); weekStart.setDate(weekStart.getDate()-6);
+        var prevWeekEnd = new Date(weekStart); prevWeekEnd.setDate(prevWeekEnd.getDate()-1);
+        var prevWeekStart = new Date(prevWeekEnd); prevWeekStart.setDate(prevWeekStart.getDate()-6);
+        function toMDY(d){ return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear(); }
+
+        var rangeLabel = document.getElementById('su-range-label');
+        if(rangeLabel) rangeLabel.textContent = weekStart.toLocaleDateString('en-US', { weekday:'short' }) + '–' + today.toLocaleDateString('en-US', { weekday:'short' }) + ' · 7 days';
+
+        Promise.all([
+          fetchSummaryMetrics(toMDY(weekStart), toMDY(today)),
+          fetchSummaryMetrics(toMDY(prevWeekStart), toMDY(prevWeekEnd))
+        ]).then(function(results){
+          var cur = results[0], prev = results[1];
+          var kpis = cur.kpis || {}, prevKpis = (prev && prev.kpis) || null;
+          var curSleep = summaryCountByTier(cur.eventCodeDistribution, 'critical');
+          var curDrowsy = summaryCountByTier(cur.eventCodeDistribution, 'high');
+          var prevSleep = prevKpis ? summaryCountByTier(prev.eventCodeDistribution, 'critical') : null;
+          var prevDrowsy = prevKpis ? summaryCountByTier(prev.eventCodeDistribution, 'high') : null;
+
+          setSummaryKpi('sleep', curSleep, prevSleep);
+          setSummaryKpi('drowsy', curDrowsy, prevDrowsy);
+          setSummaryKpi('drivers', kpis.distinctOperators, prevKpis ? prevKpis.distinctOperators : null);
+          setSummaryKpi('assets', kpis.distinctAssets, prevKpis ? prevKpis.distinctAssets : null);
+
+          var totalEl = document.getElementById('su-kpi-total-value');
+          if(totalEl) totalEl.textContent = fmtNum(kpis.totalAlerts);
+          var subEl = document.getElementById('su-kpi-total-sub');
+          if(subEl){
+            var avgPerDay = Math.round((kpis.totalAlerts || 0) / 7);
+            var d = summaryDeltaText(kpis.totalAlerts, prevKpis ? prevKpis.totalAlerts : null);
+            subEl.innerHTML = '7-day avg <strong>' + fmtNum(avgPerDay) + '</strong>/day · <span class="delta ' + d.cls + '">' + esc(d.text) + '</span>';
+          }
+
+          renderSummaryTrend(cur);
+
+          var openTotal = document.getElementById('su-open-total');
+          if(openTotal) openTotal.textContent = fmtNum(kpis.totalAlerts);
+          var openCritical = document.getElementById('su-open-critical');
+          if(openCritical) openCritical.textContent = fmtNum(curSleep);
+          var openActioned = document.getElementById('su-open-actioned');
+          if(openActioned) openActioned.textContent = (kpis.actionableRatio == null ? '—' : Math.round(kpis.actionableRatio) + '%');
+        }).catch(function(err){
+          console.error('Summary totals fetch failed', err);
+          summaryEmptyTotals('Unable to load');
+        });
+      }).catch(function(err){
+        console.error('Summary totals session check failed', err);
+        summaryEmptyTotals('Unable to load');
+      });
+    }
+
     // Re-render whenever the Summary nav item is opened, so a mid-session action
     // logged on the Driver & Asset Monitoring page is always reflected here.
     var summaryNavBtn = document.querySelector('.nav-item[data-page="summary"]');
-    if(summaryNavBtn) summaryNavBtn.addEventListener('click', renderSummary);
+    if(summaryNavBtn) summaryNavBtn.addEventListener('click', function(){ renderSummary(); loadSummaryTotals(); });
 
     var printBtn = document.getElementById('su-print-btn');
     if(printBtn) printBtn.addEventListener('click', function(){ window.print(); });
 
     // Initial paint, in case Summary is the first page ever shown.
     renderSummary();
+    loadSummaryTotals();
   })();
 
   // ---------- Settings: tabs, personalization, access management, system management ----------
@@ -4415,6 +4631,7 @@
     function loadPersonalInfo(){
       requireSession().then(function(sess){
         if(!sess) return;
+        setHeaderUsername(sess, 'se-username-chip');
         personalState.email = sess.user.email;
         return DB.from('profiles').select('user_id, username, display_name, role, status').eq('user_id', sess.user.id).maybeSingle()
           .then(function(res){
@@ -6762,7 +6979,11 @@
           });
           return;
         }
-        setHeaderUsername(sess, 'al-username');
+        // No 'al-username' element exists in this page's topbar (Alert
+        // Logs' topbar is just a sync-status pill, unlike Overview/Summary/
+        // Settings) — this call was always a dead no-op. Removed rather
+        // than left as confusing dead code; add a chip here too if this
+        // page is ever given one.
         renderSortHeaders();
 
         fetchLogs().then(function(res){
