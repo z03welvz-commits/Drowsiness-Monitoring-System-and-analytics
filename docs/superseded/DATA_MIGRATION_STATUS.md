@@ -1,3 +1,9 @@
+> **Superseded 2026-09-03.** Written against the pre-`ab07107` frontend
+> (references the client-side `derive()`/`dayOfWeek` gap, since fixed, and
+> predates migrations past `0025`). The database facts below (which
+> migrations existed as of 2026-08-28) are historical; the current schema is
+> ahead of this by 27+ migrations. Kept for historical reference only.
+
 # Data migration status — Supabase project `rispydfovrnvnwvfwrnw`
 
 This tracks what's in `supabase/migrations/` and — separately — what has

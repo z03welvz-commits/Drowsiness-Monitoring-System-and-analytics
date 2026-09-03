@@ -1,3 +1,10 @@
+> **Superseded 2026-09-03.** Benchmarks `annotate()`/`derive()` in the
+> deleted `src/dds-state.js` — the client-side ingestion/aggregation path
+> that ran before the Sep 1 2026 full `index.html` replacement. The current
+> app has no local ingestion pipeline; every upload goes straight through
+> `dds_ingest()`/`dds_minestat_ingest()` server-side. Kept for historical
+> reference only.
+
 # DDS — Scaling to 1M Rows
 
 All numbers below are **measured on your actual pipeline**, not estimated.

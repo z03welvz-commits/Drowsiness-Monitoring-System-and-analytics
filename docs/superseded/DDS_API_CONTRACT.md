@@ -1,3 +1,10 @@
+> **Superseded 2026-09-03.** Describes `dds-state.js`'s `derive()` and the
+> pre-`ab07107` frontend that called it client-side. That file was deleted
+> (orphaned since the Sep 1 2026 full `index.html` replacement — nothing in
+> the live app has called it since) and the current app is 100% server-driven
+> via `dds_metrics()`/`dds_alert_logs()` etc. Kept for historical reference
+> only — do not treat anything below as describing the current app.
+
 # DDS — API Contract v1
 
 Derived from `dds-state.js`. The `derive()` return value **is** this contract —

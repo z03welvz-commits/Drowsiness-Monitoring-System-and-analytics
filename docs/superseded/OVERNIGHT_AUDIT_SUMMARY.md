@@ -1,3 +1,12 @@
+> **Superseded 2026-09-03.** This audit was run against the pre-`ab07107`
+> `index.html` (~18,000-21,000 lines, the `src/dds-*.js`-based build). On
+> Sep 1 2026 that entire frontend was replaced with a different, previously
+> undeployed build (current `index.html`, no relation to `src/`). None of the
+> frontend-specific findings below (chart layout, `src/` file line numbers,
+> palette tokens) describe the current app. The database/migration findings
+> are still relevant since the backend wasn't part of that swap. See the
+> repo's current audit history for an assessment of the live app.
+
 # Overnight audit summary — 2026-08-28
 
 Branch: `driver-masterlist` (3 new commits, not pushed — review and push
