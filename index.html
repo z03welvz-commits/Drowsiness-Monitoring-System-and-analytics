@@ -7630,8 +7630,6 @@
       var empNo = bulkEmpNo.value.trim() || null;
       if(!actionType && !statusValue && !remarks && !empNo) return;
 
-      var selectedRows = ids.map(function(id){ return lastRowsById[id]; }).filter(Boolean);
-
       bulkApplyBtn.disabled = true;
       bulkApplyBtn.textContent = 'Applying…';
       var jobId = alSyncJobStart(ids.length);
@@ -7642,34 +7640,21 @@
         p_status_is_other: isStatusOther, p_emp_no: empNo
       }).then(function(res){
         if(res.error) throw res.error;
-        // "Reflect to all": the same logged action also lands in
-        // driver_asset_actions (dds_log_driver_asset_action(), 0007) with
-        // source='alert_logs', so it shows up in Driver & Asset
-        // Monitoring's per-driver/per-asset action history for the same
-        // case — one entry per distinct affected asset and per distinct
-        // affected driver among the selected rows, not one per row, so
-        // bulk-selecting many alerts against the same truck/driver doesn't
-        // spam duplicate log entries. Only fires when an actual action
-        // (not just a status/remarks tweak) was recorded, since
-        // driver_asset_actions.action_type is required.
-        if(!actionType) return;
-        var assetIds = [], empNos = [], seenAsset = {}, seenEmp = {};
-        selectedRows.forEach(function(r){
-          if(r.assetId && !seenAsset[r.assetId]){ seenAsset[r.assetId] = true; assetIds.push(r.assetId); }
-          if(r.empNo && !seenEmp[r.empNo]){ seenEmp[r.empNo] = true; empNos.push(r.empNo); }
-        });
-        var calls = assetIds.map(function(aid){
-          return DB.rpc('dds_log_driver_asset_action', {
-            p_entity_type: 'asset', p_entity_id: aid, p_action_type: actionType,
-            p_action_is_other: isActionOther, p_remarks: remarks, p_source: 'alert_logs'
-          });
-        }).concat(empNos.map(function(en){
-          return DB.rpc('dds_log_driver_asset_action', {
-            p_entity_type: 'driver', p_entity_id: en, p_action_type: actionType,
-            p_action_is_other: isActionOther, p_remarks: remarks, p_source: 'alert_logs'
-          });
-        }));
-        return Promise.all(calls);
+        // "Reflect to all" used to also write into driver_asset_actions
+        // (dds_log_driver_asset_action(), 0007) so this action would show
+        // up in Driver & Asset Monitoring's per-driver/per-asset history.
+        // Confirmed in a full data-model audit that D&A Monitoring has
+        // never actually read that table (it reads entity_action_log
+        // instead) — every one of those writes was a silent no-op.
+        // Removed rather than repointed: this per-event triage vocabulary
+        // (Reviewed/Escalated/Coached/Dismissed/Other) doesn't map onto
+        // the entity-level corrective-action vocabulary
+        // (Counseled/Suspended/Spare 3 Days/...), and fabricating that
+        // mapping risked silently starting a 3-day monitoring window a
+        // supervisor never actually decided on. Logging a real corrective
+        // action against a driver/asset still belongs exclusively to
+        // Driver & Asset Monitoring's own ⋮ button (dds_log_entity_action),
+        // which is unaffected by this change.
       }).then(function(){
         alSyncJobDone(jobId);
         resetBulkForm();
