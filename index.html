@@ -93,12 +93,14 @@
   :root[data-theme="dark"] .greenbg{background:#123024}
   :root[data-theme="dark"] .purplebg{background:#241a3a}
   :root[data-theme="dark"] .stat-tile-icon.red{background:#3a1a1a}
+  :root[data-theme="dark"] .feed-icon.red{background:#c0293f}
   :root[data-theme="dark"] .stat-tile-icon.blue{background:#142a4a}
   :root[data-theme="dark"] .feed-sev.critical{background:#3a1a1a}
   :root[data-theme="dark"] .feed-sev.high{background:#3a2a12}
   :root[data-theme="dark"] .feed-sev.moderate,:root[data-theme="dark"] .feed-sev.active{background:#142a4a}
   :root[data-theme="dark"] .feed-sev.resolved,:root[data-theme="dark"] .action-badge.resolved{background:#123024}
   :root[data-theme="dark"] .action-badge.active{background:#142a4a}
+  :root[data-theme="dark"] .action-badge.attention{background:#3a1a1a}
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   html,body{margin:0;width:100%;min-height:100%;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--text);background:var(--bg)}
@@ -270,6 +272,7 @@
   .feed-icon svg{width:14px;height:14px}
   .feed-icon.blue{background:#2e80e9;color:#fff}
   .feed-icon.green{background:#16a34a;color:#fff}
+  .feed-icon.red{background:#e53553;color:#fff}
   .feed-title{font-size:var(--fs-subhead);font-weight:750;color:var(--heading-blue)}
   .feed-title.green-title{color:#16803c}
   .view-all{background:none;border:none;color:#2563eb;font-size:11px;font-weight:650;cursor:pointer;padding:4px 6px;border-radius:6px}
@@ -325,6 +328,7 @@
   .action-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;margin-top:5px}
   .action-dot.resolved{background:#16a34a}
   .action-dot.active{background:#3b82f6}
+  .action-dot.attention{background:#e53553}
   .action-body-text{flex:1;min-width:0}
   .action-main{font-size:12px;color:var(--text-dim);line-height:1.4}
   .action-main strong{font-weight:700}
@@ -333,6 +337,7 @@
   .action-badge{font-size:var(--fs-badge);font-weight:750;padding:3px 8px;border-radius:6px;flex:0 0 auto;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;align-self:flex-start;margin-top:1px}
   .action-badge.resolved{background:#dff5ea;color:#18a05e}
   .action-badge.active{background:#e3edfd;color:#3b7cf6}
+  .action-badge.attention{background:#fdeaea;color:#e53553}
 
   /* ---------- page toggle ---------- */
   .page{display:none}
@@ -798,7 +803,10 @@
 
   .da-status{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:6px;padding:0 9px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .da-status.required{background:#fdeaea;color:#e53553}
-  .da-status.actioned{background:#dff5ea;color:#18a05e}
+  .da-status.actioned,.da-status.resolved{background:#dff5ea;color:#18a05e}
+  .da-status.monitoring{background:#fdf0dc;color:#e8952e}
+  .da-status.ok{background:#eef1f5;color:var(--muted)}
+  .recur-badge{display:inline-flex;align-items:center;height:18px;padding:0 8px;border-radius:999px;font-size:var(--fs-badge);font-weight:750;text-transform:uppercase;letter-spacing:.02em;background:#fdf0dc;color:#e8952e;white-space:nowrap;vertical-align:middle}
 
   .da-rec{font-size:var(--fs-caption);font-weight:650;display:flex;align-items:center;gap:6px}
   .da-rec-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
@@ -1514,6 +1522,20 @@
       </div>
 
       <div class="right-col">
+        <div class="card feed-card" id="ov-attention-card">
+          <div class="feed-head">
+            <div class="feed-title-group">
+              <span class="feed-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg></span>
+              <span class="feed-title">Needs Attention</span>
+            </div>
+            <button class="view-all" type="button" data-goto="driver-asset">View all</button>
+          </div>
+          <div class="feed-list" id="ov-attention-body">
+            <div class="skel-row"><span class="skel skel-icon"></span><div class="skel-lines"><span class="skel" style="width:70%"></span><span class="skel" style="width:40%"></span></div></div>
+            <div class="skel-row"><span class="skel skel-icon"></span><div class="skel-lines"><span class="skel" style="width:55%"></span><span class="skel" style="width:35%"></span></div></div>
+          </div>
+        </div>
+
         <div class="card feed-card">
           <div class="feed-head">
             <div class="feed-title-group">
@@ -3718,6 +3740,54 @@
       '</div>';
     }
 
+    // ==================== Needs Attention: dds_driver_asset_weekly() ====================
+    // Answers the product owner's direct question — "if I open the app,
+    // this need attention will show me all the drivers with a problem" —
+    // from the same server-authoritative entity_status/streak model
+    // (0054_entity_status_streak_and_recurrence.sql) the Driver & Asset
+    // Monitoring page's background risk fetch uses. Independent RPC call
+    // (not shared state with that page's IIFE) since Overview may render
+    // before that page has ever loaded.
+    function fetchNeedsAttention(){
+      return DB.rpc('dds_driver_asset_weekly', { p_from: null, p_to: null }).then(function(res){
+        if(res.error) throw res.error;
+        var data = res.data || {};
+        function toRow(kindLabel){
+          return function(r){
+            return {
+              kind: kindLabel, id: r.id, name: r.name,
+              streakDays: r.streakDays || 0,
+              recurrenceCount: r.recurrenceCount || 0,
+              status: r.status || 'ok'
+            };
+          };
+        }
+        var rows = (data.drivers || []).map(toRow('Driver'))
+          .concat((data.assets || []).map(toRow('Asset')))
+          .filter(function(r){ return r.status === 'required'; })
+          .sort(function(a, b){ return b.streakDays - a.streakDays; });
+        return rows;
+      });
+    }
+    function renderNeedsAttention(rows){
+      var body = document.getElementById('ov-attention-body');
+      if(!body) return;
+      if(!rows.length){
+        body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">No drivers or units currently need attention.</div></div></div>';
+        return;
+      }
+      body.innerHTML = rows.slice(0, 6).map(function(r){
+        return '<div class="action-row">' +
+          '<span class="action-dot attention" aria-hidden="true"></span>' +
+          '<div class="action-body-text">' +
+            '<div class="action-main"><strong>' + esc(r.name) + '</strong> <span class="time-ago">— ' + esc(r.kind) + ' ' + esc(r.id) + '</span></div>' +
+            '<div class="action-sub">' + r.streakDays + '-day streak of high alerts' + '</div>' +
+          '</div>' +
+          (r.recurrenceCount > 0 ? '<span class="action-badge attention">Recurrence</span>' : '') +
+        '</div>';
+      }).join('');
+    }
+
     // ==================== orchestration: mirrors index.html's App.loadFromServer() ====================
     // Primary fetch (today) is fatal-on-error — nothing on this page can render
     // without it. The comparison fetch (yesterday) is non-fatal: its failure
@@ -3739,7 +3809,7 @@
           setStatus(false);
           var text = document.getElementById('ov-status-text');
           if(text) text.textContent = 'Sign in to load live data';
-          ['ov-feed-list','ov-actions-body','ov-insight-body','ov-updates-body'].forEach(function(id){
+          ['ov-feed-list','ov-actions-body','ov-insight-body','ov-updates-body','ov-attention-body'].forEach(function(id){
             var el = document.getElementById(id);
             if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Sign in to load real data — this page reads live data, not a mock.</div></div></div>';
           });
@@ -3772,6 +3842,14 @@
           renderActions();
           renderKpis(week, prevWeek);
           renderInsight(week, prevWeek);
+
+          // Non-fatal: a Needs Attention fetch failure shouldn't blank out
+          // everything else already rendered above.
+          fetchNeedsAttention().then(renderNeedsAttention).catch(function(err){
+            console.error('Needs Attention fetch failed', err);
+            var el = document.getElementById('ov-attention-body');
+            if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
+          });
 
           // Hourly chart is inherently a single-day shape (24 buckets) —
           // summing a week into it would silently become a different
@@ -3807,7 +3885,7 @@
           console.error('Overview metrics fetch failed', err);
           var text = document.getElementById('ov-status-text');
           if(text) text.textContent = 'Unable to load fleet data';
-          ['ov-feed-list','ov-actions-body','ov-insight-body','ov-updates-body'].forEach(function(id){
+          ['ov-feed-list','ov-actions-body','ov-insight-body','ov-updates-body','ov-attention-body'].forEach(function(id){
             var el = document.getElementById(id);
             if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
           });
@@ -4416,9 +4494,10 @@
   })();
 
   // ---------- Summary page: renders live from the Driver & Asset Monitoring state ----------
-  // Reads window.__daState / __daComputeRisk / __daRecommendation (exposed at the
-  // end of the Driver & Asset Monitoring IIFE above) instead of duplicating that
-  // data, so "top flagged" and "actions logged" always match what that page shows.
+  // Reads window.__daState / __daRiskTier / __daDaysTotal / __daStatusPillHtml /
+  // __daRecommendation (exposed at the end of the Driver & Asset Monitoring
+  // IIFE above) instead of duplicating that data, so "top flagged" and
+  // "actions logged" always match what that page shows.
   (function(){
     var RISK_LABEL = { high:'High', medium:'Medium', low:'Low' };
     var TOP_N = 6;
@@ -4437,39 +4516,37 @@
     function renderRiskTable(){
       var tbody = document.getElementById('su-risk-tbody');
       if(!tbody) return;
-      var state = window.__daState, computeRisk = window.__daComputeRisk, recommendation = window.__daRecommendation, escapeHtml = window.__daEscapeHtml;
-      if(!state || !computeRisk){ tbody.innerHTML = '<tr><td class="su-empty" colspan="6">Driver &amp; Asset data not available.</td></tr>'; return; }
+      var state = window.__daState, riskTier = window.__daRiskTier, daysTotal = window.__daDaysTotal,
+          recommendation = window.__daRecommendation, statusPillHtml = window.__daStatusPillHtml, escapeHtml = window.__daEscapeHtml;
+      if(!state || !riskTier){ tbody.innerHTML = '<tr><td class="su-empty" colspan="6">Driver &amp; Asset data not available.</td></tr>'; return; }
 
-      var order = { high:0, medium:1, low:2 };
+      // Only status === 'required' entities — the server-computed
+      // consecutive-day streak (dds_current_streak(), 0054) is already the
+      // one authoritative "needs attention" signal, so there's no separate
+      // risk-tier filter to apply on top of it here.
       var rows = [];
       ['drivers','assets'].forEach(function(kind){
         state[kind].forEach(function(rec){
-          if(rec.status === 'actioned') return; // resolved rows live in that page's History view
-          var scored = computeRisk(rec.days);
-          if(scored.risk === 'low') return; // Summary highlights what needs attention, not the full roster
-          rows.push({ kind:kind, rec:rec, risk:scored.risk, total:scored.total });
+          if(rec.status !== 'required') return;
+          rows.push({ kind:kind, rec:rec, risk:riskTier(rec.streakDays), total:daysTotal(rec.days) });
         });
       });
-      rows.sort(function(a,b){
-        if(order[a.risk] !== order[b.risk]) return order[a.risk] - order[b.risk];
-        return b.total - a.total;
-      });
+      rows.sort(function(a,b){ return b.rec.streakDays - a.rec.streakDays || b.total - a.total; });
       rows = rows.slice(0, TOP_N);
 
       if(!rows.length){
-        tbody.innerHTML = '<tr><td class="su-empty" colspan="6">No high or medium risk drivers or assets this week.</td></tr>';
+        tbody.innerHTML = '<tr><td class="su-empty" colspan="6">No drivers or assets currently need attention.</td></tr>';
         return;
       }
 
       tbody.innerHTML = rows.map(function(r){
         var rec_ = recommendation ? recommendation(r.risk) : { label:'—' };
-        var statusHtml = r.rec.status === 'required'
-          ? '<span class="da-status required">Action required</span>'
-          : '<span class="da-status actioned">Actioned</span>';
+        var statusHtml = statusPillHtml ? statusPillHtml(r.rec.status) : '<span class="da-status required">Action required</span>';
         return '<tr>' +
-          '<td class="su-risk-name">' + escapeHtml(r.rec.name) + '<small>' + escapeHtml(r.rec.id) + '</small></td>' +
+          '<td class="su-risk-name">' + escapeHtml(r.rec.name) + '<small>' + escapeHtml(r.rec.id) +
+            (r.rec.recurrenceCount > 0 ? ' &middot; <span class="recur-badge">Recurrence</span>' : '') + '</small></td>' +
           '<td><span class="su-risk-kind">' + (r.kind === 'drivers' ? 'Driver' : 'Asset') + '</span></td>' +
-          '<td><span class="da-risk ' + (r.risk === 'high' ? 'high' : 'med') + '">' + RISK_LABEL[r.risk] + '</span></td>' +
+          '<td><span class="da-risk ' + (r.risk === 'high' ? 'high' : r.risk === 'medium' ? 'med' : 'low') + '">' + RISK_LABEL[r.risk] + '</span></td>' +
           '<td>' + r.total + '</td>' +
           '<td>' + statusHtml + '</td>' +
           '<td><span class="da-rec ' + rec_.key + '"><span class="da-rec-dot"></span>' + escapeHtml(rec_.label) + '</span></td>' +
@@ -7689,9 +7766,12 @@
 
   // ---------- Driver & Asset Monitoring ----------
   // Phase 5: real Supabase data via dds_driver_asset_weekly() (0033,
-  // applied to the live database in Phase 1). The mock's own risk model
-  // (computeRisk() below) and 8-value action-type vocabulary (the
-  // #da-type-grid tile buttons) ship as the one real, persisted model per
+  // applied to the live database in Phase 1; streak/status fields added in
+  // 0054). The required/monitoring/resolved status and the consecutive-day
+  // streak are computed server-side (dds_current_streak(), 0054) — this
+  // page only maps and displays them (riskTierFromStreak()/statusPillHtml()
+  // below). The 8-value action-type vocabulary (the #da-type-grid tile
+  // buttons) ships as the one real, persisted model per
   // MIGRATION_MAP.md Decision 1 — Application A's separate
   // applySeverity()/driver_asset_severity system is untouched, not used
   // here. esc()/requireSession() now live in the shared block above
@@ -7786,7 +7866,10 @@
     function mapRecord(kind, r){
       return {
         id: r.id, name: r.name, sub: SUB_LABEL[kind],
-        days: r.days || {}, status: r.status || 'required',
+        days: r.days || {}, status: r.status || 'ok',
+        streakDays: r.streakDays || 0,
+        recurrenceCount: r.recurrenceCount || 0,
+        monitorUntil: r.monitorUntil || null,
         history: r.lastAction ? [{
           type: r.lastAction.type, note: r.lastAction.note,
           by: r.lastAction.by, at: r.lastAction.at
@@ -7870,24 +7953,38 @@
     //          OR sum of all counts this week > 20
     // MEDIUM = has alerts this week, but doesn't hit HIGH
     // LOW    = zero alerts this week
-    function computeRisk(days){
-      var total = 0, daysOver10 = [];
-      DAY_ORDER.forEach(function(d){
-        var events = days[d];
-        if(!events || !events.length) return;
-        var dayHasOver10 = false;
-        events.forEach(function(c){ total += c; if(c > 10) dayHasOver10 = true; });
-        if(dayHasOver10) daysOver10.push(d);
-      });
-      var risk = 'low';
-      if(daysOver10.length >= 2 || total > 20) risk = 'high';
-      else if(total > 0) risk = 'medium';
-      return { risk:risk, total:total, daysOver10:daysOver10 };
+    // computeRisk() (the old client-side day-spike/total rule) is retired —
+    // dds_driver_asset_weekly() now computes the one authoritative
+    // consecutive-day streak server-side (dds_current_streak(), 0054) and
+    // returns it as streakDays on every record, so the reopen trigger and
+    // this UI can no longer drift apart the way the old rule and this
+    // function used to. daysTotal() below only sums the 7-day heatmap for
+    // display ("Total counts this week"); riskTierFromStreak() maps that
+    // same server-computed streak onto the existing high/med/low visual
+    // tiers (>=3-day streak is exactly what makes status 'required').
+    function daysTotal(days){
+      var total = 0;
+      DAY_ORDER.forEach(function(d){ (days[d] || []).forEach(function(c){ total += c; }); });
+      return total;
+    }
+    function riskTierFromStreak(streakDays){
+      if((streakDays || 0) >= 3) return 'high';
+      if((streakDays || 0) >= 1) return 'medium';
+      return 'low';
     }
     function recommendation(risk){
       if(risk === 'high') return { key:'spare', label:'Spare for 3 days' };
       if(risk === 'medium') return { key:'monitor', label:'Monitor' };
       return { key:'continue', label:'Continue' };
+    }
+    // Three real statuses (required/monitoring/resolved-derived) plus 'ok'
+    // for an entity that's never qualified as flagged — see 0054's
+    // dds_driver_asset_weekly() for exactly how each is derived server-side.
+    function statusPillHtml(status){
+      if(status === 'monitoring') return '<span class="da-status monitoring">Monitoring</span>';
+      if(status === 'resolved') return '<span class="da-status resolved">Resolved</span>';
+      if(status === 'required') return '<span class="da-status required">Action required</span>';
+      return '<span class="da-status ok">OK</span>';
     }
 
     // ---- new summary table: dds_driver_event_summary / dds_asset_event_summary ----
@@ -8278,14 +8375,13 @@
     });
 
     // ---- tab counts / KPI cards: still driven by the background weekly
-    // risk model (state/computeRisk) — unrelated to the new summary table,
-    // this is the same High/Medium/Low/Action-required signal the page
-    // has always shown, computed independently of what's on screen. ----
+    // risk model (state/riskTierFromStreak) — unrelated to the new summary
+    // table, this is the same High/Medium/Low/Action-required signal the
+    // page has always shown, computed independently of what's on screen. ----
     function updateTabCounts(){
       ['drivers','assets'].forEach(function(kind){
         var flagged = (state[kind] || []).filter(function(rec){
-          if(rec.status === 'actioned') return false;
-          return computeRisk(rec.days).risk !== 'low';
+          return rec.status === 'required';
         }).length;
         var el = document.querySelector('[data-da-tabcount="' + kind + '"]');
         if(el) el.textContent = flagged;
@@ -8293,12 +8389,12 @@
     }
 
     function updateSummaryKpis(){
-      var all = (state.drivers || []).concat(state.assets || []).filter(function(rec){ return rec.status !== 'actioned'; });
+      var all = (state.drivers || []).concat(state.assets || []);
       var high = 0, med = 0, low = 0, required = 0;
       all.forEach(function(rec){
-        var risk = computeRisk(rec.days).risk;
-        if(risk === 'high') high++; else if(risk === 'medium') med++; else low++;
-        if(rec.status === 'required' && risk !== 'low') required++;
+        var tier = riskTierFromStreak(rec.streakDays);
+        if(tier === 'high') high++; else if(tier === 'medium') med++; else low++;
+        if(rec.status === 'required') required++;
       });
       setKpi('high', high); setKpi('med', med); setKpi('low', low); setKpi('required', required);
       updateTabCounts();
@@ -8405,11 +8501,12 @@
       currentTarget = { kind:kind, id:id };
       selectedType = null;
 
-      var scored = computeRisk(rec.days);
-      modalCtxName.textContent = rec.name + ' (' + rec.id + ')';
-      modalCtxWeek.textContent = scored.total + ' counts this week';
-      modalCtxRisk.textContent = scored.risk.charAt(0).toUpperCase() + scored.risk.slice(1) + ' risk';
-      modalCtxRisk.className = 'da-risk ' + (scored.risk === 'high' ? 'high' : scored.risk === 'medium' ? 'med' : 'low');
+      var total = daysTotal(rec.days);
+      var tier = riskTierFromStreak(rec.streakDays);
+      modalCtxName.textContent = rec.name + ' (' + rec.id + ')' + (rec.recurrenceCount > 0 ? ' — Recurrence' : '');
+      modalCtxWeek.textContent = total + ' counts this week';
+      modalCtxRisk.textContent = tier.charAt(0).toUpperCase() + tier.slice(1) + ' risk';
+      modalCtxRisk.className = 'da-risk ' + (tier === 'high' ? 'high' : tier === 'medium' ? 'med' : 'low');
 
       typeGrid.querySelectorAll('.da-type-opt').forEach(function(b){ b.classList.remove('sel'); });
       otherInput.classList.remove('on');
@@ -8513,15 +8610,18 @@
       var parts = key.split('|'); var kind = parts[0], id = parts[1];
       var rec = findRecord(kind, id);
       if(!rec) return;
-      var scored = computeRisk(rec.days);
-      var rec_ = recommendation(scored.risk);
+      var total = daysTotal(rec.days);
+      var tier = riskTierFromStreak(rec.streakDays);
+      var rec_ = recommendation(tier);
 
       document.getElementById('da-drawer-title').textContent = rec.name + ' (' + rec.id + ')';
       document.getElementById('da-drawer-sub').textContent = rec.sub;
-      document.getElementById('da-drawer-total').textContent = scored.total;
-      document.getElementById('da-drawer-risk-val').innerHTML = '<span class="da-risk ' + (scored.risk === 'high' ? 'high' : scored.risk === 'medium' ? 'med' : 'low') + '">' + scored.risk + '</span>';
+      document.getElementById('da-drawer-total').textContent = total;
+      document.getElementById('da-drawer-risk-val').innerHTML = '<span class="da-risk ' + (tier === 'high' ? 'high' : tier === 'medium' ? 'med' : 'low') + '">' + tier + '</span>';
       document.getElementById('da-drawer-rec-val').innerHTML = '<span class="da-rec ' + rec_.key + '"><span class="da-rec-dot"></span>' + rec_.label + '</span>';
-      document.getElementById('da-drawer-status-val').innerHTML = rec.status === 'actioned' ? '<span class="da-status actioned">Actioned</span>' : '<span class="da-status required">Action required</span>';
+      document.getElementById('da-drawer-status-val').innerHTML = statusPillHtml(rec.status) +
+        (rec.status === 'monitoring' && rec.monitorUntil ? '<div style="margin-top:4px;font-size:11px;color:var(--muted)">Until ' + esc(rec.monitorUntil) + '</div>' : '') +
+        (rec.recurrenceCount > 0 ? '<div style="margin-top:4px"><span class="recur-badge">Recurrence &times;' + rec.recurrenceCount + '</span></div>' : '');
 
       var maxCount = 20;
       DAY_ORDER.forEach(function(d){ (rec.days[d]||[]).forEach(function(c){ if(c > maxCount) maxCount = c; }); });
@@ -8596,7 +8696,7 @@
       btn.addEventListener('click', function(){
         var kind = btn.getAttribute('data-da-open-history');
         histTitle.textContent = (kind === 'drivers' ? 'Driver' : 'Asset') + ' history — resolved this week';
-        var resolved = state[kind].filter(function(r){ return r.status === 'actioned'; });
+        var resolved = state[kind].filter(function(r){ return r.status === 'resolved'; });
         if(!resolved.length){
           histBody.innerHTML = '<div class="da-empty" style="padding:30px 0"><div>No resolved records yet.</div></div>';
         } else {
@@ -8890,15 +8990,18 @@
       });
     });
     // Exposed read-only surface for other modules (e.g. the Summary page) —
-    // computeRisk/recommendation/esc are pure and safe to expose
-    // immediately; window.__daState is set inside load() once the real
+    // riskTierFromStreak/daysTotal/statusPillHtml/recommendation/esc are pure
+    // and safe to expose immediately; window.__daState is set inside load()
+    // once the real
     // fetch resolves (Summary's own reader already null-checks __daState
     // and re-renders on its own nav-click, so it degrades honestly if
     // opened before this page's fetch has completed). esc() itself now
     // lives in the shared block above (post-migration audit hardening) —
     // still exposed under the same __daEscapeHtml name so Summary's own
     // reader needs no change.
-    window.__daComputeRisk = computeRisk;
+    window.__daRiskTier = riskTierFromStreak;
+    window.__daDaysTotal = daysTotal;
+    window.__daStatusPillHtml = statusPillHtml;
     window.__daRecommendation = recommendation;
     window.__daEscapeHtml = esc;
 
