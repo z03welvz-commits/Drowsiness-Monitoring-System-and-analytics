@@ -118,7 +118,7 @@
 
   .nav{padding:22px 14px;overflow-y:auto;flex:1 1 auto}
   .section-label{font-size:var(--fs-badge);letter-spacing:.08em;color:#7fa3d6;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase}
-  .nav-item{all:unset;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
+  .nav-item{all:unset;box-sizing:border-box;width:100%;height:46px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
   .nav-item:hover{background:rgba(255,255,255,.07)}
   .nav-item:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .nav-item.active{background:#1361d8;color:#fff;font-weight:600}
@@ -277,6 +277,20 @@
   .view-all:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 
   .feed-list{display:flex;flex-direction:column;border-top:1px solid var(--border);max-height:392px;overflow-y:auto}
+  /* Skeleton loading placeholders — replaces the plain "Loading…" text this
+     app used everywhere (15 call sites, a design-review finding): a text
+     string that pops away and reflows the layout the instant real content
+     arrives reads slower and jumpier than a content-shaped placeholder that
+     resolves in place. Pulse rather than a shimmer-sweep gradient — same
+     accepted pattern, simpler to keep correct in both themes without a
+     moving gradient mask. */
+  @keyframes skeleton-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+  .skel{display:inline-block;height:11px;border-radius:4px;background:var(--border);animation:skeleton-pulse 1.4s ease-in-out infinite;vertical-align:middle}
+  .skel-row{display:flex;align-items:center;gap:11px;padding:10px 17px;border-bottom:1px solid var(--border)}
+  .skel-row .skel-icon{width:28px;height:28px;border-radius:50%;flex:0 0 auto}
+  .skel-row .skel-lines{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .skel-td{padding:12px 11px}
+
   .feed-row{display:flex;align-items:flex-start;gap:11px;padding:10px 17px;border-bottom:1px solid var(--border);transition:background-color .15s}
   .feed-row:hover{background:var(--surface2)}
   .feed-time{width:38px;flex:0 0 auto;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:2px}
@@ -472,6 +486,13 @@
 
   .al-table-wrap{overflow-x:auto;overflow-y:auto}
   .al-table{width:100%;border-collapse:collapse;min-width:1500px}
+  /* Empty/sign-in-gated state: the single message row otherwise sits at
+     the top of the tall flex-filled .al-table-wrap, leaving a large blank
+     void below it. Scoped with :has() to only the empty-message row (via
+     .al-table-empty-cell) so a normally populated table — which should NOT
+     stretch its real rows apart to fill the leftover height — is untouched. */
+  .al-table:has(.al-table-empty-cell){height:100%}
+  .al-table-empty-cell{vertical-align:middle}
   .al-table thead th{position:sticky;top:0;z-index:1}
   .al-table th{height:34px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 11px;background:var(--surface2);white-space:nowrap}
   .al-table th[data-sort]{cursor:pointer;user-select:none}
@@ -732,6 +753,8 @@
 
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
+  .da-table:has(.al-table-empty-cell),.da-table:has(.da-empty){height:100%}
+  td.da-empty{vertical-align:middle}
   .da-table th{height:38px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
   .da-table th[data-da-sort]{cursor:pointer;user-select:none}
   .da-table th[data-da-sort]:hover{color:var(--heading-blue)}
@@ -1238,12 +1261,42 @@
     .se-users-toolbar{flex-direction:column;align-items:stretch}
     .se-pref-row{flex-wrap:wrap}
     .se-brightness{width:100%}
+
+    /* Sidebar never collapsed below this width (a design-review finding) —
+       it stayed a permanent, non-dismissable 280px column eating over half
+       of a phone-size viewport. Off-canvas drawer: hidden by default,
+       toggled by a fixed hamburger button, dismissible via backdrop click,
+       Escape, or picking a nav item — the whole sidebar (including its own
+       Dark mode/Sign out row) slides in as one panel, so .signout-mobile
+       (a duplicate sign-out nav-item apparently built for some other
+       mobile treatment that never shipped) stays exactly as unused/hidden
+       as it already was; not revived here to avoid showing two sign-out
+       controls at once. */
+    .mobile-nav-toggle{
+      display:flex;align-items:center;justify-content:center;
+      position:fixed;top:14px;left:14px;z-index:60;
+      width:44px;height:44px;border-radius:10px;border:none;
+      background:#012d68;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.2);cursor:pointer
+    }
+    .mobile-nav-toggle svg{width:20px;height:20px}
+    .mobile-nav-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:54}
+    .mobile-nav-backdrop.on{display:block}
+    .sidebar{
+      position:fixed;top:0;left:0;height:100vh;width:280px;flex-basis:280px;
+      z-index:55;transform:translateX(-100%);transition:transform .25s ease;
+    }
+    .sidebar.mobile-open{transform:translateX(0)}
+    .topbar{padding-left:52px}
   }
 </style>
 </head>
 <body>
 <div class="app">
-  <aside class="sidebar">
+  <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobile-sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
+  <aside class="sidebar" id="mobile-sidebar">
     <div class="brand">
       <div class="brand-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
@@ -1458,7 +1511,9 @@
             <button class="view-all" type="button" data-goto="alerts">View all</button>
           </div>
           <div class="feed-list" id="ov-feed-list">
-            <div class="feed-row"><div class="feed-body"><div class="feed-main">Loading…</div></div></div>
+            <div class="skel-row"><span class="skel skel-icon"></span><div class="skel-lines"><span class="skel" style="width:70%"></span><span class="skel" style="width:40%"></span></div></div>
+            <div class="skel-row"><span class="skel skel-icon"></span><div class="skel-lines"><span class="skel" style="width:55%"></span><span class="skel" style="width:35%"></span></div></div>
+            <div class="skel-row"><span class="skel skel-icon"></span><div class="skel-lines"><span class="skel" style="width:65%"></span><span class="skel" style="width:45%"></span></div></div>
           </div>
           <div class="feed-footer">
             <button type="button" data-goto="alerts">View all Alert Logs
@@ -1476,7 +1531,7 @@
             <button class="view-all" type="button" data-goto="data">View all</button>
           </div>
           <div class="action-body" id="ov-actions-body">
-            <div class="action-row"><div class="action-body-text"><div class="action-main">Loading…</div></div></div>
+            <div class="skel-row" style="padding:9px 0;border-bottom:none"><div class="skel-lines"><span class="skel" style="width:75%"></span><span class="skel" style="width:45%"></span></div></div>
           </div>
         </div>
 
@@ -1488,7 +1543,7 @@
             </div>
           </div>
           <div class="action-body" id="ov-insight-body">
-            <div class="action-row"><div class="action-body-text"><div class="action-main">Loading…</div></div></div>
+            <div class="skel-row" style="padding:9px 0;border-bottom:none"><div class="skel-lines"><span class="skel" style="width:75%"></span><span class="skel" style="width:45%"></span></div></div>
           </div>
         </div>
 
@@ -1500,7 +1555,7 @@
             </div>
           </div>
           <div class="action-body" id="ov-updates-body">
-            <div class="action-row"><div class="action-body-text"><div class="action-main">Loading…</div></div></div>
+            <div class="skel-row" style="padding:9px 0;border-bottom:none"><div class="skel-lines"><span class="skel" style="width:75%"></span><span class="skel" style="width:45%"></span></div></div>
           </div>
         </div>
       </div>
@@ -1764,7 +1819,7 @@
               </tr>
             </thead>
             <tbody id="al-tbody">
-              <tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>
+              <tr><td class="al-table-empty-cell" colspan="14" style="text-align:center;padding:30px 0"><span class="skel" style="width:180px"></span></td></tr>
             </tbody>
           </table>
         </div>
@@ -1803,10 +1858,10 @@
         </div>
         <div class="controls">
           <div class="card dm-sync">
-            <div class="dm-sync-top"><span class="dm-sync-dot" aria-hidden="true"></span>Last sync: 4 min ago</div>
-            <div class="dm-sync-date">Jun 30, 2025 11:28 AM</div>
+            <div class="dm-sync-top"><span class="dm-sync-dot" aria-hidden="true"></span><span id="dm-sync-top-text">—</span></div>
+            <div class="dm-sync-date" id="dm-sync-date"></div>
           </div>
-          <button class="control dm-refresh" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>Refresh</button>
+          <button class="control dm-refresh" type="button" id="dm-refresh-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>Refresh</button>
           <button class="dm-btn-primary" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Import / Sync Data</button>
         </div>
       </header>
@@ -2143,22 +2198,22 @@
       <section class="da-summary" aria-label="Weekly risk summary">
         <div class="card da-sc high">
           <div class="da-sc-label">High risk</div>
-          <div class="da-sc-value" data-da-count="high">0</div>
+          <div class="da-sc-value" data-da-count="high">—</div>
           <div class="da-sc-sub">Consistent alerts this week — action needed</div>
         </div>
         <div class="card da-sc med">
           <div class="da-sc-label">Medium risk</div>
-          <div class="da-sc-value" data-da-count="med">0</div>
+          <div class="da-sc-value" data-da-count="med">—</div>
           <div class="da-sc-sub">Some alerts, not yet a consistent pattern</div>
         </div>
         <div class="card da-sc low">
           <div class="da-sc-label">Low risk</div>
-          <div class="da-sc-value" data-da-count="low">0</div>
+          <div class="da-sc-value" data-da-count="low">—</div>
           <div class="da-sc-sub">No alerts recorded this week</div>
         </div>
         <div class="card da-sc">
           <div class="da-sc-label">Action required</div>
-          <div class="da-sc-value" data-da-count="required">0</div>
+          <div class="da-sc-value" data-da-count="required">—</div>
           <div class="da-sc-sub">Flagged rows awaiting a logged action</div>
         </div>
       </section>
@@ -2221,7 +2276,7 @@
             </table>
           </div>
           <div class="da-table-foot">
-            <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
+            <span data-da-lastrefresh="drivers">—</span>
             <span data-da-empty-note="drivers"></span>
             <div class="al-pages" data-da-pages="drivers">
               <span data-da-rowsrange="drivers">—</span>
@@ -2264,7 +2319,7 @@
             </table>
           </div>
           <div class="da-table-foot">
-            <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
+            <span data-da-lastrefresh="assets">—</span>
             <span data-da-empty-note="assets"></span>
             <div class="al-pages" data-da-pages="assets">
               <span data-da-rowsrange="assets">—</span>
@@ -2633,7 +2688,7 @@
               <thead>
                 <tr><th>User</th><th>Role</th><th>Joined</th><th>Status</th><th>Action</th></tr>
               </thead>
-              <tbody id="se-users-tbody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+              <tbody id="se-users-tbody"><tr><td colspan="5" style="text-align:center;padding:30px 0"><span class="skel" style="width:160px"></span></td></tr></tbody>
             </table>
           </div>
         </section>
@@ -2978,6 +3033,31 @@
   }
   function fmtNum(n){ return (n == null ? 0 : n).toLocaleString('en-US'); }
 
+  // Skeleton loading placeholders (see .skel* rules) — one shared builder
+  // for the two shapes this app's loading states actually need, so every
+  // "Loading…" table-row/list-row swap uses the same look rather than
+  // some getting it and others not.
+  function skeletonTableRows(colspan, count){
+    var widths = [90, 70, 55, 80, 60];
+    var out = '';
+    for(var i = 0; i < (count || 3); i++){
+      var cells = '';
+      for(var c = 0; c < colspan; c++){
+        cells += '<td class="skel-td"><span class="skel" style="width:' + widths[(i + c) % widths.length] + '%"></span></td>';
+      }
+      out += '<tr>' + cells + '</tr>';
+    }
+    return out;
+  }
+  function skeletonFeedRows(count){
+    var out = '';
+    for(var i = 0; i < (count || 3); i++){
+      out += '<div class="skel-row"><span class="skel skel-icon"></span>' +
+        '<div class="skel-lines"><span class="skel" style="width:' + (60 + (i % 3) * 10) + '%"></span><span class="skel" style="width:40%"></span></div></div>';
+    }
+    return out;
+  }
+
   // Same classification index.html's severityForCode() uses (SEVERITY_RULES),
   // folded to this mock's 3-tier badge vocabulary per MIGRATION_MAP.md
   // Decision 2. `color` uses the mock's OWN dominant palette (.hourbar/
@@ -3156,6 +3236,7 @@
 
       var reload = window.__ddsPageLoad[pageKey];
       if(reload) reload();
+      if(window.__ddsCloseMobileNav) window.__ddsCloseMobileNav();
     }
 
     navItems.forEach(function(btn){
@@ -3168,6 +3249,44 @@
       btn.addEventListener('click', function(){
         goToPage(btn.getAttribute('data-goto'));
       });
+    });
+  })();
+
+  // ---------- Mobile nav drawer (hamburger toggle, below 640px) ----------
+  // The sidebar had no mobile treatment at all — see the .mobile-nav-toggle/
+  // .sidebar.mobile-open CSS rules' own comment. Exposed as
+  // window.__ddsCloseMobileNav so the page-nav IIFE above can close the
+  // drawer on every navigation without this file depending on load order.
+  (function(){
+    var toggleBtn = document.getElementById('mobile-nav-toggle');
+    var backdrop = document.getElementById('mobile-nav-backdrop');
+    var sidebar = document.getElementById('mobile-sidebar');
+    if(!toggleBtn || !backdrop || !sidebar) return;
+
+    var HAMBURGER_ICON = toggleBtn.innerHTML;
+    var CLOSE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+
+    function isOpen(){ return sidebar.classList.contains('mobile-open'); }
+    function open(){
+      sidebar.classList.add('mobile-open');
+      backdrop.classList.add('on');
+      toggleBtn.setAttribute('aria-expanded', 'true');
+      toggleBtn.setAttribute('aria-label', 'Close navigation menu');
+      toggleBtn.innerHTML = CLOSE_ICON;
+    }
+    function close(){
+      sidebar.classList.remove('mobile-open');
+      backdrop.classList.remove('on');
+      toggleBtn.setAttribute('aria-expanded', 'false');
+      toggleBtn.setAttribute('aria-label', 'Open navigation menu');
+      toggleBtn.innerHTML = HAMBURGER_ICON;
+    }
+    window.__ddsCloseMobileNav = close;
+
+    toggleBtn.addEventListener('click', function(){ isOpen() ? close() : open(); });
+    backdrop.addEventListener('click', close);
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && isOpen()) close();
     });
   })();
 
@@ -5105,6 +5224,24 @@
       if(foot) foot.textContent = '';
     }
 
+    // The topbar "Last sync" chip was static markup ("4 min ago" / "Jun 30,
+    // 2025 11:28 AM") that no code ever touched — it stayed on screen
+    // unchanged whether signed out, mid-load, or long after the real last
+    // fetch. Set from any of the 4 sources' own real successful load, so it
+    // reflects the actual most recent fetch instead of a permanent fake one.
+    function markDataSynced(){
+      var topEl = document.getElementById('dm-sync-top-text');
+      var dateEl = document.getElementById('dm-sync-date');
+      if(topEl) topEl.textContent = 'Last sync: just now';
+      if(dateEl) dateEl.textContent = new Date().toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+    function markDataNotSynced(){
+      var topEl = document.getElementById('dm-sync-top-text');
+      var dateEl = document.getElementById('dm-sync-date');
+      if(topEl) topEl.textContent = 'Not signed in';
+      if(dateEl) dateEl.textContent = '';
+    }
+
     // ==================== DDS Data ====================
     var ddsState = { search: '', total: 0, sort: 'start_time', dir: 'desc' };
     function loadDds(){
@@ -5124,6 +5261,7 @@
           p_search: ddsState.search || null
         }).then(function(res){
           if(res.error) throw res.error;
+          markDataSynced();
           var total = res.data && res.data.total || 0;
           var rows = (res.data && res.data.rows) || [];
           ddsState.total = total;
@@ -5185,6 +5323,7 @@
         if(minestatState.search) q = q.ilike('original_name', '%' + minestatState.search + '%');
         return q.then(function(res){
           if(res.error) throw res.error;
+          markDataSynced();
           var rows = res.data || [];
           var total = res.count || rows.length;
           if(titleSmall) titleSmall.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(total);
@@ -5263,6 +5402,7 @@
         }
         return q.then(function(res){
           if(res.error) throw res.error;
+          markDataSynced();
           var rows = res.data || [];
           var total = res.count || rows.length;
           if(titleSmall) titleSmall.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(total);
@@ -5316,6 +5456,7 @@
         }
         return q.then(function(res){
             if(res.error) throw res.error;
+            markDataSynced();
             var rows = res.data || [];
             var total = res.count || rows.length;
             if(titleSmall) titleSmall.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(total);
@@ -5394,7 +5535,7 @@
         dmHistBody.innerHTML = '<div class="da-empty" style="padding:30px 0">Upload history isn\'t tracked server-side for this source yet.</div>';
         return;
       }
-      dmHistBody.innerHTML = '<div class="da-empty" style="padding:30px 0">Loading…</div>';
+      dmHistBody.innerHTML = '<div style="padding:30px 18px"><span class="skel" style="width:100%;display:block;margin-bottom:8px"></span><span class="skel" style="width:80%;display:block;margin-bottom:8px"></span><span class="skel" style="width:90%;display:block"></span></div>';
       requireSession().then(function(sess){
         if(!sess){ dmHistBody.innerHTML = '<div class="da-empty" style="padding:30px 0">Sign in to load upload history.</div>'; return; }
         return DB.from('imports').select('original_name, row_count, status, created_at')
@@ -6811,11 +6952,26 @@
     });
 
     // ---- initial load: DDS tab is active by default on page load ----
+    requireSession().then(function(sess){ if(!sess) markDataNotSynced(); });
     ensureLoaded('dds');
     loadHistory('dds', 'dds', '#dm-source-dds .dm-hist-list', 3);
     loadHistory('minestat', 'minestat', '#dm-source-minestat .dm-hist-list', 5);
     loadHistory('masterlist', null, '#dm-source-masterlist .dm-hist-list', 2);
     loadHistory('factors', null, '#dm-source-factors .dm-hist-list', 2);
+
+    // The topbar "Refresh" button had no click handler at all (found in a
+    // design audit) — wired to force-reload whichever source tab is
+    // currently active, same "clear the once-only cache, load again"
+    // pattern the manual-add Save flow above already uses.
+    var refreshBtn = document.getElementById('dm-refresh-btn');
+    if(refreshBtn){
+      refreshBtn.addEventListener('click', function(){
+        var activeTab = document.querySelector('#dm-source-tabs .dm-tab.on[data-source]');
+        var key = activeTab ? activeTab.getAttribute('data-source') : 'dds';
+        loaded[key] = false;
+        ensureLoaded(key);
+      });
+    }
   })();
 
   // ---------- Alert Logs: real dds_alert_logs() data ----------
@@ -6972,7 +7128,7 @@
         var tbody = document.getElementById('al-tbody');
         var showingEl = document.getElementById('al-table-showing');
         if(!sess){
-          if(tbody) tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          if(tbody) tbody.innerHTML = '<tr><td class="al-table-empty-cell" colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           if(showingEl) showingEl.textContent = '';
           ['al-sc-total','al-sc-critical','al-sc-cased','al-sc-actionable'].forEach(function(id){
             var el = document.getElementById(id); if(el) el.textContent = '—';
@@ -7011,7 +7167,7 @@
           rows.forEach(function(r){ lastRowsById[r.id] = r; });
 
           if(!rows.length){
-            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">No records match.</td></tr>';
+            tbody.innerHTML = '<tr><td class="al-table-empty-cell" colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">No records match.</td></tr>';
             renderPagination();
             updateBulkBar();
             return;
@@ -7046,7 +7202,7 @@
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
           console.error('Alert Logs fetch failed', err);
-          tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
+          tbody.innerHTML = '<tr><td class="al-table-empty-cell" colspan="14" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
         });
       });
     }
@@ -7055,7 +7211,7 @@
     var detailMask = document.getElementById('al-detail-mask');
     var detailBody = document.getElementById('al-detail-body');
     function openGroupDetail(shiftDate, shift, assetId, eventCode){
-      detailBody.innerHTML = '<div class="da-empty" style="padding:30px 0">Loading…</div>';
+      detailBody.innerHTML = '<div style="padding:30px 18px"><span class="skel" style="width:100%;display:block;margin-bottom:8px"></span><span class="skel" style="width:80%;display:block;margin-bottom:8px"></span><span class="skel" style="width:90%;display:block"></span></div>';
       detailMask.classList.add('on');
       DB.rpc('dds_alert_group_details', {
         p_shift_date: shiftDate, p_shift: shift, p_asset_id: assetId, p_event_code: eventCode
@@ -7649,7 +7805,7 @@
     function signedOutTable(kind){
       var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
       if(!tbody) return;
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">' +
+      tbody.innerHTML = '<tr><td class="al-table-empty-cell" colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">' +
         'Sign in to load real ' + (kind === 'drivers' ? 'driver' : 'asset') + ' data — this page reads live data, not a mock.</td></tr>';
       var shownEl = document.querySelector('[data-da-shown="' + kind + '"]');
       if(shownEl) shownEl.textContent = '';
@@ -7657,7 +7813,7 @@
     function errorTable(kind, err){
       var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
       if(!tbody) return;
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:30px 0">' +
+      tbody.innerHTML = '<tr><td class="al-table-empty-cell" colspan="6" style="text-align:center;color:#c0271f;padding:30px 0">' +
         'Could not load records: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
     }
 
@@ -7666,6 +7822,17 @@
       requireSession().then(function(sess){
         if(!guard.isCurrent(token)) return;
         if(!sess){
+          // Previously left the risk KPIs at their static "0" markup default
+          // and the two "Last refreshed" footers at a hardcoded stale date —
+          // both read as a real, checked answer ("we looked, there are
+          // zero") rather than "we haven't loaded anything," inconsistent
+          // with Overview/Analytics/Summary's own "—" convention for the
+          // same situation. Reset explicitly instead of leaving stale markup.
+          ['high','med','low','required'].forEach(function(key){ setKpi(key, '—'); });
+          ['drivers','assets'].forEach(function(kind){
+            var el = document.querySelector('[data-da-lastrefresh="' + kind + '"]');
+            if(el) el.textContent = '—';
+          });
           signedOutTable('drivers'); signedOutTable('assets');
           return;
         }
@@ -7749,7 +7916,7 @@
       if(!tbody) return;
       var key = summaryCacheKey(kind);
 
-      if(!opts.silent) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+      if(!opts.silent) tbody.innerHTML = skeletonTableRows(6, 4);
 
       var st = summaryState[kind];
       var fn = kind === 'drivers' ? 'dds_driver_event_summary' : 'dds_asset_event_summary';
@@ -7895,6 +8062,9 @@
 
       var shownEl = document.querySelector('[data-da-shown="' + kind + '"]');
       if(shownEl) shownEl.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(st.total);
+
+      var lastRefreshEl = document.querySelector('[data-da-lastrefresh="' + kind + '"]');
+      if(lastRefreshEl) lastRefreshEl.textContent = 'Last refreshed ' + new Date().toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
       var emptyNote = document.querySelector('[data-da-empty-note="' + kind + '"]');
       if(emptyNote && kind === 'drivers'){
@@ -8496,7 +8666,7 @@
       }
       instSub.textContent = 'Loading…';
       instSummary.innerHTML = '';
-      instTbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px 0">Loading…</td></tr>';
+      instTbody.innerHTML = skeletonTableRows(9, 4);
       bulkBar.style.display = kind === 'drivers' ? '' : 'none';
       instMask.classList.add('on');
 
