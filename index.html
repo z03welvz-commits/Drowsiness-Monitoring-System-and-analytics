@@ -923,9 +923,9 @@
   .da-bulk-apply:disabled{opacity:.5;cursor:default}
   .da-bulk-clear{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:650;color:var(--muted);padding:0 4px;white-space:nowrap}
   .da-bulk-clear:hover{color:var(--text-dim)}
-  #da-bulk-selectall-matching{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:700;color:var(--blue);padding:0 4px;white-space:nowrap;text-decoration:underline}
-  #da-bulk-selectall-matching:hover{color:#1d4fd1}
-  #da-bulk-selectall-matching.on{color:#18a05e}
+  .da-bulk-selectall-matching{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:700;color:var(--blue);padding:0 4px;white-space:nowrap;text-decoration:underline}
+  .da-bulk-selectall-matching:hover{color:#1d4fd1}
+  .da-bulk-selectall-matching.on{color:#18a05e}
   .da-th-check{width:34px;padding:0 0 0 17px!important}
   .da-table td.da-td-check{padding:0 0 0 17px}
   .da-row-check{cursor:pointer;width:14px;height:14px}
@@ -2285,6 +2285,7 @@
             </button>
           </div>
           <div class="da-bulk-bar" id="da-drivers-bulk-bar">
+            <button type="button" class="da-bulk-selectall-matching" id="da-drivers-selectall-matching" style="display:none"></button>
             <span class="da-bulk-count" id="da-drivers-bulk-count">0 selected</span>
             <select id="da-drivers-bulk-action" aria-label="Bulk action">
               <option value="">Set action…</option>
@@ -2984,7 +2985,7 @@
         <div class="da-inst-summary" id="da-inst-summary"></div>
         <div class="da-bulk-bar" id="da-bulk-bar">
           <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="da-inst-selectall">Select all on this page</label>
-          <button type="button" class="da-bulk-clear" id="da-bulk-selectall-matching" style="display:none"></button>
+          <button type="button" class="da-bulk-selectall-matching" id="da-bulk-selectall-matching" style="display:none"></button>
           <span class="da-bulk-count" id="da-bulk-count">0 selected</span>
           <select id="da-bulk-action" aria-label="Bulk action">
             <option value="">Set action…</option>
@@ -3078,6 +3079,96 @@
     });
   }
   function fmtNum(n){ return (n == null ? 0 : n).toLocaleString('en-US'); }
+
+  // Shared pager: "Rows X-Y of Z" + prev/next + up to 5 numbered page
+  // buttons. Previously three independently hand-written copies of the
+  // exact same range/window math (Alert Logs, the Driver & Asset
+  // Monitoring summary tables, the alert-instance popup) — one duplicated
+  // definition per page instead of one shared one, the same class of risk
+  // that let a "select all only grabs the current page" bug survive in
+  // one copy of a different shared pattern while already fixed in another.
+  // opts: { total, limit, offset, rangeEl, prevBtn, nextBtn, numsEl, onPageChange(page) }
+  function renderPager(opts){
+    var total = opts.total || 0, limit = opts.limit || 1, offset = opts.offset || 0;
+    var totalPages = Math.max(1, Math.ceil(total / limit));
+    var curPage = Math.floor(offset / limit) + 1;
+
+    if(opts.rangeEl){
+      var shownFrom = total === 0 ? 0 : offset + 1;
+      var shownTo = Math.min(offset + limit, total);
+      opts.rangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(total);
+    }
+    if(opts.prevBtn) opts.prevBtn.disabled = curPage <= 1;
+    if(opts.nextBtn) opts.nextBtn.disabled = curPage >= totalPages;
+    if(opts.numsEl){
+      // Cap visible page-number buttons at 5 (centered on current page) —
+      // real data can span thousands of pages; listing every page number
+      // would be both useless and slow to render.
+      var start = Math.max(1, curPage - 2);
+      var end = Math.min(totalPages, start + 4);
+      start = Math.max(1, end - 4);
+      var html = '';
+      for(var p = start; p <= end; p++){
+        html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
+          (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
+      }
+      opts.numsEl.innerHTML = html;
+      opts.numsEl.querySelectorAll('[data-page]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          opts.onPageChange(Number(btn.getAttribute('data-page')));
+        });
+      });
+    }
+  }
+
+  // Shared sparkline point-string builder (SVG <polyline points="...">) —
+  // Overview's and Analytics' KPI cards each independently built the exact
+  // same min/max/range/point-position math, differing only in the two
+  // vertical-scale constants tuned to each card's own SVG viewBox height.
+  function sparklinePoints(values, topY, rangeY){
+    topY = topY == null ? 30 : topY;
+    rangeY = rangeY == null ? 28 : rangeY;
+    var max = Math.max.apply(null, values.concat([1]));
+    var min = Math.min.apply(null, values.concat([0]));
+    var range = Math.max(max - min, 1);
+    var n = values.length;
+    return values.map(function(v, i){
+      var x = n === 1 ? 0 : (i / (n - 1)) * 100;
+      var y = topY - ((v - min) / range) * rangeY;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+  }
+
+  // Shared "sign in" / "could not load" empty-state table row — Alert
+  // Logs, Driver & Asset Monitoring's summary tables, and Data Management
+  // each independently built the same <tr><td colspan=N>...</td></tr>
+  // shape (colspan and label text are the only real differences).
+  function signedOutTableRow(colspan, label){
+    return '<tr><td class="al-table-empty-cell" colspan="' + colspan + '" style="text-align:center;color:var(--muted);padding:30px 0">' +
+      'Sign in to load ' + esc(label) + ' — this page reads live data, not a mock.</td></tr>';
+  }
+  function errorTableRow(colspan, err){
+    return '<tr><td class="al-table-empty-cell" colspan="' + colspan + '" style="text-align:center;color:#c0271f;padding:30px 0">' +
+      'Could not load records: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+  }
+
+  // Shared risk-tier CSS class (high/med/low) — previously computed by the
+  // same inline ternary at 3 separate call sites (Summary's Top Flagged
+  // table, the Driver & Asset action modal, the detail drawer). Each site
+  // still formats its own label text (they genuinely differ today: "High"
+  // vs "high risk" vs "high") — only the class-name computation, the part
+  // that was byte-identical everywhere, is shared here.
+  function riskTierClass(tier){ return tier === 'high' ? 'high' : tier === 'medium' ? 'med' : 'low'; }
+
+  // Shared "has this been logged" pill (event/row-level, distinct from the
+  // entity-level statusPillHtml() below) — previously hand-built at 3
+  // sites, two of which said "Done" and one "Logged" for the identical
+  // state. Standardized on "Logged" (matches Alert Logs' own vocabulary).
+  function loggedPillHtml(isLogged){
+    return isLogged
+      ? '<span class="da-inst-status done">Logged</span>'
+      : '<span class="da-inst-status pending">Pending</span>';
+  }
 
   // Skeleton loading placeholders (see .skel* rules) — one shared builder
   // for the two shapes this app's loading states actually need, so every
@@ -3410,16 +3501,7 @@
         deltaEl.textContent = d.text;
       }
       if(sparkEl && sparkVals && sparkVals.length){
-        var max = Math.max.apply(null, sparkVals.concat([1]));
-        var min = Math.min.apply(null, sparkVals.concat([0]));
-        var range = Math.max(max - min, 1);
-        var n = sparkVals.length;
-        var pts = sparkVals.map(function(v, i){
-          var x = n === 1 ? 0 : (i / (n - 1)) * 100;
-          var y = 30 - ((v - min) / range) * 28;
-          return x.toFixed(1) + ',' + y.toFixed(1);
-        }).join(' ');
-        sparkEl.setAttribute('points', pts);
+        sparkEl.setAttribute('points', sparklinePoints(sparkVals, 30, 28));
       }
     }
 
@@ -3968,16 +4050,7 @@
         changeEl.innerHTML = '<span class="delta ' + (d7.cls === 'good' ? 'up' : (d7.cls === 'bad' ? 'down' : 'flat')) + '">' + esc(d7.text) + '</span> vs previous 7 days';
       }
       if(sparkEl && sparkVals && sparkVals.length){
-        var max = Math.max.apply(null, sparkVals.concat([1]));
-        var min = Math.min.apply(null, sparkVals.concat([0]));
-        var range = Math.max(max - min, 1);
-        var n = sparkVals.length;
-        var pts = sparkVals.map(function(v, i){
-          var x = n === 1 ? 0 : (i / (n - 1)) * 100;
-          var y = 28 - ((v - min) / range) * 24;
-          return x.toFixed(1) + ',' + y.toFixed(1);
-        }).join(' ');
-        sparkEl.setAttribute('points', pts);
+        sparkEl.setAttribute('points', sparklinePoints(sparkVals, 28, 24));
       }
     }
     function renderKpis(cur, prev7d){
@@ -4550,7 +4623,7 @@
           '<td class="su-risk-name">' + escapeHtml(r.rec.name) + '<small>' + escapeHtml(r.rec.id) +
             (r.rec.recurrenceCount > 0 ? ' &middot; <span class="recur-badge">Recurrence</span>' : '') + '</small></td>' +
           '<td><span class="su-risk-kind">' + (r.kind === 'drivers' ? 'Driver' : 'Asset') + '</span></td>' +
-          '<td><span class="da-risk ' + (r.risk === 'high' ? 'high' : r.risk === 'medium' ? 'med' : 'low') + '">' + RISK_LABEL[r.risk] + '</span></td>' +
+          '<td><span class="da-risk ' + riskTierClass(r.risk) + '">' + RISK_LABEL[r.risk] + '</span></td>' +
           '<td>' + r.total + '</td>' +
           '<td>' + statusHtml + '</td>' +
           '<td><span class="da-rec ' + rec_.key + '"><span class="da-rec-dot"></span>' + escapeHtml(rec_.label) + '</span></td>' +
@@ -5311,14 +5384,8 @@
              d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false});
     }
 
-    function signedOutRow(colspan, label){
-      return '<tr><td colspan="' + colspan + '" style="text-align:center;color:var(--muted);padding:30px 0">' +
-        'Sign in to load ' + esc(label) + ' — this page reads live data, not a mock.</td></tr>';
-    }
-    function errorRow(colspan, err){
-      return '<tr><td colspan="' + colspan + '" style="text-align:center;color:#c0271f;padding:30px 0">' +
-        'Could not load records: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
-    }
+    function signedOutRow(colspan, label){ return signedOutTableRow(colspan, label); }
+    function errorRow(colspan, err){ return errorTableRow(colspan, err); }
     // Clears the mock's static "Showing 8 of 1,842"-style title/footer text
     // for the signed-out/error paths, so a real gap never displays next to a
     // stale fake number that would otherwise still be sitting in the markup.
@@ -7189,39 +7256,14 @@
     }
 
     function renderPagination(){
-      var totalPages = Math.max(1, Math.ceil(state.total / state.limit));
-      var curPage = Math.floor(state.offset / state.limit) + 1;
-      var rowsRangeEl = document.getElementById('al-rowsrange');
-      var shownFrom = state.total === 0 ? 0 : state.offset + 1;
-      var shownTo = Math.min(state.offset + state.limit, state.total);
-      if(rowsRangeEl) rowsRangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(state.total);
-
-      var prevBtn = document.getElementById('al-page-prev');
-      var nextBtn = document.getElementById('al-page-next');
-      if(prevBtn) prevBtn.disabled = curPage <= 1;
-      if(nextBtn) nextBtn.disabled = curPage >= totalPages;
-
-      var numsEl = document.getElementById('al-page-numbers');
-      if(numsEl){
-        // Cap visible page-number buttons at 5 (centered on current page)
-        // — real data can span thousands of pages; listing every page
-        // number would be both useless and slow to render.
-        var start = Math.max(1, curPage - 2);
-        var end = Math.min(totalPages, start + 4);
-        start = Math.max(1, end - 4);
-        var html = '';
-        for(var p = start; p <= end; p++){
-          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
-            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
-        }
-        numsEl.innerHTML = html;
-        numsEl.querySelectorAll('[data-page]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            state.offset = (Number(btn.getAttribute('data-page')) - 1) * state.limit;
-            load();
-          });
-        });
-      }
+      renderPager({
+        total: state.total, limit: state.limit, offset: state.offset,
+        rangeEl: document.getElementById('al-rowsrange'),
+        prevBtn: document.getElementById('al-page-prev'),
+        nextBtn: document.getElementById('al-page-next'),
+        numsEl: document.getElementById('al-page-numbers'),
+        onPageChange: function(page){ state.offset = (page - 1) * state.limit; load(); }
+      });
     }
 
     function load(){
@@ -7231,7 +7273,7 @@
         var tbody = document.getElementById('al-tbody');
         var showingEl = document.getElementById('al-table-showing');
         if(!sess){
-          if(tbody) tbody.innerHTML = '<tr><td class="al-table-empty-cell" colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          if(tbody) tbody.innerHTML = signedOutTableRow(14, 'real data');
           if(showingEl) showingEl.textContent = '';
           ['al-sc-total','al-sc-critical','al-sc-cased','al-sc-actionable'].forEach(function(id){
             var el = document.getElementById(id); if(el) el.textContent = '—';
@@ -7305,7 +7347,7 @@
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
           console.error('Alert Logs fetch failed', err);
-          tbody.innerHTML = '<tr><td class="al-table-empty-cell" colspan="14" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
+          tbody.innerHTML = errorTableRow(14, err);
         });
       });
     }
@@ -7899,16 +7941,14 @@
     function signedOutTable(kind){
       var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
       if(!tbody) return;
-      tbody.innerHTML = '<tr><td class="al-table-empty-cell" colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">' +
-        'Sign in to load real ' + (kind === 'drivers' ? 'driver' : 'asset') + ' data — this page reads live data, not a mock.</td></tr>';
+      tbody.innerHTML = signedOutTableRow(6, 'real ' + (kind === 'drivers' ? 'driver' : 'asset') + ' data');
       var shownEl = document.querySelector('[data-da-shown="' + kind + '"]');
       if(shownEl) shownEl.textContent = '';
     }
     function errorTable(kind, err){
       var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
       if(!tbody) return;
-      tbody.innerHTML = '<tr><td class="al-table-empty-cell" colspan="6" style="text-align:center;color:#c0271f;padding:30px 0">' +
-        'Could not load records: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+      tbody.innerHTML = errorTableRow(6, err);
     }
 
     function load(){
@@ -8058,36 +8098,14 @@
     // total" text implying more existed.
     function renderSummaryPager(kind){
       var st = summaryState[kind];
-      var totalPages = Math.max(1, Math.ceil(st.total / st.limit));
-      var curPage = Math.floor(st.offset / st.limit) + 1;
-      var rangeEl = document.querySelector('[data-da-rowsrange="' + kind + '"]');
-      var shownFrom = st.total === 0 ? 0 : st.offset + 1;
-      var shownTo = Math.min(st.offset + st.limit, st.total);
-      if(rangeEl) rangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(st.total);
-
-      var prevBtn = document.querySelector('[data-da-page-prev="' + kind + '"]');
-      var nextBtn = document.querySelector('[data-da-page-next="' + kind + '"]');
-      if(prevBtn) prevBtn.disabled = curPage <= 1;
-      if(nextBtn) nextBtn.disabled = curPage >= totalPages;
-
-      var numsEl = document.querySelector('[data-da-page-numbers="' + kind + '"]');
-      if(numsEl){
-        var start = Math.max(1, curPage - 2);
-        var end = Math.min(totalPages, start + 4);
-        start = Math.max(1, end - 4);
-        var html = '';
-        for(var p = start; p <= end; p++){
-          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
-            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
-        }
-        numsEl.innerHTML = html;
-        numsEl.querySelectorAll('[data-page]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            st.offset = (Number(btn.getAttribute('data-page')) - 1) * st.limit;
-            loadSummaryTable(kind);
-          });
-        });
-      }
+      renderPager({
+        total: st.total, limit: st.limit, offset: st.offset,
+        rangeEl: document.querySelector('[data-da-rowsrange="' + kind + '"]'),
+        prevBtn: document.querySelector('[data-da-page-prev="' + kind + '"]'),
+        nextBtn: document.querySelector('[data-da-page-next="' + kind + '"]'),
+        numsEl: document.querySelector('[data-da-page-numbers="' + kind + '"]'),
+        onPageChange: function(page){ st.offset = (page - 1) * st.limit; loadSummaryTable(kind); }
+      });
     }
     document.querySelectorAll('[data-da-page-prev]').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -8166,7 +8184,7 @@
           if(checkedSet[cb.getAttribute('data-da-driver-check')]) cb.checked = true;
         });
       }
-      if(kind === 'drivers') updateDriversBulkBar();
+      if(kind === 'drivers'){ updateDriversBulkBar(); updateDriversSelectAllMatchingBtn(); }
 
       var shownEl = document.querySelector('[data-da-shown="' + kind + '"]');
       if(shownEl) shownEl.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(st.total);
@@ -8185,9 +8203,7 @@
 
     function buildDriverRow(r){
       var tr = document.createElement('tr');
-      var statusHtml = r.done
-        ? '<span class="da-inst-status done">Done</span>'
-        : '<span class="da-inst-status pending">Pending</span>';
+      var statusHtml = loggedPillHtml(r.done);
       tr.innerHTML =
         '<td class="da-td-check"><input type="checkbox" class="da-row-check" data-da-driver-check="' + esc(r.empNo) + '" aria-label="Select ' + esc(r.empName) + '"></td>' +
         '<td>' + esc(r.empNo) + '</td>' +
@@ -8252,6 +8268,7 @@
     var driversTbody = document.querySelector('[data-da-tbody="drivers"]');
     var driversBulkBar = document.getElementById('da-drivers-bulk-bar');
     var driversSelectAll = document.getElementById('da-drivers-selectall');
+    var driversSelectAllMatching = document.getElementById('da-drivers-selectall-matching');
     var driversBulkCount = document.getElementById('da-drivers-bulk-count');
     var driversBulkAction = document.getElementById('da-drivers-bulk-action');
     var driversBulkOther = document.getElementById('da-drivers-bulk-other');
@@ -8259,11 +8276,29 @@
     var driversBulkDate = document.getElementById('da-drivers-bulk-date');
     var driversBulkApply = document.getElementById('da-drivers-bulk-apply');
     var driversBulkClearSel = document.getElementById('da-drivers-bulk-clear-sel');
+    // Real bug found live in a sibling bulk bar (the alert-instance popup's
+    // "Select all" only ever grabbed the current page) and confirmed by
+    // audit to still be present here too: this table's own "select all"
+    // only ever checks the boxes on the CURRENT page of the (paginated,
+    // searched) driver summary, so applying an action with >1 page of
+    // results silently leaves every driver past page 1 untouched. Fixed
+    // the same way: an explicit "select all N matching, every page" mode
+    // that, on Apply, fetches every matching driver's emp_no across all
+    // pages first (dds_driver_event_summary, same query the table itself
+    // already uses) instead of only the checked-in-the-DOM subset.
+    var selectAllMatchingDriversMode = false;
 
     function selectedDriverChecks(){
       return Array.prototype.slice.call(driversTbody.querySelectorAll('[data-da-driver-check]:checked'));
     }
     function updateDriversBulkBar(){
+      if(selectAllMatchingDriversMode){
+        driversBulkBar.classList.add('on');
+        driversBulkCount.textContent = fmtNum(summaryState.drivers.total) + ' selected (every page)';
+        driversBulkApply.disabled = !driversBulkAction.value;
+        driversSelectAll.checked = true;
+        return;
+      }
       var n = selectedDriverChecks().length;
       driversBulkBar.classList.toggle('on', n > 0);
       driversBulkCount.textContent = n + ' selected';
@@ -8271,15 +8306,69 @@
       var allChecks = driversTbody.querySelectorAll('[data-da-driver-check]');
       driversSelectAll.checked = n > 0 && n === allChecks.length;
     }
+    // Only worth offering once there's more than one page — otherwise the
+    // header "select all" checkbox already covers every matching driver.
+    function updateDriversSelectAllMatchingBtn(){
+      if(!driversSelectAllMatching) return;
+      if(summaryState.drivers.total <= summaryState.drivers.rows.length){
+        driversSelectAllMatching.style.display = 'none';
+        return;
+      }
+      driversSelectAllMatching.style.display = '';
+      driversSelectAllMatching.classList.toggle('on', selectAllMatchingDriversMode);
+      driversSelectAllMatching.textContent = selectAllMatchingDriversMode
+        ? ('✓ All ' + fmtNum(summaryState.drivers.total) + ' matching selected')
+        : ('Select all ' + fmtNum(summaryState.drivers.total) + ' matching (every page)');
+    }
+    function exitSelectAllMatchingDriversMode(){
+      if(!selectAllMatchingDriversMode) return;
+      selectAllMatchingDriversMode = false;
+      updateDriversSelectAllMatchingBtn();
+    }
+    if(driversSelectAllMatching) driversSelectAllMatching.addEventListener('click', function(){
+      selectAllMatchingDriversMode = !selectAllMatchingDriversMode;
+      if(selectAllMatchingDriversMode){
+        driversTbody.querySelectorAll('[data-da-driver-check]').forEach(function(cb){ cb.checked = true; });
+      }
+      updateDriversSelectAllMatchingBtn();
+      updateDriversBulkBar();
+    });
+    // Fetches every emp_no matching the table's current search/date/shift
+    // filter, across every page — not just the ones currently rendered —
+    // by paging through the same dds_driver_event_summary query the table
+    // itself already uses, at the server's own max page size.
+    function fetchAllMatchingDriverEmpNos(){
+      var st = summaryState.drivers;
+      var pageSize = 200;
+      var pages = Math.max(1, Math.ceil(st.total / pageSize));
+      var calls = [];
+      for(var p = 0; p < pages; p++){
+        calls.push(DB.rpc('dds_driver_event_summary', {
+          p_search: st.search || null, p_sort: st.sort, p_dir: st.dir,
+          p_limit: pageSize, p_offset: p * pageSize,
+          p_from: st.from || null, p_to: st.to || null, p_shift: st.shift || null
+        }));
+      }
+      return Promise.all(calls).then(function(results){
+        var empNos = [];
+        results.forEach(function(res){
+          if(res.error) throw res.error;
+          (res.data && res.data.rows || []).forEach(function(r){ empNos.push(r.empNo); });
+        });
+        return empNos;
+      });
+    }
     driversTbody.addEventListener('change', function(e){
-      if(e.target.matches('[data-da-driver-check]')) updateDriversBulkBar();
+      if(e.target.matches('[data-da-driver-check]')){ exitSelectAllMatchingDriversMode(); updateDriversBulkBar(); }
     });
     driversSelectAll.addEventListener('change', function(){
+      exitSelectAllMatchingDriversMode();
       var checked = driversSelectAll.checked;
       driversTbody.querySelectorAll('[data-da-driver-check]').forEach(function(cb){ cb.checked = checked; });
       updateDriversBulkBar();
     });
     driversBulkClearSel.addEventListener('click', function(){
+      exitSelectAllMatchingDriversMode();
       driversTbody.querySelectorAll('[data-da-driver-check]').forEach(function(cb){ cb.checked = false; });
       updateDriversBulkBar();
     });
@@ -8289,23 +8378,28 @@
     });
 
     driversBulkApply.addEventListener('click', function(){
-      var empNos = selectedDriverChecks().map(function(cb){ return cb.getAttribute('data-da-driver-check'); });
-      if(!empNos.length || !driversBulkAction.value) return;
+      var usingMatchingMode = selectAllMatchingDriversMode;
+      var pageEmpNos = selectedDriverChecks().map(function(cb){ return cb.getAttribute('data-da-driver-check'); });
+      if((!usingMatchingMode && !pageEmpNos.length) || !driversBulkAction.value) return;
       var isOther = driversBulkAction.value === 'Other';
       if(isOther && !driversBulkOther.value.trim()){ driversBulkOther.focus(); return; }
-
-      // 'UNSPECIFIED' is the client's own placeholder for emp_no IS NULL
-      // (dds_driver_event_summary, 0037) — never a real emp_no a row could
-      // match, so it's split out and sent as its own flag rather than in
-      // the emp_no list.
-      var includeUnspecified = empNos.indexOf('UNSPECIFIED') !== -1;
-      var realEmpNos = empNos.filter(function(n){ return n !== 'UNSPECIFIED'; });
 
       var st = summaryState.drivers;
       var actionType = driversBulkAction.value;
       var actionDate = driversBulkDate.value || null;
       var statusValue = driversBulkStatus.value;
       var remarks = isOther ? driversBulkOther.value.trim() : null;
+
+      driversBulkApply.disabled = true;
+      driversBulkApply.textContent = 'Applying…';
+
+      (usingMatchingMode ? fetchAllMatchingDriverEmpNos() : Promise.resolve(pageEmpNos)).then(function(empNos){
+      // 'UNSPECIFIED' is the client's own placeholder for emp_no IS NULL
+      // (dds_driver_event_summary, 0037) — never a real emp_no a row could
+      // match, so it's split out and sent as its own flag rather than in
+      // the emp_no list.
+      var includeUnspecified = empNos.indexOf('UNSPECIFIED') !== -1;
+      var realEmpNos = empNos.filter(function(n){ return n !== 'UNSPECIFIED'; });
 
       // ---- Optimistic update: reflect the action in the UI immediately,
       // before the database confirms it — the write happens in the
@@ -8334,7 +8428,7 @@
       // at 500 rows each, merged into one dds_bulk_log_case_action array —
       // hit Postgres's statement timeout live with 100 drivers selected,
       // one of them "Unspecified" alone accounting for 235k+ events).
-      DB.rpc('dds_bulk_log_case_action_by_driver', {
+      return DB.rpc('dds_bulk_log_case_action_by_driver', {
         p_emp_nos: realEmpNos.length ? realEmpNos : null,
         p_include_unspecified: includeUnspecified,
         p_from: st.from || null,
@@ -8349,6 +8443,7 @@
         if(res.error) throw res.error;
         syncJobProgress(jobId, affectedRows.length || 1);
         syncJobDone(jobId);
+        exitSelectAllMatchingDriversMode();
         // Quiet re-fetch to reconcile with the server's actual done/total
         // values (e.g. another user's change, or a driver whose events
         // span outside the naive optimistic guess) — doesn't disturb the
@@ -8361,6 +8456,13 @@
         window.__ddsCache.set(summaryCacheKey('drivers'), { rows: st.rows, total: st.total });
         syncJobError(jobId, 'Could not save — changes reverted');
       });
+    }).catch(function(err){
+      console.error('Fetching all matching drivers failed', err);
+      alert('Could not select all matching drivers: ' + ((err && err.message) || 'unknown error'));
+    }).then(function(){
+      driversBulkApply.textContent = 'Apply to selected';
+      updateDriversBulkBar();
+    });
     });
 
     // ---- tab counts / KPI cards: still driven by the background weekly
@@ -8495,7 +8597,7 @@
       modalCtxName.textContent = rec.name + ' (' + rec.id + ')' + (rec.recurrenceCount > 0 ? ' — Recurrence' : '');
       modalCtxWeek.textContent = total + ' counts this week';
       modalCtxRisk.textContent = tier.charAt(0).toUpperCase() + tier.slice(1) + ' risk';
-      modalCtxRisk.className = 'da-risk ' + (tier === 'high' ? 'high' : tier === 'medium' ? 'med' : 'low');
+      modalCtxRisk.className = 'da-risk ' + riskTierClass(tier);
 
       typeGrid.querySelectorAll('.da-type-opt').forEach(function(b){ b.classList.remove('sel'); });
       otherInput.classList.remove('on');
@@ -8606,7 +8708,7 @@
       document.getElementById('da-drawer-title').textContent = rec.name + ' (' + rec.id + ')';
       document.getElementById('da-drawer-sub').textContent = rec.sub;
       document.getElementById('da-drawer-total').textContent = total;
-      document.getElementById('da-drawer-risk-val').innerHTML = '<span class="da-risk ' + (tier === 'high' ? 'high' : tier === 'medium' ? 'med' : 'low') + '">' + tier + '</span>';
+      document.getElementById('da-drawer-risk-val').innerHTML = '<span class="da-risk ' + riskTierClass(tier) + '">' + tier + '</span>';
       document.getElementById('da-drawer-rec-val').innerHTML = '<span class="da-rec ' + rec_.key + '"><span class="da-rec-dot"></span>' + rec_.label + '</span>';
       document.getElementById('da-drawer-status-val').innerHTML = statusPillHtml(rec.status) +
         (rec.status === 'monitoring' && rec.monitorUntil ? '<div style="margin-top:4px;font-size:11px;color:var(--muted)">Until ' + esc(rec.monitorUntil) + '</div>' : '') +
@@ -8817,30 +8919,11 @@
     }
 
     function renderInstPager(){
-      var totalPages = Math.max(1, Math.ceil(instRowCount / INST_PAGE_SIZE));
-      var curPage = Math.floor(instOffset / INST_PAGE_SIZE) + 1;
-      var shownFrom = instRowCount === 0 ? 0 : instOffset + 1;
-      var shownTo = Math.min(instOffset + INST_PAGE_SIZE, instRowCount);
-      if(instPageEl) instPageEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(instRowCount);
-      if(instPagePrev) instPagePrev.disabled = curPage <= 1;
-      if(instPageNext) instPageNext.disabled = curPage >= totalPages;
-      if(instPageNumbers){
-        var start = Math.max(1, curPage - 2);
-        var end = Math.min(totalPages, start + 4);
-        start = Math.max(1, end - 4);
-        var html = '';
-        for(var p = start; p <= end; p++){
-          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
-            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
-        }
-        instPageNumbers.innerHTML = html;
-        instPageNumbers.querySelectorAll('[data-page]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            instOffset = (Number(btn.getAttribute('data-page')) - 1) * INST_PAGE_SIZE;
-            fetchInstancePage();
-          });
-        });
-      }
+      renderPager({
+        total: instRowCount, limit: INST_PAGE_SIZE, offset: instOffset,
+        rangeEl: instPageEl, prevBtn: instPagePrev, nextBtn: instPageNext, numsEl: instPageNumbers,
+        onPageChange: function(page){ instOffset = (page - 1) * INST_PAGE_SIZE; fetchInstancePage(); }
+      });
     }
 
     // Shared by the initial open and every page change / post-bulk-apply
@@ -8866,7 +8949,7 @@
         if(kind === 'drivers'){
           instSummary.innerHTML =
             '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.total || 0) + '</span></div>' +
-            '<div class="da-inst-stat"><span class="da-inst-stat-label">Status</span><span class="da-inst-stat-value">' + (data.allHighSeverityActioned ? '<span class="da-inst-status done">Done</span>' : '<span class="da-inst-status pending">Pending</span>') + '</span></div>';
+            '<div class="da-inst-stat"><span class="da-inst-stat-label">Status</span><span class="da-inst-stat-value">' + loggedPillHtml(data.allHighSeverityActioned) + '</span></div>';
           renderInstRowsDrivers();
           updateSelectAllMatchingBtn();
         } else {
@@ -8934,9 +9017,7 @@
         return;
       }
       instTbody.innerHTML = instRows.map(function(r){
-        var statusHtml = r.statusValue
-          ? '<span class="da-inst-status done">Logged</span>'
-          : '<span class="da-inst-status pending">Pending</span>';
+        var statusHtml = loggedPillHtml(!!r.statusValue);
         var actionLabel = r.actionType ? (r.actionType === 'Other' ? (r.remarks || 'Other') : r.actionType) : '—';
         return '<tr>' +
           '<td class="chk-col"><input type="checkbox" data-event-id="' + r.eventId + '"></td>' +
