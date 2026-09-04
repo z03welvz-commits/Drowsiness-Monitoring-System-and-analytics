@@ -923,6 +923,9 @@
   .da-bulk-apply:disabled{opacity:.5;cursor:default}
   .da-bulk-clear{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:650;color:var(--muted);padding:0 4px;white-space:nowrap}
   .da-bulk-clear:hover{color:var(--text-dim)}
+  #da-bulk-selectall-matching{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:700;color:var(--blue);padding:0 4px;white-space:nowrap;text-decoration:underline}
+  #da-bulk-selectall-matching:hover{color:#1d4fd1}
+  #da-bulk-selectall-matching.on{color:#18a05e}
   .da-th-check{width:34px;padding:0 0 0 17px!important}
   .da-table td.da-td-check{padding:0 0 0 17px}
   .da-row-check{cursor:pointer;width:14px;height:14px}
@@ -2980,7 +2983,8 @@
         </div>
         <div class="da-inst-summary" id="da-inst-summary"></div>
         <div class="da-bulk-bar" id="da-bulk-bar">
-          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="da-inst-selectall">Select all</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="da-inst-selectall">Select all on this page</label>
+          <button type="button" class="da-bulk-clear" id="da-bulk-selectall-matching" style="display:none"></button>
           <span class="da-bulk-count" id="da-bulk-count">0 selected</span>
           <select id="da-bulk-action" aria-label="Bulk action">
             <option value="">Set action…</option>
@@ -8740,6 +8744,7 @@
     var bulkBar = document.getElementById('da-bulk-bar');
     var bulkCount = document.getElementById('da-bulk-count');
     var bulkSelectAll = document.getElementById('da-inst-selectall');
+    var bulkSelectAllMatching = document.getElementById('da-bulk-selectall-matching');
     var bulkAction = document.getElementById('da-bulk-action');
     var bulkOther = document.getElementById('da-bulk-other');
     var bulkDate = document.getElementById('da-bulk-date');
@@ -8748,6 +8753,18 @@
     var instCurrentKind = null; // 'drivers' | 'assets'
     var instCurrentId = null;   // empNo or assetId of the currently open popup
     var instRows = []; // last-fetched instance rows for the open popup
+    // "Select all matching" mode: a real bug found live — "Select all" only
+    // ever checked the boxes on the CURRENT PAGE (max 100 rows), so a bucket
+    // with more matching events than that (e.g. 'UNSPECIFIED') could have
+    // every visible row show "Logged" and still show the driver's Status
+    // stuck on "Pending" forever, because dds_driver_event_summary's `done`
+    // flag (and this popup's own allHighSeverityActioned) is computed
+    // against the FULL matching set, not just the page shown. This mode
+    // calls dds_bulk_log_case_action_by_driver (the same set-based RPC the
+    // main table's own bulk bar uses, 0039) scoped to just this one entity
+    // and the table's active filters, so it reaches every matching event
+    // regardless of how many pages that is — not capped by pagination.
+    var selectAllMatchingMode = false;
     var instGuard = makeGuard();
     // Pagination state for the popup's own event list — previously this
     // fetched a hardcoded 500-row cap with no way to see or reach anything
@@ -8781,11 +8798,37 @@
       return Array.prototype.slice.call(instTbody.querySelectorAll('input[type="checkbox"]:checked'));
     }
     function updateBulkBar(){
+      if(selectAllMatchingMode){
+        bulkBar.classList.add('on');
+        bulkCount.textContent = fmtNum(instRowCount) + ' selected (every page)';
+        bulkApply.disabled = !bulkAction.value;
+        bulkSelectAll.checked = true;
+        return;
+      }
       var n = selectedCheckboxes().length;
       bulkBar.classList.toggle('on', n > 0);
       bulkCount.textContent = n + ' selected';
       bulkApply.disabled = !(n > 0 && bulkAction.value);
       bulkSelectAll.checked = n > 0 && n === instTbody.querySelectorAll('input[type="checkbox"]').length;
+    }
+    // Only worth offering once there's more than one page — otherwise the
+    // page-level "Select all" checkbox already covers every matching row.
+    function updateSelectAllMatchingBtn(){
+      if(!bulkSelectAllMatching) return;
+      if(instCurrentKind !== 'drivers' || instRowCount <= INST_PAGE_SIZE){
+        bulkSelectAllMatching.style.display = 'none';
+        return;
+      }
+      bulkSelectAllMatching.style.display = '';
+      bulkSelectAllMatching.classList.toggle('on', selectAllMatchingMode);
+      bulkSelectAllMatching.textContent = selectAllMatchingMode
+        ? ('✓ All ' + fmtNum(instRowCount) + ' matching selected')
+        : ('Select all ' + fmtNum(instRowCount) + ' matching (every page)');
+    }
+    function exitSelectAllMatchingMode(){
+      if(!selectAllMatchingMode) return;
+      selectAllMatchingMode = false;
+      updateSelectAllMatchingBtn();
     }
 
     function renderInstPager(){
@@ -8840,6 +8883,7 @@
             '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.total || 0) + '</span></div>' +
             '<div class="da-inst-stat"><span class="da-inst-stat-label">Status</span><span class="da-inst-stat-value">' + (data.allHighSeverityActioned ? '<span class="da-inst-status done">Done</span>' : '<span class="da-inst-status pending">Pending</span>') + '</span></div>';
           renderInstRowsDrivers();
+          updateSelectAllMatchingBtn();
         } else {
           instSummary.innerHTML =
             '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.total || 0) + '</span></div>' +
@@ -8864,6 +8908,8 @@
       instRows = [];
       instOffset = 0;
       instRowCount = 0;
+      selectAllMatchingMode = false;
+      if(bulkSelectAllMatching) bulkSelectAllMatching.style.display = 'none';
       bulkBar.classList.remove('on');
       bulkAction.value = ''; bulkOther.value = ''; bulkOther.classList.remove('on'); bulkDate.value = '';
 
@@ -8879,7 +8925,15 @@
       instTbody.innerHTML = skeletonTableRows(kind === 'drivers' ? 10 : 5, 4);
       if(instPageEl) instPageEl.textContent = '—';
       if(instPageNumbers) instPageNumbers.innerHTML = '';
-      bulkBar.style.display = kind === 'drivers' ? '' : 'none';
+      // Real bug found live: this used to set style.display = '' (no
+      // inline override) for drivers, leaving the CSS default
+      // (.da-bulk-bar{display:none}, only .on{display:flex}) in charge —
+      // so the whole bulk toolbar, "Select all" included, stayed invisible
+      // until a row was already checked some other way. Forced visible
+      // here instead: bulk-logging IS this modal's primary purpose for a
+      // drivers popup, so there's no reason to hide its own controls
+      // behind a chicken-and-egg selection requirement.
+      bulkBar.style.display = kind === 'drivers' ? 'flex' : 'none';
       instMask.classList.add('on');
 
       // Scoped to the table's own active from/to/shift filter — same as the
@@ -8935,15 +8989,25 @@
     instMask.addEventListener('click', function(e){ if(e.target === instMask) closeInstancePopup(); });
 
     instTbody.addEventListener('change', function(e){
-      if(e.target.matches('input[type="checkbox"]')) updateBulkBar();
+      if(e.target.matches('input[type="checkbox"]')){ exitSelectAllMatchingMode(); updateBulkBar(); }
     });
     bulkSelectAll.addEventListener('change', function(){
+      exitSelectAllMatchingMode();
       var checked = bulkSelectAll.checked;
       instTbody.querySelectorAll('input[type="checkbox"]').forEach(function(cb){ cb.checked = checked; });
       updateBulkBar();
     });
     bulkClearSel.addEventListener('click', function(){
+      exitSelectAllMatchingMode();
       instTbody.querySelectorAll('input[type="checkbox"]').forEach(function(cb){ cb.checked = false; });
+      updateBulkBar();
+    });
+    if(bulkSelectAllMatching) bulkSelectAllMatching.addEventListener('click', function(){
+      selectAllMatchingMode = !selectAllMatchingMode;
+      if(selectAllMatchingMode){
+        instTbody.querySelectorAll('input[type="checkbox"]').forEach(function(cb){ cb.checked = true; });
+      }
+      updateSelectAllMatchingBtn();
       updateBulkBar();
     });
     bulkAction.addEventListener('change', function(){
@@ -8952,22 +9016,46 @@
     });
 
     bulkApply.addEventListener('click', function(){
-      var ids = selectedCheckboxes().map(function(cb){ return Number(cb.getAttribute('data-event-id')); });
-      if(!ids.length || !bulkAction.value) return;
       var isOther = bulkAction.value === 'Other';
+      if(!bulkAction.value) return;
       if(isOther && !bulkOther.value.trim()){ bulkOther.focus(); return; }
+
+      var request;
+      if(selectAllMatchingMode){
+        // Set-based, not id-list-based — reaches every matching event for
+        // this entity regardless of how many pages that is, unlike the
+        // per-id RPC below which can only ever touch rows the client has
+        // actually fetched. Same RPC (0039) the main table's own "Apply to
+        // selected" already uses, scoped here to just this one entity.
+        var st = summaryState.drivers;
+        request = DB.rpc('dds_bulk_log_case_action_by_driver', {
+          p_emp_nos: instCurrentId === 'UNSPECIFIED' ? null : [instCurrentId],
+          p_include_unspecified: instCurrentId === 'UNSPECIFIED',
+          p_from: st.from || null, p_to: st.to || null, p_shift: st.shift || null,
+          p_action_type: bulkAction.value,
+          p_action_is_other: isOther,
+          p_action_date: bulkDate.value || null,
+          p_status_value: 'Logged',
+          p_remarks: isOther ? bulkOther.value.trim() : null
+        });
+      } else {
+        var ids = selectedCheckboxes().map(function(cb){ return Number(cb.getAttribute('data-event-id')); });
+        if(!ids.length) return;
+        request = DB.rpc('dds_bulk_log_case_action', {
+          p_event_ids: ids,
+          p_action_type: bulkAction.value,
+          p_action_is_other: isOther,
+          p_action_date: bulkDate.value || null,
+          p_status_value: 'Logged',
+          p_remarks: isOther ? bulkOther.value.trim() : null
+        });
+      }
 
       bulkApply.disabled = true;
       bulkApply.textContent = 'Applying…';
-      DB.rpc('dds_bulk_log_case_action', {
-        p_event_ids: ids,
-        p_action_type: bulkAction.value,
-        p_action_is_other: isOther,
-        p_action_date: bulkDate.value || null,
-        p_status_value: 'Logged',
-        p_remarks: isOther ? bulkOther.value.trim() : null
-      }).then(function(res){
+      request.then(function(res){
         if(res.error) throw res.error;
+        exitSelectAllMatchingMode();
         // Re-fetch the current page of this driver's instances (previously
         // re-fetched with p_from/p_to hardcoded to null — silently
         // widening to all-time instead of staying scoped to the table's
