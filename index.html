@@ -551,7 +551,14 @@
   .al-action-other.on{display:block}
   td[data-al-empname].unknown{color:#e53553}
 
-  .al-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
+  /* min-height, not height: this row already allows flex-wrap for narrow
+     widths (rowsrange text + prev/page-numbers/next don't always fit one
+     line) — a fixed height meant the wrapped second line had nowhere to
+     go and either clipped or visually spilled past the card's rounded
+     corner (a design-review finding: pagination looked "messy, pushed to
+     the bottom"). min-height lets the row grow to fit a second line
+     instead of fighting it. */
+  .al-table-foot{min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:8px 17px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
   .al-pages{display:flex;gap:5px;align-items:center}
   .al-page{all:unset;box-sizing:border-box;cursor:pointer;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;display:grid;place-items:center;background:var(--card);font-size:var(--fs-caption);color:var(--text-dim)}
   .al-page.on{background:var(--heading-blue);color:#fff;border-color:var(--heading-blue)}
@@ -811,7 +818,7 @@
   .da-action-btn:hover{border-color:var(--border);background:var(--surface2);color:var(--text)}
   .da-action-btn:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 
-  .da-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
+  .da-table-foot{min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:8px 17px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
   .da-empty{padding:44px 18px;text-align:center;color:var(--muted);font-size:var(--fs-body)}
   .da-empty svg{width:30px;height:30px;color:var(--border);margin-bottom:10px}
 
@@ -2971,6 +2978,14 @@
             </thead>
             <tbody id="da-inst-tbody"></tbody>
           </table>
+        </div>
+        <div class="al-table-foot">
+          <span id="da-inst-rowsrange">—</span>
+          <div class="al-pages">
+            <button class="al-page" type="button" id="da-inst-page-prev" disabled aria-label="Previous page">‹</button>
+            <span id="da-inst-page-numbers"></span>
+            <button class="al-page" type="button" id="da-inst-page-next" aria-label="Next page">›</button>
+          </div>
         </div>
       </div>
     </div>
@@ -8634,6 +8649,24 @@
     var instCurrentId = null;   // empNo or assetId of the currently open popup
     var instRows = []; // last-fetched instance rows for the open popup
     var instGuard = makeGuard();
+    // Pagination state for the popup's own event list — previously this
+    // fetched a hardcoded 500-row cap with no way to see or reach anything
+    // past it. For a bucket with more matching events than that (found in a
+    // UI review: 'UNSPECIFIED' — unattributed events — routinely has tens
+    // of thousands), a user could select-all-and-log every VISIBLE row and
+    // still find the driver's Status column stuck on "Pending", because
+    // dds_driver_event_summary's `done` flag is computed against the FULL
+    // matching set, not just the 500 shown; thousands of older events past
+    // the old cap were simply unreachable from this popup. Real pages (100
+    // at a time, same convention as the driver/asset summary tables' own
+    // pager) fix the reachability gap.
+    var INST_PAGE_SIZE = 100;
+    var instOffset = 0;
+    var instRowCount = 0;
+    var instPageEl = document.getElementById('da-inst-rowsrange');
+    var instPagePrev = document.getElementById('da-inst-page-prev');
+    var instPageNext = document.getElementById('da-inst-page-next');
+    var instPageNumbers = document.getElementById('da-inst-page-numbers');
 
     function fmtDateTimeShort(mdyhms){
       // server already formats as MM/DD/YYYY HH:MM:SS — just trim seconds
@@ -8655,43 +8688,53 @@
       bulkSelectAll.checked = n > 0 && n === instTbody.querySelectorAll('input[type="checkbox"]').length;
     }
 
-    function openInstancePopup(key){
-      var token = instGuard.start();
-      var parts = key.split('|'); var kind = parts[0], id = parts[1];
-      instCurrentKind = kind;
-      instCurrentId = id;
-      instRows = [];
-      bulkBar.classList.remove('on');
-      bulkAction.value = ''; bulkOther.value = ''; bulkOther.classList.remove('on'); bulkDate.value = '';
-
-      if(kind === 'drivers'){
-        instTitle.textContent = 'Alert history — ' + id;
-        instTheadRow.innerHTML = '<th class="chk-col"></th><th>Unit</th><th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th><th>Action</th><th>Status</th>';
-      } else {
-        instTitle.textContent = 'Alert history — ' + id;
-        instTheadRow.innerHTML = '<th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th>';
+    function renderInstPager(){
+      var totalPages = Math.max(1, Math.ceil(instRowCount / INST_PAGE_SIZE));
+      var curPage = Math.floor(instOffset / INST_PAGE_SIZE) + 1;
+      var shownFrom = instRowCount === 0 ? 0 : instOffset + 1;
+      var shownTo = Math.min(instOffset + INST_PAGE_SIZE, instRowCount);
+      if(instPageEl) instPageEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(instRowCount);
+      if(instPagePrev) instPagePrev.disabled = curPage <= 1;
+      if(instPageNext) instPageNext.disabled = curPage >= totalPages;
+      if(instPageNumbers){
+        var start = Math.max(1, curPage - 2);
+        var end = Math.min(totalPages, start + 4);
+        start = Math.max(1, end - 4);
+        var html = '';
+        for(var p = start; p <= end; p++){
+          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
+            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
+        }
+        instPageNumbers.innerHTML = html;
+        instPageNumbers.querySelectorAll('[data-page]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            instOffset = (Number(btn.getAttribute('data-page')) - 1) * INST_PAGE_SIZE;
+            fetchInstancePage();
+          });
+        });
       }
-      instSub.textContent = 'Loading…';
-      instSummary.innerHTML = '';
-      instTbody.innerHTML = skeletonTableRows(9, 4);
-      bulkBar.style.display = kind === 'drivers' ? '' : 'none';
-      instMask.classList.add('on');
+    }
 
-      // Scoped to the table's own active from/to/shift filter — same as the
-      // bulk-apply path below — so the total shown here always matches what
-      // the filtered row on the table just showed, instead of silently
-      // widening to all-time.
+    // Shared by the initial open and every page change / post-bulk-apply
+    // refresh, so all three stay on the exact same fetch/render path
+    // instead of three independently-maintained copies of it.
+    function fetchInstancePage(){
+      var token = instGuard.start();
+      var kind = instCurrentKind, id = instCurrentId;
+      instTbody.innerHTML = skeletonTableRows(kind === 'drivers' ? 10 : 5, 4);
+
       var st = summaryState[kind];
       var fn = kind === 'drivers' ? 'dds_driver_alert_instances' : 'dds_asset_alert_instances';
       var params = kind === 'drivers'
-        ? { p_emp_no: id, p_from: st.from || null, p_to: st.to || null }
-        : { p_asset_id: id, p_from: st.from || null, p_to: st.to || null };
-      DB.rpc(fn, params).then(function(res){
+        ? { p_emp_no: id, p_from: st.from || null, p_to: st.to || null, p_limit: INST_PAGE_SIZE, p_offset: instOffset }
+        : { p_asset_id: id, p_from: st.from || null, p_to: st.to || null, p_limit: INST_PAGE_SIZE, p_offset: instOffset };
+      return DB.rpc(fn, params).then(function(res){
         if(!instGuard.isCurrent(token)) return;
         if(res.error) throw res.error;
         var data = res.data || {};
         instRows = data.rows || [];
-        instSub.textContent = fmtNum(instRows.length) + ' alert instance(s)';
+        instRowCount = data.rowCount || 0;
+        instSub.textContent = fmtNum(instRowCount) + ' alert instance(s) total';
         if(kind === 'drivers'){
           instSummary.innerHTML =
             '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.total || 0) + '</span></div>' +
@@ -8703,16 +8746,52 @@
             '<div class="da-inst-stat"><span class="da-inst-stat-label">Avg sync time</span><span class="da-inst-stat-value">' + esc(fmtSyncSecondsShort(data.avgSyncSeconds)) + '</span></div>';
           renderInstRowsAssets();
         }
+        renderInstPager();
       }).catch(function(err){
         if(!instGuard.isCurrent(token)) return;
         console.error('Alert instance fetch failed', err);
-        instTbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+        instTbody.innerHTML = '<tr><td colspan="' + (kind === 'drivers' ? 10 : 5) + '" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
       });
+    }
+
+    if(instPagePrev) instPagePrev.addEventListener('click', function(){ instOffset = Math.max(0, instOffset - INST_PAGE_SIZE); fetchInstancePage(); });
+    if(instPageNext) instPageNext.addEventListener('click', function(){ instOffset += INST_PAGE_SIZE; fetchInstancePage(); });
+
+    function openInstancePopup(key){
+      var parts = key.split('|'); var kind = parts[0], id = parts[1];
+      instCurrentKind = kind;
+      instCurrentId = id;
+      instRows = [];
+      instOffset = 0;
+      instRowCount = 0;
+      bulkBar.classList.remove('on');
+      bulkAction.value = ''; bulkOther.value = ''; bulkOther.classList.remove('on'); bulkDate.value = '';
+
+      if(kind === 'drivers'){
+        instTitle.textContent = 'Alert history — ' + id;
+        instTheadRow.innerHTML = '<th class="chk-col"></th><th>Unit</th><th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th><th>Action</th><th>Action By</th><th>Status</th>';
+      } else {
+        instTitle.textContent = 'Alert history — ' + id;
+        instTheadRow.innerHTML = '<th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th>';
+      }
+      instSub.textContent = 'Loading…';
+      instSummary.innerHTML = '';
+      instTbody.innerHTML = skeletonTableRows(kind === 'drivers' ? 10 : 5, 4);
+      if(instPageEl) instPageEl.textContent = '—';
+      if(instPageNumbers) instPageNumbers.innerHTML = '';
+      bulkBar.style.display = kind === 'drivers' ? '' : 'none';
+      instMask.classList.add('on');
+
+      // Scoped to the table's own active from/to/shift filter — same as the
+      // bulk-apply path below — so the total shown here always matches what
+      // the filtered row on the table just showed, instead of silently
+      // widening to all-time.
+      fetchInstancePage();
     }
 
     function renderInstRowsDrivers(){
       if(!instRows.length){
-        instTbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px 0">No alert instances found.</td></tr>';
+        instTbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px 0">No alert instances found.</td></tr>';
         return;
       }
       instTbody.innerHTML = instRows.map(function(r){
@@ -8729,6 +8808,7 @@
           '<td>' + esc(r.eventCode || '—') + '</td>' +
           '<td>' + fmtNum(r.eventCount || 0) + '</td>' +
           '<td class="da-inst-row-action">' + esc(actionLabel) + (r.actionDate ? ' <span style="color:var(--muted)">· ' + esc(r.actionDate) + '</span>' : '') + '</td>' +
+          '<td>' + esc(r.actionBy || '—') + '</td>' +
           '<td>' + statusHtml + '</td>' +
         '</tr>';
       }).join('');
@@ -8788,20 +8868,16 @@
         p_remarks: isOther ? bulkOther.value.trim() : null
       }).then(function(res){
         if(res.error) throw res.error;
-        // Re-fetch this driver's instances so the table (and the Status
-        // summary chip) reflect the newly-logged actions, then refresh the
-        // main table row behind the popup so its Status column stays in
-        // sync without requiring the user to close and reopen.
-        return DB.rpc('dds_driver_alert_instances', { p_emp_no: instCurrentId, p_from: null, p_to: null });
-      }).then(function(res){
-        if(res && res.data){
-          instRows = res.data.rows || [];
-          instSub.textContent = fmtNum(instRows.length) + ' alert instance(s)';
-          instSummary.innerHTML =
-            '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(res.data.total || 0) + '</span></div>' +
-            '<div class="da-inst-stat"><span class="da-inst-stat-label">Status</span><span class="da-inst-stat-value">' + (res.data.allHighSeverityActioned ? '<span class="da-inst-status done">Done</span>' : '<span class="da-inst-status pending">Pending</span>') + '</span></div>';
-          renderInstRowsDrivers();
-        }
+        // Re-fetch the current page of this driver's instances (previously
+        // re-fetched with p_from/p_to hardcoded to null — silently
+        // widening to all-time instead of staying scoped to the table's
+        // active date filter, contradicting this exact popup's own stated
+        // behavior on open) so the table and Status chip reflect the
+        // newly-logged actions, then refresh the main table row behind the
+        // popup so its Status column stays in sync without requiring the
+        // user to close and reopen.
+        return fetchInstancePage();
+      }).then(function(){
         bulkAction.value = ''; bulkOther.value = ''; bulkOther.classList.remove('on'); bulkDate.value = '';
         loadSummaryTable('drivers');
       }).catch(function(err){
