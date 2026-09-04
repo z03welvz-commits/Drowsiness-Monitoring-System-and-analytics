@@ -348,6 +348,11 @@
   .an-insights-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
   .an-synced-note{display:flex;align-items:center;gap:6px;font-size:var(--fs-body);color:#18a05e;font-weight:500}
   .an-synced-note::before{content:'';width:6px;height:6px;border-radius:50%;background:#18a05e;flex:0 0 auto}
+  /* Signed-out/error variant — the green dot+text otherwise stayed on
+     screen claiming "Data synced just now" right above KPI cards that
+     all said "Sign in to load real data" (a design-review finding). */
+  .an-synced-note.muted{color:var(--muted)}
+  .an-synced-note.muted::before{background:var(--muted)}
 
   /* Key Insights: 4 KPI columns + 1 wider "alert type count" column, divided
      by vertical rules instead of separate cards — matches jsx's KeyInsights
@@ -4302,6 +4307,8 @@
 
     // ==================== orchestration ====================
     function signedOutState(){
+      var syncedEl0 = document.getElementById('an-synced-note');
+      if(syncedEl0){ syncedEl0.classList.add('muted'); syncedEl0.textContent = 'Sign in to load real data'; }
       var kpiRow = document.getElementById('an-kpi-row');
       if(kpiRow){
         ['total','units','sync','ratio'].forEach(function(key){
@@ -4326,7 +4333,7 @@
     }
     function errorState(err){
       var syncedEl = document.getElementById('an-synced-note');
-      if(syncedEl) syncedEl.textContent = 'Could not load: ' + ((err && err.message) || 'unknown error');
+      if(syncedEl){ syncedEl.classList.add('muted'); syncedEl.textContent = 'Could not load: ' + ((err && err.message) || 'unknown error'); }
     }
 
     function load(){
@@ -4365,7 +4372,7 @@
           renderKpis(cur, null);
 
           var syncedEl = document.getElementById('an-synced-note');
-          if(syncedEl) syncedEl.textContent = 'Data synced just now';
+          if(syncedEl){ syncedEl.classList.remove('muted'); syncedEl.textContent = 'Data synced just now'; }
 
           // Comparison window: the 7 days immediately before the current
           // trailing-7-day window above — a real week-over-week delta, not
