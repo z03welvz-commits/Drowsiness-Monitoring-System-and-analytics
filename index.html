@@ -9853,7 +9853,13 @@
         } else {
           histBody.innerHTML = '<table class="da-table"><thead><tr><th>' + (kind==='drivers'?'Driver':'Asset') + '</th><th>Last action</th><th>Logged by</th><th>When</th></tr></thead><tbody>' +
             resolved.map(function(rec){
-              var last = rec.history[rec.history.length - 1];
+              // dds_driver_asset_weekly() only ever returns the single most
+              // recent action as `lastAction` — `rec.history` was a field
+              // from the old localStorage-mock version of this page and was
+              // never populated by the real data path (see fetchHistory()'s
+              // comment above), so reading it here always threw once a row
+              // actually reached this branch.
+              var last = rec.lastAction;
               if(!last) return '';
               // dds_driver_asset_weekly()'s lastAction only carries the raw
               // action_type, never action_other_text — when the logged
