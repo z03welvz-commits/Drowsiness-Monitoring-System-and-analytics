@@ -2801,7 +2801,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/></svg>
               Sync now
             </button>
-            <button class="se-sys-btn danger" type="button" id="se-delete-btn" style="margin-left:auto">
+            <button class="se-sys-btn danger" type="button" id="se-delete-btn" style="display:none;margin-left:auto">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
               Delete all data
             </button>
@@ -4733,6 +4733,13 @@
       var countEl = document.getElementById('se-users-count');
       var inviteBtn = document.getElementById('se-invite-btn');
       if(inviteBtn) inviteBtn.style.display = accessState.isAdmin ? '' : 'none';
+      // System Management's delete-all-data button lives in a different
+      // pane/IIFE section and is admin-gated the same way — set here too
+      // since accessState.isAdmin isn't known synchronously at script load
+      // (loadUsers()'s fetch hasn't resolved yet at that point), only once
+      // this function actually runs after it resolves.
+      var deleteAllBtn = document.getElementById('se-delete-btn');
+      if(deleteAllBtn) deleteAllBtn.style.display = accessState.isAdmin ? '' : 'none';
       if(!tbody) return;
       var rows = accessState.profiles;
       if(countEl) countEl.textContent = rows.length + (rows.length === 1 ? ' user' : ' users');
@@ -4968,7 +4975,10 @@
     var confirmOkBtn = document.getElementById('se-confirm-ok');
     var confirmErr = document.getElementById('se-confirm-err');
 
-    if(deleteBtn) deleteBtn.style.display = accessState.isAdmin ? '' : 'none';
+    // Visibility itself is set from renderUsers() (see above) once
+    // accessState.isAdmin is actually known — accessState.profiles hasn't
+    // been fetched yet at the point this script first runs, so setting it
+    // here unconditionally would just hide the button and never re-show it.
 
     if(deleteBtn) deleteBtn.addEventListener('click', function(){
       if(confirmErr) confirmErr.classList.remove('on');
