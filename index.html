@@ -734,6 +734,18 @@
   #page-driver-asset.active .da-view.on{flex:1;min-height:0;display:flex;flex-direction:column}
   #page-driver-asset.active .da-view.on > .da-table-card{flex:1;min-height:0}
 
+  /* Driver Streaks reuses the same .da-table-card-flex/.da-table-wrap-flex
+     fit-to-viewport pattern as Driver & Asset Monitoring above, but this
+     page has no tabs to size around — its single table card IS the
+     flexible row directly under the topbar. Without this page-level rule
+     the flex-column table card had no bounded parent height to size
+     against, so the browser fell back to sizing it by content and the
+     footer/pagination controls floated rather than sitting in a normal
+     bottom row. */
+  #page-driver-streaks.active{display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden}
+  #page-driver-streaks.active .topbar{flex:0 0 auto}
+  #page-driver-streaks.active .da-table-card{flex:1;min-height:0}
+
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
   .da-table th{height:38px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
@@ -1206,6 +1218,7 @@
     .se-field-row{grid-template-columns:1fr}
     #page-driver-asset.active{height:calc(100vh - 36px)}
     #page-alerts.active{height:calc(100vh - 36px)}
+    #page-driver-streaks.active{height:calc(100vh - 36px)}
   }
   @media(max-width:640px){
     /* Below this width the page's own layout already reflows heavily
@@ -1219,6 +1232,8 @@
     #page-alerts.active{height:auto;overflow:visible;display:block}
     #page-alerts.active .al-table-card{flex:none;display:block}
     #page-alerts.active .al-table-wrap{flex:none;overflow-y:visible}
+    #page-driver-streaks.active{height:auto;overflow:visible;display:block}
+    #page-driver-streaks.active .da-table-card{flex:none;display:block}
     .topbar{flex-direction:column;align-items:stretch;width:100%}
     .controls{justify-content:flex-start;width:100%;min-width:0}
     .kpis{grid-template-columns:1fr}
@@ -2407,13 +2422,8 @@
           </table>
         </div>
         <div class="da-table-foot">
-          <span data-ds-empty-note></span>
-          <div class="al-pages" id="ds-pages">
-            <span id="ds-rowsrange">—</span>
-            <button class="al-page" type="button" id="ds-page-prev" disabled aria-label="Previous page">‹</button>
-            <span id="ds-page-numbers"></span>
-            <button class="al-page" type="button" id="ds-page-next" aria-label="Next page">›</button>
-          </div>
+          <span id="ds-rowsrange">—</span>
+          <span id="ds-load-status" style="color:var(--muted)"></span>
         </div>
       </section>
     </div>
@@ -3675,33 +3685,31 @@
     // ---- Latest Updates: a second slice of the same recentAlerts[] feed, per the plan (no second data source) ----
     // ==================== Drivers on Alert Streak ====================
     // Replaces Actions & Updates / Key Insight / Latest Updates per direct
-    // instruction. Surfaces dds_driver_asset_weekly()'s own streak/status
-    // fields (0065) — the same consecutive-high-alert-day detection that
-    // powers Driver & Asset Monitoring's High/Medium Risk tiles — rather
-    // than recomputing anything client-side.
+    // instruction.
     //
-    // Uses the SAME default (p_from/p_to null -> trailing 7 days) window
-    // Driver & Asset Monitoring's own dashboard already calls this function
-    // with — deliberately NOT a wider window. dds_driver_asset_weekly() is
-    // already borderline against the `authenticated` role's 8s
-    // statement_timeout even at 7 days (fixed for the common case in 0065's
-    // batched-streak rewrite); a second, wider call from this card would
-    // double concurrent load on the same expensive function on every
-    // Overview load and reintroduces the exact timeout 0065 just fixed —
-    // confirmed live: an earlier 90-day version of this card did exactly
-    // that and timed out. Same limitation as the dashboard tiles this card
-    // mirrors: a real streak that falls just outside the trailing 7 days
-    // won't show here either, until that entity's own activity re-enters
-    // the window.
+    // Previously called dds_driver_asset_weekly() under a comment claiming
+    // p_from/p_to null meant "trailing 7 days" for the streak shown here —
+    // that was wrong. That function's streakDays is hardcoded to an 89-day
+    // lookback from each entity's own last activity date, completely
+    // independent of any date parameter passed to it (confirmed directly
+    // from its SQL body), so this card was actually showing up-to-90-day
+    // streaks while every other Overview widget (KPIs, trend, feed) used a
+    // real trailing-7-day window — a real inconsistency on the same page.
+    //
+    // Now uses dds_driver_streaks(p_window_days: 7) — the same RPC the
+    // dedicated Driver Streaks page uses for its all-time view, just
+    // bounded to 7 days here so this card's streak actually means "the
+    // last 7 days" like the rest of Overview. Measured live: a 7-day-
+    // bounded call takes ~28ms, safely under any timeout concern.
     function renderDriverStreaks(){
       var body = document.getElementById('ov-streak-body');
       if(!body) return;
-      DB.rpc('dds_driver_asset_weekly', { p_from: null, p_to: null }).then(function(res){
+      DB.rpc('dds_driver_streaks', {
+        p_search: null, p_min_streak: 1, p_sort: 'streak_days', p_dir: 'desc',
+        p_limit: 5, p_offset: 0, p_window_days: 7
+      }).then(function(res){
         if(res.error) throw res.error;
-        var drivers = ((res.data || {}).drivers || [])
-          .filter(function(d){ return d.id !== 'UNSPECIFIED' && (d.streakDays || 0) > 0; })
-          .sort(function(a, b){ return (b.streakDays || 0) - (a.streakDays || 0); })
-          .slice(0, 5);
+        var drivers = (res.data || {}).rows || [];
         if(!drivers.length){
           body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">No drivers currently on an alert streak.</div></div></div>';
           return;
@@ -3712,7 +3720,7 @@
           return '<div class="action-row">' +
             '<span class="action-dot ' + (required ? 'active' : 'resolved') + '" aria-hidden="true"></span>' +
             '<div class="action-body-text">' +
-              '<div class="action-main"><strong>' + esc(d.name || d.id) + '</strong></div>' +
+              '<div class="action-main"><strong>' + esc(d.name || d.empNo) + '</strong></div>' +
               '<div class="action-sub">' + days + ' consecutive day' + (days === 1 ? '' : 's') + ' over the daily alert threshold</div>' +
             '</div>' +
             '<span class="action-badge ' + (required ? 'active' : 'resolved') + '">' + (required ? 'Action Required' : 'Monitoring') + '</span>' +
@@ -9941,9 +9949,17 @@
   // dedicated RPC computing the same >10-units/day streak definition over
   // the driver's FULL event history via a real gaps-and-islands query.
   (function(){
-    var state = { search:'', from:null, to:null, sort:'streak_days', dir:'desc', limit:20, offset:0, total:0 };
+    // Infinite scroll instead of numbered pagination: the table body
+    // scrolls inside a fixed-height card (see #page-driver-streaks.active
+    // CSS), and scrolling near the bottom fetches and appends the next
+    // batch — per direct instruction, replacing the numbered-page pattern
+    // used elsewhere in this app for this page specifically.
+    var state = { search:'', from:null, to:null, sort:'streak_days', dir:'desc', limit:50, offset:0, total:0 };
     var tbody = document.getElementById('ds-tbody');
+    var scrollWrap = document.querySelector('#page-driver-streaks .da-table-wrap-flex');
     var rows = [];
+    var loadingMore = false;
+    var reachedEnd = false;
 
     function fmtDateTimeShort(mdyhms){
       if(!mdyhms) return '—';
@@ -9953,35 +9969,14 @@
       return parts[0] + ' ' + hm;
     }
 
-    function renderPagination(){
-      var totalPages = Math.max(1, Math.ceil(state.total / state.limit));
-      var curPage = Math.floor(state.offset / state.limit) + 1;
+    function updateFooter(){
+      var shownText = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(state.total);
+      var shownEl = document.getElementById('ds-shown');
+      if(shownEl) shownEl.textContent = shownText;
       var rangeEl = document.getElementById('ds-rowsrange');
-      var shownFrom = state.total === 0 ? 0 : state.offset + 1;
-      var shownTo = Math.min(state.offset + state.limit, state.total);
-      if(rangeEl) rangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(state.total);
-      var prevBtn = document.getElementById('ds-page-prev');
-      var nextBtn = document.getElementById('ds-page-next');
-      if(prevBtn) prevBtn.disabled = curPage <= 1;
-      if(nextBtn) nextBtn.disabled = curPage >= totalPages;
-      var numsEl = document.getElementById('ds-page-numbers');
-      if(numsEl){
-        var start = Math.max(1, curPage - 2);
-        var end = Math.min(totalPages, start + 4);
-        start = Math.max(1, end - 4);
-        var html = '';
-        for(var p = start; p <= end; p++){
-          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
-            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
-        }
-        numsEl.innerHTML = html;
-        numsEl.querySelectorAll('[data-page]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            state.offset = (Number(btn.getAttribute('data-page')) - 1) * state.limit;
-            load();
-          });
-        });
-      }
+      if(rangeEl) rangeEl.textContent = shownText;
+      var statusEl = document.getElementById('ds-load-status');
+      if(statusEl) statusEl.textContent = loadingMore ? 'Loading more…' : (reachedEnd && rows.length ? 'All streaks loaded' : '');
     }
 
     var ACTION_OPTIONS = ['Spare', 'Replace', 'Continue'];
@@ -9995,35 +9990,61 @@
       return html;
     }
 
+    function rowHtml(r, i){
+      var currentType = r.lastAction ? r.lastAction.type : null;
+      var isOtherCurrent = currentType && ACTION_OPTIONS.indexOf(currentType) === -1;
+      return '<tr data-ds-row="' + i + '">' +
+        '<td>' + fmtNum(r.streakDays) + ' <span style="color:var(--muted);font-size:10px">(' + esc(r.runStart) + '–' + esc(r.runEnd) + ')</span></td>' +
+        '<td>' + esc(r.empNo) + '</td>' +
+        '<td>' + esc(r.name) + '</td>' +
+        '<td>' + fmtNum(r.totalCount) + '</td>' +
+        '<td>' +
+          '<select data-ds-action="' + i + '">' + actionSelectHtml(r.empNo, currentType) + '</select>' +
+          '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;' + (isOtherCurrent ? '' : 'display:none') + '" value="' + esc(isOtherCurrent ? (r.lastAction.note || '') : '') + '">' +
+        '</td>' +
+        '<td><button class="dm-icon-btn" type="button" data-ds-detail="' + i + '" title="See details" aria-label="See details">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>' +
+        '</button></td>' +
+      '</tr>';
+    }
+
+    // Renders the full set from scratch (filter/sort change or initial
+    // load) — indices are stable across a full re-render since `rows` was
+    // just fully replaced.
     function renderRows(){
       if(!rows.length){
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
         return;
       }
-      tbody.innerHTML = rows.map(function(r, i){
-        var currentType = r.lastAction ? r.lastAction.type : null;
-        var isOtherCurrent = currentType && ACTION_OPTIONS.indexOf(currentType) === -1;
-        return '<tr data-ds-row="' + i + '">' +
-          '<td>' + fmtNum(r.streakDays) + ' <span style="color:var(--muted);font-size:10px">(' + esc(r.runStart) + '–' + esc(r.runEnd) + ')</span></td>' +
-          '<td>' + esc(r.empNo) + '</td>' +
-          '<td>' + esc(r.name) + '</td>' +
-          '<td>' + fmtNum(r.totalCount) + '</td>' +
-          '<td>' +
-            '<select data-ds-action="' + i + '">' + actionSelectHtml(r.empNo, currentType) + '</select>' +
-            '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;' + (isOtherCurrent ? '' : 'display:none') + '" value="' + esc(isOtherCurrent ? (r.lastAction.note || '') : '') + '">' +
-          '</td>' +
-          '<td><button class="dm-icon-btn" type="button" data-ds-detail="' + i + '" title="See details" aria-label="See details">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>' +
-          '</button></td>' +
-        '</tr>';
-      }).join('');
+      tbody.innerHTML = rows.map(rowHtml).join('');
     }
 
-    function load(){
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+    // Appends only the newly-fetched rows (infinite scroll) — avoids
+    // re-rendering (and losing scroll position / open dropdown state on)
+    // rows already on screen.
+    function appendRows(newRows){
+      var startIndex = rows.length - newRows.length;
+      var html = newRows.map(function(r, j){ return rowHtml(r, startIndex + j); }).join('');
+      tbody.insertAdjacentHTML('beforeend', html);
+    }
+
+    function load(opts){
+      opts = opts || {};
+      var isLoadMore = !!opts.loadMore;
+      if(isLoadMore){
+        if(loadingMore || reachedEnd) return;
+        loadingMore = true;
+        updateFooter();
+      } else {
+        state.offset = 0;
+        reachedEnd = false;
+        rows = [];
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+      }
       requireSession().then(function(sess){
         if(!sess){
           tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          loadingMore = false;
           return;
         }
         return DB.rpc('dds_driver_streaks', {
@@ -10033,7 +10054,7 @@
         }).then(function(res){
           if(res.error) throw res.error;
           var data = res.data || {};
-          rows = data.rows || [];
+          var fetched = data.rows || [];
           state.total = data.total || 0;
           // Client-side date-range narrowing on the streak's own start/end
           // — the RPC itself doesn't take from/to (a streak is a computed
@@ -10041,23 +10062,44 @@
           // way an event's own date is), so "narrow the all-time view" per
           // the user's own answer means: show only streaks whose window
           // overlaps the chosen range, applied to what the server already
-          // paginated.
+          // fetched.
           if(state.from || state.to){
-            rows = rows.filter(function(r){
+            fetched = fetched.filter(function(r){
               var start = new Date(r.runStart), end = new Date(r.runEnd);
               if(state.from && end < new Date(state.from)) return false;
               if(state.to && start > new Date(state.to)) return false;
               return true;
             });
           }
-          var shownEl = document.getElementById('ds-shown');
-          if(shownEl) shownEl.textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(state.total);
-          renderRows();
-          renderPagination();
+          if(fetched.length < state.limit) reachedEnd = true;
+          state.offset += (data.rows || []).length;
+          if(isLoadMore){
+            rows = rows.concat(fetched);
+            appendRows(fetched);
+          } else {
+            rows = fetched;
+            renderRows();
+          }
+          loadingMore = false;
+          updateFooter();
         });
       }).catch(function(err){
         console.error('Driver streaks fetch failed', err);
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+        loadingMore = false;
+        if(isLoadMore){
+          updateFooter();
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+        }
+      });
+    }
+
+    // ---- infinite scroll: fetch the next batch once the user scrolls
+    // near the bottom of the table's own scroll container ----
+    if(scrollWrap){
+      scrollWrap.addEventListener('scroll', function(){
+        var nearBottom = scrollWrap.scrollTop + scrollWrap.clientHeight >= scrollWrap.scrollHeight - 120;
+        if(nearBottom) load({ loadMore: true });
       });
     }
 
@@ -10093,11 +10135,6 @@
         load();
       });
     });
-    var prevBtn = document.getElementById('ds-page-prev');
-    if(prevBtn) prevBtn.addEventListener('click', function(){ state.offset = Math.max(0, state.offset - state.limit); load(); });
-    var nextBtn = document.getElementById('ds-page-next');
-    if(nextBtn) nextBtn.addEventListener('click', function(){ state.offset += state.limit; load(); });
-
     // ---- row actions: dropdown applies immediately, "Other" reveals a
     // text box first and applies on blur/Enter (matching the existing
     // bulk-action bar's Other handling elsewhere in this app) ----
