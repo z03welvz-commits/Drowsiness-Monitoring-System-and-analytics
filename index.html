@@ -3310,17 +3310,24 @@
         deltaEl.className = 'delta ' + d.cls;
         deltaEl.textContent = d.text;
       }
-      if(sparkEl && sparkVals && sparkVals.length){
-        var max = Math.max.apply(null, sparkVals.concat([1]));
-        var min = Math.min.apply(null, sparkVals.concat([0]));
-        var range = Math.max(max - min, 1);
-        var n = sparkVals.length;
-        var pts = sparkVals.map(function(v, i){
-          var x = n === 1 ? 0 : (i / (n - 1)) * 100;
-          var y = 30 - ((v - min) / range) * 28;
-          return x.toFixed(1) + ',' + y.toFixed(1);
-        }).join(' ');
-        sparkEl.setAttribute('points', pts);
+      if(sparkEl){
+        if(sparkVals && sparkVals.length){
+          var max = Math.max.apply(null, sparkVals.concat([1]));
+          var min = Math.min.apply(null, sparkVals.concat([0]));
+          var range = Math.max(max - min, 1);
+          var n = sparkVals.length;
+          var pts = sparkVals.map(function(v, i){
+            var x = n === 1 ? 0 : (i / (n - 1)) * 100;
+            var y = 30 - ((v - min) / range) * 28;
+            return x.toFixed(1) + ',' + y.toFixed(1);
+          }).join(' ');
+          sparkEl.setAttribute('points', pts);
+        } else {
+          // No data for the window (e.g. right after a fleet data reset) —
+          // reset to the markup's own flat-line baseline rather than
+          // leaving the previous fetch's sparkline shape in place.
+          sparkEl.setAttribute('points', '0,16 100,16');
+        }
       }
     }
 
@@ -3351,7 +3358,28 @@
     function renderTrend(cur){
       var trend = (cur.trend || []).slice(-7);
       var svg = document.getElementById('ov-trend-svg');
-      if(!svg || !trend.length) return;
+      if(!svg) return;
+      if(!trend.length){
+        // No rows for the window (e.g. right after a fleet data reset) —
+        // clear every element this function draws into rather than
+        // leaving the previous fetch's shapes on screen (the bug this
+        // guard used to cause: returning here before wiping anything left
+        // a stale chart looking like live data after the real data was
+        // gone).
+        ['ov-trend-line'].forEach(function(id){ var el = document.getElementById(id); if(el) el.setAttribute('points', ''); });
+        var areaEl = document.getElementById('ov-trend-area');
+        if(areaEl) areaEl.setAttribute('d', '');
+        ['ov-trend-dots','ov-trend-xaxis','ov-trend-yaxis'].forEach(function(id){ var el = document.getElementById(id); if(el) el.innerHTML = ''; });
+        var meanLineEl = document.getElementById('ov-trend-mean-line');
+        if(meanLineEl){ meanLineEl.setAttribute('y1', '0'); meanLineEl.setAttribute('y2', '0'); }
+        var meanLabelEl = document.getElementById('ov-trend-mean-label');
+        if(meanLabelEl) meanLabelEl.textContent = '';
+        var peakLabelEl = document.getElementById('ov-trend-peak-label');
+        if(peakLabelEl) peakLabelEl.textContent = 'No data this week';
+        var badgeEl = document.getElementById('ov-trend-badge');
+        if(badgeEl){ badgeEl.className = 'trend-badge'; badgeEl.textContent = '—'; }
+        return;
+      }
       var L = 40, R = 700, T = 15, B = 160;
       var max = Math.max.apply(null, trend.map(function(t){ return t.units; }).concat([1]));
       var top = Math.max(max, 4);
@@ -3764,17 +3792,24 @@
         var d7 = deltaChip(curVal, p7Val);
         changeEl.innerHTML = '<span class="delta ' + (d7.cls === 'good' ? 'up' : (d7.cls === 'bad' ? 'down' : 'flat')) + '">' + esc(d7.text) + '</span> vs previous 7 days';
       }
-      if(sparkEl && sparkVals && sparkVals.length){
-        var max = Math.max.apply(null, sparkVals.concat([1]));
-        var min = Math.min.apply(null, sparkVals.concat([0]));
-        var range = Math.max(max - min, 1);
-        var n = sparkVals.length;
-        var pts = sparkVals.map(function(v, i){
-          var x = n === 1 ? 0 : (i / (n - 1)) * 100;
-          var y = 28 - ((v - min) / range) * 24;
-          return x.toFixed(1) + ',' + y.toFixed(1);
-        }).join(' ');
-        sparkEl.setAttribute('points', pts);
+      if(sparkEl){
+        if(sparkVals && sparkVals.length){
+          var max = Math.max.apply(null, sparkVals.concat([1]));
+          var min = Math.min.apply(null, sparkVals.concat([0]));
+          var range = Math.max(max - min, 1);
+          var n = sparkVals.length;
+          var pts = sparkVals.map(function(v, i){
+            var x = n === 1 ? 0 : (i / (n - 1)) * 100;
+            var y = 28 - ((v - min) / range) * 24;
+            return x.toFixed(1) + ',' + y.toFixed(1);
+          }).join(' ');
+          sparkEl.setAttribute('points', pts);
+        } else {
+          // No data for the window (e.g. right after a fleet data reset) —
+          // reset to the markup's own flat-line baseline rather than
+          // leaving the previous fetch's sparkline shape in place.
+          sparkEl.setAttribute('points', '0,16 100,16');
+        }
       }
     }
     function renderKpis(cur, prev7d){
@@ -3808,7 +3843,15 @@
     // ==================== Alert Volume by Distinct Asset (trend) ====================
     function renderTrend(cur){
       var trend = cur.trend || [];
-      if(!trend.length) return;
+      if(!trend.length){
+        // Clear every element this function draws into instead of leaving
+        // the previous fetch's line/axis on screen (e.g. right after a
+        // fleet data reset, when there are legitimately zero rows).
+        ['an-trend-units','an-trend-assets'].forEach(function(id){ var el = document.getElementById(id); if(el) el.setAttribute('points', ''); });
+        var axisEl = document.getElementById('an-trend-axis');
+        if(axisEl) axisEl.innerHTML = '';
+        return;
+      }
       var L = 40, R = 480, T = 25, B = 208;
       var maxUnits = Math.max.apply(null, trend.map(function(t){ return t.units; }).concat([1]));
       var maxAssets = Math.max.apply(null, trend.map(function(t){ return t.assets; }).concat([1]));
