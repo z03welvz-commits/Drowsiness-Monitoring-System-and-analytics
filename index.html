@@ -1905,6 +1905,10 @@
             <h3 class="dm-records-title">All Minestat Records <small>Showing 8 of 77,983</small></h3>
             <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search dataset, file, or uploader..." data-search-table="dm-table-minestat"></div>
             <button class="al-filter" type="button" id="dm-minestat-recheck" style="cursor:pointer" title="Re-run name matching for any Minestat operator still awaiting review, against the masterlist as it stands right now — useful after correcting a name or adding an alias">↻&nbsp; Re-check unresolved names</button>
+            <div class="dm-recheck-progress" id="dm-minestat-recheck-progress" hidden>
+              <div class="dm-recheck-progress-track"><div class="dm-recheck-progress-fill" id="dm-minestat-recheck-fill"></div></div>
+              <span class="dm-recheck-progress-label" id="dm-minestat-recheck-label">0%</span>
+            </div>
           </div>
           <div class="dm-table-wrap">
             <table class="dm-table" id="dm-table-minestat">
@@ -5617,33 +5621,25 @@
     }
 
     // dds_minestat_reresolve_all() (0027) has existed since the review-
-    // queue feature shipped but had no caller anywhere in the app — a
-    // masterlist correction (fixing a name, adding an alias) only affects
-    // FUTURE Minestat imports; rows already sitting unresolved keep
-    // whatever the masterlist said at import time, with no way to find out
-    // they'd now resolve short of re-uploading the same file. This button
-    // is the minimum reachable fix: makes the existing, already-correct
-    // RPC callable, rather than building the full name-review queue UI
-    // that never shipped (out of scope for a fix — that's a new feature).
-    var minestatRecheckBtn = document.getElementById('dm-minestat-recheck');
-    if(minestatRecheckBtn){
-      minestatRecheckBtn.addEventListener('click', function(){
-        minestatRecheckBtn.disabled = true;
-        var originalText = minestatRecheckBtn.textContent;
-        minestatRecheckBtn.textContent = 'Checking…';
-        requireSession().then(function(sess){
-          if(!sess) throw new Error('Sign in required.');
-          return DB.rpc('dds_minestat_reresolve_all', {});
-        }).then(function(res){
-          if(res.error) throw res.error;
-          var d = res.data || {};
-          minestatRecheckBtn.textContent = (d.resolved || 0) + ' resolved of ' + (d.checked || 0) + ' checked';
-          setTimeout(function(){ minestatRecheckBtn.textContent = originalText; minestatRecheckBtn.disabled = false; }, 3500);
-        }).catch(function(err){
-          console.error('Minestat re-check failed', err);
-          minestatRecheckBtn.textContent = 'Could not check — try again';
-          setTimeout(function(){ minestatRecheckBtn.textContent = originalText; minestatRecheckBtn.disabled = false; }, 3500);
-        });
+    // queue feature shipped but had no caller anywhere in the app until a
+    // button was added here. That first version, and a second one added
+    // independently on the Name Review tab, ended up as two separate
+    // copies of the same batching/progress logic — exactly the kind of
+    // split that lets one get fixed while the other quietly goes stale
+    // (which is what happened: this copy kept the old single-shot,
+    // un-batched call after the Name Review tab's copy was upgraded).
+    // Both now call the single shared runRecheckWithProgress() (defined
+    // with the Name Review section below, in the same closure) instead of
+    // each keeping their own loop.
+    var minestatSummaryRecheckBtn = document.getElementById('dm-minestat-recheck');
+    if(minestatSummaryRecheckBtn){
+      minestatSummaryRecheckBtn.addEventListener('click', function(){
+        runRecheckWithProgress('minestat', {
+          btn: minestatSummaryRecheckBtn,
+          progress: document.getElementById('dm-minestat-recheck-progress'),
+          fill: document.getElementById('dm-minestat-recheck-fill'),
+          label: document.getElementById('dm-minestat-recheck-label')
+        }, function(){ loadMinestat(); });
       });
     }
 
@@ -6951,7 +6947,13 @@
               // this RPC joins on (asset_id, shift_date, shift) regardless
               // of which side was uploaded more recently. Best-effort,
               // non-fatal — see ingestMinestatFile for the full rationale.
-              return runBackfillEmpNoFromMinestat().catch(function(err){
+              // Visible in the same upload-progress bar rather than silent
+              // — this is the ONLY way a DDS event ever gets a driver at
+              // all, since the raw DDS file never carries a driver name.
+              setUploadProgress('Linking events to drivers…', 0, 1);
+              return runBackfillEmpNoFromMinestat(function(updated, remaining){
+                setUploadProgress('Linking events to drivers… ' + fmtNum(updated) + ' linked' + (remaining ? ', ' + fmtNum(remaining) + ' remaining' : ''), 1, 1);
+              }).catch(function(err){
                 console.error('Post-upload emp_no backfill failed (non-fatal)', err);
               }).then(function(){
                 return { rows: result.inserted, skipped: skipped, cancelled: false };
@@ -7006,7 +7008,14 @@
     // pathological backlog can't turn one upload's success path into an
     // unbounded chain of RPC calls — any remainder just waits for the next
     // upload's backfill pass, same as it would have before this existed.
-    function runBackfillEmpNoFromMinestat(){
+    // Optional onProgress(updated, remaining) lets a caller show this step
+    // instead of it running silently — this is the step that links a DDS
+    // event to a driver at all (DDS's own raw data never carries a driver
+    // name; the only path is this asset+shift cross-reference against
+    // Minestat), so a caller with visible upload progress UI should surface
+    // it rather than leave the user watching nothing happen after "Upload
+    // complete."
+    function runBackfillEmpNoFromMinestat(onProgress){
       var MAX_ITERATIONS = 25;
       var totalUpdated = 0, totalConflicts = 0;
       function step(i){
@@ -7015,6 +7024,7 @@
           var d = res.data || {};
           totalUpdated += d.rowsUpdated || 0;
           totalConflicts += d.conflictsDetected || 0;
+          if(onProgress) onProgress(totalUpdated, d.rowsRemaining || 0);
           if((d.rowsRemaining || 0) > 0 && i < MAX_ITERATIONS){
             return step(i + 1);
           }
@@ -7135,7 +7145,10 @@
               // comment claiming it ran after every upload. Best-effort:
               // failure here doesn't fail the upload, since the Minestat
               // data itself is already safely committed.
-              return runBackfillEmpNoFromMinestat().catch(function(err){
+              setUploadProgress('Linking events to drivers…', 0, 1);
+              return runBackfillEmpNoFromMinestat(function(updated, remaining){
+                setUploadProgress('Linking events to drivers… ' + fmtNum(updated) + ' linked' + (remaining ? ', ' + fmtNum(remaining) + ' remaining' : ''), 1, 1);
+              }).catch(function(err){
                 console.error('Post-upload emp_no backfill failed (non-fatal)', err);
               }).then(function(){
                 return { rows: result.inserted, skipped: skipped, cancelled: false };
@@ -7507,6 +7520,110 @@
       minestat: { search: '', state: 'open', tbodySel: '#dm-table-review-minestat tbody', titleSel: '#dm-review-minestat-title small', footSel: '#dm-review-minestat-foot', list: 'dds_minestat_name_review_list', resolve: 'dds_minestat_resolve_review', ignore: 'dds_minestat_ignore_review', reopen: 'dds_minestat_reopen_review', recheck: 'dds_minestat_reresolve_all', waitingLabel: 'Shift rows waiting' }
     };
 
+    // ---- Shared bulk re-check runner (used by BOTH the Name Review tab's
+    // recheck buttons AND the DDS Data tab's Minestat summary card button)
+    // ----
+    // dds_resolve_name() itself is now index-backed (0071/0072) instead of
+    // doing a sequential scan of drivers per row per tier, so a single
+    // batch is normally fast — but a batch that happens to contain an
+    // unusually large share of names falling through to the fuzzy tier is
+    // still real per-row work, not a guaranteed-cheap index hit. Rather
+    // than trust one fixed p_limit to always fit inside the 8s
+    // authenticated statement_timeout, this tracks each batch's actual
+    // wall-clock time and adapts: shrinks the next batch if the last one
+    // ran slow, grows it back if a run of batches comes back fast, and on
+    // an outright timeout error retries the SAME batch smaller rather than
+    // advancing (both dds_reresolve_all/dds_minestat_reresolve_all always
+    // pull the oldest still-open rows, so a retry can't skip or
+    // double-process anything — nothing committed if the call errored).
+    var RECHECK_BATCH_MIN = 10;
+    var RECHECK_BATCH_MAX = 200;
+    var RECHECK_BATCH_START = 100;
+    var RECHECK_SLOW_MS = 4000;
+    var RECHECK_FAST_MS = 1500;
+
+    function runRecheckWithProgress(kind, els, onDone){
+      var cfg = REVIEW[kind];
+      var btn = els.btn, progress = els.progress, fill = els.fill, label = els.label;
+      if(!btn || btn.disabled) return;
+      btn.disabled = true;
+      var original = btn.textContent;
+      var totalChecked = 0, totalResolved = 0, startingOpen = null;
+      var batchSize = RECHECK_BATCH_START;
+
+      function showProgress(pct, text){
+        if(progress) progress.hidden = false;
+        if(fill) fill.style.width = pct + '%';
+        if(label) label.textContent = text;
+      }
+      function hideProgress(){
+        if(progress) progress.hidden = true;
+      }
+      function isTimeoutError(err){
+        var msg = ((err && err.message) || '').toLowerCase();
+        var code = (err && err.code) || '';
+        return code === '57014' || msg.indexOf('timeout') !== -1 || msg.indexOf('statement timeout') !== -1;
+      }
+      function runBatch(){
+        var startedAt = Date.now();
+        return DB.rpc(cfg.recheck, { p_limit: batchSize }).then(function(res){
+          var elapsed = Date.now() - startedAt;
+          if(res.error) throw res.error;
+          if(elapsed > RECHECK_SLOW_MS){
+            batchSize = Math.max(RECHECK_BATCH_MIN, Math.floor(batchSize / 2));
+          } else if(elapsed < RECHECK_FAST_MS){
+            batchSize = Math.min(RECHECK_BATCH_MAX, Math.ceil(batchSize * 1.5));
+          }
+          var d = res.data || {};
+          totalChecked += d.checked || 0;
+          totalResolved += d.resolved || 0;
+          if(startingOpen === null) startingOpen = (d.checked || 0) + (d.remainingOpen || 0);
+          var pct = startingOpen > 0 ? Math.round((totalChecked / startingOpen) * 100) : 100;
+          showProgress(pct, totalChecked + ' of ' + startingOpen + ' checked (' + pct + '%)');
+          // A batch that checked fewer rows than it asked for means there
+          // were no more open rows to pull — done, regardless of
+          // remainingOpen (a row could in principle flip back open from
+          // elsewhere mid-run, but that isn't grounds to loop forever).
+          if((d.checked || 0) < batchSize || (d.remainingOpen || 0) === 0) return;
+          return runBatch();
+        }).catch(function(err){
+          if(isTimeoutError(err) && batchSize > RECHECK_BATCH_MIN){
+            batchSize = Math.max(RECHECK_BATCH_MIN, Math.floor(batchSize / 2));
+            return runBatch();
+          }
+          throw err;
+        });
+      }
+
+      btn.textContent = 'Checking…';
+      requireSession().then(function(sess){
+        if(!sess) throw new Error('Sign in required.');
+        return runBatch();
+      }).then(function(){
+        // A Minestat recheck run can resolve shift rows that make more DDS
+        // events newly backfillable (dds_backfill_emp_no_from_minestat
+        // only matches unambiguous, already-resolved shifts) — re-run it
+        // once at the end of the run so that propagates without waiting
+        // for the next file upload.
+        if(kind === 'minestat' && typeof runBackfillEmpNoFromMinestat === 'function'){
+          return runBackfillEmpNoFromMinestat().catch(function(err){
+            console.error('Post-recheck backfill failed', err);
+          });
+        }
+      }).then(function(){
+        hideProgress();
+        btn.textContent = totalResolved + ' resolved of ' + totalChecked + ' checked';
+        if(onDone) onDone();
+        setTimeout(function(){ btn.textContent = original; btn.disabled = false; }, 3500);
+      }).catch(function(err){
+        console.error('Re-check failed', err);
+        hideProgress();
+        btn.textContent = 'Could not check — try again';
+        if(onDone) onDone();
+        setTimeout(function(){ btn.textContent = original; btn.disabled = false; }, 3500);
+      });
+    }
+
     function tierLabel(tier){
       return { none: 'No match found', fuzzy_review: 'Ambiguous spelling match', ambiguous_exact: 'Matches 2+ employees exactly', blank: 'Blank name' }[tier] || (tier || 'Unresolved');
     }
@@ -7621,66 +7738,14 @@
         });
       }
       var recheckBtn = document.getElementById('dm-review-' + kind + '-recheck');
-      var recheckProgress = document.getElementById('dm-review-' + kind + '-recheck-progress');
-      var recheckFill = document.getElementById('dm-review-' + kind + '-recheck-fill');
-      var recheckLabel = document.getElementById('dm-review-' + kind + '-recheck-label');
-      // Batch size matches the RPC's own p_limit default (see 0070_reresolve_
-      // batched_to_avoid_timeout) — running all open rows in one request
-      // measured at ~100s against 851 real rows, well past PostgREST's
-      // request timeout, so the RPC silently never got to commit anything.
-      // This loops it in chunks small enough to each complete quickly,
-      // driven by 'remainingOpen' rather than a fixed iteration count so it
-      // naturally stops as soon as nothing open is left (including the
-      // common case where fewer than one batch's worth remain).
-      var RECHECK_BATCH_SIZE = 100;
       if(recheckBtn){
         recheckBtn.addEventListener('click', function(){
-          recheckBtn.disabled = true;
-          var original = recheckBtn.textContent;
-          var totalChecked = 0, totalResolved = 0, startingOpen = null;
-
-          function showProgress(pct, label){
-            if(recheckProgress) recheckProgress.hidden = false;
-            if(recheckFill) recheckFill.style.width = pct + '%';
-            if(recheckLabel) recheckLabel.textContent = label;
-          }
-          function hideProgress(){
-            if(recheckProgress) recheckProgress.hidden = true;
-          }
-          function runBatch(){
-            return DB.rpc(REVIEW[kind].recheck, { p_limit: RECHECK_BATCH_SIZE }).then(function(res){
-              if(res.error) throw res.error;
-              var d = res.data || {};
-              totalChecked += d.checked || 0;
-              totalResolved += d.resolved || 0;
-              if(startingOpen === null) startingOpen = (d.checked || 0) + (d.remainingOpen || 0);
-              var pct = startingOpen > 0 ? Math.round((totalChecked / startingOpen) * 100) : 100;
-              showProgress(pct, totalChecked + ' of ' + startingOpen + ' checked (' + pct + '%)');
-              // A batch that checked fewer rows than the batch size means
-              // there were no more open rows to pull — done, regardless of
-              // remainingOpen (a row can flip back to open from elsewhere
-              // mid-run in principle, but isn't grounds to loop forever).
-              if((d.checked || 0) < RECHECK_BATCH_SIZE || (d.remainingOpen || 0) === 0) return;
-              return runBatch();
-            });
-          }
-
-          recheckBtn.textContent = 'Checking…';
-          requireSession().then(function(sess){
-            if(!sess) throw new Error('Sign in required.');
-            return runBatch();
-          }).then(function(){
-            hideProgress();
-            recheckBtn.textContent = totalResolved + ' resolved of ' + totalChecked + ' checked';
-            loadNameReviewQueue(kind);
-            setTimeout(function(){ recheckBtn.textContent = original; recheckBtn.disabled = false; }, 3500);
-          }).catch(function(err){
-            console.error('Re-check failed', err);
-            hideProgress();
-            recheckBtn.textContent = 'Could not check — try again';
-            loadNameReviewQueue(kind);
-            setTimeout(function(){ recheckBtn.textContent = original; recheckBtn.disabled = false; }, 3500);
-          });
+          runRecheckWithProgress(kind, {
+            btn: recheckBtn,
+            progress: document.getElementById('dm-review-' + kind + '-recheck-progress'),
+            fill: document.getElementById('dm-review-' + kind + '-recheck-fill'),
+            label: document.getElementById('dm-review-' + kind + '-recheck-label')
+          }, function(){ loadNameReviewQueue(kind); });
         });
       }
     });
