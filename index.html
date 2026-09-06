@@ -10355,30 +10355,80 @@
       applyStreakAction(r, 'Other', true, input.value.trim());
     }, true);
 
+    // r.runStart/r.runEnd come back from dds_driver_streaks() as MM/DD/YYYY
+    // strings. Converting those via `new Date(mdy).toISOString()` parses
+    // them as LOCAL midnight, then reformats in UTC — which silently rolls
+    // the date back a day in any timezone ahead of UTC. For a single-day
+    // streak that shifts p_from/p_to onto a day this driver had no events
+    // on at all, so the bulk RPC below matches zero rows and (correctly,
+    // from its own point of view) writes nothing. Parsing the string
+    // directly avoids the timezone round-trip entirely.
+    function mdyToIso(mdy){
+      var p = mdy && mdy.split('/');
+      if(!p || p.length !== 3) return null;
+      return p[2] + '-' + p[0] + '-' + p[1];
+    }
+
     // Applies the chosen action to every event within THIS driver's own
     // streak date range — dds_bulk_log_case_action_by_driver already
     // exists exactly for this (writes one alert_cases row per matching
     // event via a set-based query), so no new RPC was needed. This is the
     // literal "any action logged should reflect on the recorded name
     // during the duration" behavior the user asked for.
+    //
+    // That alert_cases write is what Alert Logs reads — it does NOT touch
+    // entity_status/entity_action_log, which is what Driver & Asset
+    // Monitoring's status pill and this page's own "last action" column
+    // (dds_driver_streaks()'s lastAction, sourced from entity_action_log)
+    // actually read. Without also calling dds_log_entity_action(), an
+    // action logged here could never appear in either place. logged_by is
+    // a required column on entity_action_log with no session-derived
+    // default anywhere else in the app (Driver & Asset Monitoring's own
+    // equivalent modal always prompts for it too), so ask for it here
+    // rather than inventing a value.
     function applyStreakAction(r, actionType, isOther, otherText){
-      var rowEl = tbody.querySelector('tr[data-ds-row]');
+      var loggedBy = window.prompt('Logged by (name of whoever performed this action):', '');
+      if(loggedBy === null){ load(); return; } // cancelled — reset the dropdown
+      loggedBy = loggedBy.trim();
+      if(!loggedBy){
+        alert('Logging an action requires a "Logged by" name.');
+        load();
+        return;
+      }
+      var finalType = isOther ? otherText : actionType;
       DB.rpc('dds_bulk_log_case_action_by_driver', {
         p_emp_nos: [r.empNo], p_include_unspecified: false,
-        p_from: r.runStart ? new Date(r.runStart).toISOString().slice(0,10) : null,
-        p_to: r.runEnd ? new Date(r.runEnd).toISOString().slice(0,10) : null,
+        p_from: mdyToIso(r.runStart),
+        p_to: mdyToIso(r.runEnd),
         p_shift: null,
-        p_action_type: isOther ? otherText : actionType,
+        p_action_type: finalType,
         p_action_is_other: !!isOther,
         p_action_date: new Date().toISOString().slice(0,10),
         p_status_value: 'Logged',
         p_remarks: isOther ? otherText : null
       }).then(function(res){
         if(res.error) throw res.error;
+        var updated = (res.data && res.data.updated) || 0;
+        if(!updated){
+          // A successful call with nothing matched is indistinguishable from
+          // a real save unless we check the row count ourselves — surface it
+          // instead of silently reloading as if it worked.
+          throw new Error('No matching events found for ' + r.empNo + ' between ' + r.runStart + ' and ' + r.runEnd + ' — nothing was saved.');
+        }
+        return DB.rpc('dds_log_entity_action', {
+          p_entity_type: 'driver', p_entity_id: r.empNo,
+          p_action_type: isOther ? 'Other' : actionType,
+          p_action_other_text: isOther ? otherText : null,
+          p_note: 'Logged from Driver Streaks (' + r.runStart + '–' + r.runEnd + ')',
+          p_logged_by: loggedBy
+        });
+      }).then(function(res){
+        if(res && res.error) throw res.error;
         load();
       }).catch(function(err){
         console.error('Log streak action failed', err);
         alert('Could not log action: ' + ((err && err.message) || 'unknown error'));
+        load();
       });
     }
 
