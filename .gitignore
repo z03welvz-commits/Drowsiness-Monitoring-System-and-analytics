@@ -8,3 +8,7 @@ node_modules/
 .claude/
 .playwright-mcp/
 __*.html
+
+# Real employee/fleet data — never commit actual PII to this repo.
+assets/DDS_Data.xlsx
+assets/Emp_Masterlist.xlsx

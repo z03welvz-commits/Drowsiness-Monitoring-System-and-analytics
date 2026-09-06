@@ -80,15 +80,38 @@
 
   /* ---------- app shell (shared across pages) ---------- */
   .app{display:flex;min-height:100vh;width:100%}
-  .sidebar{width:280px;flex:0 0 280px;background:#012d68;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  /* Collapsible sidebar: collapses to an icon-only rail by default and
+     expands to full width on hover or when pinned open by clicking
+     .sidebar-pin (persisted per-browser in localStorage). Width transitions
+     on the flex-basis/width pair so the rail push/overlay stays smooth;
+     labels and text fade instead of reflowing mid-transition. */
+  .sidebar{width:280px;flex:0 0 280px;background:#012d68;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;transition:width .18s ease,flex-basis .18s ease;z-index:20}
+  .sidebar.collapsed{width:72px;flex-basis:72px}
+  .sidebar.collapsed:hover,.sidebar.collapsed.pinned-open{width:280px;flex-basis:280px}
+  .sidebar.collapsed .brand-text,.sidebar.collapsed .nav-label,.sidebar.collapsed .section-label,.sidebar.collapsed .mode-toggle span{opacity:0;pointer-events:none}
+  .sidebar.collapsed:hover .brand-text,.sidebar.collapsed:hover .nav-label,.sidebar.collapsed:hover .section-label,.sidebar.collapsed:hover .mode-toggle span,
+  .sidebar.collapsed.pinned-open .brand-text,.sidebar.collapsed.pinned-open .nav-label,.sidebar.collapsed.pinned-open .section-label,.sidebar.collapsed.pinned-open .mode-toggle span{opacity:1;pointer-events:auto}
+  .brand-text,.nav-label,.section-label,.mode-toggle span{transition:opacity .12s ease}
+  .sidebar.collapsed .nav-item,.sidebar.collapsed .mode-toggle{justify-content:center}
+  .sidebar.collapsed .nav-item{gap:0}
+  .sidebar-pin{all:unset;box-sizing:border-box;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#b9d7fb;flex:0 0 auto;margin-left:auto;cursor:pointer;transition:background-color .15s,color .15s;opacity:0;pointer-events:none}
+  .sidebar-pin:hover{background:rgba(255,255,255,.1);color:#fff}
+  .sidebar-pin:focus-visible{outline:2px solid #fff;outline-offset:-2px}
+  .sidebar-pin svg{width:15px;height:15px}
+  .sidebar.pinned-open .sidebar-pin{color:#fff}
+  .sidebar:not(.collapsed) .sidebar-pin{display:none}
+  .sidebar.collapsed:hover .sidebar-pin,.sidebar.collapsed.pinned-open .sidebar-pin{opacity:1;pointer-events:auto}
+
   .brand{height:84px;padding:20px 22px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.1);flex:0 0 auto}
+  .sidebar.collapsed .brand{padding-left:16px;padding-right:16px}
   .brand-icon{width:40px;height:40px;border-radius:10px;background:#1972d2;display:grid;place-items:center;box-shadow:0 4px 12px rgba(0,0,0,.12);flex:0 0 auto}
   .brand-icon svg{width:20px;height:20px}
+  .brand-text{white-space:nowrap}
   .brand-name{font-size:19px;font-weight:750;line-height:1}
   .brand-sub{font-size:10px;color:#b9d7fb;margin-top:5px}
 
-  .nav{padding:22px 14px;overflow-y:auto;flex:1 1 auto}
-  .section-label{font-size:var(--fs-badge);letter-spacing:.08em;color:#7fa3d6;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase}
+  .nav{padding:22px 14px;overflow-y:auto;overflow-x:hidden;flex:1 1 auto}
+  .section-label{font-size:var(--fs-badge);letter-spacing:.08em;color:#7fa3d6;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase;white-space:nowrap}
   .nav-item{all:unset;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
   .nav-item:hover{background:rgba(255,255,255,.07)}
   .nav-item:focus-visible{outline:2px solid #fff;outline-offset:-2px}
@@ -103,6 +126,7 @@
   .mode-toggle:hover{background:rgba(255,255,255,.07)}
   .mode-toggle:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .mode-toggle svg{width:14px;height:14px;flex:0 0 auto}
+  .mode-toggle span{white-space:nowrap}
   .mode-toggle.signout:hover{background:rgba(239,68,68,.16);color:#fecaca}
 
   .main{min-width:0;flex:1;padding:20px 26px 30px;background:var(--bg)}
@@ -112,18 +136,10 @@
   button.btn:focus-visible,.control:focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--blue)}
 
   /* ---------- topbar ---------- */
-  /* Sticky masthead: the topbar (page title + primary actions) and each
-     page's own filter/search row stay pinned to the top of the viewport
-     while the table beneath scrolls — so search, filters, and bulk-action
-     controls (Apply, Clear selection) never scroll out of reach on a long
-     table. `.main` doesn't scroll itself (the sidebar's own position:sticky
-     already relies on window/document scroll, confirmed by `.sidebar{
-     position:sticky;top:0}` above), so top:0 here is relative to the same
-     window scroll. Solid background required — content scrolling underneath
-     a sticky element needs to be visually covered, not just positioned over. */
-  .topbar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;
-    position:sticky;top:0;z-index:5;background:var(--bg);padding-top:20px;margin-top:-20px}
-  .page-sticky-filters{position:sticky;z-index:4;background:var(--bg)}
+  /* Masthead scrolls away with the page instead of staying pinned to the
+     viewport top, so long page content isn't permanently shadowed by it. */
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+  .page-sticky-filters{background:var(--bg)}
   .title h1{font-size:var(--fs-display);margin:0;font-weight:800;color:var(--text-dim);line-height:1.05;letter-spacing:-.01em}
   .title p{font-size:12.5px;color:var(--muted);margin:7px 0 0}
   .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
@@ -169,18 +185,20 @@
      (--overview-col-h) — neither column's height is derived from its own
      content anymore, so nothing can grow, shrink, or drift out of step
      with the other as real data changes or the page zooms. Left column's
-     3 rows (2 charts + stat tiles) and right column's 4 rows (feed,
-     actions, insight, updates) each get an explicit, equal-share grid
-     track within that same fixed height — 4 visually-equal cards on the
-     right, matching each other's size/behavior, not one dominating
-     because it happens to have more rows of data. Any card whose content
-     overflows its fixed track scrolls internally (see .feed-list/
-     .action-body/.chart-area rules) rather than pushing the layout taller. */
+     3 rows (2 charts + stat tiles) and right column's 2 rows (Recent
+     Activity, Drivers on Alert Streak — reduced from 4 rows when Actions &
+     Updates/Key Insight/Latest Updates were replaced by the single streak
+     card) each get an explicit, equal-share grid track within that same
+     fixed height, so the two remaining cards fill the column height
+     instead of each being capped at a quarter of it with empty space
+     below. Any card whose content overflows its fixed track scrolls
+     internally (see .feed-list/.action-body/.chart-area rules) rather
+     than pushing the layout taller. */
   :root{ --overview-col-h: 800px; }
   .overview-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:14px;align-items:stretch}
   .left-col,.right-col{display:grid;gap:14px;min-width:0;height:var(--overview-col-h)}
   .left-col{grid-template-rows:1fr 1fr auto}
-  .right-col{grid-template-rows:repeat(4,1fr)}
+  .right-col{grid-template-rows:repeat(2,1fr)}
   .left-col > .chart-card,.right-col > .feed-card{min-height:0;display:flex;flex-direction:column;overflow:hidden}
   .left-col > .chart-card .chart-area{flex:1;min-height:0;overflow:hidden}
   .left-col > .chart-card .chart-area svg{height:100%}
@@ -240,6 +258,7 @@
   .feed-icon svg{width:14px;height:14px}
   .feed-icon.blue{background:#2e80e9;color:#fff}
   .feed-icon.green{background:#16a34a;color:#fff}
+  .feed-icon.red{background:#e5484d;color:#fff}
   .feed-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6}
   .feed-title.green-title{color:#16803c}
   .view-all{background:none;border:none;color:#2563eb;font-size:11px;font-weight:650;cursor:pointer;padding:4px 6px;border-radius:6px}
@@ -520,6 +539,12 @@
   .dm-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
   .dm-source{display:none}
   .dm-source.on{display:block}
+  .dm-review-badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:#e8952e;color:#fff;font-size:10px;font-weight:700;line-height:1}
+  .dm-review-badge[hidden]{display:none}
+  .dm-review-row{cursor:default}
+  .dm-review-candidates{font-size:11px;color:var(--muted)}
+  .dm-review-candidates button{all:unset;cursor:pointer;color:var(--blue);font-weight:650}
+  .dm-review-candidates button:hover{text-decoration:underline}
 
   /* upper row: upload / history / manual-add, 3 across, fills full width */
   .dm-toprow{display:flex;gap:14px;align-items:stretch;margin-bottom:14px;flex-wrap:wrap}
@@ -1137,6 +1162,8 @@
   /* ---------- responsive ---------- */
   @media(max-width:1250px){
     .sidebar{width:235px;flex-basis:235px}
+    .sidebar.collapsed{width:72px;flex-basis:72px}
+    .sidebar.collapsed:hover,.sidebar.collapsed.pinned-open{width:235px;flex-basis:235px}
     .title h1{font-size:25px}
     .kpis{grid-template-columns:repeat(3,1fr)}
     .an-kpis{grid-template-columns:repeat(3,1fr)}
@@ -1210,12 +1237,15 @@
 </head>
 <body>
 <div class="app">
-  <aside class="sidebar">
+  <aside class="sidebar collapsed" id="app-sidebar">
     <div class="brand">
       <div class="brand-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
       </div>
-      <div><div class="brand-name">DDS</div><div class="brand-sub">Drowsiness Detection</div></div>
+      <div class="brand-text"><div class="brand-name">DDS</div><div class="brand-sub">Drowsiness Detection</div></div>
+      <button class="sidebar-pin" type="button" id="sidebar-pin-btn" aria-pressed="false" aria-label="Keep sidebar open">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
     </div>
     <nav class="nav" aria-label="Primary">
       <div class="section-label">Monitoring</div>
@@ -1256,7 +1286,7 @@
     <div class="sidebar-bottom">
       <button class="mode-toggle" type="button" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-        Dark mode
+        <span>Dark mode</span>
       </button>
       <button class="mode-toggle signout" type="button" id="sidebar-auth-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
@@ -1434,40 +1464,21 @@
           </div>
         </div>
 
-        <div class="card feed-card">
+        <div class="card feed-card" id="ov-streak-card">
           <div class="feed-head">
             <div class="feed-title-group">
-              <span class="feed-icon green" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg></span>
-              <span class="feed-title green-title">Actions &amp; Updates</span>
+              <span class="feed-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>
+              <span class="feed-title">Drivers on Alert Streak</span>
             </div>
-            <button class="view-all" type="button" data-goto="data">View all</button>
+            <button class="view-all" type="button" data-goto="driver-asset">See full list</button>
           </div>
-          <div class="action-body" id="ov-actions-body">
+          <div class="action-body" id="ov-streak-body">
             <div class="action-row"><div class="action-body-text"><div class="action-main">Loading…</div></div></div>
           </div>
-        </div>
-
-        <div class="card feed-card" id="ov-insight-card">
-          <div class="feed-head">
-            <div class="feed-title-group">
-              <span class="feed-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/><circle cx="12" cy="12" r="4"/></svg></span>
-              <span class="feed-title">Key Insight</span>
-            </div>
-          </div>
-          <div class="action-body" id="ov-insight-body">
-            <div class="action-row"><div class="action-body-text"><div class="action-main">Loading…</div></div></div>
-          </div>
-        </div>
-
-        <div class="card feed-card" id="ov-updates-card">
-          <div class="feed-head">
-            <div class="feed-title-group">
-              <span class="feed-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg></span>
-              <span class="feed-title">Latest Updates</span>
-            </div>
-          </div>
-          <div class="action-body" id="ov-updates-body">
-            <div class="action-row"><div class="action-body-text"><div class="action-main">Loading…</div></div></div>
+          <div class="feed-footer">
+            <button type="button" data-goto="driver-asset">See full list
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -1783,6 +1794,7 @@
         <button class="dm-tab" type="button" data-source="minestat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg>Minestat Data</button>
         <button class="dm-tab" type="button" data-source="masterlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15 14.2c2.9.4 5 2.5 5 5.8"/></svg>Masterlist</button>
         <button class="dm-tab" type="button" data-source="factors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Contributing Factors</button>
+        <button class="dm-tab" type="button" data-source="review" id="dm-tab-review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v3l2 2"/></svg>Name Review<span class="dm-review-badge" id="dm-review-badge" hidden></span></button>
       </nav>
 
       <!-- ============ DDS DATA ============ -->
@@ -1859,7 +1871,7 @@
           </div>
 
           <div class="card dm-panel">
-            <div class="dm-card-head"><div><h3 class="dm-card-title">Manual Add Record</h3><div class="dm-card-sub">Encode a single reading by hand</div></div></div>
+            <div class="dm-card-head"><div><h3 class="dm-card-title">Manual Add Record</h3><div class="dm-card-sub">Encode a single shift record by hand</div></div></div>
             <div class="dm-manual-body">
               <div class="dm-manual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div>
               <div class="dm-manual-text">Add a production, telemetry, or fuel record directly to a Minestat dataset.</div>
@@ -2015,6 +2027,79 @@
         </section>
       </div>
 
+      <!-- ============ NAME REVIEW ============ -->
+      <!-- Every row here is a driver-name LINKING problem, not a data-entry
+           one: a real, non-blank operator name from a DDS or Minestat upload
+           that dds_resolve_name() (0018) could not match to the masterlist
+           at any of its 6 tiers. A blank operator field never appears here —
+           that case is "No Operator", shown inline elsewhere, and is
+           expected rather than a problem (see driverLinkLabel()). This tab
+           is the human-in-the-loop step the resolution ladder always had a
+           place for (import_name_review / minestat_name_review, and their
+           resolve/ignore/reopen RPCs) but that never had a UI until now. -->
+      <div class="dm-source" id="dm-source-review">
+        <section class="card dm-records-card">
+          <div class="dm-records-head">
+            <h3 class="dm-records-title" id="dm-review-dds-title">DDS — Names Needing Review <small>0 open</small></h3>
+            <select class="al-filter" id="dm-review-dds-state" style="cursor:pointer;flex:0 0 auto;width:auto;padding:0 28px 0 11px">
+              <option value="open">Open</option>
+              <option value="resolved">Resolved</option>
+              <option value="ignored">Ignored</option>
+              <option value="all">All</option>
+            </select>
+            <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search raw name..." id="dm-review-dds-search"></div>
+            <button class="al-filter" type="button" id="dm-review-dds-recheck" style="cursor:pointer" title="Re-run name matching for every open DDS review row against the masterlist as it stands right now — useful after correcting a name or adding an alias">↻&nbsp; Re-check unresolved names</button>
+          </div>
+          <div class="dm-table-wrap">
+            <table class="dm-table" id="dm-table-review-dds">
+              <thead><tr><th>Raw Name (as logged)</th><th>Why it didn't link</th><th>Best guess(es)</th><th>Alert rows waiting</th><th>Decision</th></tr></thead>
+              <tbody><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+            </table>
+          </div>
+          <div class="dm-table-foot"><span id="dm-review-dds-foot"></span></div>
+        </section>
+
+        <section class="card dm-records-card" style="margin-top:16px">
+          <div class="dm-records-head">
+            <h3 class="dm-records-title" id="dm-review-minestat-title">Minestat — Names Needing Review <small>0 open</small></h3>
+            <select class="al-filter" id="dm-review-minestat-state" style="cursor:pointer;flex:0 0 auto;width:auto;padding:0 28px 0 11px">
+              <option value="open">Open</option>
+              <option value="resolved">Resolved</option>
+              <option value="ignored">Ignored</option>
+              <option value="all">All</option>
+            </select>
+            <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search raw name..." id="dm-review-minestat-search"></div>
+            <button class="al-filter" type="button" id="dm-review-minestat-recheck" style="cursor:pointer" title="Re-run name matching for every open Minestat review row against the masterlist as it stands right now — useful after correcting a name or adding an alias">↻&nbsp; Re-check unresolved names</button>
+          </div>
+          <div class="dm-table-wrap">
+            <table class="dm-table" id="dm-table-review-minestat">
+              <thead><tr><th>Raw Name (as logged)</th><th>Why it didn't link</th><th>Best guess(es)</th><th>Shift rows waiting</th><th>Decision</th></tr></thead>
+              <tbody><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+            </table>
+          </div>
+          <div class="dm-table-foot"><span id="dm-review-minestat-foot"></span></div>
+        </section>
+      </div>
+
+      <!-- ============ CONFIRM MATCH MODAL ============ -->
+      <div class="dm-modal-mask" id="dm-review-modal-mask">
+        <div class="dm-modal" role="dialog" aria-modal="true" aria-labelledby="dm-review-modal-title">
+          <div class="dm-modal-head">
+            <div><div class="dm-modal-title" id="dm-review-modal-title">Confirm Employee Match</div><div class="dm-modal-sub">Link this raw name to a masterlist employee. This is remembered as an alias, so the same spelling resolves automatically next time.</div></div>
+            <button class="dm-modal-close" type="button" id="dm-review-modal-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          </div>
+          <div class="dm-modal-body">
+            <div class="dm-modal-field"><label>Raw name</label><input type="text" id="dm-review-modal-rawname" disabled></div>
+            <div class="dm-modal-field"><label for="dm-review-modal-empno">Employee ID</label><input type="text" id="dm-review-modal-empno" placeholder="e.g. EMP-0233"></div>
+            <div class="dm-modal-field" id="dm-review-modal-candidates-wrap" style="display:none"><label>Suggested matches</label><div id="dm-review-modal-candidates" class="dm-review-candidates"></div></div>
+          </div>
+          <div class="dm-modal-foot">
+            <button class="dm-modal-cancel" type="button" id="dm-review-modal-cancel">Cancel</button>
+            <button class="dm-modal-save" type="button" id="dm-review-modal-confirm">Confirm Match</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ============ MANUAL ADD MODAL ============ -->
       <div class="dm-modal-mask" id="dm-modal-mask">
         <div class="dm-modal" role="dialog" aria-modal="true" aria-labelledby="dm-modal-title">
@@ -2029,9 +2114,17 @@
             <div class="dm-modal-row"><div class="dm-modal-field"><label for="dm-dds-asset">Asset</label><input type="text" id="dm-dds-asset" placeholder="e.g. DT-233"></div><div class="dm-modal-field"><label for="dm-dds-driver">Driver</label><input type="text" id="dm-dds-driver" placeholder="e.g. R. Santos"></div></div>
           </div>
           <div class="dm-modal-body" id="dm-modal-body-minestat" style="display:none">
-            <div class="dm-modal-field"><label for="dm-mine-dataset">Dataset</label><select id="dm-mine-dataset"><option>MIE STAT</option><option>POLIHON</option><option>MIE - SANY</option><option>MIE - Fuel</option><option>Rainfall Data</option><option value="__other__">Other…</option></select><input type="text" class="dm-other-input" id="dm-mine-dataset-other" placeholder="Enter dataset name" style="margin-top:8px;display:none"></div>
-            <div class="dm-modal-row"><div class="dm-modal-field"><label for="dm-mine-date">Date</label><input type="date" id="dm-mine-date"></div><div class="dm-modal-field"><label for="dm-mine-value">Value / Reading</label><input type="text" id="dm-mine-value" placeholder="e.g. 128.4"></div></div>
-            <div class="dm-modal-field"><label for="dm-mine-asset">Asset / Unit</label><input type="text" id="dm-mine-asset" placeholder="e.g. DT-233"></div>
+            <!-- Mirrors the real MineStat file header exactly, confirmed
+                 directly by the user: Unit | Date | Shift | Operating |
+                 Down | Delay | Standby | Total Hour | Last Name |
+                 First Name | Middle Name. -->
+            <div class="dm-modal-row"><div class="dm-modal-field"><label for="dm-mine-asset">Asset / Unit</label><input type="text" id="dm-mine-asset" placeholder="e.g. DT-233"></div><div class="dm-modal-field"><label for="dm-mine-date">Shift Date</label><input type="date" id="dm-mine-date"></div></div>
+            <div class="dm-modal-field"><label for="dm-mine-shift">Shift</label><select id="dm-mine-shift"><option value="DAY">Day</option><option value="NIGHT">Night</option></select></div>
+            <div class="dm-modal-row"><div class="dm-modal-field"><label for="dm-mine-operating">Operating Hrs</label><input type="number" id="dm-mine-operating" min="0" step="0.01" value="0"></div><div class="dm-modal-field"><label for="dm-mine-down">Down Hrs</label><input type="number" id="dm-mine-down" min="0" step="0.01" value="0"></div></div>
+            <div class="dm-modal-row"><div class="dm-modal-field"><label for="dm-mine-delay">Delay Hrs</label><input type="number" id="dm-mine-delay" min="0" step="0.01" value="0"></div><div class="dm-modal-field"><label for="dm-mine-standby">Standby Hrs</label><input type="number" id="dm-mine-standby" min="0" step="0.01" value="0"></div></div>
+            <div class="dm-modal-field"><label for="dm-mine-total">Total Hrs</label><input type="number" id="dm-mine-total" min="0" step="0.01" value="0"></div>
+            <div class="dm-modal-row"><div class="dm-modal-field"><label for="dm-mine-lastname">Last Name <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" id="dm-mine-lastname" placeholder="e.g. Dela Cruz"></div><div class="dm-modal-field"><label for="dm-mine-firstname">First Name <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" id="dm-mine-firstname" placeholder="e.g. Juan"></div></div>
+            <div class="dm-modal-field"><label for="dm-mine-middlename">Middle Name <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" id="dm-mine-middlename" placeholder="e.g. Santos"></div>
           </div>
           <div class="dm-modal-body" id="dm-modal-body-masterlist" style="display:none">
             <div class="dm-modal-row"><div class="dm-modal-field"><label for="dm-ml-empid">Employee ID</label><input type="text" id="dm-ml-empid" placeholder="e.g. EMP-0240"></div><div class="dm-modal-field"><label for="dm-ml-name">Full Name</label><input type="text" id="dm-ml-name" placeholder="e.g. Juan Dela Cruz"></div></div>
@@ -2049,11 +2142,16 @@
         </div>
       </div>
 
-      <!-- ============ PRE-FLIGHT: duplicate/inconsistency review before upload ============ -->
+      <!-- ============ PRE-FLIGHT: cleaned-dataset preview before upload ============ -->
+      <!-- Shows the ACTUAL rows that will be sent to Supabase — already
+           normalized, calculated (Date/Shift/Sync Interval), and
+           employee-linked — not the raw file contents. Per the
+           architecture, this is the one place a user can verify the final
+           cleaned dataset before it becomes a database write. -->
       <div class="dm-modal-mask" id="dm-preflight-mask">
-        <div class="dm-modal" role="dialog" aria-modal="true" aria-labelledby="dm-preflight-title" style="max-width:460px">
+        <div class="dm-modal" role="dialog" aria-modal="true" aria-labelledby="dm-preflight-title" style="max-width:820px">
           <div class="dm-modal-head">
-            <div><div class="dm-modal-title" id="dm-preflight-title">Review before uploading</div><div class="dm-modal-sub">Checked against this file and what's already saved</div></div>
+            <div><div class="dm-modal-title" id="dm-preflight-title">Review before uploading</div><div class="dm-modal-sub">The cleaned dataset that will be sent to Supabase</div></div>
           </div>
           <div class="dm-modal-body" style="display:block" id="dm-preflight-body"></div>
           <div class="dm-modal-foot">
@@ -2781,6 +2879,7 @@
         </div>
         <div class="se-confirm-title" id="se-confirm-title">Delete all system data?</div>
         <div class="se-confirm-body" id="se-confirm-body">This permanently removes all detected events, driver and asset history, and uploaded records. This cannot be undone.</div>
+        <div class="se-addform-err" id="se-confirm-err">Could not delete data.</div>
         <div class="se-confirm-actions">
           <button class="se-btn-ghost" type="button" id="se-confirm-cancel">Cancel</button>
           <button class="se-btn-danger solid" type="button" id="se-confirm-ok">Yes, delete everything</button>
@@ -3007,6 +3106,24 @@
       if(SEVERITY_RULES[i].test.test(s)) return SEVERITY_RULES[i];
     }
     return { tier: 'moderate', label: 'Other', color: '#94a3b8' };
+  }
+
+  // Every render site that shows a driver name for a row with no resolved
+  // emp_no used to collapse to the single label 'Unspecified' regardless of
+  // WHY it was unresolved. That erased a real distinction the backend
+  // already tracks: a blank OPERATOR field (dds_ingest never even attempts
+  // resolution for one — see 0019's comment on import_name_review) means no
+  // driver was ever logged for that alert, which is expected and not a
+  // problem. A non-blank OPERATOR that failed every tier of dds_resolve_name
+  // (0018) means the raw text names someone real who could not be matched to
+  // the masterlist — a linking problem sitting in import_name_review /
+  // minestat_name_review waiting for a human decision. Conflating the two
+  // hid every linking problem behind a label that looked identical to the
+  // harmless case. driverLinkLabel() is the one place this distinction is
+  // made, so every render site says the same thing for the same situation.
+  function driverLinkLabel(empNo, operator){
+    if(empNo) return null; // caller should use the resolved/display name instead
+    return (operator && String(operator).trim()) ? 'Needs Review' : 'No Operator';
   }
 
   // Single shared session cache — was 4 independent per-page caches
@@ -3424,108 +3541,55 @@
     }
 
     // ---- Latest Updates: a second slice of the same recentAlerts[] feed, per the plan (no second data source) ----
-    function renderUpdates(cur){
-      var body = document.getElementById('ov-updates-body');
+    // ==================== Drivers on Alert Streak ====================
+    // Replaces Actions & Updates / Key Insight / Latest Updates per direct
+    // instruction. Surfaces dds_driver_asset_weekly()'s own streak/status
+    // fields (0065) — the same consecutive-high-alert-day detection that
+    // powers Driver & Asset Monitoring's High/Medium Risk tiles — rather
+    // than recomputing anything client-side.
+    //
+    // Uses the SAME default (p_from/p_to null -> trailing 7 days) window
+    // Driver & Asset Monitoring's own dashboard already calls this function
+    // with — deliberately NOT a wider window. dds_driver_asset_weekly() is
+    // already borderline against the `authenticated` role's 8s
+    // statement_timeout even at 7 days (fixed for the common case in 0065's
+    // batched-streak rewrite); a second, wider call from this card would
+    // double concurrent load on the same expensive function on every
+    // Overview load and reintroduces the exact timeout 0065 just fixed —
+    // confirmed live: an earlier 90-day version of this card did exactly
+    // that and timed out. Same limitation as the dashboard tiles this card
+    // mirrors: a real streak that falls just outside the trailing 7 days
+    // won't show here either, until that entity's own activity re-enters
+    // the window.
+    function renderDriverStreaks(){
+      var body = document.getElementById('ov-streak-body');
       if(!body) return;
-      var rows = (cur.recentAlerts || []).slice(4, 8);
-      if(!rows.length){ body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Nothing else recorded this week.</div></div></div>'; return; }
-      body.innerHTML = rows.map(function(r){
-        var sev = severityBadge(r.eventCode);
-        var t = r.time ? new Date(r.time) : null;
-        var timeStr = t ? t.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false }) : '—';
-        return '<div class="action-row">' +
-          '<span class="action-dot ' + (sev.tier === 'critical' ? 'active' : 'resolved') + '" aria-hidden="true"></span>' +
-          '<div class="action-body-text">' +
-            '<div class="action-main"><strong>' + esc(r.eventCode || EVENT_LABEL_FALLBACK) + '</strong> <span class="time-ago">— ' + esc(timeStr) + '</span></div>' +
-            '<div class="action-sub">' + esc(r.asset || '—') + ' · ' + esc(r.operator || 'Unspecified') + '</div>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-    }
-
-    // ==================== Actions & Updates: real activity log from contributing_factors ====================
-    function relativeAgo(iso){
-      if(!iso) return '';
-      var ms = Date.now() - new Date(iso).getTime();
-      if(ms < 0) ms = 0;
-      var mins = Math.round(ms / 60000);
-      if(mins < 60) return mins + 'm ago';
-      var hrs = Math.floor(mins / 60);
-      return hrs + 'h ' + (mins % 60) + 'm ago';
-    }
-    function renderActions(){
-      var body = document.getElementById('ov-actions-body');
-      if(!body) return;
-      DB.from('contributing_factors').select('factor_type,detail,start_time,end_time,notes,logged_at')
-        .order('logged_at', { ascending:false }).limit(2)
-        .then(function(res){
-          if(res.error) throw res.error;
-          var rows = res.data || [];
-          if(!rows.length){
-            body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">No contributing factors logged.</div></div></div>';
-            return;
-          }
-          body.innerHTML = rows.map(function(r){
-            var resolved = !!r.end_time;
-            var main = r.detail || r.factor_type || 'Contributing factor';
-            var sub = r.notes ? r.notes : (r.factor_type && r.detail ? r.factor_type : 'Logged event');
-            return '<div class="action-row">' +
-              '<span class="action-dot ' + (resolved ? 'resolved' : 'active') + '" aria-hidden="true"></span>' +
-              '<div class="action-body-text">' +
-                '<div class="action-main"><strong>' + esc(main) + '</strong> <span class="time-ago">— ' + esc(relativeAgo(r.logged_at)) + '</span></div>' +
-                '<div class="action-sub">' + esc(sub) + '</div>' +
-              '</div>' +
-              '<span class="action-badge ' + (resolved ? 'resolved' : 'active') + '">' + (resolved ? 'Resolved' : 'Active') + '</span>' +
-            '</div>';
-          }).join('');
-        })
-        .catch(function(err){
-          body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
-        });
-    }
-
-    // ==================== Key Insight: client-computed from the already-fetched dds_metrics() payload ====================
-    // A simplified, mock-appropriate equivalent of index.html's insightBullets
-    // object (assetsTrend/volumeTrend/populationAssets/etc, index.html ~7924) —
-    // same underlying signals (volume trend, assets trend), not a port of that
-    // object's richer delta7d/pearsonR/analyticsTarget machinery, which has no
-    // counterpart in this mock (no Analytics-anchor deep-linking here).
-    function computeInsight(cur, prev){
-      var kpis = cur.kpis || {};
-      var prevKpis = (prev && prev.kpis) || null;
-      if(prevKpis && prevKpis.totalAlerts != null && kpis.totalAlerts != null && prevKpis.totalAlerts !== 0){
-        var pct = Math.round(Math.abs(kpis.totalAlerts - prevKpis.totalAlerts) / prevKpis.totalAlerts * 100);
-        var up = kpis.totalAlerts > prevKpis.totalAlerts;
-        return {
-          main: 'Total alert volume ' + (up ? 'up' : 'down') + ' ' + pct + '% vs prior 7 days',
-          sub: fmtNum(kpis.totalAlerts) + ' alerts this week · ' + fmtNum(prevKpis.totalAlerts) + ' the week before',
-          tier: up ? 'active' : 'resolved'
-        };
-      }
-      if(kpis.distinctAssets != null){
-        return {
-          main: fmtNum(kpis.distinctAssets) + ' assets reporting this week',
-          sub: fmtNum(kpis.distinctOperators || 0) + ' drivers involved across ' + fmtNum(kpis.totalAlerts || 0) + ' alerts',
-          tier: 'resolved'
-        };
-      }
-      return null;
-    }
-    function renderInsight(cur, prev){
-      var body = document.getElementById('ov-insight-body');
-      if(!body) return;
-      var insight = computeInsight(cur, prev);
-      if(!insight){
-        body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Not enough data yet for an insight.</div></div></div>';
-        return;
-      }
-      body.innerHTML = '<div class="action-row">' +
-        '<span class="action-dot ' + insight.tier + '" aria-hidden="true"></span>' +
-        '<div class="action-body-text">' +
-          '<div class="action-main"><strong>' + esc(insight.main) + '</strong></div>' +
-          '<div class="action-sub">' + esc(insight.sub) + '</div>' +
-        '</div>' +
-      '</div>';
+      DB.rpc('dds_driver_asset_weekly', { p_from: null, p_to: null }).then(function(res){
+        if(res.error) throw res.error;
+        var drivers = ((res.data || {}).drivers || [])
+          .filter(function(d){ return d.id !== 'UNSPECIFIED' && (d.streakDays || 0) > 0; })
+          .sort(function(a, b){ return (b.streakDays || 0) - (a.streakDays || 0); })
+          .slice(0, 5);
+        if(!drivers.length){
+          body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">No drivers currently on an alert streak.</div></div></div>';
+          return;
+        }
+        body.innerHTML = drivers.map(function(d){
+          var required = d.status === 'required';
+          var days = d.streakDays || 0;
+          return '<div class="action-row">' +
+            '<span class="action-dot ' + (required ? 'active' : 'resolved') + '" aria-hidden="true"></span>' +
+            '<div class="action-body-text">' +
+              '<div class="action-main"><strong>' + esc(d.name || d.id) + '</strong></div>' +
+              '<div class="action-sub">' + days + ' consecutive day' + (days === 1 ? '' : 's') + ' over the daily alert threshold</div>' +
+            '</div>' +
+            '<span class="action-badge ' + (required ? 'active' : 'resolved') + '">' + (required ? 'Action Required' : 'Monitoring') + '</span>' +
+          '</div>';
+        }).join('');
+      }).catch(function(err){
+        console.error('Driver streak fetch failed', err);
+        body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
+      });
     }
 
     // ==================== orchestration: mirrors index.html's App.loadFromServer() ====================
@@ -3549,7 +3613,7 @@
           setStatus(false);
           var text = document.getElementById('ov-status-text');
           if(text) text.textContent = 'Sign in to load live data';
-          ['ov-feed-list','ov-actions-body','ov-insight-body','ov-updates-body'].forEach(function(id){
+          ['ov-feed-list','ov-streak-body'].forEach(function(id){
             var el = document.getElementById(id);
             if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Sign in to load real data — this page reads live data, not a mock.</div></div></div>';
           });
@@ -3578,10 +3642,8 @@
           setStatus(true);
           renderTrend(week);
           renderFeed(week);
-          renderUpdates(week);
-          renderActions();
+          renderDriverStreaks();
           renderKpis(week, prevWeek);
-          renderInsight(week, prevWeek);
 
           // Hourly chart is inherently a single-day shape (24 buckets) —
           // summing a week into it would silently become a different
@@ -3617,7 +3679,7 @@
           console.error('Overview metrics fetch failed', err);
           var text = document.getElementById('ov-status-text');
           if(text) text.textContent = 'Unable to load fleet data';
-          ['ov-feed-list','ov-actions-body','ov-insight-body','ov-updates-body'].forEach(function(id){
+          ['ov-feed-list','ov-streak-body'].forEach(function(id){
             var el = document.getElementById(id);
             if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
           });
@@ -3644,7 +3706,14 @@
     function fmtPct(n, d){ return (n == null ? 0 : n).toFixed(d == null ? 0 : d) + '%'; }
 
     var UNSPECIFIED_OPERATOR = 'Unspecified';
-    var driverLabel = function(o){ return o.empNo || o.id; };
+    // dds_metrics()'s topOperators[].id is already the resolved display
+    // name ("SURNAME, First Middle") once a row's emp_no matches the
+    // masterlist — .empNo is the raw ID, meant as a fallback only for the
+    // rare case a name never resolved. This previously had the priority
+    // backwards (o.empNo || o.id), so "Top Employees by Alerts" showed raw
+    // employee numbers instead of names for every single resolved driver —
+    // only visible against real data, not the signed-out/empty state.
+    var driverLabel = function(o){ return o.id || o.empNo; };
 
     // ---- clock (same pattern as Overview) ----
     var clockTimeEl = document.querySelector('#page-analytics .time');
@@ -4324,6 +4393,13 @@
     var summaryNavBtn = document.querySelector('.nav-item[data-page="summary"]');
     if(summaryNavBtn) summaryNavBtn.addEventListener('click', renderSummary);
 
+    // Also registered under the standard __ddsPageLoad hook (unlike every
+    // other page here, Summary has no fetch of its own to re-run — it only
+    // needs to re-read window.__daState after something else, like a fleet
+    // data reset, refreshes it) so a full-app refresh doesn't leave this
+    // page's DOM showing pre-reset rows until its nav item is next clicked.
+    window.__ddsPageLoad.summary = renderSummary;
+
     var printBtn = document.getElementById('su-print-btn');
     if(printBtn) printBtn.addEventListener('click', function(){ window.print(); });
 
@@ -4576,6 +4652,28 @@
       });
       if(sidebarModeToggle) sidebarModeToggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
       if(!skipSave) savePreferences({ theme: dark ? 'dark' : 'light' });
+    }
+
+    // ---- Sidebar auto-collapse: icon-only rail by default, expands on
+    // hover or when pinned open. The pin state persists per-browser so a
+    // user who wants it left open doesn't have to re-click every visit. ----
+    var sidebarEl = document.getElementById('app-sidebar');
+    var sidebarPinBtn = document.getElementById('sidebar-pin-btn');
+    if(sidebarEl && sidebarPinBtn){
+      var SIDEBAR_PIN_KEY = 'dds_sidebar_pinned';
+      var pinned = false;
+      try{ pinned = localStorage.getItem(SIDEBAR_PIN_KEY) === '1'; }catch(e){}
+
+      function setPinned(on){
+        pinned = on;
+        sidebarEl.classList.toggle('pinned-open', on);
+        sidebarPinBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        sidebarPinBtn.setAttribute('aria-label', on ? 'Collapse sidebar' : 'Keep sidebar open');
+        try{ localStorage.setItem(SIDEBAR_PIN_KEY, on ? '1' : '0'); }catch(e){}
+      }
+      setPinned(pinned);
+
+      sidebarPinBtn.addEventListener('click', function(){ setPinned(!pinned); });
     }
 
     themeOpts.forEach(function(opt){
@@ -4855,21 +4953,74 @@
     }
 
     // ---- System Management: delete all data (destructive, confirm-gated) ----
+    // Calls the real dds_reset_fleet_data() RPC (security definer, already
+    // shipped in 0053_reset_fleet_data_full_coverage.sql but never invoked
+    // from the client until now) — truncates every operational table
+    // (events, imports, drivers, minestat_shifts, contributing_factors,
+    // alert_cases, driver_asset_actions/severity, entity_status/action_log,
+    // name-review queues) while leaving profiles/user_settings untouched.
+    // The RPC itself only requires an authenticated session, not admin —
+    // so the button is hidden from non-admins here, same gating pattern as
+    // Access Management's inviteBtn just above.
     var confirmMask = document.getElementById('se-confirm-mask');
     var deleteBtn = document.getElementById('se-delete-btn');
     var confirmCancelBtn = document.getElementById('se-confirm-cancel');
     var confirmOkBtn = document.getElementById('se-confirm-ok');
+    var confirmErr = document.getElementById('se-confirm-err');
 
-    if(deleteBtn) deleteBtn.addEventListener('click', function(){ confirmMask.classList.add('on'); });
+    if(deleteBtn) deleteBtn.style.display = accessState.isAdmin ? '' : 'none';
+
+    if(deleteBtn) deleteBtn.addEventListener('click', function(){
+      if(confirmErr) confirmErr.classList.remove('on');
+      confirmMask.classList.add('on');
+    });
     if(confirmCancelBtn) confirmCancelBtn.addEventListener('click', function(){ confirmMask.classList.remove('on'); });
     if(confirmMask) confirmMask.addEventListener('click', function(e){ if(e.target === confirmMask) confirmMask.classList.remove('on'); });
     if(confirmOkBtn){
       confirmOkBtn.addEventListener('click', function(){
-        confirmMask.classList.remove('on');
-        // Visual-only mock: no actual data store is cleared. A real implementation
-        // would clear the relevant state/localStorage here and likely redirect
-        // to a confirmation screen rather than staying on this page silently.
-        withSpinner(deleteBtn, 'Deleting…', 'All data deleted');
+        if(confirmErr) confirmErr.classList.remove('on');
+        confirmOkBtn.disabled = true;
+        confirmCancelBtn.disabled = true;
+        var original = deleteBtn.innerHTML;
+        deleteBtn.disabled = true;
+        deleteBtn.style.opacity = '.65';
+        deleteBtn.innerHTML = '<svg class="se-sys-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg>Deleting…';
+
+        DB.rpc('dds_reset_fleet_data').then(function(res){
+          confirmOkBtn.disabled = false;
+          confirmCancelBtn.disabled = false;
+          if(res.error){
+            deleteBtn.innerHTML = original;
+            deleteBtn.disabled = false;
+            deleteBtn.style.opacity = '';
+            if(confirmErr){
+              confirmErr.textContent = 'Could not delete data: ' + esc(res.error.message || 'unknown error');
+              confirmErr.classList.add('on');
+            }
+            return;
+          }
+          confirmMask.classList.remove('on');
+          deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>All data deleted';
+          setTimeout(function(){
+            deleteBtn.innerHTML = original;
+            deleteBtn.disabled = false;
+            deleteBtn.style.opacity = '';
+          }, 1400);
+          // Refresh every page's own data loader — Overview, Analytics,
+          // Alert Logs, Driver & Asset Monitoring, Data Management (all
+          // tabs + every Upload History panel + the Name Review badge),
+          // and Settings — so the wipe is reflected immediately instead of
+          // leaving a stale pre-reset snapshot until the user manually
+          // navigates away and back. Summary has no fetch of its own; it
+          // re-renders from window.__daState, which Driver & Asset's own
+          // loader (invoked here) refreshes and then nudges Summary from
+          // directly once the fetch actually resolves — calling
+          // __ddsPageLoad.summary() here too is a harmless, immediate
+          // (but stale) first pass ahead of that real one.
+          Object.keys(window.__ddsPageLoad).forEach(function(pageKey){
+            try{ window.__ddsPageLoad[pageKey](); }catch(e){}
+          });
+        });
       });
     }
   })();
@@ -4882,6 +5033,377 @@
   // is still NOT wired (flagged in MIGRATION_STATUS.md, not silently
   // skipped) — the Edit buttons stay visually in place but inert.
   (function(){
+    // ==================================================================
+    // CLIENT-SIDE NORMALIZATION + EMPLOYEE-LINKING ENGINE
+    // ------------------------------------------------------------------
+    // Ports the SQL that used to do this work at ingest time:
+    //   dds_norm_name / dds_strip_suffix / dds_collapse_surname_prefix /
+    //   dds_surname_of / dds_first_of / dds_surname_first_key /
+    //   dds_name_skeleton / dds_resolve_name  (supabase/migrations 0018,
+    //   0029, 0031, 0054 — bodies verified against the live migration
+    //   files, not re-derived from memory)
+    //   dds_shift / dds_shift_date / dds_actionable / events.sync_seconds
+    //   (0001_init.sql, 0031 — pin-only redefinition, body unchanged)
+    //
+    // WHY THIS EXISTS: the architecture decision (see docs) is that the
+    // browser must produce a fully-resolved, fully-calculated row before
+    // anything reaches Supabase — Supabase is the clean-record store, not
+    // the normalization engine. This block is the single source of truth
+    // for that normalization on the client, mirroring the SQL functions
+    // field-for-field so the two never quietly disagree about what a
+    // given name or timestamp means.
+    //
+    // The SQL functions THEMSELVES are not removed — dds_resolve_name and
+    // its supporting functions stay in the database as the engine behind
+    // the Name Review queue's re-check buttons (dds_reresolve_all /
+    // dds_minestat_reresolve_all) and as a safety net for any row that
+    // reaches events with emp_no still null. They are simply no longer on
+    // the critical path of a normal upload.
+    // ==================================================================
+    var DDS = window.DDS_LINK = window.DDS_LINK || {};
+
+    // ---- dds_norm_name (0029, widened by 0054) ----
+    // translate() table, POSITIONAL — source[i] must map to target[i] at
+    // the same index, verified length-for-length against the SQL:
+    //   Ññ?                       (3)  -> NNN                       (3)
+    //   ÁÉÍÓÚáéíóúÜü               (12) -> AEIOUaeiouUu               (12)
+    //   ÀÈÌÒÙàèìòù                 (10) -> AEIOUaeiou                 (10)  [0054]
+    //   ÂÊÎÔÛâêîôû                 (10) -> AEIOUaeiou                 (10)  [0054]
+    //   .-/' (+ U+00A0 nbsp)       (5)  -> (5 spaces)                (5)
+    var NORM_MAP = (function(){
+      var from = 'Ññ?' + 'ÁÉÍÓÚáéíóúÜü' + 'ÀÈÌÒÙàèìòù' + 'ÂÊÎÔÛâêîôû' + '.-/\'' + ' ';
+      var to   = 'NNN' + 'AEIOUaeiouUu' + 'AEIOUaeiou' + 'AEIOUaeiou' + '     ' + ' ';
+      var map = {};
+      for(var i = 0; i < from.length; i++) map[from[i]] = to[i];
+      return map;
+    })();
+    function ddsNormName(s){
+      if(s == null) s = '';
+      var upper = String(s).toUpperCase();
+      var translated = '';
+      for(var i = 0; i < upper.length; i++){
+        var ch = upper[i];
+        translated += (NORM_MAP.hasOwnProperty(ch) ? NORM_MAP[ch] : ch);
+      }
+      // '\s*,\s*' -> ', ', then '\s+' -> ' ', then trim — same order as SQL.
+      var out = translated.replace(/\s*,\s*/g, ', ').replace(/\s+/g, ' ').trim();
+      return out === '' ? null : out;
+    }
+    DDS.normName = ddsNormName;
+
+    // ---- dds_strip_suffix (0018 original rule + 0054's comma-shape rules) ----
+    var SUFFIX_RE_TRAILING_COMMA = /,\s*(JR|SR|II|III|IV)\s*$/g;
+    var SUFFIX_RE_BEFORE_COMMA   = /^(.*?)\s+(JR|SR|II|III|IV)\s*,/g;
+    var SUFFIX_RE_TRAILING       = /\s+(JR|SR|II|III|IV)$/g;
+    function ddsStripSuffix(s){
+      if(s == null) s = '';
+      var out = String(s)
+        .replace(SUFFIX_RE_TRAILING_COMMA, '')
+        .replace(SUFFIX_RE_BEFORE_COMMA, '$1,')
+        .replace(SUFFIX_RE_TRAILING, '')
+        .trim();
+      return out === '' ? null : out;
+    }
+    DDS.stripSuffix = ddsStripSuffix;
+
+    // ---- dds_collapse_surname_prefix (0029) ----
+    function ddsCollapseSurnamePrefix(s){
+      if(s == null) s = '';
+      return String(s)
+        .replace(/^DE\s+LA(\s+)/, 'DELA$1')
+        .replace(/^DE\s+LOS(\s+)/, 'DELOS$1')
+        .replace(/^VDA\s+DE(\s+)/, 'VDADE$1');
+    }
+
+    // ---- dds_surname_of / dds_first_of / dds_surname_first_key (0029/0031) ----
+    // All operate on the comma-delimited "SURNAME, GIVEN MIDDLE" convention;
+    // a name with no comma is treated as all-surname (matches SQL exactly:
+    // `case when position(',') > 0 then split_part(s,',',1) else s end`).
+    function ddsSurnameOf(s){
+      if(s == null) s = '';
+      var str = String(s);
+      var base = str.indexOf(',') > -1 ? str.split(',')[0] : str;
+      return ddsCollapseSurnamePrefix(ddsStripSuffix(base) || '');
+    }
+    function ddsFirstOf(s){
+      if(s == null) s = '';
+      var str = String(s);
+      var commaIdx = str.indexOf(',');
+      if(commaIdx === -1) return null;
+      var afterComma = str.slice(commaIdx + 1).trim();
+      var firstToken = afterComma.split(' ')[0];
+      return firstToken || null;
+    }
+    function ddsSurnameFirstKey(s){
+      var parts = [ddsSurnameOf(s), ddsFirstOf(s)].filter(function(p){ return p; });
+      var joined = parts.join(' ');
+      return joined === '' ? null : joined;
+    }
+
+    // ---- dds_name_skeleton (0031): drop vowels + H + spaces ----
+    function ddsNameSkeleton(s){
+      if(s == null) s = '';
+      var out = String(s).replace(/[AEIOUH ]/g, '');
+      return out === '' ? null : out;
+    }
+
+    // ---- Levenshtein distance (standard DP; Postgres's levenshtein_less_equal
+    // early-exits past max_d and returns max_d+1, but dds_resolve_name only
+    // ever compares the result with <=, so a plain full distance is
+    // behaviorally identical for every branch this function takes). ----
+    function levenshtein(a, b){
+      a = a || ''; b = b || '';
+      var m = a.length, n = b.length;
+      if(m === 0) return n;
+      if(n === 0) return m;
+      var prev = new Array(n + 1);
+      var curr = new Array(n + 1);
+      for(var j = 0; j <= n; j++) prev[j] = j;
+      for(var i = 1; i <= m; i++){
+        curr[0] = i;
+        for(var jj = 1; jj <= n; jj++){
+          var cost = a.charAt(i - 1) === b.charAt(jj - 1) ? 0 : 1;
+          curr[jj] = Math.min(
+            prev[jj] + 1,      // deletion
+            curr[jj - 1] + 1,  // insertion
+            prev[jj - 1] + cost // substitution
+          );
+        }
+        var tmp = prev; prev = curr; curr = tmp;
+      }
+      return prev[n];
+    }
+
+    // ---- dds_resolve_name (0018): the 6-tier cascade ----
+    // Requires the caller to have already loaded the masterlist + aliases
+    // via DDS.loadResolverContext() (below) — this function is pure/sync
+    // so it can run per-row in a tight loop without an async round trip.
+    var C_MAX_DIST = 3;   // MAX_DIST
+    var C_AUTO_DIST = 2;  // AUTO_DIST
+    function ddsResolveName(rawName, ctx){
+      var norm = ddsNormName(rawName);
+      if(norm == null) return { empNo: null, tier: 'blank', distance: null, candidates: [] };
+
+      // T0 — learned alias (human-confirmed or seeded from the masterlist).
+      if(ctx.aliasByNormName.hasOwnProperty(norm)){
+        return { empNo: ctx.aliasByNormName[norm], tier: 'alias', distance: null, candidates: [] };
+      }
+
+      // T1 — exact match on the canonical name.
+      var exactMatches = ctx.driversByNormName[norm] || [];
+      if(exactMatches.length === 1){
+        return { empNo: exactMatches[0].empNo, tier: 'exact', distance: null, candidates: [] };
+      }
+      if(exactMatches.length > 1){
+        return {
+          empNo: null, tier: 'ambiguous_exact', distance: null,
+          candidates: exactMatches.map(function(d){ return { emp_no: d.empNo, name: d.fullName, tier: 'exact' }; })
+        };
+      }
+
+      // T2 — equal once generational suffixes are stripped from both sides.
+      var bare = ddsStripSuffix(norm);
+      var bareMatches = ctx.driversByBareName[bare] || [];
+      if(bareMatches.length === 1){
+        return { empNo: bareMatches[0].empNo, tier: 'suffix', distance: null, candidates: [] };
+      }
+
+      // T3 — surname + first given name, middle names discarded.
+      var sf = ddsSurnameFirstKey(norm);
+      if(sf != null){
+        var sfMatches = ctx.driversBySurnameFirst[sf] || [];
+        if(sfMatches.length === 1){
+          return { empNo: sfMatches[0].empNo, tier: 'surname_first', distance: null, candidates: [] };
+        }
+      }
+
+      // T4 — consonant skeleton.
+      var skel = ddsNameSkeleton(bare);
+      if(skel != null && skel.length >= 3){
+        var skelMatches = ctx.driversBySkeleton[skel] || [];
+        if(skelMatches.length === 1){
+          return { empNo: skelMatches[0].empNo, tier: 'skeleton', distance: null, candidates: [] };
+        }
+      }
+
+      // T5 — bounded edit distance. Same guards as the SQL: surname must
+      // start with the same letter, and the length difference must be
+      // within tolerance before distance is computed at all.
+      var normSurnameFirstLetter = (ddsSurnameOf(norm) || '').charAt(0);
+      var candidates = [];
+      for(var i = 0; i < ctx.activeDrivers.length; i++){
+        var d = ctx.activeDrivers[i];
+        if(d.surnameFirstLetter !== normSurnameFirstLetter) continue;
+        if(Math.abs(d.bareName.length - bare.length) > C_MAX_DIST) continue;
+        var dist = levenshtein(bare, d.bareName);
+        if(dist <= C_MAX_DIST) candidates.push({ emp_no: d.empNo, name: d.fullName, tier: 'fuzzy', distance: dist });
+      }
+      candidates.sort(function(a, b){ return a.distance - b.distance || (a.emp_no < b.emp_no ? -1 : 1); });
+
+      if(candidates.length === 0){
+        return { empNo: null, tier: 'none', distance: null, candidates: [] };
+      }
+      var best = candidates[0].distance;
+      var ties = candidates.filter(function(c){ return c.distance === best; }).length;
+      if(ties === 1 && best <= C_AUTO_DIST){
+        return { empNo: candidates[0].emp_no, tier: 'fuzzy', distance: best, candidates: candidates };
+      }
+      return { empNo: null, tier: 'fuzzy_review', distance: best, candidates: candidates };
+    }
+    DDS.resolveName = ddsResolveName;
+
+    // ---- Resolver context loader ----
+    // Fetches the full active/inactive masterlist + every alias once per
+    // upload session, and pre-indexes it the same way dds_resolve_name()'s
+    // SQL query planner would via idx_drivers_name_trgm / driver_aliases'
+    // primary key — an in-memory Map lookup per tier instead of a table
+    // scan per row, since a 10k+ row DDS file resolves a few dozen DISTINCT
+    // names, not 10k independent lookups (same "resolve once per distinct
+    // name" principle dds_ingest()'s SQL already used).
+    DDS.loadResolverContext = function(){
+      return Promise.all([
+        DB.from('drivers').select('emp_no, full_name, status'),
+        DB.from('driver_aliases').select('norm_name, emp_no')
+      ]).then(function(results){
+        var driversRes = results[0], aliasesRes = results[1];
+        if(driversRes.error) throw driversRes.error;
+        if(aliasesRes.error) throw aliasesRes.error;
+
+        var ctx = {
+          aliasByNormName: {},
+          driversByNormName: {},
+          driversByBareName: {},
+          driversBySurnameFirst: {},
+          driversBySkeleton: {},
+          activeDrivers: []
+        };
+
+        (aliasesRes.data || []).forEach(function(a){
+          ctx.aliasByNormName[a.norm_name] = a.emp_no;
+        });
+
+        (driversRes.data || []).forEach(function(d){
+          var norm = ddsNormName(d.full_name);
+          if(norm == null) return;
+          var bare = ddsStripSuffix(norm);
+          var sf = ddsSurnameFirstKey(norm);
+          var skel = ddsNameSkeleton(bare);
+          var rec = { empNo: d.emp_no, fullName: d.full_name, bareName: bare, surnameFirstLetter: (ddsSurnameOf(norm) || '').charAt(0) };
+
+          (ctx.driversByNormName[norm] = ctx.driversByNormName[norm] || []).push(rec);
+          (ctx.driversByBareName[bare] = ctx.driversByBareName[bare] || []).push(rec);
+          if(sf != null) (ctx.driversBySurnameFirst[sf] = ctx.driversBySurnameFirst[sf] || []).push(rec);
+          if(skel != null && skel.length >= 3) (ctx.driversBySkeleton[skel] = ctx.driversBySkeleton[skel] || []).push(rec);
+          if(d.status === 'active') ctx.activeDrivers.push(rec);
+        });
+
+        return ctx;
+      });
+    };
+
+    // ==================================================================
+    // SHIFT / DATE / ACTIONABLE / SYNC_INTERVAL — ported from
+    // dds_shift() / dds_shift_date() / dds_actionable() (0031, body
+    // unchanged since 0001) and events.sync_seconds's GENERATED
+    // expression (0001_init.sql). All times here are UTC-naive wall-clock
+    // values, matching the app's existing Date.UTC()/getUTC*() convention
+    // (see Cloud.toCanonical() and cellToCanonical() elsewhere in this
+    // file) — a "timestamp without time zone" column holding local wall
+    // time, not an instant, so every computation below reads UTC getters
+    // off a Date that was constructed to CARRY the wall-clock value in its
+    // UTC fields, never the browser's local time zone.
+    // ==================================================================
+    var SHIFT_START_SEC = 5 * 3600 + 21 * 60;       // 05:21:00
+    var SHIFT_END_SEC    = 17 * 3600 + 20 * 60 + 59; // 17:20:59
+    function secOfDayUTC(d){ return d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds(); }
+    function ddsShift(startTime){
+      var sec = secOfDayUTC(startTime);
+      return (sec >= SHIFT_START_SEC && sec <= SHIFT_END_SEC) ? 'DAY' : 'NIGHT';
+    }
+    function dateOnlyUTC(d){ return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }
+    function ddsShiftDate(startTime){
+      var sec = secOfDayUTC(startTime);
+      var day = dateOnlyUTC(startTime);
+      if(sec < SHIFT_START_SEC) day.setUTCDate(day.getUTCDate() - 1); // early-morning tail -> previous night shift
+      return day;
+    }
+    function ddsActionable(startTime, updateTime){
+      var shift = ddsShift(startTime);
+      var shiftDate = ddsShiftDate(startTime);
+      if(shift === 'DAY'){
+        var dayStart = new Date(shiftDate); dayStart.setUTCSeconds(dayStart.getUTCSeconds() + SHIFT_START_SEC);
+        var dayEnd = new Date(shiftDate); dayEnd.setUTCSeconds(dayEnd.getUTCSeconds() + SHIFT_END_SEC);
+        return updateTime >= dayStart && updateTime <= dayEnd;
+      }
+      var nightStart = new Date(shiftDate); nightStart.setUTCSeconds(nightStart.getUTCSeconds() + SHIFT_END_SEC + 1); // 17:21:00
+      var nightEnd = new Date(shiftDate); nightEnd.setUTCDate(nightEnd.getUTCDate() + 1); nightEnd.setUTCSeconds(nightEnd.getUTCSeconds() + SHIFT_START_SEC - 1); // next day 05:20:59
+      return updateTime >= nightStart && updateTime <= nightEnd;
+    }
+    // sync_seconds: end_time -> update_time gap, discarding clock-skew
+    // negatives — same guard as the generated column
+    // (`case when end_time is not null and update_time >= end_time then ...`).
+    function ddsSyncSeconds(updateTime, endTime){
+      if(!endTime || !updateTime) return null;
+      if(!(updateTime >= endTime)) return null;
+      return Math.round((updateTime.getTime() - endTime.getTime()) / 1000);
+    }
+    function fmtIsoDateUTC(d){
+      return d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+    }
+    // Human-readable duration for the preview UI only — the value STORED
+    // stays the numeric seconds computed above (per the architecture:
+    // "database uses a consistent numeric representation").
+    function fmtDuration(totalSeconds){
+      if(totalSeconds == null) return '—';
+      var h = Math.floor(totalSeconds / 3600);
+      var m = Math.floor((totalSeconds % 3600) / 60);
+      if(h === 0 && m === 0) return totalSeconds + 's';
+      return (h > 0 ? h + 'h ' : '') + m + 'm';
+    }
+    // A workbook cell's wall-clock reading (whatever a spreadsheet cell
+    // literally displays — year/month/day/hour/minute/second in the
+    // timezone the file's author entered it in) is what this whole
+    // pipeline has always treated as the canonical value: the existing
+    // toCanonical()/cellToCanonical() helpers read a JS Date's LOCAL
+    // getters (getMonth/getDate/getHours, not getUTC*) to build the
+    // "MM/DD/YYYY HH:mm:ss" string that used to be parsed server-side via
+    // `to_timestamp(..., 'MM/DD/YYYY HH24:MI:SS')::timestamp` into a
+    // timestamp WITHOUT time zone — i.e. the wall-clock digits survive
+    // verbatim, with no timezone conversion at any step. To compute
+    // shift/shift_date/actionable/sync_seconds on the exact same value,
+    // this reads a cell's LOCAL wall-clock fields and re-carries them into
+    // a Date's UTC fields (via Date.UTC()), which is what every DDS_LINK
+    // function above expects (it reads getUTC* throughout). This is the
+    // ONE place local-vs-UTC gets bridged — get it wrong here and every
+    // shift/date computed from it would be silently off by the browser's
+    // UTC offset.
+    function wallClockAsUtcDate(cell){
+      var d = (cell instanceof Date) ? cell : new Date(cell);
+      if(isNaN(d)) return null;
+      return new Date(Date.UTC(
+        d.getFullYear(), d.getMonth(), d.getDate(),
+        d.getHours(), d.getMinutes(), d.getSeconds()
+      ));
+    }
+    // Parses toCanonical()'s own "MM/DD/YYYY HH:mm:ss" string output back
+    // into a wall-clock-as-UTC Date — used when a row's timestamp only
+    // exists as that canonical string (e.g. after cellToCanonical() has
+    // already run) rather than as the original cell value.
+    function canonicalStringToUtcDate(s){
+      if(!s) return null;
+      var m = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/.exec(s);
+      if(!m) return null;
+      return new Date(Date.UTC(+m[3], +m[1] - 1, +m[2], +m[4], +m[5], +m[6]));
+    }
+    DDS.wallClockAsUtcDate = wallClockAsUtcDate;
+    DDS.canonicalStringToUtcDate = canonicalStringToUtcDate;
+    DDS.shift = ddsShift;
+    DDS.shiftDate = ddsShiftDate;
+    DDS.actionable = ddsActionable;
+    DDS.syncSeconds = ddsSyncSeconds;
+    DDS.fmtIsoDateUTC = fmtIsoDateUTC;
+    DDS.fmtDuration = fmtDuration;
+
     function fmtDateShort(iso){
       if(!iso) return '—';
       var d = new Date(iso);
@@ -4936,13 +5458,26 @@
           }
           tbody.innerHTML = rows.map(function(r){
             var sev = severityBadge(r.eventCode);
-            var driver = r.driverName || r.operator || 'Unspecified';
+            // driverDisplayName is dds_alert_logs()'s own coalesce(case
+            // override, resolved masterlist name, operator text) — it is
+            // falsy only when the operator text itself was also blank, so a
+            // falsy value here always means "no operator was ever logged",
+            // never "logged but unresolved" (an unresolved-but-non-blank
+            // operator still shows its raw text via that same coalesce).
+            // The linking problem this misses — a real name that FAILED to
+            // resolve — is instead flagged separately below via needsReview,
+            // since driverDisplayName's fallback to raw operator text means
+            // it looks identical to a resolved name unless empNo is also
+            // checked. driverLinkLabel() stays the one place the
+            // no-operator label itself is decided.
+            var driver = r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator);
+            var needsReview = !r.empNo && !!r.operator;
             var editPayload = { id: r.id, startTime: r.startTime, endTime: r.endTime, updateTime: r.updateTime, assetId: r.assetId || '', eventCode: r.eventCode || '', eventCount: r.eventCount || 1, operator: r.operator || '' };
             return '<tr>' +
               '<td>' + esc(fmtDateShort(r.startTime)) + '</td>' +
               '<td>' + esc(r.eventCode || '—') + (r.assetId ? ' — ' + esc(r.assetId) : '') + '</td>' +
               '<td>' + esc(r.assetId || '—') + '</td>' +
-              '<td>' + esc(driver) + '</td>' +
+              '<td>' + esc(driver) + (needsReview ? ' <span class="dm-tag amber" title="Operator text did not match any masterlist employee — see Name Review">Needs Review</span>' : '') + '</td>' +
               '<td><span class="al-badge ' + sev.tier + '">' + esc(sev.label) + '</span></td>' +
               '<td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit" data-dds-edit=\'' + esc(JSON.stringify(editPayload)) + '\'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td>' +
             '</tr>';
@@ -5231,7 +5766,7 @@
     document.getElementById('dm-history-close').addEventListener('click', function(){ dmHistMask.classList.remove('on'); });
     dmHistMask.addEventListener('click', function(e){ if(e.target === dmHistMask) dmHistMask.classList.remove('on'); });
 
-    var LOADERS = { dds: loadDds, minestat: loadMinestat, masterlist: loadMasterlist, factors: loadFactors };
+    var LOADERS = { dds: loadDds, minestat: loadMinestat, masterlist: loadMasterlist, factors: loadFactors, review: loadNameReview };
     var loaded = {};
     function ensureLoaded(key){
       if(loaded[key]) return;
@@ -5314,7 +5849,7 @@
     var modalMask = document.getElementById('dm-modal-mask');
     var modalSub = document.getElementById('dm-modal-sub');
     var modalBodies = document.querySelectorAll('[id^="dm-modal-body-"]');
-    var sourceLabels = { dds: 'a DDS event', minestat: 'a Minestat reading', masterlist: 'an employee', factors: 'a contributing factor' };
+    var sourceLabels = { dds: 'a DDS event', minestat: 'a Minestat shift record', masterlist: 'an employee', factors: 'a contributing factor' };
     var saveBtn = document.getElementById('dm-modal-save');
 
     var modalTitleEl = document.getElementById('dm-modal-title');
@@ -5503,11 +6038,18 @@
     }
 
     function insertImportRow(kind, name){
+      // storage_key was dropped from imports (0061) as write-only/never-
+      // read — it was only ever a synthetic placeholder string generated
+      // here, never used to retrieve a file, so removing it from this
+      // insert is not a data-loss regression. Left in the payload after
+      // that column was dropped, this insert failed outright with a
+      // schema-cache error on EVERY manual Add Record across all 4 source
+      // tabs (DDS/Minestat/Masterlist/Factors) — found live while testing
+      // the Minestat form fix.
       return requireSession().then(function(sess){
         if(!sess) throw new Error('Sign in required to save records.');
         return DB.from('imports').insert({
           original_name: name, kind: kind,
-          storage_key: 'manual/' + Date.now() + '-' + Math.random().toString(36).slice(2,8),
           status: 'processing', row_count: 0, uploaded_by: sess.user.id
         }).select('id').single();
       });
@@ -5534,20 +6076,35 @@
       if(!eventCode) throw new Error('Event Code is required — enter a value for "Other".');
       var countNum = parseInt(eventCount, 10);
       if(!countNum || countNum < 1) throw new Error('Event Count must be a positive integer.');
-      var row = {
-        START_TIME: toCanonical(new Date(startVal)),
-        UPDATE_TIME: toCanonical(new Date(updateVal)),
-        END_TIME: endVal ? toCanonical(new Date(endVal)) : '',
-        ASSET_ID: asset, EVENT_CODE: eventCode, EVENT_COUNT: String(countNum),
-        OPERATOR: driver || ''
-      };
+      var startUtc = DDS.wallClockAsUtcDate(new Date(startVal));
+      var updateUtc = DDS.wallClockAsUtcDate(new Date(updateVal));
+      var endUtc = endVal ? DDS.wallClockAsUtcDate(new Date(endVal)) : null;
+      if(!startUtc || !updateUtc) throw new Error('Start Time and Update Time must be valid.');
       var importId;
-      return insertImportRow('dds', eventCode + ' — ' + asset).then(function(res){
-        if(res.error) throw res.error;
-        importId = res.data.id;
-        return DB.rpc('dds_ingest', { p_import_id: importId, p_rows: [row] }).then(function(r2){
-          if(r2.error) throw r2.error;
-          return DB.rpc('dds_complete_import', { p_import_id: importId });
+      // Manual add goes through the same client-side resolution as a file
+      // upload — resolveName() here rather than a bare dds_ingest() call,
+      // so a manually-typed driver name gets the identical 6-tier match
+      // (and Name Review queueing on failure) a file row would get.
+      return DDS.loadResolverContext().then(function(ctx){
+        var resolved = DDS.resolveName(driver, ctx);
+        var row = {
+          asset_id: asset, event_code: eventCode, event_count: countNum,
+          start_time: startUtc.toISOString(), update_time: updateUtc.toISOString(),
+          end_time: endUtc ? endUtc.toISOString() : null,
+          operator: driver || null, emp_no: resolved.empNo,
+          shift: DDS.shift(startUtc),
+          shift_date: DDS.fmtIsoDateUTC(DDS.shiftDate(startUtc)),
+          actionable: DDS.actionable(startUtc, updateUtc),
+          sync_seconds: DDS.syncSeconds(updateUtc, endUtc),
+          tier: resolved.tier, distance: resolved.distance, candidates: resolved.candidates
+        };
+        return insertImportRow('dds', eventCode + ' — ' + asset).then(function(res){
+          if(res.error) throw res.error;
+          importId = res.data.id;
+          return DB.rpc('dds_ingest_resolved', { p_import_id: importId, p_rows: [row] }).then(function(r2){
+            if(r2.error) throw r2.error;
+            return DB.rpc('dds_complete_import', { p_import_id: importId });
+          });
         });
       }).catch(function(err){
         if(importId) return failImportAndRethrow(importId, err);
@@ -5618,8 +6175,15 @@
       var n = parseFloat(v);
       return isNaN(n) ? '0' : String(n);
     }
-
     function workbookRowToMinestatRow(r){
+      // Real MineStat file header, confirmed directly by the user:
+      // Unit | Date | Shift | Operating | Down | Delay | Standby |
+      // Total Hour | Last Name | First Name | Middle Name — restored here
+      // (0068) after an earlier session incorrectly treated the 5 hour
+      // columns as unused and dropped them; "nothing displays it" was
+      // never the same claim as "this data is meaningless", and dropping
+      // them silently discarded real operational data on every upload
+      // until the mistake was caught and reverted.
       var unit = String(pickField(r, ['UNIT', 'Asset ID', 'Asset', 'Unit', 'Equipment ID', 'Equipment No']) || '').trim();
       var shiftDate = cellToISODate(pickField(r, ['SHIFT_DATE', 'Shift Date', 'Date']));
       var shift = String(pickField(r, ['SHIFT', 'Shift', 'Shift Type']) || '').trim().toUpperCase();
@@ -5632,17 +6196,77 @@
         LAST_NAME: lastName ? String(lastName).trim() : '',
         FIRST_NAME: firstName ? String(firstName).trim() : '',
         MIDDLE_NAME: middleName ? String(middleName).trim() : '',
-        OPERATING_HRS: numOrZero(pickField(r, ['OPERATING_HRS', 'Operating Hours', 'Operating Hrs', 'Operating'])),
-        DOWN_HRS: numOrZero(pickField(r, ['DOWN_HRS', 'Down Hours', 'Down Hrs', 'Down'])),
-        DELAY_HRS: numOrZero(pickField(r, ['DELAY_HRS', 'Delay Hours', 'Delay Hrs', 'Delay'])),
-        STANDBY_HRS: numOrZero(pickField(r, ['STANDBY_HRS', 'Standby Hours', 'Standby Hrs', 'Standby'])),
-        TOTAL_HRS: numOrZero(pickField(r, ['TOTAL_HRS', 'Total Hours', 'Total Hrs']))
+        OPERATING_HRS: numOrZero(pickField(r, ['OPERATING_HRS', 'Operating', 'Operating Hours', 'Operating Hrs'])),
+        DOWN_HRS: numOrZero(pickField(r, ['DOWN_HRS', 'Down', 'Down Hours', 'Down Hrs'])),
+        DELAY_HRS: numOrZero(pickField(r, ['DELAY_HRS', 'Delay', 'Delay Hours', 'Delay Hrs'])),
+        STANDBY_HRS: numOrZero(pickField(r, ['STANDBY_HRS', 'Standby', 'Standby Hours', 'Standby Hrs'])),
+        TOTAL_HRS: numOrZero(pickField(r, ['TOTAL_HRS', 'Total Hour', 'Total Hours', 'Total Hrs']))
       };
     }
 
+    // ==================== Client-side resolution pass (MineStat) ====================
+    // Mirrors dds_minestat_ingest()'s (0043) own logic exactly: the raw name
+    // string is built as `LAST_NAME, FIRST_NAME MIDDLE_NAME` (matching the
+    // SQL's `last_name || ', ' || trim(first_name || ' ' || middle_name)`),
+    // the literal "NO OPERATOR / EQUIPMENT DOWN / OR STANDBY" placeholder is
+    // recognized before resolution is attempted (never queued for review —
+    // that's the genuine "No Operator" case), and same-operator-key rows
+    // within one asset+shift_date+shift are pre-deduped with LAST occurrence
+    // winning, matching minestat_shifts' own upsert semantics (last file row
+    // wins on conflict) rather than dds_ingest's do-nothing/first-wins rule.
+    function ddsMinestatOperatorKeyClient(lastName, firstName, middleName){
+      var l = String(lastName || '').trim().toUpperCase();
+      var f = String(firstName || '').trim().toUpperCase();
+      var m = String(middleName || '').trim().toUpperCase();
+      if(l === 'NO OPERATOR' && f === 'EQUIPMENT DOWN' && m === 'OR STANDBY') return '__no_operator__';
+      var norm = DDS.normName((lastName || '') + ', ' + ((firstName || '') + ' ' + (middleName || '')).trim());
+      return norm || '';
+    }
+    function resolveMinestatRows(rows, ctx){
+      // Pre-dedupe: last occurrence in the file wins for one
+      // (unit, shiftDate, shift, operatorKey) — same as the SQL's
+      // `distinct on (...) order by ... ord desc`.
+      var byKey = new Map();
+      rows.forEach(function(r, idx){
+        var opKey = ddsMinestatOperatorKeyClient(r.LAST_NAME, r.FIRST_NAME, r.MIDDLE_NAME);
+        var groupKey = r.UNIT + '|' + r.SHIFT_DATE + '|' + r.SHIFT + '|' + opKey;
+        byKey.set(groupKey, { row: r, opKey: opKey, idx: idx }); // later idx overwrites — last wins
+      });
+      var deduped = Array.from(byKey.values()).sort(function(a, b){ return a.idx - b.idx; });
+
+      var out = [];
+      var unmatched = [];
+      deduped.forEach(function(entry){
+        var r = entry.row;
+        var isNoOperator = entry.opKey === '__no_operator__';
+        var rawName = (r.LAST_NAME || '') + ', ' + ((r.FIRST_NAME || '') + ' ' + (r.MIDDLE_NAME || '')).trim();
+        var resolved = isNoOperator
+          ? { empNo: null, tier: 'no_operator', distance: null, candidates: [] }
+          : DDS.resolveName(rawName, ctx);
+        out.push({
+          asset_id: r.UNIT, shift_date: r.SHIFT_DATE, shift: r.SHIFT,
+          last_name: r.LAST_NAME || null, first_name: r.FIRST_NAME || null, middle_name: r.MIDDLE_NAME || null,
+          operating_hrs: parseFloat(r.OPERATING_HRS) || 0, down_hrs: parseFloat(r.DOWN_HRS) || 0,
+          delay_hrs: parseFloat(r.DELAY_HRS) || 0, standby_hrs: parseFloat(r.STANDBY_HRS) || 0,
+          total_hrs: parseFloat(r.TOTAL_HRS) || 0,
+          emp_no: resolved.empNo, tier: resolved.tier, distance: resolved.distance, candidates: resolved.candidates
+        });
+        if(!isNoOperator && !resolved.empNo && DDS.normName(rawName) != null){
+          unmatched.push({ raw: rawName, tier: resolved.tier, candidates: resolved.candidates });
+        }
+      });
+      return { rows: out, unmatched: unmatched };
+    }
+
     function workbookRowToMasterlistRow(r){
-      var empId = String(pickField(r, ['Employee ID', 'EMP_NO', 'Employee No', 'EmpID']) || '').trim();
-      var name = String(pickField(r, ['Name', 'Full Name']) || '').trim();
+      // 'ID Number' / 'Employee Name' are the real masterlist export's own
+      // column headers (assets/Emp_Masterlist.xlsx, confirmed by reading
+      // the file's raw XML directly) — neither matched any alias here
+      // before this fix, so uploading the actual file silently imported
+      // zero rows (workbookRowToMasterlistRow returned null for every row,
+      // caught only by the generic "No valid rows found" message).
+      var empId = String(pickField(r, ['Employee ID', 'EMP_NO', 'Employee No', 'EmpID', 'ID Number', 'Emp No', 'Emp_No']) || '').trim();
+      var name = String(pickField(r, ['Name', 'Full Name', 'Employee Name']) || '').trim();
       if(!empId || !name) return null;
       var dept = String(pickField(r, ['Department']) || '').trim();
       var position = String(pickField(r, ['Position']) || '').trim();
@@ -5699,6 +6323,53 @@
         ASSET_ID: asset, EVENT_CODE: eventCode, EVENT_COUNT: String(count),
         OPERATOR: r.OPERATOR ? String(r.OPERATOR).trim() : ''
       };
+    }
+
+    // ==================== Client-side resolution pass (DDS) ====================
+    // Takes workbookRowToIngestRow()'s output (already type-coerced, still
+    // holding raw operator text and canonical-string timestamps) and
+    // produces the fully-resolved payload dds_ingest_resolved() (0056)
+    // expects: real Date-derived shift/shift_date/actionable/sync_seconds,
+    // plus emp_no/tier/distance/candidates from DDS_LINK.resolveName().
+    // This is the "Client-side calculations" + "Client-side employee
+    // linking" steps of the architecture — everything downstream of this
+    // function is either a preview render or a network call, never
+    // something that could still change what an alert's identity means.
+    function resolveDdsRows(rows, ctx){
+      var out = [];
+      var unmatched = [];
+      var invalidTimestamps = [];
+      for(var i = 0; i < rows.length; i++){
+        var r = rows[i];
+        var startUtc = DDS.canonicalStringToUtcDate(r.START_TIME);
+        var updateUtc = DDS.canonicalStringToUtcDate(r.UPDATE_TIME);
+        var endUtc = r.END_TIME ? DDS.canonicalStringToUtcDate(r.END_TIME) : null;
+        if(!startUtc || !updateUtc){
+          invalidTimestamps.push(r);
+          continue;
+        }
+        var resolved = DDS.resolveName(r.OPERATOR, ctx);
+        var payload = {
+          asset_id: r.ASSET_ID,
+          event_code: r.EVENT_CODE,
+          event_count: parseInt(r.EVENT_COUNT, 10),
+          start_time: startUtc.toISOString(),
+          update_time: updateUtc.toISOString(),
+          end_time: endUtc ? endUtc.toISOString() : null,
+          operator: r.OPERATOR || null,
+          emp_no: resolved.empNo,
+          shift: DDS.shift(startUtc),
+          shift_date: DDS.fmtIsoDateUTC(DDS.shiftDate(startUtc)),
+          actionable: DDS.actionable(startUtc, updateUtc),
+          sync_seconds: DDS.syncSeconds(updateUtc, endUtc),
+          tier: resolved.tier,
+          distance: resolved.distance,
+          candidates: resolved.candidates
+        };
+        out.push(payload);
+        if(r.OPERATOR && !resolved.empNo) unmatched.push({ raw: r.OPERATOR, tier: resolved.tier, candidates: resolved.candidates });
+      }
+      return { rows: out, unmatched: unmatched, invalidTimestamps: invalidTimestamps };
     }
 
     function chunk(arr, size){
@@ -5774,11 +6445,22 @@
       return { clean: clean, removedCount: rows.length - clean.length };
     }
 
+    // Iterative min/max, not Math.min.apply(null, times)/Math.max.apply(...) —
+    // spreading a large file's full row count as call arguments risks
+    // exceeding the engine's argument-count limit (commonly ~60-120k
+    // depending on engine) and crashing the tab on a genuinely large DDS
+    // export, which is exactly the file size this dedup check exists to
+    // handle safely.
     function fetchExistingDdsKeys(rows){
       if(!rows.length) return Promise.resolve(new Set());
-      var times = rows.map(function(r){ return new Date(r.START_TIME).getTime(); });
-      var minT = new Date(Math.min.apply(null, times)).toISOString();
-      var maxT = new Date(Math.max.apply(null, times)).toISOString();
+      var minT = Infinity, maxT = -Infinity;
+      for(var i = 0; i < rows.length; i++){
+        var t = new Date(rows[i].START_TIME).getTime();
+        if(t < minT) minT = t;
+        if(t > maxT) maxT = t;
+      }
+      minT = new Date(minT).toISOString();
+      maxT = new Date(maxT).toISOString();
       return DB.from('events').select('asset_id,start_time,event_code')
         .gte('start_time', minT).lte('start_time', maxT)
         .then(function(res){
@@ -5817,6 +6499,72 @@
     var preflightBody = document.getElementById('dm-preflight-body');
     var preflightCancelBtn = document.getElementById('dm-preflight-cancel');
     var preflightConfirmBtn = document.getElementById('dm-preflight-confirm');
+
+    // ==================== Cleaned-dataset preview (post-resolution) ====================
+    // Runs AFTER client-side normalization/calculation/employee-linking,
+    // showing the ACTUAL rows that will reach Supabase — Date/Shift/Sync
+    // Interval/Emp No/Emp Name, not the raw file. Reuses the same
+    // dm-preflight-mask modal as the dedup/existing-row preflight (they
+    // never overlap in one upload — this step runs once resolution is
+    // available, immediately before the network call), so there is exactly
+    // one "review before uploading" UI pattern in this page rather than two.
+    function showResolvedPreviewModal(opts, callback){
+      // opts: { totalRows, validRows, unmatchedRows, driverNameByEmpNo (map),
+      //         previewRows: [{date, shift, updateTime, startTime, endTime,
+      //           assetId, eventCode, eventCount, syncSeconds, empNo, operator, tier}],
+      //         entityLabel }
+      var lookup = opts.driverNameByEmpNo || {};
+      var summary = [];
+      summary.push('<div style="margin-bottom:6px">Total rows: <strong>' + fmtNum(opts.totalRows) + '</strong></div>');
+      summary.push('<div style="margin-bottom:6px">Ready for upload: <strong style="color:#18a05e">' + fmtNum(opts.validRows) + '</strong></div>');
+      if(opts.unmatchedRows && opts.unmatchedRows.length){
+        summary.push('<div style="margin-bottom:6px;color:#e8952e">Unmatched employees: <strong>' + fmtNum(opts.unmatchedRows.length) + '</strong> — these rows will still upload with no Emp No, and appear in the Name Review tab for manual matching.</div>');
+      } else {
+        summary.push('<div style="margin-bottom:6px;color:#18a05e">Unmatched employees: 0</div>');
+      }
+
+      var maxPreviewRows = 25;
+      var rows = opts.previewRows || [];
+      var tableHtml = '';
+      if(rows.length){
+        tableHtml = '<div style="max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:8px;margin-top:10px">' +
+          '<table class="dm-table" style="margin:0"><thead><tr>' +
+            '<th>Date</th><th>Shift</th><th>Asset</th><th>Event</th><th>Count</th><th>Sync</th><th>Emp No</th><th>Emp Name</th>' +
+          '</tr></thead><tbody>' +
+          rows.slice(0, maxPreviewRows).map(function(r){
+            var empName = r.empNo ? (lookup[r.empNo] || r.empNo) : '';
+            var needsReview = !r.empNo && r.operator;
+            return '<tr>' +
+              '<td>' + esc(r.date || '—') + '</td>' +
+              '<td>' + esc(r.shift || '—') + '</td>' +
+              '<td>' + esc(r.assetId || '—') + '</td>' +
+              '<td>' + esc(r.eventCode || '—') + '</td>' +
+              '<td>' + fmtNum(r.eventCount || 0) + '</td>' +
+              '<td>' + esc(DDS.fmtDuration(r.syncSeconds)) + '</td>' +
+              '<td>' + esc(r.empNo || '—') + '</td>' +
+              '<td>' + (needsReview
+                  ? '<span class="dm-tag amber">Needs Review</span>'
+                  : (r.empNo ? esc(empName) : '<span style="color:var(--muted)">No Operator</span>')) + '</td>' +
+            '</tr>';
+          }).join('') +
+          '</tbody></table></div>' +
+          (rows.length > maxPreviewRows ? '<div style="margin-top:6px;color:var(--muted);font-size:var(--fs-caption)">Showing first ' + maxPreviewRows + ' of ' + fmtNum(rows.length) + ' rows.</div>' : '');
+      }
+
+      preflightBody.innerHTML = summary.join('') + tableHtml;
+      preflightConfirmBtn.textContent = 'Upload ' + fmtNum(opts.validRows) + ' Row' + (opts.validRows === 1 ? '' : 's');
+      preflightMask.classList.add('on');
+
+      function cleanup(){
+        preflightMask.classList.remove('on');
+        preflightConfirmBtn.removeEventListener('click', onConfirm);
+        preflightCancelBtn.removeEventListener('click', onCancel);
+      }
+      function onConfirm(){ cleanup(); callback(true); }
+      function onCancel(){ cleanup(); callback(false); }
+      preflightConfirmBtn.addEventListener('click', onConfirm);
+      preflightCancelBtn.addEventListener('click', onCancel);
+    }
 
     function showPreflightModal(stats, callback){
       var lines = [];
@@ -6054,9 +6802,10 @@
       };
       reader.onload = function(){
         var importId = null;
-        var rows, skipped;
+        var rows, skipped, rawRowCount, resolvedRows, unmatchedRows, invalidTimestampRows;
         Promise.resolve().then(function(){
           var rawRows = parseWorkbookRows(reader.result, file.name);
+          rawRowCount = rawRows.length;
           rows = rawRows.map(workbookRowToIngestRow).filter(Boolean);
           skipped = rawRows.length - rows.length;
           if(!rows.length) throw new Error('No valid rows found — check START_TIME/UPDATE_TIME/ASSET_ID/EVENT_CODE/EVENT_COUNT in "' + file.name + '".');
@@ -6074,24 +6823,69 @@
             return null;
           }
           rows = pf.rows;
+          setDropzoneStatus(kind, 'Resolving driver names and calculating shift/sync fields…', 'busy');
+          // Client-side normalization/calculation/employee-linking pass —
+          // the architecture boundary: everything the RPC receives from
+          // here on is a fully-resolved row, never raw text the server
+          // would need to interpret.
+          return DDS.loadResolverContext().then(function(ctx){
+            var result = resolveDdsRows(rows, ctx);
+            resolvedRows = result.rows;
+            unmatchedRows = result.unmatched;
+            invalidTimestampRows = result.invalidTimestamps;
+            if(!resolvedRows.length) throw new Error('No rows had valid timestamps after resolution — check START_TIME/UPDATE_TIME in "' + file.name + '".');
+
+            var nameByEmpNo = {};
+            Object.keys(ctx.driversByNormName).forEach(function(k){
+              ctx.driversByNormName[k].forEach(function(d){ nameByEmpNo[d.empNo] = d.fullName; });
+            });
+
+            return new Promise(function(resolve){
+              showResolvedPreviewModal({
+                totalRows: rawRowCount, validRows: resolvedRows.length,
+                unmatchedRows: unmatchedRows, driverNameByEmpNo: nameByEmpNo,
+                previewRows: resolvedRows.map(function(r){
+                  return { date: r.shift_date, shift: r.shift, assetId: r.asset_id, eventCode: r.event_code,
+                    eventCount: r.event_count, syncSeconds: r.sync_seconds, empNo: r.emp_no, operator: r.operator };
+                })
+              }, function(proceed){ resolve(proceed); });
+            });
+          });
+        }).then(function(proceed){
+          if(proceed === null) return null; // preflight step above was cancelled
+          if(!proceed){
+            zone.classList.remove('busy');
+            setDropzoneStatus(kind, 'Upload cancelled.', '');
+            return null;
+          }
           openUploadModal(file.name);
           uploadCancelBtn.onclick = function(){ token.cancelled = true; };
 
           return insertImportRow(kind, file.name).then(function(res){
             if(res.error) throw res.error;
             importId = res.data.id;
-            var batches = chunk(rows, DDS_INGEST_CHUNK);
-            setUploadProgress('Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 0, rows.length);
+            var batches = chunk(resolvedRows, DDS_INGEST_CHUNK);
+            setUploadProgress('Uploading 0 of ' + fmtNum(resolvedRows.length) + ' rows…', 0, resolvedRows.length);
             return runBatchesWithRetry(kind, batches, function(batch){
-              return DB.rpc('dds_ingest', { p_import_id: importId, p_rows: batch }).then(function(r){
+              return DB.rpc('dds_ingest_resolved', { p_import_id: importId, p_rows: batch }).then(function(r){
                 if(r.error) throw r.error;
                 return { count: batch.length };
               });
-            }, rows.length, function(done, total){ return 'Uploading ' + fmtNum(done) + ' of ' + fmtNum(total) + ' rows…'; });
+            }, resolvedRows.length, function(done, total){ return 'Uploading ' + fmtNum(done) + ' of ' + fmtNum(total) + ' rows…'; });
           }).then(function(result){
             if(result.cancelled) return { rows: result.inserted, skipped: skipped, cancelled: true };
             return DB.rpc('dds_complete_import', { p_import_id: importId }).then(function(){
-              return { rows: result.inserted, skipped: skipped, cancelled: false };
+              // Same reasoning as the Minestat upload path: a DDS upload
+              // can bring in events with no resolved emp_no that an
+              // already-uploaded Minestat file could now backfill, since
+              // this RPC joins on (asset_id, shift_date, shift) regardless
+              // of which side was uploaded more recently. Best-effort,
+              // non-fatal — see ingestMinestatFile for the full rationale.
+              return runBackfillEmpNoFromMinestat().catch(function(err){
+                console.error('Post-upload emp_no backfill failed (non-fatal)', err);
+              }).then(function(){
+                return { rows: result.inserted, skipped: skipped, cancelled: false };
+              });
             });
           });
         }).then(function(summary){
@@ -6102,7 +6896,8 @@
             setDropzoneStatus(kind, 'Upload cancelled — ' + fmtNum(summary.rows) + ' row(s) already saved from "' + file.name + '".', 'error');
           } else {
             var msg = 'Imported ' + fmtNum(summary.rows) + ' row(s) from "' + file.name + '".' +
-              (summary.skipped ? ' ' + fmtNum(summary.skipped) + ' row(s) skipped (missing required fields).' : '');
+              (summary.skipped ? ' ' + fmtNum(summary.skipped) + ' row(s) skipped (missing required fields).' : '') +
+              (unmatchedRows && unmatchedRows.length ? ' ' + fmtNum(unmatchedRows.length) + ' driver name(s) need review — see the Name Review tab.' : '');
             setDropzoneStatus(kind, msg, 'success');
           }
           loaded[kind] = false;
@@ -6136,6 +6931,29 @@
       reader.readAsArrayBuffer(file);
     }
 
+    // Loops dds_backfill_emp_no_from_minestat() (2000 rows/call) until it
+    // reports rowsRemaining: 0, capped at 25 iterations (50,000 rows) so a
+    // pathological backlog can't turn one upload's success path into an
+    // unbounded chain of RPC calls — any remainder just waits for the next
+    // upload's backfill pass, same as it would have before this existed.
+    function runBackfillEmpNoFromMinestat(){
+      var MAX_ITERATIONS = 25;
+      var totalUpdated = 0, totalConflicts = 0;
+      function step(i){
+        return DB.rpc('dds_backfill_emp_no_from_minestat', { p_limit: 2000 }).then(function(res){
+          if(res.error) throw res.error;
+          var d = res.data || {};
+          totalUpdated += d.rowsUpdated || 0;
+          totalConflicts += d.conflictsDetected || 0;
+          if((d.rowsRemaining || 0) > 0 && i < MAX_ITERATIONS){
+            return step(i + 1);
+          }
+          return { updated: totalUpdated, conflicts: totalConflicts, remaining: d.rowsRemaining || 0 };
+        });
+      }
+      return step(0);
+    }
+
     // ==================== Minestat/Masterlist/Factors: real file upload ====================
     // Minestat reuses dds_minestat_ingest() + imports tracking exactly like
     // DDS above (0024_minestat.sql's imports.kind check constraint allows
@@ -6164,9 +6982,10 @@
       };
       reader.onload = function(){
         var importId = null;
-        var rows, skipped;
+        var rows, skipped, rawRowCount, resolvedRows, unmatchedRows;
         Promise.resolve().then(function(){
           var rawRows = parseWorkbookRows(reader.result, file.name, []);
+          rawRowCount = rawRows.length;
           rows = rawRows.map(workbookRowToMinestatRow).filter(Boolean);
           skipped = rawRows.length - rows.length;
           if(!rows.length) throw new Error('No valid rows found — check Unit/Asset, Date, and Shift columns in "' + file.name + '".');
@@ -6189,24 +7008,68 @@
             return null;
           }
           rows = pf.rows;
+          setDropzoneStatus(kind, 'Resolving driver names…', 'busy');
+          return DDS.loadResolverContext().then(function(ctx){
+            var result = resolveMinestatRows(rows, ctx);
+            resolvedRows = result.rows;
+            unmatchedRows = result.unmatched;
+
+            var nameByEmpNo = {};
+            Object.keys(ctx.driversByNormName).forEach(function(k){
+              ctx.driversByNormName[k].forEach(function(d){ nameByEmpNo[d.empNo] = d.fullName; });
+            });
+
+            return new Promise(function(resolve){
+              showResolvedPreviewModal({
+                totalRows: rawRowCount, validRows: resolvedRows.length,
+                unmatchedRows: unmatchedRows, driverNameByEmpNo: nameByEmpNo,
+                previewRows: resolvedRows.map(function(r){
+                  return { date: r.shift_date, shift: r.shift, assetId: r.asset_id, eventCode: 'MineStat shift',
+                    eventCount: null, syncSeconds: null, empNo: r.emp_no, operator: (r.last_name || r.first_name) ? (r.last_name + ', ' + r.first_name) : null };
+                })
+              }, function(proceed){ resolve(proceed); });
+            });
+          });
+        }).then(function(proceed){
+          if(proceed === null) return null;
+          if(!proceed){
+            zone.classList.remove('busy');
+            setDropzoneStatus(kind, 'Upload cancelled.', '');
+            return null;
+          }
           openUploadModal(file.name);
           uploadCancelBtn.onclick = function(){ token.cancelled = true; };
 
           return insertImportRow(kind, file.name).then(function(res){
             if(res.error) throw res.error;
             importId = res.data.id;
-            var batches = chunk(rows, DDS_INGEST_CHUNK);
-            setUploadProgress('Uploading 0 of ' + fmtNum(rows.length) + ' rows…', 0, rows.length);
+            var batches = chunk(resolvedRows, DDS_INGEST_CHUNK);
+            setUploadProgress('Uploading 0 of ' + fmtNum(resolvedRows.length) + ' rows…', 0, resolvedRows.length);
             return runBatchesWithRetry(kind, batches, function(batch){
-              return DB.rpc('dds_minestat_ingest', { p_import_id: importId, p_rows: batch }).then(function(r){
+              return DB.rpc('dds_minestat_ingest_resolved', { p_import_id: importId, p_rows: batch }).then(function(r){
                 if(r.error) throw r.error;
                 return { count: batch.length };
               });
-            }, rows.length, function(done, total){ return 'Uploading ' + fmtNum(done) + ' of ' + fmtNum(total) + ' rows…'; });
+            }, resolvedRows.length, function(done, total){ return 'Uploading ' + fmtNum(done) + ' of ' + fmtNum(total) + ' rows…'; });
           }).then(function(result){
             if(result.cancelled) return { rows: result.inserted, skipped: skipped, cancelled: true };
             return DB.rpc('dds_complete_import', { p_import_id: importId }).then(function(){
-              return { rows: result.inserted, skipped: skipped, cancelled: false };
+              // dds_backfill_emp_no_from_minestat() (0047) is the only code
+              // path that joins a Minestat shift's resolved emp_no onto the
+              // matching DDS events row — without calling it, a Minestat
+              // upload can resolve a driver correctly and that resolution
+              // still never reaches Alert Logs/Analytics/Driver & Asset,
+              // all of which read events.emp_no, not minestat_shifts.emp_no.
+              // Confirmed via a live-data pipeline audit that this RPC had
+              // zero call sites anywhere in the app despite a migration
+              // comment claiming it ran after every upload. Best-effort:
+              // failure here doesn't fail the upload, since the Minestat
+              // data itself is already safely committed.
+              return runBackfillEmpNoFromMinestat().catch(function(err){
+                console.error('Post-upload emp_no backfill failed (non-fatal)', err);
+              }).then(function(){
+                return { rows: result.inserted, skipped: skipped, cancelled: false };
+              });
             });
           });
         }).then(function(summary){
@@ -6217,7 +7080,8 @@
             setDropzoneStatus(kind, 'Upload cancelled — ' + fmtNum(summary.rows) + ' row(s) already saved from "' + file.name + '".', 'error');
           } else {
             var msg = 'Imported ' + fmtNum(summary.rows) + ' row(s) from "' + file.name + '".' +
-              (summary.skipped ? ' ' + fmtNum(summary.skipped) + ' row(s) skipped (missing required fields).' : '');
+              (summary.skipped ? ' ' + fmtNum(summary.skipped) + ' row(s) skipped (missing required fields).' : '') +
+              (unmatchedRows && unmatchedRows.length ? ' ' + fmtNum(unmatchedRows.length) + ' driver name(s) need review — see the Name Review tab.' : '');
             setDropzoneStatus(kind, msg, 'success');
           }
           loaded[kind] = false;
@@ -6460,34 +7324,51 @@
     wireDropzone('factors', ingestFactorsFile);
 
     function saveMinestat(){
-      // dds_minestat_ingest() expects a fundamentally different row shape
-      // than dds_ingest() — no START_TIME/END_TIME at all. See
-      // 0032_attribution_audit_fixes.sql:120-152: UNIT, SHIFT_DATE (a date),
-      // SHIFT (text), LAST_NAME/FIRST_NAME/MIDDLE_NAME, and the *_HRS
-      // numeric fields. Confirmed by reading the RPC body directly, not
-      // assumed from dds_ingest()'s shape.
-      var dataset = selectOrOther('dm-mine-dataset');
-      var date = document.getElementById('dm-mine-date').value;
-      var value = document.getElementById('dm-mine-value').value.trim();
+      // Field-for-field the same shape as a real MineStat file row — Unit,
+      // Date, Shift, Operating/Down/Delay/Standby/Total Hour, Last/First/
+      // Middle Name — the exact header the user confirmed directly, per
+      // instruction that the manual-add form must follow the uploaded
+      // file's own header, not a separate ad hoc shape. Driver name is
+      // resolved client-side via the same DDS.resolveName() path a file
+      // upload uses, so a manually-added record is indistinguishable from
+      // an uploaded one once saved. See dds_minestat_ingest_resolved
+      // (0068) for the real column list this maps onto.
       var asset = document.getElementById('dm-mine-asset').value.trim();
-      if(!date || !asset) throw new Error('Date and Asset / Unit are required.');
-      if(!dataset) throw new Error('Dataset is required — enter a value for "Other".');
-      // dds_shift_date()/dds_shift() aren't reusable here (no start_time to
-      // derive from) — Minestat rows carry the shift explicitly per their
-      // own file format, so default to DAY for a manual single-row add.
-      var row = {
-        UNIT: asset, SHIFT_DATE: date, SHIFT: 'DAY',
-        LAST_NAME: '', FIRST_NAME: '', MIDDLE_NAME: '',
-        OPERATING_HRS: value || '0', DOWN_HRS: '0', DELAY_HRS: '0',
-        STANDBY_HRS: '0', TOTAL_HRS: value || '0'
-      };
+      var date = document.getElementById('dm-mine-date').value;
+      var shift = document.getElementById('dm-mine-shift').value;
+      var operatingHrs = parseFloat(document.getElementById('dm-mine-operating').value) || 0;
+      var downHrs = parseFloat(document.getElementById('dm-mine-down').value) || 0;
+      var delayHrs = parseFloat(document.getElementById('dm-mine-delay').value) || 0;
+      var standbyHrs = parseFloat(document.getElementById('dm-mine-standby').value) || 0;
+      var totalHrs = parseFloat(document.getElementById('dm-mine-total').value) || 0;
+      var lastName = document.getElementById('dm-mine-lastname').value.trim();
+      var firstName = document.getElementById('dm-mine-firstname').value.trim();
+      var middleName = document.getElementById('dm-mine-middlename').value.trim();
+      if(!asset || !date) throw new Error('Asset / Unit and Shift Date are required.');
+      if(!shift) throw new Error('Shift is required.');
+
       var importId;
-      return insertImportRow('minestat', dataset + ' manual entry').then(function(res){
-        if(res.error) throw res.error;
-        importId = res.data.id;
-        return DB.rpc('dds_minestat_ingest', { p_import_id: importId, p_rows: [row] }).then(function(r2){
-          if(r2.error) throw r2.error;
-          return DB.rpc('dds_complete_import', { p_import_id: importId });
+      return DDS.loadResolverContext().then(function(ctx){
+        var opKey = ddsMinestatOperatorKeyClient(lastName, firstName, middleName);
+        var isNoOperator = opKey === '__no_operator__' || (!lastName && !firstName && !middleName);
+        var rawName = (lastName || '') + ', ' + ((firstName || '') + ' ' + (middleName || '')).trim();
+        var resolved = isNoOperator
+          ? { empNo: null, tier: 'no_operator', distance: null, candidates: [] }
+          : DDS.resolveName(rawName, ctx);
+        var row = {
+          asset_id: asset, shift_date: date, shift: shift,
+          last_name: lastName || null, first_name: firstName || null, middle_name: middleName || null,
+          operating_hrs: operatingHrs, down_hrs: downHrs, delay_hrs: delayHrs,
+          standby_hrs: standbyHrs, total_hrs: totalHrs,
+          emp_no: resolved.empNo, tier: resolved.tier, distance: resolved.distance, candidates: resolved.candidates
+        };
+        return insertImportRow('minestat', asset + ' manual entry').then(function(res){
+          if(res.error) throw res.error;
+          importId = res.data.id;
+          return DB.rpc('dds_minestat_ingest_resolved', { p_import_id: importId, p_rows: [row] }).then(function(r2){
+            if(r2.error) throw r2.error;
+            return DB.rpc('dds_complete_import', { p_import_id: importId });
+          });
         });
       }).catch(function(err){
         if(importId) return failImportAndRethrow(importId, err);
@@ -6541,6 +7422,272 @@
       });
     }
 
+    // ==================== Name Review ====================
+    // Surfaces import_name_review / minestat_name_review (0019 / 0024) —
+    // built when the resolution ladder shipped, but never given a UI, so
+    // every non-blank operator name that failed to match the masterlist
+    // has sat invisible since. Each row here IS a linking problem: the raw
+    // text names someone, dds_resolve_name() (0018) could not match it at
+    // any of its 6 tiers (alias/exact/suffix/surname_first/skeleton/fuzzy),
+    // and it is waiting on a human decision — confirm the right employee
+    // (writes a driver_aliases row so the same spelling never needs asking
+    // again) or mark it not-a-driver (TEST rows, blank-plate placeholders).
+    var REVIEW = {
+      dds:      { search: '', state: 'open', tbodySel: '#dm-table-review-dds tbody',      titleSel: '#dm-review-dds-title small',      footSel: '#dm-review-dds-foot',      list: 'dds_name_review_list',      resolve: 'dds_resolve_review',      ignore: 'dds_ignore_review',      reopen: 'dds_reopen_review',          recheck: 'dds_reresolve_all',          waitingLabel: 'Alert rows waiting' },
+      minestat: { search: '', state: 'open', tbodySel: '#dm-table-review-minestat tbody', titleSel: '#dm-review-minestat-title small', footSel: '#dm-review-minestat-foot', list: 'dds_minestat_name_review_list', resolve: 'dds_minestat_resolve_review', ignore: 'dds_minestat_ignore_review', reopen: 'dds_minestat_reopen_review', recheck: 'dds_minestat_reresolve_all', waitingLabel: 'Shift rows waiting' }
+    };
+
+    function tierLabel(tier){
+      return { none: 'No match found', fuzzy_review: 'Ambiguous spelling match', ambiguous_exact: 'Matches 2+ employees exactly', blank: 'Blank name' }[tier] || (tier || 'Unresolved');
+    }
+
+    // Row-action buttons depend on the row's OWN state, not the filter
+    // selected — a table filtered to "All" can show open/resolved/ignored
+    // rows side by side, each needing a different action set:
+    //   open      -> Confirm (opens the match modal) + Ignore
+    //   resolved/ignored -> Edit only (reopens the row via dds_reopen_review/
+    //                       dds_minestat_reopen_review, then opens the same
+    //                       match modal so a different employee can be
+    //                       picked) — this is the actual "undo a past
+    //                       decision" path, since dds_reopen_review already
+    //                       existed server-side but had no UI caller until
+    //                       now (PENDING_102 finding A3's remaining gap).
+    function reviewRowActionsHtml(state){
+      if(state === 'open'){
+        return '<button class="dm-icon-btn" type="button" data-review-confirm title="Confirm match…"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>' +
+          '<button class="dm-icon-btn" type="button" data-review-ignore title="Not a driver — ignore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+      }
+      return '<button class="dm-icon-btn" type="button" data-review-edit title="Edit — reopen and re-match"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>';
+    }
+    function reviewStateLabel(state){
+      return { open: 'Open', resolved: 'Resolved', ignored: 'Ignored' }[state] || state;
+    }
+
+    function loadNameReviewQueue(kind){
+      var cfg = REVIEW[kind];
+      var tbody = document.querySelector(cfg.tbodySel);
+      var titleSmall = document.querySelector(cfg.titleSel);
+      var foot = document.querySelector(cfg.footSel);
+      if(!tbody) return;
+      requireSession().then(function(sess){
+        if(!sess){ tbody.innerHTML = signedOutRow(5, 'the review queue'); clearCounts(titleSmall, foot); return; }
+        return DB.rpc(cfg.list, { p_state: cfg.state, p_limit: 50, p_offset: 0 }).then(function(res){
+          if(res.error) throw res.error;
+          var data = res.data || {};
+          var rows = data.rows || [];
+          if(cfg.search){
+            var needle = cfg.search.toLowerCase();
+            rows = rows.filter(function(r){ return (r.rawName || '').toLowerCase().indexOf(needle) !== -1; });
+          }
+          var total = data.total || 0;
+          if(titleSmall) titleSmall.textContent = fmtNum(total) + ' ' + (cfg.state === 'all' ? 'total' : cfg.state);
+          if(foot) foot.textContent = rows.length ? ('Showing ' + rows.length + ' of ' + fmtNum(total)) : '';
+          // Badge always reflects the true OPEN count regardless of which
+          // state filter is currently selected — it's a "needs attention"
+          // signal, not a mirror of whatever the table happens to show.
+          if(kind === 'dds'){
+            var badge = document.getElementById('dm-review-badge');
+            if(badge){
+              if(cfg.state === 'open'){
+                if(total > 0){ badge.hidden = false; badge.textContent = total > 99 ? '99+' : String(total); }
+                else { badge.hidden = true; }
+              } else {
+                DB.rpc(cfg.list, { p_state: 'open', p_limit: 1, p_offset: 0 }).then(function(r2){
+                  var openTotal = (r2.data || {}).total || 0;
+                  if(openTotal > 0){ badge.hidden = false; badge.textContent = openTotal > 99 ? '99+' : String(openTotal); }
+                  else { badge.hidden = true; }
+                });
+              }
+            }
+          }
+          if(!rows.length){
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px 0">' +
+              (cfg.state === 'open' ? 'Nothing waiting on review.' : 'No ' + cfg.state + ' names.') + '</td></tr>';
+            return;
+          }
+          tbody.innerHTML = rows.map(function(r){
+            var candidates = (r.candidates || []).slice(0, 3);
+            var candHtml = candidates.length
+              ? candidates.map(function(c){
+                  return '<button type="button" data-review-pick="' + esc(c.emp_no) + '">' + esc(c.name) + '</button>' +
+                    (c.distance != null ? ' <span style="color:var(--muted)">(dist ' + c.distance + ')</span>' : '');
+                }).join('<br>')
+              : '<span style="color:var(--muted)">No close match</span>';
+            var stateTag = cfg.state === 'all'
+              ? ' <span class="dm-tag' + (r.state === 'open' ? ' amber' : '') + '" style="margin-left:6px">' + esc(reviewStateLabel(r.state)) + '</span>'
+              : '';
+            return '<tr class="dm-review-row" data-review-id="' + r.id + '" data-review-raw="' + esc(r.rawName) + '" data-review-state="' + esc(r.state) + '">' +
+              '<td>' + esc(r.rawName) + stateTag + '</td>' +
+              '<td>' + esc(tierLabel(r.tier)) + '</td>' +
+              '<td class="dm-review-candidates">' + candHtml + '</td>' +
+              '<td>' + fmtNum(r.rowCount) + '</td>' +
+              '<td><div class="dm-row-actions">' + reviewRowActionsHtml(r.state) + '</div></td>' +
+            '</tr>';
+          }).join('');
+        });
+      }).catch(function(err){ tbody.innerHTML = errorRow(5, err); });
+    }
+
+    function loadNameReview(){
+      loadNameReviewQueue('dds');
+      loadNameReviewQueue('minestat');
+    }
+
+    Object.keys(REVIEW).forEach(function(kind){
+      var input = document.getElementById('dm-review-' + kind + '-search');
+      if(input){
+        var t;
+        input.addEventListener('input', function(){
+          clearTimeout(t);
+          var val = input.value;
+          t = setTimeout(function(){ REVIEW[kind].search = val.trim(); loadNameReviewQueue(kind); }, 300);
+        });
+      }
+      var stateSelect = document.getElementById('dm-review-' + kind + '-state');
+      if(stateSelect){
+        stateSelect.addEventListener('change', function(){
+          REVIEW[kind].state = stateSelect.value;
+          loadNameReviewQueue(kind);
+        });
+      }
+      var recheckBtn = document.getElementById('dm-review-' + kind + '-recheck');
+      if(recheckBtn){
+        recheckBtn.addEventListener('click', function(){
+          recheckBtn.disabled = true;
+          var original = recheckBtn.textContent;
+          recheckBtn.textContent = 'Checking…';
+          requireSession().then(function(sess){
+            if(!sess) throw new Error('Sign in required.');
+            return DB.rpc(REVIEW[kind].recheck, {});
+          }).then(function(res){
+            if(res.error) throw res.error;
+            var d = res.data || {};
+            recheckBtn.textContent = (d.resolved || 0) + ' resolved of ' + (d.checked || 0) + ' checked';
+            loadNameReviewQueue(kind);
+            setTimeout(function(){ recheckBtn.textContent = original; recheckBtn.disabled = false; }, 3500);
+          }).catch(function(err){
+            console.error('Re-check failed', err);
+            recheckBtn.textContent = 'Could not check — try again';
+            setTimeout(function(){ recheckBtn.textContent = original; recheckBtn.disabled = false; }, 3500);
+          });
+        });
+      }
+    });
+
+    // ---- Confirm Match modal: wired to dds_resolve_review / dds_minestat_resolve_review ----
+    var reviewModalMask = document.getElementById('dm-review-modal-mask');
+    var reviewModalRawname = document.getElementById('dm-review-modal-rawname');
+    var reviewModalEmpno = document.getElementById('dm-review-modal-empno');
+    var reviewModalCandWrap = document.getElementById('dm-review-modal-candidates-wrap');
+    var reviewModalCand = document.getElementById('dm-review-modal-candidates');
+    var reviewModalConfirm = document.getElementById('dm-review-modal-confirm');
+    var reviewModalState = { kind: null, id: null };
+
+    function openReviewModal(kind, id, rawName, candidates){
+      reviewModalState.kind = kind;
+      reviewModalState.id = id;
+      reviewModalRawname.value = rawName;
+      reviewModalEmpno.value = '';
+      if(candidates && candidates.length){
+        reviewModalCandWrap.style.display = '';
+        reviewModalCand.innerHTML = candidates.slice(0, 5).map(function(c){
+          return '<button type="button" data-review-modal-pick="' + esc(c.emp_no) + '">' + esc(c.name) + ' — ' + esc(c.emp_no) + '</button>';
+        }).join('<br>');
+      } else {
+        reviewModalCandWrap.style.display = 'none';
+        reviewModalCand.innerHTML = '';
+      }
+      reviewModalMask.classList.add('on');
+    }
+    function closeReviewModal(){ reviewModalMask.classList.remove('on'); reviewModalState.kind = null; reviewModalState.id = null; }
+    document.getElementById('dm-review-modal-close').addEventListener('click', closeReviewModal);
+    document.getElementById('dm-review-modal-cancel').addEventListener('click', closeReviewModal);
+    reviewModalMask.addEventListener('click', function(e){ if(e.target === reviewModalMask) closeReviewModal(); });
+    reviewModalCand.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-review-modal-pick]');
+      if(btn) reviewModalEmpno.value = btn.getAttribute('data-review-modal-pick');
+    });
+    reviewModalConfirm.addEventListener('click', function(){
+      var empNo = reviewModalEmpno.value.trim();
+      if(!empNo){ reviewModalEmpno.focus(); return; }
+      var kind = reviewModalState.kind, id = reviewModalState.id;
+      if(!kind || !id) return;
+      reviewModalConfirm.disabled = true;
+      requireSession().then(function(sess){
+        if(!sess) throw new Error('Sign in required.');
+        // Both dds_resolve_review and dds_minestat_resolve_review (0019/0024)
+        // share the same (p_review_id bigint, p_emp_no text) signature.
+        return DB.rpc(REVIEW[kind].resolve, { p_review_id: id, p_emp_no: empNo });
+      }).then(function(res){
+        if(res.error) throw res.error;
+        closeReviewModal();
+        loadNameReviewQueue(kind);
+      }).catch(function(err){
+        console.error('Confirm match failed', err);
+        alert('Could not confirm match: ' + (err.message || 'unknown error') + (err.message && err.message.indexOf('UNKNOWN_EMPLOYEE') !== -1 ? '\n\nCheck the Employee ID against the Masterlist tab.' : ''));
+      }).finally(function(){ reviewModalConfirm.disabled = false; });
+    });
+
+    // Row-level delegated clicks: confirm opens the modal, ignore is a
+    // one-click destructive-but-reversible action (dds_reopen_review /
+    // dds_minestat_reopen_review can undo it — no confirm() dialog needed
+    // for a decision that stays visible and undoable in the queue itself).
+    Object.keys(REVIEW).forEach(function(kind){
+      var tbody = document.querySelector(REVIEW[kind].tbodySel);
+      if(!tbody) return;
+      tbody.addEventListener('click', function(e){
+        var row = e.target.closest('[data-review-id]');
+        if(!row) return;
+        var id = row.getAttribute('data-review-id');
+        var rawName = row.getAttribute('data-review-raw');
+
+        var pickBtn = e.target.closest('[data-review-pick]');
+        if(pickBtn){
+          openReviewModal(kind, id, rawName, null);
+          reviewModalEmpno.value = pickBtn.getAttribute('data-review-pick');
+          return;
+        }
+        if(e.target.closest('[data-review-confirm]')){
+          openReviewModal(kind, id, rawName, null);
+          return;
+        }
+        if(e.target.closest('[data-review-ignore]')){
+          requireSession().then(function(sess){
+            if(!sess) throw new Error('Sign in required.');
+            return DB.rpc(REVIEW[kind].ignore, { p_review_id: id });
+          }).then(function(res){
+            if(res.error) throw res.error;
+            loadNameReviewQueue(kind);
+          }).catch(function(err){
+            console.error('Ignore failed', err);
+            alert('Could not ignore: ' + (err.message || 'unknown error'));
+          });
+        }
+        // Edit a past decision (resolved or ignored row): dds_reopen_review/
+        // dds_minestat_reopen_review (0019/0024) puts the row back to 'open'
+        // and — by default — clears the alias it wrote, so the un-attributed
+        // events actually go back to unresolved rather than the queue row
+        // alone flipping state while the wrong attribution silently stays
+        // live. Then the same Confirm Match modal opens so a different
+        // employee (or the same one, corrected) can be picked.
+        if(e.target.closest('[data-review-edit]')){
+          var editBtn = e.target.closest('[data-review-edit]');
+          editBtn.disabled = true;
+          requireSession().then(function(sess){
+            if(!sess) throw new Error('Sign in required.');
+            return DB.rpc(REVIEW[kind].reopen, { p_review_id: id, p_clear_alias: true });
+          }).then(function(res){
+            if(res.error) throw res.error;
+            loadNameReviewQueue(kind);
+            openReviewModal(kind, id, rawName, null);
+          }).catch(function(err){
+            console.error('Reopen for edit failed', err);
+            alert('Could not reopen for editing: ' + (err.message || 'unknown error'));
+          }).finally(function(){ editBtn.disabled = false; });
+        }
+      });
+    });
+
     function saveDdsEdit(){
       var startVal = document.getElementById('dm-dds-start').value;
       var updateVal = document.getElementById('dm-dds-update').value;
@@ -6553,15 +7700,30 @@
       if(!eventCode) throw new Error('Event Code is required — enter a value for "Other".');
       var countNum = parseInt(eventCount, 10);
       if(!countNum || countNum < 1) throw new Error('Event Count must be a positive integer.');
-      return requireSession().then(function(sess){
-        if(!sess) throw new Error('Sign in required to save records.');
-        return DB.rpc('dds_update_event', {
-          p_event_id: editState.eventId,
-          p_start_time: toCanonical(new Date(startVal)),
-          p_end_time: endVal ? toCanonical(new Date(endVal)) : null,
-          p_update_time: updateVal ? toCanonical(new Date(updateVal)) : null,
-          p_asset_id: asset, p_event_code: eventCode, p_event_count: countNum,
-          p_operator: driver || null
+      var startUtc = DDS.wallClockAsUtcDate(new Date(startVal));
+      var updateUtc = updateVal ? DDS.wallClockAsUtcDate(new Date(updateVal)) : startUtc;
+      var endUtc = endVal ? DDS.wallClockAsUtcDate(new Date(endVal)) : null;
+      if(!startUtc) throw new Error('Start Time must be valid.');
+      // Recompute shift/shift_date/actionable/sync_seconds and re-resolve
+      // emp_no client-side — events.shift/shift_date/actionable/
+      // sync_seconds stopped being GENERATED columns (0055), and an edited
+      // row's operator text may name a different (or newly resolvable)
+      // employee than the one originally attributed.
+      return DDS.loadResolverContext().then(function(ctx){
+        var resolved = DDS.resolveName(driver, ctx);
+        return requireSession().then(function(sess){
+          if(!sess) throw new Error('Sign in required to save records.');
+          return DB.rpc('dds_update_event_resolved', {
+            p_event_id: editState.eventId,
+            p_start_time: toCanonical(new Date(startVal)),
+            p_end_time: endVal ? toCanonical(new Date(endVal)) : null,
+            p_update_time: updateVal ? toCanonical(new Date(updateVal)) : null,
+            p_asset_id: asset, p_event_code: eventCode, p_event_count: countNum,
+            p_operator: driver || null, p_emp_no: resolved.empNo,
+            p_shift: DDS.shift(startUtc), p_shift_date: DDS.fmtIsoDateUTC(DDS.shiftDate(startUtc)),
+            p_actionable: DDS.actionable(startUtc, updateUtc), p_sync_seconds: DDS.syncSeconds(updateUtc, endUtc),
+            p_tier: resolved.tier, p_distance: resolved.distance, p_candidates: resolved.candidates
+          });
         });
       });
     }
@@ -6617,6 +7779,43 @@
     loadHistory('minestat', 'minestat', '#dm-source-minestat .dm-hist-list', 5);
     loadHistory('masterlist', null, '#dm-source-masterlist .dm-hist-list', 2);
     loadHistory('factors', null, '#dm-source-factors .dm-hist-list', 2);
+
+    // Name Review's open count badges the tab itself, so a linking problem
+    // is visible without clicking into the tab — fetched here (count only,
+    // p_limit:1) rather than waiting on ensureLoaded('review'), which only
+    // runs once that tab is actually opened.
+    function refreshReviewBadge(){
+      return requireSession().then(function(sess){
+        if(!sess) return;
+        return DB.rpc('dds_name_review_list', { p_state: 'open', p_limit: 1, p_offset: 0 }).then(function(res){
+          if(res.error) throw res.error;
+          var total = (res.data || {}).total || 0;
+          var badge = document.getElementById('dm-review-badge');
+          if(!badge) return;
+          if(total > 0){ badge.hidden = false; badge.textContent = total > 99 ? '99+' : String(total); }
+          else { badge.hidden = true; }
+        });
+      }).catch(function(err){ console.error('Name review badge count failed', err); });
+    }
+    refreshReviewBadge();
+
+    // Registered under the standard __ddsPageLoad hook (see Overview/
+    // Analytics/etc.) so a full-app refresh — e.g. after a fleet data
+    // reset — doesn't leave this page showing pre-reset rows via its own
+    // `loaded[key]` first-view cache. Invalidates every tab's cache and
+    // re-fetches whichever one is currently on screen, plus every Upload
+    // History panel (all four sources render their own preview list
+    // regardless of which tab is active) and the Name Review badge count.
+    window.__ddsPageLoad.data = function(){
+      Object.keys(loaded).forEach(function(key){ loaded[key] = false; });
+      var activeTab = document.querySelector('#dm-source-tabs .dm-tab.on');
+      ensureLoaded(activeTab ? activeTab.getAttribute('data-source') : 'dds');
+      loadHistory('dds', 'dds', '#dm-source-dds .dm-hist-list', 3);
+      loadHistory('minestat', 'minestat', '#dm-source-minestat .dm-hist-list', 5);
+      loadHistory('masterlist', null, '#dm-source-masterlist .dm-hist-list', 2);
+      loadHistory('factors', null, '#dm-source-factors .dm-hist-list', 2);
+      refreshReviewBadge();
+    };
   })();
 
   // ---------- Alert Logs: real dds_alert_logs() data ----------
@@ -6815,7 +8014,17 @@
           }
           tbody.innerHTML = rows.map(function(r){
             var sev = severityBadge(r.eventCode);
-            var driver = r.driverDisplayName || r.driverName || r.operator || 'Unspecified';
+            // driverDisplayName is dds_alert_logs()'s own
+            // coalesce(case override, resolved masterlist name, operator
+            // text) — it is falsy only when the operator text itself was
+            // also blank, so a falsy value here always means "no operator
+            // was ever logged", never "logged but unresolved" (an
+            // unresolved-but-non-blank operator still shows its raw text).
+            // driverLinkLabel() reflects that: it never returns 'Needs
+            // Review' at this call site, but stays as the one place the
+            // rule lives rather than a bare 'Unspecified' literal.
+            var driver = r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator);
+            var needsReview = !r.empNo && !!r.operator;
             var statusLabel = r.statusValue ? esc(r.statusValue) : '<span style="color:var(--muted)">Not logged</span>';
             var actionIsKnownOther = r.actionType && AL_ACTION_OPTIONS.indexOf(r.actionType) === -1;
             return '<tr data-al-row-id="' + r.id + '" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">' +
@@ -6828,7 +8037,7 @@
               '<td class="al-time">' + esc(fmtTimeOnly(r.endTime)) + '</td>' +
               '<td class="al-time">' + esc(fmtTimeOnly(r.updateTime)) + '</td>' +
               '<td><input type="text" class="al-inline-input" data-al-empid="' + r.id + '" value="' + esc(r.empNo || '') + '" placeholder="—"></td>' +
-              '<td data-al-empname="' + r.id + '">' + esc(driver) + '</td>' +
+              '<td data-al-empname="' + r.id + '">' + esc(driver) + (needsReview ? ' <span class="dm-tag amber" title="Operator text did not match any masterlist employee — see Name Review">Needs Review</span>' : '') + '</td>' +
               '<td>' +
                 '<select class="al-inline-select" data-al-action="' + r.id + '">' + actionOptionsHtml(r.actionType) + '</select>' +
                 '<input type="text" class="al-inline-input al-action-other' + (actionIsKnownOther ? ' on' : '') + '" data-al-action-other="' + r.id + '" placeholder="Describe action..." value="' + (actionIsKnownOther ? esc(r.actionType) : '') + '">' +
@@ -7438,6 +8647,14 @@
         state = fresh;
         window.__daState = state;
         updateSummaryKpis();
+        // Summary's own renderer reads window.__daState synchronously and
+        // has no fetch of its own to await — nudge it here, once state is
+        // actually fresh, rather than relying on __ddsPageLoad call order
+        // (this IIFE registers 'driver-asset' after Summary registers
+        // 'summary', and this fetch resolves later still, so a caller that
+        // just walks __ddsPageLoad in registration order would re-render
+        // Summary against the stale state that was there before the call).
+        if(window.__ddsPageLoad && window.__ddsPageLoad.summary) window.__ddsPageLoad.summary();
       }).catch(function(err){
         console.error('Driver & Asset weekly (background risk model) fetch failed', err);
       });
