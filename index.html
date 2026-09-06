@@ -1274,6 +1274,10 @@
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
         <span class="nav-label">Driver &amp; Asset Monitoring</span>
       </button>
+      <button class="nav-item" type="button" data-page="driver-streaks">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>
+        <span class="nav-label">Driver Streaks</span>
+      </button>
       <button class="nav-item" type="button" data-page="summary">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h6"/></svg></span>
         <span class="nav-label">Summary</span>
@@ -2363,6 +2367,57 @@
       </div>
     </div>
 
+    <!-- ===================== DRIVER STREAKS ===================== -->
+    <!-- All-time view of each driver's most recent qualifying alert streak
+         (same >10-units-per-day threshold Driver & Asset Monitoring/
+         Overview already use), via dds_driver_streaks() — a dedicated RPC
+         because dds_driver_asset_weekly()'s own streakDays is hardcoded to
+         a fixed 90-day lookback regardless of any date range passed to it,
+         so it cannot answer "show me full history." -->
+    <div id="page-driver-streaks" class="page">
+      <header class="topbar">
+        <div class="title">
+          <h1>Driver Streaks</h1>
+          <p>Every driver's current alert streak, across the full history — not just the last 7 days</p>
+        </div>
+      </header>
+
+      <section class="card da-table-card da-table-card-flex">
+        <div class="da-table-head da-table-head-oneline">
+          <h3 class="da-table-title">Drivers on Alert Streak <small id="ds-shown">Showing 0</small></h3>
+          <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." id="ds-search"></div>
+          <input type="date" class="al-filter" id="ds-from" aria-label="Streak start on/after date" title="Only show streaks starting on/after this date">
+          <input type="date" class="al-filter" id="ds-to" aria-label="Streak end on/before date" title="Only show streaks ending on/before this date">
+          <button class="al-filter" type="button" id="ds-clear" style="cursor:pointer">Clear filters</button>
+          <button class="al-filter" type="button" id="ds-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
+        </div>
+        <div class="da-table-wrap da-table-wrap-flex">
+          <table class="da-table" id="ds-table">
+            <thead>
+              <tr>
+                <th data-ds-sort="streak_days">Streak (days)</th>
+                <th data-ds-sort="emp_no">Emp No</th>
+                <th data-ds-sort="name">Driver Name</th>
+                <th data-ds-sort="total_count">Total Counts</th>
+                <th>Action Performed</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ds-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="da-table-foot">
+          <span data-ds-empty-note></span>
+          <div class="al-pages" id="ds-pages">
+            <span id="ds-rowsrange">—</span>
+            <button class="al-page" type="button" id="ds-page-prev" disabled aria-label="Previous page">‹</button>
+            <span id="ds-page-numbers"></span>
+            <button class="al-page" type="button" id="ds-page-next" aria-label="Next page">›</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <div id="page-summary" class="page">
       <header class="topbar">
         <div class="title">
@@ -3040,6 +3095,34 @@
               <tr id="da-inst-thead-row"></tr>
             </thead>
             <tbody id="da-inst-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Driver Streaks: read-only complete event-history drill-down. No
+         bulk-action bar here — action logging for a streak happens at the
+         row level in the main table (dds_bulk_log_case_action_by_driver,
+         scoped to that streak's own date range), so this modal is purely
+         "see everything that happened," modeled on da-inst-mask above. -->
+    <div class="da-modal-mask" id="ds-detail-mask">
+      <div class="da-modal wide" role="dialog" aria-modal="true" aria-labelledby="ds-detail-title">
+        <div class="da-modal-head">
+          <div>
+            <div class="da-modal-title" id="ds-detail-title">—</div>
+            <div class="da-modal-sub" id="ds-detail-sub">—</div>
+          </div>
+          <button class="da-modal-close" type="button" id="ds-detail-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="da-inst-summary" id="ds-detail-summary"></div>
+        <div class="da-table-wrap">
+          <table class="da-inst-table" id="ds-detail-table">
+            <thead>
+              <tr><th>Date</th><th>Shift</th><th>Asset ID</th><th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th></tr>
+            </thead>
+            <tbody id="ds-detail-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -9847,6 +9930,293 @@
     window.__ddsPageLoad['driver-asset'] = load;
 
     // ---- initial load ----
+    load();
+  })();
+
+  // ---------- Driver Streaks: all-time view via dds_driver_streaks() ----------
+  // dds_driver_asset_weekly()'s own streakDays is hardcoded to a fixed
+  // 89-day lookback from each entity's own last activity date — completely
+  // independent of any date range passed to it — so it cannot show
+  // complete history the way this page needs to. dds_driver_streaks() is a
+  // dedicated RPC computing the same >10-units/day streak definition over
+  // the driver's FULL event history via a real gaps-and-islands query.
+  (function(){
+    var state = { search:'', from:null, to:null, sort:'streak_days', dir:'desc', limit:20, offset:0, total:0 };
+    var tbody = document.getElementById('ds-tbody');
+    var rows = [];
+
+    function fmtDateTimeShort(mdyhms){
+      if(!mdyhms) return '—';
+      var parts = mdyhms.split(' ');
+      if(parts.length < 2) return mdyhms;
+      var hm = parts[1].split(':').slice(0,2).join(':');
+      return parts[0] + ' ' + hm;
+    }
+
+    function renderPagination(){
+      var totalPages = Math.max(1, Math.ceil(state.total / state.limit));
+      var curPage = Math.floor(state.offset / state.limit) + 1;
+      var rangeEl = document.getElementById('ds-rowsrange');
+      var shownFrom = state.total === 0 ? 0 : state.offset + 1;
+      var shownTo = Math.min(state.offset + state.limit, state.total);
+      if(rangeEl) rangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(state.total);
+      var prevBtn = document.getElementById('ds-page-prev');
+      var nextBtn = document.getElementById('ds-page-next');
+      if(prevBtn) prevBtn.disabled = curPage <= 1;
+      if(nextBtn) nextBtn.disabled = curPage >= totalPages;
+      var numsEl = document.getElementById('ds-page-numbers');
+      if(numsEl){
+        var start = Math.max(1, curPage - 2);
+        var end = Math.min(totalPages, start + 4);
+        start = Math.max(1, end - 4);
+        var html = '';
+        for(var p = start; p <= end; p++){
+          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
+            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
+        }
+        numsEl.innerHTML = html;
+        numsEl.querySelectorAll('[data-page]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            state.offset = (Number(btn.getAttribute('data-page')) - 1) * state.limit;
+            load();
+          });
+        });
+      }
+    }
+
+    var ACTION_OPTIONS = ['Spare', 'Replace', 'Continue'];
+    function actionSelectHtml(empNo, currentType){
+      var isKnown = currentType && ACTION_OPTIONS.indexOf(currentType) !== -1;
+      var html = '<option value=""' + (!currentType ? ' selected' : '') + '>—</option>';
+      ACTION_OPTIONS.forEach(function(opt){
+        html += '<option value="' + opt + '"' + (currentType === opt ? ' selected' : '') + '>' + opt + '</option>';
+      });
+      html += '<option value="Other"' + (currentType && !isKnown ? ' selected' : '') + '>Other…</option>';
+      return html;
+    }
+
+    function renderRows(){
+      if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(function(r, i){
+        var currentType = r.lastAction ? r.lastAction.type : null;
+        var isOtherCurrent = currentType && ACTION_OPTIONS.indexOf(currentType) === -1;
+        return '<tr data-ds-row="' + i + '">' +
+          '<td>' + fmtNum(r.streakDays) + ' <span style="color:var(--muted);font-size:10px">(' + esc(r.runStart) + '–' + esc(r.runEnd) + ')</span></td>' +
+          '<td>' + esc(r.empNo) + '</td>' +
+          '<td>' + esc(r.name) + '</td>' +
+          '<td>' + fmtNum(r.totalCount) + '</td>' +
+          '<td>' +
+            '<select data-ds-action="' + i + '">' + actionSelectHtml(r.empNo, currentType) + '</select>' +
+            '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;' + (isOtherCurrent ? '' : 'display:none') + '" value="' + esc(isOtherCurrent ? (r.lastAction.note || '') : '') + '">' +
+          '</td>' +
+          '<td><button class="dm-icon-btn" type="button" data-ds-detail="' + i + '" title="See details" aria-label="See details">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>' +
+          '</button></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function load(){
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+      requireSession().then(function(sess){
+        if(!sess){
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          return;
+        }
+        return DB.rpc('dds_driver_streaks', {
+          p_search: state.search || null, p_min_streak: 1,
+          p_sort: state.sort, p_dir: state.dir,
+          p_limit: state.limit, p_offset: state.offset
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var data = res.data || {};
+          rows = data.rows || [];
+          state.total = data.total || 0;
+          // Client-side date-range narrowing on the streak's own start/end
+          // — the RPC itself doesn't take from/to (a streak is a computed
+          // property of full history, not a filterable row attribute the
+          // way an event's own date is), so "narrow the all-time view" per
+          // the user's own answer means: show only streaks whose window
+          // overlaps the chosen range, applied to what the server already
+          // paginated.
+          if(state.from || state.to){
+            rows = rows.filter(function(r){
+              var start = new Date(r.runStart), end = new Date(r.runEnd);
+              if(state.from && end < new Date(state.from)) return false;
+              if(state.to && start > new Date(state.to)) return false;
+              return true;
+            });
+          }
+          var shownEl = document.getElementById('ds-shown');
+          if(shownEl) shownEl.textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(state.total);
+          renderRows();
+          renderPagination();
+        });
+      }).catch(function(err){
+        console.error('Driver streaks fetch failed', err);
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+      });
+    }
+
+    // ---- filters ----
+    var searchInput = document.getElementById('ds-search');
+    if(searchInput){
+      var searchTimer;
+      searchInput.addEventListener('input', function(){
+        clearTimeout(searchTimer);
+        var val = searchInput.value;
+        searchTimer = setTimeout(function(){ state.search = val.trim(); state.offset = 0; load(); }, 300);
+      });
+    }
+    var fromInput = document.getElementById('ds-from');
+    if(fromInput) fromInput.addEventListener('change', function(){ state.from = fromInput.value || null; load(); });
+    var toInput = document.getElementById('ds-to');
+    if(toInput) toInput.addEventListener('change', function(){ state.to = toInput.value || null; load(); });
+    var clearBtn = document.getElementById('ds-clear');
+    if(clearBtn) clearBtn.addEventListener('click', function(){
+      state.search = ''; state.from = null; state.to = null; state.offset = 0;
+      if(searchInput) searchInput.value = '';
+      if(fromInput) fromInput.value = '';
+      if(toInput) toInput.value = '';
+      load();
+    });
+    var refreshBtn = document.getElementById('ds-refresh');
+    if(refreshBtn) refreshBtn.addEventListener('click', load);
+    document.querySelectorAll('#ds-table th[data-ds-sort]').forEach(function(th){
+      th.addEventListener('click', function(){
+        var col = th.getAttribute('data-ds-sort');
+        if(state.sort === col) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+        else { state.sort = col; state.dir = 'desc'; }
+        load();
+      });
+    });
+    var prevBtn = document.getElementById('ds-page-prev');
+    if(prevBtn) prevBtn.addEventListener('click', function(){ state.offset = Math.max(0, state.offset - state.limit); load(); });
+    var nextBtn = document.getElementById('ds-page-next');
+    if(nextBtn) nextBtn.addEventListener('click', function(){ state.offset += state.limit; load(); });
+
+    // ---- row actions: dropdown applies immediately, "Other" reveals a
+    // text box first and applies on blur/Enter (matching the existing
+    // bulk-action bar's Other handling elsewhere in this app) ----
+    tbody.addEventListener('change', function(e){
+      var sel = e.target.closest('select[data-ds-action]');
+      if(!sel) return;
+      var i = Number(sel.getAttribute('data-ds-action'));
+      var r = rows[i];
+      if(!r) return;
+      var otherInput = tbody.querySelector('input[data-ds-other="' + i + '"]');
+      if(sel.value === 'Other'){
+        if(otherInput){ otherInput.style.display = ''; otherInput.focus(); }
+        return; // wait for the free-text value before writing anything
+      }
+      if(otherInput) otherInput.style.display = 'none';
+      if(!sel.value) return; // reset to blank — no action to log
+      applyStreakAction(r, sel.value, false, null);
+    });
+    tbody.addEventListener('keydown', function(e){
+      if(e.key !== 'Enter') return;
+      var input = e.target.closest('input[data-ds-other]');
+      if(!input) return;
+      e.preventDefault();
+      input.blur();
+    });
+    tbody.addEventListener('blur', function(e){
+      var input = e.target.closest('input[data-ds-other]');
+      if(!input) return;
+      var i = Number(input.getAttribute('data-ds-other'));
+      var r = rows[i];
+      if(!r || !input.value.trim()) return;
+      applyStreakAction(r, 'Other', true, input.value.trim());
+    }, true);
+
+    // Applies the chosen action to every event within THIS driver's own
+    // streak date range — dds_bulk_log_case_action_by_driver already
+    // exists exactly for this (writes one alert_cases row per matching
+    // event via a set-based query), so no new RPC was needed. This is the
+    // literal "any action logged should reflect on the recorded name
+    // during the duration" behavior the user asked for.
+    function applyStreakAction(r, actionType, isOther, otherText){
+      var rowEl = tbody.querySelector('tr[data-ds-row]');
+      DB.rpc('dds_bulk_log_case_action_by_driver', {
+        p_emp_nos: [r.empNo], p_include_unspecified: false,
+        p_from: r.runStart ? new Date(r.runStart).toISOString().slice(0,10) : null,
+        p_to: r.runEnd ? new Date(r.runEnd).toISOString().slice(0,10) : null,
+        p_shift: null,
+        p_action_type: isOther ? otherText : actionType,
+        p_action_is_other: !!isOther,
+        p_action_date: new Date().toISOString().slice(0,10),
+        p_status_value: 'Logged',
+        p_remarks: isOther ? otherText : null
+      }).then(function(res){
+        if(res.error) throw res.error;
+        load();
+      }).catch(function(err){
+        console.error('Log streak action failed', err);
+        alert('Could not log action: ' + ((err && err.message) || 'unknown error'));
+      });
+    }
+
+    // ---- details drill-down: complete event history for this streak's driver ----
+    var detailMask = document.getElementById('ds-detail-mask');
+    var detailTitle = document.getElementById('ds-detail-title');
+    var detailSub = document.getElementById('ds-detail-sub');
+    var detailSummary = document.getElementById('ds-detail-summary');
+    var detailTbody = document.getElementById('ds-detail-tbody');
+    var detailCloseBtn = document.getElementById('ds-detail-close');
+
+    function openDriverStreakDetail(r){
+      detailTitle.textContent = 'Complete event history — ' + r.name + ' (' + r.empNo + ')';
+      detailSub.textContent = 'Streak: ' + r.runStart + ' – ' + r.runEnd + ' (' + fmtNum(r.streakDays) + ' day(s))';
+      detailSummary.innerHTML = '';
+      detailTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px 0">Loading…</td></tr>';
+      detailMask.classList.add('on');
+      // Complete history means the driver's full record, not scoped to
+      // just the current streak window — the user explicitly asked for
+      // "a table of complete history," distinct from the action-logging
+      // scope above, which IS deliberately limited to the streak's dates.
+      DB.rpc('dds_driver_alert_instances', { p_emp_no: r.empNo, p_from: null, p_to: null, p_limit: 500, p_offset: 0 }).then(function(res){
+        if(res.error) throw res.error;
+        var data = res.data || {};
+        var instRows = data.rows || [];
+        detailSummary.innerHTML =
+          '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.total || 0) + '</span></div>' +
+          '<div class="da-inst-stat"><span class="da-inst-stat-label">Rows</span><span class="da-inst-stat-value">' + fmtNum(data.rowCount || 0) + '</span></div>';
+        if(!instRows.length){
+          detailTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px 0">No event history found.</td></tr>';
+          return;
+        }
+        detailTbody.innerHTML = instRows.map(function(er){
+          return '<tr>' +
+            '<td>' + esc(er.shiftDate || '—') + '</td>' +
+            '<td>' + esc(er.shift || '—') + '</td>' +
+            '<td>' + esc(er.unit || '—') + '</td>' +
+            '<td>' + esc(fmtDateTimeShort(er.startTime)) + '</td>' +
+            '<td>' + esc(fmtDateTimeShort(er.endTime)) + '</td>' +
+            '<td>' + esc(fmtDateTimeShort(er.updateTime)) + '</td>' +
+            '<td>' + esc(er.eventCode || '—') + '</td>' +
+            '<td>' + fmtNum(er.eventCount || 0) + '</td>' +
+          '</tr>';
+        }).join('');
+      }).catch(function(err){
+        console.error('Driver history fetch failed', err);
+        detailTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+      });
+    }
+
+    tbody.addEventListener('click', function(e){
+      var btn = e.target.closest('button[data-ds-detail]');
+      if(!btn) return;
+      var i = Number(btn.getAttribute('data-ds-detail'));
+      var r = rows[i];
+      if(r) openDriverStreakDetail(r);
+    });
+    if(detailCloseBtn) detailCloseBtn.addEventListener('click', function(){ detailMask.classList.remove('on'); });
+    if(detailMask) detailMask.addEventListener('click', function(e){ if(e.target === detailMask) detailMask.classList.remove('on'); });
+
+    window.__ddsPageLoad['driver-streaks'] = load;
     load();
   })();
 
