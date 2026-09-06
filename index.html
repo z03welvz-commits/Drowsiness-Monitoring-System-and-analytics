@@ -497,6 +497,8 @@
   #page-alerts.active .al-table-card{flex:1;min-height:0;display:flex;flex-direction:column}
   #page-alerts.active .al-table-wrap{flex:1;min-height:0}
   .al-badge{display:inline-flex;height:21px;align-items:center;border-radius:999px;padding:0 9px;font-size:var(--fs-badge);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
+  .al-badge[hidden]{display:none}
+  .title h1 .al-badge{vertical-align:middle;margin-left:10px}
   .al-badge.critical{background:#fdeaea;color:#e53553}
   .al-badge.high{background:#fdf0dc;color:#e8952e}
   .al-badge.moderate{background:#e3edfd;color:#3b7cf6}
@@ -2420,7 +2422,7 @@
     <div id="page-driver-streaks" class="page">
       <header class="topbar">
         <div class="title">
-          <h1>Driver Streaks</h1>
+          <h1>Driver Streaks <span class="al-badge critical" id="ds-open-badge" hidden>0 open</span></h1>
           <p>Every driver's current alert streak, across the full history — not just the last 7 days</p>
         </div>
       </header>
@@ -10139,6 +10141,21 @@
       if(statusEl) statusEl.textContent = loadingMore ? 'Loading more…' : (reachedEnd && rows.length ? 'All streaks loaded' : '');
     }
 
+    // "Open" = status 'required' (a streak long enough to flag, with no
+    // active monitoring window logged) — same definition Driver & Asset
+    // Monitoring's own "Action Required" tile uses, via dds_driver_
+    // streaks()'s status field. Hidden entirely (not shown as "0 open")
+    // when the field is missing, so a live database that hasn't picked up
+    // this session's migration yet just shows no badge instead of a
+    // number that would look real but always read zero.
+    function updateOpenBadge(openCount){
+      var badge = document.getElementById('ds-open-badge');
+      if(!badge) return;
+      if(openCount == null){ badge.hidden = true; return; }
+      badge.hidden = false;
+      badge.textContent = fmtNum(openCount) + (openCount === 1 ? ' open case' : ' open cases');
+    }
+
     var ACTION_OPTIONS = ['Spare', 'Replace', 'Continue'];
     function actionSelectHtml(empNo, currentType){
       var isKnown = currentType && ACTION_OPTIONS.indexOf(currentType) !== -1;
@@ -10216,6 +10233,15 @@
           var data = res.data || {};
           var fetched = data.rows || [];
           state.total = data.total || 0;
+          // openCount is computed server-side over the FULL matching set
+          // (not just the rows fetched so far), so it stays correct
+          // regardless of how much has been scrolled into view. Only
+          // updated on a fresh load — a loadMore batch doesn't change how
+          // many total rows are open, and older Supabase deployments
+          // without this session's migration applied yet simply won't
+          // send the field at all (openCount undefined), so the badge
+          // stays hidden rather than showing a wrong/stale number.
+          if(!isLoadMore) updateOpenBadge(data.openCount);
           // Client-side date-range narrowing on the streak's own start/end
           // — the RPC itself doesn't take from/to (a streak is a computed
           // property of full history, not a filterable row attribute the
