@@ -11194,7 +11194,7 @@
       }
       if(otherInput) otherInput.style.display = 'none';
       if(!sel.value) return; // reset to blank — no action to log
-      applyStreakAction(r, sel.value, false, null);
+      applyStreakAction(r, sel.value, false, null, i);
     });
     tbody.addEventListener('keydown', function(e){
       if(e.key !== 'Enter') return;
@@ -11209,7 +11209,7 @@
       var i = Number(input.getAttribute('data-ds-other'));
       var r = rows[i];
       if(!r || !input.value.trim()) return;
-      applyStreakAction(r, 'Other', true, input.value.trim());
+      applyStreakAction(r, 'Other', true, input.value.trim(), i);
     }, true);
 
     // r.runStart/r.runEnd come back from dds_driver_streaks() as MM/DD/YYYY
@@ -11243,15 +11243,49 @@
     // default anywhere else in the app (Driver & Asset Monitoring's own
     // equivalent modal always prompts for it too), so ask for it here
     // rather than inventing a value.
-    function applyStreakAction(r, actionType, isOther, otherText){
+    // Disables this row's controls and shows an inline "Saving…" tag for
+    // the duration of the two-RPC write — without it, a save in flight and
+    // a save that silently failed looked identical (the dropdown just sat
+    // there either way), which is exactly what read as "nothing happened."
+    function setRowSaving(i, isSaving){
+      var sel = tbody.querySelector('select[data-ds-action="' + i + '"]');
+      if(!sel) return;
+      sel.disabled = isSaving;
+      var otherInput = tbody.querySelector('input[data-ds-other="' + i + '"]');
+      if(otherInput) otherInput.disabled = isSaving;
+      var tag = sel.parentNode.querySelector('.ds-saving-tag');
+      if(isSaving){
+        if(!tag){
+          tag = document.createElement('span');
+          tag.className = 'ds-saving-tag';
+          tag.style.cssText = 'margin-left:6px;color:var(--muted);font-size:10px;white-space:nowrap';
+          tag.textContent = 'Saving…';
+          sel.parentNode.appendChild(tag);
+        }
+      } else if(tag){
+        tag.remove();
+      }
+    }
+
+    function applyStreakAction(r, actionType, isOther, otherText, i){
       var loggedBy = window.prompt('Logged by (name of whoever performed this action):', '');
-      if(loggedBy === null){ load(); return; } // cancelled — reset the dropdown
+      if(loggedBy === null){
+        // Cancelled — nothing was ever sent over the network, so just
+        // redraw this one row back to its last-known state instead of a
+        // full reload. A full reload here previously made a deliberate
+        // Cancel look identical to a failed save: same flicker, same
+        // silence, no way to tell which one happened.
+        var rowEl = tbody.querySelector('tr[data-ds-row="' + i + '"]');
+        if(rowEl) rowEl.outerHTML = rowHtml(r, i);
+        return;
+      }
       loggedBy = loggedBy.trim();
       if(!loggedBy){
         alert('Logging an action requires a "Logged by" name.');
         load();
         return;
       }
+      setRowSaving(i, true);
       var finalType = isOther ? 'Other' : actionType;
       DB.rpc('dds_bulk_log_case_action_by_driver', {
         p_emp_nos: [r.empNo], p_include_unspecified: false,
