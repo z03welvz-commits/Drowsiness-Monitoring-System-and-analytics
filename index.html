@@ -619,7 +619,16 @@
 
   .al-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
   .al-pages{display:flex;gap:5px;align-items:center}
-  .al-page{all:unset;box-sizing:border-box;cursor:pointer;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;display:grid;place-items:center;background:var(--card);font-size:var(--fs-caption);color:var(--text-dim)}
+  /* inline-grid, not grid — display:grid makes the button a block-level
+     box, so the numbered page buttons (injected as siblings inside a
+     plain <span>, not a flex container — see #al-page-numbers /
+     [data-da-page-numbers]) each took a full line and stacked vertically
+     instead of sitting side by side. inline-grid keeps the same
+     place-items centering but participates in inline flow like the text
+     around it. Prev/next weren't affected — they're direct children of
+     the flex row .al-pages, which lays out any child (grid or not) as a
+     flex item regardless. */
+  .al-page{all:unset;box-sizing:border-box;cursor:pointer;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;display:inline-grid;place-items:center;background:var(--card);font-size:var(--fs-caption);color:var(--text-dim)}
   .al-page.on{background:#1259b6;color:#fff;border-color:#1259b6}
   .al-page:disabled{opacity:.45;cursor:default}
 
@@ -1901,9 +1910,11 @@
       <section class="card al-table-card">
         <div class="al-table-head">
           <h3 class="al-table-title">Detected Events <small id="al-table-showing">Loading…</small></h3>
-          <button class="al-filter" type="button" id="al-find-dupes" style="cursor:pointer;flex:0 0 auto" title="Find events on the same asset and event code logged within 60 seconds of each other in the current date range — a common sign of a duplicate log entry">Find duplicates</button>
-          <button class="al-filter" type="button" id="al-select-toggle" style="cursor:pointer;flex:0 0 auto">Select</button>
-          <button class="export-btn" type="button" id="al-export-btn" title="Export every row matching the current filters, not just this page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
+          <div style="display:flex;align-items:center;gap:10px;flex:0 0 auto">
+            <button class="al-filter" type="button" id="al-find-dupes" style="cursor:pointer;flex:0 0 auto" title="Find events on the same asset and event code logged within 60 seconds of each other in the current date range — a common sign of a duplicate log entry">Find duplicates</button>
+            <button class="al-filter" type="button" id="al-select-toggle" style="cursor:pointer;flex:0 0 auto">Select</button>
+            <button class="export-btn" type="button" id="al-export-btn" title="Export every row matching the current filters, not just this page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
+          </div>
         </div>
         <div class="al-filters">
           <div class="al-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="al-search" placeholder="Search asset, driver, or event..." style="all:unset;flex:1;min-width:0;font-size:11px;color:var(--text-dim)"></div>
@@ -1931,6 +1942,9 @@
             <option value="Escalated">Escalated</option>
             <option value="Coached">Coached</option>
             <option value="Dismissed">Dismissed</option>
+            <option value="Spare">Spare</option>
+            <option value="Replace">Replace</option>
+            <option value="Continue">Continue</option>
             <option value="Other">Other…</option>
           </select>
           <input type="text" class="da-bulk-other" id="al-bulk-action-other" placeholder="Describe action...">
@@ -8938,7 +8952,22 @@
     // Same vocabulary as the bulk-edit bar's Action Performed dropdown —
     // one list, used both places, so a value picked inline and one picked
     // via bulk edit always mean the same thing.
-    var AL_ACTION_OPTIONS = ['Reviewed', 'Escalated', 'Coached', 'Dismissed'];
+    //
+    // Includes Spare/Replace/Continue — not choices unique to this page,
+    // but real values Driver & Asset Monitoring and Driver Streaks write
+    // into this exact same alert_cases.action_type column for exactly
+    // these events. Before, anything outside Alert Logs' own original
+    // four-value list (Reviewed/Escalated/Coached/Dismissed) fell through
+    // to the "isKnown" check below as if it were free text: the select
+    // showed "Other…" while a separate always-visible text box showed the
+    // real value ("Continue", etc.) beside it. On a row a bulk driver
+    // action had touched, that meant every single row rendered BOTH a
+    // dropdown reading "Other…" AND a text box reading "Continue" stacked
+    // in the same cell — reported as garbled/overlapping text repeating
+    // down the whole column. Recognizing the full shared vocabulary here
+    // lets the select show the real value as itself, selected and
+    // collapsed, with the free-text box correctly hidden.
+    var AL_ACTION_OPTIONS = ['Reviewed', 'Escalated', 'Coached', 'Dismissed', 'Spare', 'Replace', 'Continue'];
     function actionOptionsHtml(current){
       var isKnown = current && AL_ACTION_OPTIONS.indexOf(current) !== -1;
       var html = '<option value=""' + (!current ? ' selected' : '') + '>—</option>';
