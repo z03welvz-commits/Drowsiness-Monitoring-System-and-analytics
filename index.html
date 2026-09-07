@@ -93,7 +93,15 @@
   .sidebar.collapsed.pinned-open .brand-text,.sidebar.collapsed.pinned-open .nav-label,.sidebar.collapsed.pinned-open .section-label,.sidebar.collapsed.pinned-open .mode-toggle span{opacity:1;pointer-events:auto}
   .brand-text,.nav-label,.section-label,.mode-toggle span{transition:opacity .12s ease}
   .sidebar.collapsed .nav-item,.sidebar.collapsed .mode-toggle{justify-content:center}
-  .sidebar.collapsed .nav-item{gap:0}
+  .sidebar.collapsed .nav-item,.sidebar.collapsed .mode-toggle{gap:0}
+  /* .mode-toggle span ("Dark mode"/"Sign out") fades via opacity like
+     .nav-label, but opacity alone doesn't free its layout space — the
+     invisible text was still pushing the icon off-center in the
+     collapsed rail. Zeroing its width (restored on hover/pinned-open,
+     alongside every other collapsed-fade element) fixes that. */
+  .sidebar.collapsed .mode-toggle span{width:0;overflow:hidden}
+  .sidebar.collapsed:hover .mode-toggle,.sidebar.collapsed.pinned-open .mode-toggle{gap:10px}
+  .sidebar.collapsed:hover .mode-toggle span,.sidebar.collapsed.pinned-open .mode-toggle span{width:auto;overflow:visible}
   .sidebar-pin{all:unset;box-sizing:border-box;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#b9d7fb;flex:0 0 auto;margin-left:auto;cursor:pointer;transition:background-color .15s,color .15s;opacity:0;pointer-events:none}
   .sidebar-pin:hover{background:rgba(255,255,255,.1);color:#fff}
   .sidebar-pin:focus-visible{outline:2px solid #fff;outline-offset:-2px}
@@ -164,20 +172,23 @@
 
   /* ---------- kpi row ---------- */
   .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:14px}
-  .kpi{padding:16px 17px;position:relative;overflow:hidden}
+  .kpi{padding:16px 17px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr auto;column-gap:10px;grid-template-areas:"head head" "value sub" "spark spark"}
   .kpi:hover{box-shadow:var(--shadow-hover)}
-  .kpi-head{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.035em;font-weight:700;color:var(--text-dim)}
+  .kpi-head{grid-area:head;display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.035em;font-weight:700;color:var(--text-dim)}
   .kpi-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}
   .kpi-icon svg{width:16px;height:16px}
   .red{background:#fee8e8;color:#ef4444}.pink{background:#fde7ec;color:#ec4a75}.amber{background:#fdf0dc;color:#e8952e}
   .bluebg{background:#e3edfd;color:#3b7cf6}.greenbg{background:#dff5ea;color:#18a05e}.purplebg{background:#f0e9fc;color:#7c3aed}
-  .kpi-value{font-size:var(--fs-display);font-weight:800;margin-top:11px;letter-spacing:-.02em}
-  .kpi-sub{font-size:11px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:5px}
+  /* Value stays left, the delta moves beside it (not below) on the
+     right, both vertically centered on the same grid row — value is
+     the number people scan for, delta is understated supporting
+     context, so it reads secondary without needing color to say so. */
+  .kpi-value{grid-area:value;align-self:center;font-size:var(--fs-display);font-weight:800;letter-spacing:-.02em}
+  .kpi-sub{grid-area:sub;align-self:center;justify-self:end;text-align:right;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
   .kpi-sub .delta{font-weight:700}
-  .kpi-sub .delta.down{color:#dc2626}
-  .kpi-sub .delta.up{color:#12805f}
+  .kpi-sub .delta.down,.kpi-sub .delta.up{color:var(--text-dim)}
   .kpi-sub .delta.flat{color:var(--muted)}
-  .kpi-spark{margin-top:8px;height:32px}
+  .kpi-spark{grid-area:spark;margin-top:8px;height:32px}
   .kpi-spark svg{width:100%;height:100%}
 
   /* ---------- 2-col layout: wide left, narrower right ---------- */
@@ -258,7 +269,14 @@
   .chart-hover-rect{fill:transparent;cursor:crosshair}
   .chart-crosshair{stroke:#94a3b8;stroke-width:1;stroke-dasharray:3 3;opacity:0;pointer-events:none;transition:opacity .1s}
   .chart-hover-dot{fill:#fff;stroke:#2563eb;stroke-width:2.5;opacity:0;pointer-events:none;transition:opacity .1s}
-  .chart-tooltip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:8px 11px;font-size:11px;color:var(--text-dim);opacity:0;transform:translate(-50%,-100%);transition:opacity .1s;white-space:nowrap;z-index:5}
+  /* position:fixed (not absolute) + viewport coordinates in
+     wireChartHover() below — the chart card's own .chart-area clips
+     with overflow:hidden (needed so the flex layout can shrink it), and
+     an absolutely-positioned tooltip near the top of a chart was getting
+     clipped by that same rule before it could ever reach the eye. Fixed
+     positioning escapes that clip entirely and z-index:9999 keeps it
+     above every other card on the page. */
+  .chart-tooltip{position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:8px 11px;font-size:11px;color:var(--text-dim);opacity:0;transform:translate(-50%,-100%);transition:opacity .1s;white-space:nowrap;z-index:9999}
   .chart-tooltip.on{opacity:1}
   .chart-tooltip-date{font-weight:700;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px}
   .chart-tooltip-value{font-weight:800;font-size:14px;color:#1259b6}
@@ -342,20 +360,19 @@
      by vertical rules instead of separate cards — matches jsx's KeyInsights
      grid exactly (repeat(4,1fr) 1.1fr). */
   .an-kpis{display:grid;grid-template-columns:repeat(4,1fr) 1.1fr;gap:0}
-  .an-kpi-col{padding:0 22px;border-left:1px solid var(--border)}
+  .an-kpi-col{padding:0 22px;border-left:1px solid var(--border);display:grid;grid-template-columns:1fr auto;column-gap:8px;grid-template-areas:"head head" "value sub" "spark spark"}
   .an-kpi-col:first-child{border-left:none;padding-left:0}
   .an-kpi-col:last-child{padding-right:0}
-  .an-kpi-head{display:flex;align-items:center;gap:8px}
+  .an-kpi-head{grid-area:head;display:flex;align-items:center;gap:8px}
   .an-kpi-icon{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto}
   .an-kpi-icon svg{width:14px;height:14px}
   .an-kpi-label{font-size:var(--fs-caption);font-weight:700;color:var(--muted);letter-spacing:.03em}
-  .an-kpi-value{font-size:23px;font-weight:800;color:var(--text);margin-top:8px}
-  .an-kpi-sub{font-size:var(--fs-body);margin-top:3px;color:var(--muted)}
+  .an-kpi-value{grid-area:value;align-self:center;font-size:23px;font-weight:800;color:var(--text)}
+  .an-kpi-sub{grid-area:sub;align-self:center;justify-self:end;text-align:right;font-size:var(--fs-body);color:var(--muted)}
   .an-kpi-sub .delta{font-weight:650}
-  .an-kpi-sub .delta.up{color:#18a05e}
-  .an-kpi-sub .delta.down{color:#e53553}
+  .an-kpi-sub .delta.up,.an-kpi-sub .delta.down{color:var(--text-dim)}
   .an-kpi-sub .delta.flat{color:var(--muted)}
-  .an-kpi-spark{height:34px;margin-top:10px}
+  .an-kpi-spark{grid-area:spark;height:34px;margin-top:10px}
   .an-kpi-spark svg{width:100%;height:100%;display:block}
   .an-typecount-bars{display:flex;gap:4px;margin-top:16px}
   .an-typecount-bars i{width:16px;height:20px;border-radius:3px;background:#7c5cfc;flex:0 0 auto}
@@ -972,14 +989,13 @@
   button.su-export svg{width:13px;height:13px}
 
   .su-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:14px}
-  .su-kpi{padding:15px 16px}
-  .su-kpi-label{font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
+  .su-kpi{padding:15px 16px;display:grid;grid-template-columns:1fr auto;column-gap:10px;grid-template-areas:"label label" "value sub"}
+  .su-kpi-label{grid-area:label;font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
   .su-kpi-dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
-  .su-kpi-value{font-size:25px;font-weight:800;margin-top:10px;letter-spacing:-.01em}
-  .su-kpi-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:5px}
+  .su-kpi-value{grid-area:value;align-self:center;font-size:25px;font-weight:800;letter-spacing:-.01em}
+  .su-kpi-sub{grid-area:sub;align-self:center;justify-self:end;text-align:right;font-size:var(--fs-caption);color:var(--muted)}
   .su-kpi-sub .delta{font-weight:700}
-  .su-kpi-sub .delta.down{color:#12805f}
-  .su-kpi-sub .delta.up{color:#dc2626}
+  .su-kpi-sub .delta.down,.su-kpi-sub .delta.up{color:var(--text-dim)}
   .su-kpi-sub .delta.flat{color:var(--muted)}
 
   .su-trend-card{padding:0 16px 14px}
@@ -1407,31 +1423,31 @@
         <div class="kpi-head"><span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
         <div class="kpi-value" id="ov-kpi-total-value">—</div>
         <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-total-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-total-spark" points="0,16 100,16" fill="none" stroke="#e53553" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-total-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon pink" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>SLEEP ALERTS</div>
         <div class="kpi-value" id="ov-kpi-sleep-value">—</div>
         <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-sleep-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-sleep-spark" points="0,16 100,16" fill="none" stroke="#ec4a75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-sleep-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>DROWSINESS ALERTS</div>
         <div class="kpi-value" id="ov-kpi-drowsy-value">—</div>
         <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-drowsy-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drowsy-spark" points="0,16 100,16" fill="none" stroke="#e8952e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drowsy-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon bluebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>DRIVERS INVOLVED</div>
         <div class="kpi-value" id="ov-kpi-drivers-value">—</div>
         <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-drivers-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drivers-spark" points="0,16 100,16" fill="none" stroke="#3b7cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drivers-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon greenbg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>ASSETS REPORTING</div>
         <div class="kpi-value" id="ov-kpi-assets-value">—</div>
         <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-assets-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-assets-spark" points="0,16 100,16" fill="none" stroke="#18a05e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-assets-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
     </section>
 
@@ -1593,25 +1609,25 @@
             <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fde8e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span><span class="an-kpi-label">TOTAL ALERTS</span></div>
             <div class="an-kpi-value" id="an-kpi-total-value">&mdash;</div>
             <div class="an-kpi-sub" id="an-kpi-total-change">&mdash;</div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-total-spark" points="0,16 100,16" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-total-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </div>
           <div class="an-kpi-col">
             <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#e6eefe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><span class="an-kpi-label">TOTAL UNITS</span></div>
             <div class="an-kpi-value" id="an-kpi-units-value">&mdash;</div>
             <div class="an-kpi-sub" id="an-kpi-units-change">&mdash;</div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-units-spark" points="0,16 100,16" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-units-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </div>
           <div class="an-kpi-col">
             <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fdf0dc" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><span class="an-kpi-label">AVG SYNC TIME</span></div>
             <div class="an-kpi-value" id="an-kpi-sync-value">&mdash;</div>
             <div class="an-kpi-sub" id="an-kpi-sync-change">&mdash;</div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-sync-spark" points="0,16 100,16" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-sync-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </div>
           <div class="an-kpi-col">
             <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#ddf6e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span><span class="an-kpi-label">ACTIONABLE RATIO</span></div>
             <div class="an-kpi-value" id="an-kpi-ratio-value">&mdash;</div>
             <div class="an-kpi-sub" id="an-kpi-ratio-change">&mdash;</div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-ratio-spark" points="0,16 100,16" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-ratio-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </div>
           <div class="an-kpi-col">
             <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#efe9fe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#7c5cfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></span><span class="an-kpi-label">ALERT TYPE COUNT</span></div>
@@ -3344,8 +3360,11 @@
       var viewBox = rect.ownerSVGElement.viewBox.baseVal;
       var scaleX = svgRect.width / viewBox.width;
       var scaleY = svgRect.height / viewBox.height;
-      tooltip.style.left = (p[0] * scaleX) + 'px';
-      tooltip.style.top = (p[1] * scaleY - 10) + 'px';
+      // Viewport-relative (svgRect.left/top), matching .chart-tooltip's
+      // position:fixed — see that rule's own comment for why this can't
+      // be positioned relative to the chart card anymore.
+      tooltip.style.left = (svgRect.left + p[0] * scaleX) + 'px';
+      tooltip.style.top = (svgRect.top + p[1] * scaleY - 10) + 'px';
       tooltip.classList.add('on');
     };
     leaveHandler = function(){
