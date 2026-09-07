@@ -618,19 +618,7 @@
   td[data-al-empname].unknown{color:#e53553}
 
   .al-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
-  .al-pages{display:flex;gap:5px;align-items:center}
-  /* inline-grid, not grid — display:grid makes the button a block-level
-     box, so the numbered page buttons (injected as siblings inside a
-     plain <span>, not a flex container — see #al-page-numbers /
-     [data-da-page-numbers]) each took a full line and stacked vertically
-     instead of sitting side by side. inline-grid keeps the same
-     place-items centering but participates in inline flow like the text
-     around it. Prev/next weren't affected — they're direct children of
-     the flex row .al-pages, which lays out any child (grid or not) as a
-     flex item regardless. */
-  .al-page{all:unset;box-sizing:border-box;cursor:pointer;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;display:inline-grid;place-items:center;background:var(--card);font-size:var(--fs-caption);color:var(--text-dim)}
-  .al-page.on{background:#1259b6;color:#fff;border-color:#1259b6}
-  .al-page:disabled{opacity:.45;cursor:default}
+  .al-pages{display:flex;gap:8px;align-items:center}
 
   /* ---------- Data Management page (dm- prefix) ---------- */
   .dm-sync{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:7px 14px;flex:0 0 auto}
@@ -860,12 +848,17 @@
 
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
-  .da-table th{height:38px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
+  /* 34px/40px — matches .al-table th/td (Alert Logs) exactly, per direct
+     instruction that every table share one fixed row height instead of
+     each page picking its own (this was 38px/56px). A uniform, denser row
+     height also means more real rows fit in the same fixed-height
+     scrollable area before infinite scroll needs to kick in at all. */
+  .da-table th{height:34px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
   .da-table th[data-da-sort]{cursor:pointer;user-select:none}
   .da-table th[data-da-sort]:hover{color:#1259b6}
   .da-table th[data-da-sort].sorted::after{content:' ▾';font-size:8px}
   .da-table th[data-da-sort].sorted.asc::after{content:' ▴'}
-  .da-table td{height:56px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap}
+  .da-table td{height:40px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap}
   .da-table tr:hover td{background:var(--surface2)}
   .da-table tr.flag-high td{background:#fff9f9}
   .da-table tr.flag-high:hover td{background:#fef2f2}
@@ -1893,17 +1886,17 @@
         <div class="card al-sc crit">
           <div class="al-sc-label">Critical</div>
           <div class="al-sc-value" id="al-sc-critical">—</div>
-          <div class="al-sc-sub" id="al-sc-critical-sub">Of events on this page</div>
+          <div class="al-sc-sub" id="al-sc-critical-sub">Of events loaded</div>
         </div>
         <div class="card al-sc pend">
           <div class="al-sc-label">With a logged case</div>
           <div class="al-sc-value" id="al-sc-cased">—</div>
-          <div class="al-sc-sub">Of events on this page</div>
+          <div class="al-sc-sub">Of events loaded</div>
         </div>
         <div class="card al-sc act">
           <div class="al-sc-label">Actionable</div>
           <div class="al-sc-value" id="al-sc-actionable">—</div>
-          <div class="al-sc-sub" id="al-sc-actionable-sub">Of events on this page</div>
+          <div class="al-sc-sub" id="al-sc-actionable-sub">Of events loaded</div>
         </div>
       </section>
 
@@ -1964,7 +1957,7 @@
           <table class="al-table" id="al-table">
             <thead>
               <tr>
-                <th class="da-th-check al-check-cell"><input type="checkbox" id="al-selectall" aria-label="Select all rows on this page"></th>
+                <th class="da-th-check al-check-cell"><input type="checkbox" id="al-selectall" aria-label="Select all loaded rows"></th>
                 <th data-sort="shift_date">Date</th>
                 <th data-sort="asset_id">Asset ID</th>
                 <th data-sort="event_code">Event Code</th>
@@ -1987,11 +1980,9 @@
         </div>
         <div class="al-table-foot">
           <span id="al-lastrefresh">—</span>
-          <div class="al-pages" id="al-pages">
+          <div class="al-pages">
             <span id="al-rowsrange">—</span>
-            <button class="al-page" type="button" id="al-page-prev" disabled aria-label="Previous page">‹</button>
-            <span id="al-page-numbers"></span>
-            <button class="al-page" type="button" id="al-page-next" aria-label="Next page">›</button>
+            <span id="al-load-status" style="color:var(--muted)"></span>
           </div>
         </div>
       </section>
@@ -2540,11 +2531,9 @@
           <div class="da-table-foot">
             <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
             <span data-da-empty-note="drivers"></span>
-            <div class="al-pages" data-da-pages="drivers">
+            <div class="al-pages">
               <span data-da-rowsrange="drivers">—</span>
-              <button class="al-page" type="button" data-da-page-prev="drivers" disabled aria-label="Previous page">‹</button>
-              <span data-da-page-numbers="drivers"></span>
-              <button class="al-page" type="button" data-da-page-next="drivers" aria-label="Next page">›</button>
+              <span data-da-load-status="drivers" style="color:var(--muted)"></span>
             </div>
           </div>
         </section>
@@ -2584,11 +2573,9 @@
           <div class="da-table-foot">
             <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
             <span data-da-empty-note="assets"></span>
-            <div class="al-pages" data-da-pages="assets">
+            <div class="al-pages">
               <span data-da-rowsrange="assets">—</span>
-              <button class="al-page" type="button" data-da-page-prev="assets" disabled aria-label="Previous page">‹</button>
-              <span data-da-page-numbers="assets"></span>
-              <button class="al-page" type="button" data-da-page-next="assets" aria-label="Next page">›</button>
+              <span data-da-load-status="assets" style="color:var(--muted)"></span>
             </div>
           </div>
         </section>
@@ -3416,6 +3403,37 @@
     });
   }
   function fmtNum(n){ return (n == null ? 0 : n).toLocaleString('en-US'); }
+
+  // ==================== Shared "fill the viewport" page size ====================
+  // Alert Logs, Driver & Asset Monitoring, and Driver Streaks all fetch a
+  // fixed number of rows per page (20/100/50) regardless of screen size.
+  // Their table cards correctly stretch to fill the available viewport
+  // height (verified directly — a headless-browser render confirmed zero
+  // gap between the card and the page edge at any viewport size), but a
+  // FIXED row count doesn't scale with a TALLER viewport: on a large
+  // monitor, a fixed 20-row page can be visibly shorter than the
+  // now-taller scrollable row area, leaving genuine blank space between
+  // the last row and the footer — confirmed by reproducing it directly at
+  // 2560x1440 (20 rows filled a 1080-tall screen with no gap; the exact
+  // same 20 rows left ~250px of blank space at 1440-tall). Rather than
+  // guessing a bigger fixed number (which just moves the same problem to
+  // an even bigger screen), this measures the row area's actual current
+  // height and asks for exactly enough rows to fill it.
+  //
+  // Call this AFTER the page's `.active` class is applied (so the flex
+  // layout has already given the wrap its real height) and BEFORE the
+  // first fetch, passing the wrap element, one real rendered row's height
+  // in px, and bounds matching the page's existing default/RPC cap. +3
+  // rows past an exact fit so the row area is never left exactly
+  // flush-to-the-pixel, and so a mouse-wheel nudge immediately shows there
+  // is in fact more to scroll to rather than looking like a hard stop.
+  function fitRowLimit(wrapEl, rowHeightPx, fallback, min, max){
+    if(!wrapEl) return fallback;
+    var h = wrapEl.clientHeight;
+    if(!h) return fallback;
+    var n = Math.floor(h / rowHeightPx) + 3;
+    return Math.max(min, Math.min(max, n));
+  }
 
   // ==================== Shared table export (every table's Export button) ====================
   // One XLSX file per export, built from an explicit [{key,label}] column
@@ -8893,6 +8911,17 @@
   (function(){
     var guard = makeGuard();
     var state = { from:null, to:null, shift:null, status:'all', search:'', sort:'start_time', dir:'desc', limit:20, offset:0, total:0 };
+    // Infinite scroll instead of numbered pagination — same pattern as
+    // Driver Streaks/Driver & Asset Monitoring, per direct instruction:
+    // `rows` accumulates everything fetched so far for the current filter
+    // set (reset to [] on a fresh load, appended to on scroll-triggered
+    // loadMore); the KPI summary cards and lastRowsById are computed over
+    // this whole accumulated set, not just the latest batch, so they stay
+    // accurate as more rows scroll in rather than describing only the
+    // newest page.
+    var rows = [];
+    var loadingMore = false;
+    var reachedEnd = false;
 
     var clockTimeEl = document.getElementById('al-clock-time');
     var clockDateEl = document.getElementById('al-clock-date');
@@ -8996,43 +9025,80 @@
       });
     }
 
-    function renderPagination(){
-      var totalPages = Math.max(1, Math.ceil(state.total / state.limit));
-      var curPage = Math.floor(state.offset / state.limit) + 1;
+    // Infinite-scroll footer — same shape as Driver Streaks'
+    // updateFooter(): a rows-range readout plus a load-status readout
+    // ("Loading more…" while a scroll-triggered batch is in flight,
+    // "All events loaded" once reachedEnd), no page-number buttons.
+    function updateFooterAL(){
       var rowsRangeEl = document.getElementById('al-rowsrange');
-      var shownFrom = state.total === 0 ? 0 : state.offset + 1;
-      var shownTo = Math.min(state.offset + state.limit, state.total);
-      if(rowsRangeEl) rowsRangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(state.total);
-
-      var prevBtn = document.getElementById('al-page-prev');
-      var nextBtn = document.getElementById('al-page-next');
-      if(prevBtn) prevBtn.disabled = curPage <= 1;
-      if(nextBtn) nextBtn.disabled = curPage >= totalPages;
-
-      var numsEl = document.getElementById('al-page-numbers');
-      if(numsEl){
-        // Cap visible page-number buttons at 5 (centered on current page)
-        // — real data can span thousands of pages; listing every page
-        // number would be both useless and slow to render.
-        var start = Math.max(1, curPage - 2);
-        var end = Math.min(totalPages, start + 4);
-        start = Math.max(1, end - 4);
-        var html = '';
-        for(var p = start; p <= end; p++){
-          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
-            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
-        }
-        numsEl.innerHTML = html;
-        numsEl.querySelectorAll('[data-page]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            state.offset = (Number(btn.getAttribute('data-page')) - 1) * state.limit;
-            load();
-          });
-        });
-      }
+      if(rowsRangeEl) rowsRangeEl.textContent = 'Rows ' + (rows.length ? '1–' + fmtNum(rows.length) : '0') + ' of ' + fmtNum(state.total);
+      var statusEl = document.getElementById('al-load-status');
+      if(statusEl) statusEl.textContent = loadingMore ? 'Loading more…' : (reachedEnd && rows.length ? 'All events loaded' : '');
     }
 
-    function load(){
+    // One row's markup — shared by a fresh render and an infinite-scroll
+    // append so both stay byte-for-byte identical.
+    function alRowHtml(r){
+      var sev = severityBadge(r.eventCode);
+      // driverDisplayName is dds_alert_logs()'s own coalesce(case
+      // override, resolved masterlist name, DDS's own operator text,
+      // MineStat's own unresolved raw name for the same asset+shift —
+      // dds_case_records' driver_needs_review, 0094) — falsy only when
+      // NONE of those had anything, meaning "no operator was ever
+      // logged" (an unresolved-but-non-blank name still shows its raw
+      // text via that same coalesce). driverLinkLabel() reflects that:
+      // it never returns 'Needs Review' at this call site, but stays
+      // as the one place the no-operator label itself is decided.
+      // needsReview comes from the server (not re-derived from
+      // r.operator here) so the MineStat-fallback case — r.operator
+      // itself blank, driverDisplayName still showing a real
+      // unresolved name — is flagged too.
+      var driver = r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator);
+      var needsReview = !!r.needsReview;
+      var statusLabel = r.statusValue ? esc(r.statusValue) : '<span style="color:var(--muted)">Not logged</span>';
+      var actionIsKnownOther = r.actionType && AL_ACTION_OPTIONS.indexOf(r.actionType) === -1;
+      return '<tr data-al-row-id="' + r.id + '" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">' +
+        '<td class="al-check-cell"><input type="checkbox" class="al-row-check" data-al-check="' + r.id + '"></td>' +
+        '<td>' + esc(fmtDateOnly(r.shiftDate)) + '</td>' +
+        '<td class="al-asset">' + esc(r.assetId || '—') + '</td>' +
+        '<td class="al-event"><span class="al-badge ' + sev.tier + '">' + esc(r.eventCode || '—') + '</span></td>' +
+        '<td>' + fmtNum(r.eventCount) + '</td>' +
+        '<td class="al-time">' + esc(fmtTimeOnly(r.startTime)) + '</td>' +
+        '<td class="al-time">' + esc(fmtTimeOnly(r.endTime)) + '</td>' +
+        '<td class="al-time">' + esc(fmtTimeOnly(r.updateTime)) + '</td>' +
+        '<td><input type="text" class="al-inline-input" data-al-empid="' + r.id + '" value="' + esc(r.empNo || '') + '" placeholder="—"></td>' +
+        '<td data-al-empname="' + r.id + '">' + esc(driver) + (needsReview ? ' <span class="dm-tag amber" title="Operator text did not match any masterlist employee — see Name Review">Needs Review</span>' : '') + '</td>' +
+        '<td>' +
+          '<select class="al-inline-select" data-al-action="' + r.id + '">' + actionOptionsHtml(r.actionType) + '</select>' +
+          '<input type="text" class="al-inline-input al-action-other' + (actionIsKnownOther ? ' on' : '') + '" data-al-action-other="' + r.id + '" placeholder="Describe action..." value="' + (actionIsKnownOther ? esc(r.actionType) : '') + '">' +
+        '</td>' +
+        '<td>' + esc(r.actionBy || '—') + '</td>' +
+        '<td><span class="al-status">' + statusLabel + '</span></td>' +
+        '<td class="al-remarks" title="' + esc(r.remarks || '') + '">' + esc(r.remarks || '—') + '</td>' +
+      '</tr>';
+    }
+
+    // Recomputed over the WHOLE accumulated `rows` set (everything scrolled
+    // into view so far for the current filters), not just the latest
+    // batch — otherwise these would flicker back down every time a
+    // scroll-triggered fetch added a new page's worth of rows.
+    function updateSummaryCardsAL(){
+      document.getElementById('al-sc-total').textContent = fmtNum(state.total);
+      var criticalCount = rows.filter(function(r){ return severityBadge(r.eventCode).tier === 'critical'; }).length;
+      var casedCount = rows.filter(function(r){ return r.caseId != null; }).length;
+      var actionableCount = rows.filter(function(r){ return r.actionable; }).length;
+      document.getElementById('al-sc-critical').textContent = rows.length ? fmtNum(criticalCount) : '—';
+      document.getElementById('al-sc-critical-sub').textContent = rows.length ? (Math.round(criticalCount/rows.length*100) + '% loaded') : 'Of events loaded';
+      document.getElementById('al-sc-cased').textContent = rows.length ? fmtNum(casedCount) : '—';
+      document.getElementById('al-sc-actionable').textContent = rows.length ? fmtNum(actionableCount) : '—';
+      document.getElementById('al-sc-actionable-sub').textContent = rows.length ? (Math.round(actionableCount/rows.length*100) + '% loaded') : 'Of events loaded';
+    }
+
+    function load(opts){
+      opts = opts || {};
+      var isLoadMore = !!opts.loadMore;
+      if(isLoadMore && (loadingMore || reachedEnd)) return;
+
       var token = guard.start();
       requireSession().then(function(sess){
         if(!guard.isCurrent(token)) return;
@@ -9046,6 +9112,26 @@
           });
           return;
         }
+        if(isLoadMore){
+          loadingMore = true;
+          updateFooterAL();
+        } else {
+          state.offset = 0;
+          reachedEnd = false;
+          rows = [];
+          lastRowsById = {};
+          if(tbody) tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+          // Fill the available row area on this first batch instead of
+          // always fetching a fixed 20 — see fitRowLimit's own comment.
+          // Infinite scroll normally fetches more as the user scrolls near
+          // the bottom, but that trigger never fires if the content is
+          // already shorter than the container (nothing to scroll) —
+          // exactly what happens when a search/filter narrows the match
+          // count below a screen's worth on a large monitor. 40px matches
+          // .al-table td's real row height; 200 is dds_alert_logs()'s own
+          // server-side cap.
+          state.limit = fitRowLimit(document.querySelector('.al-table-wrap'), 40, state.limit, 20, 200);
+        }
         setHeaderUsername(sess, 'al-username');
         renderSortHeaders();
 
@@ -9053,78 +9139,63 @@
           if(!guard.isCurrent(token)) return;
           if(res.error) throw res.error;
           var total = (res.data && res.data.total) || 0;
-          var rows = (res.data && res.data.rows) || [];
+          var fetched = (res.data && res.data.rows) || [];
           state.total = total;
+          if(fetched.length < state.limit) reachedEnd = true;
+          state.offset += fetched.length;
 
-          if(showingEl) showingEl.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(total);
+          fetched.forEach(function(r){ lastRowsById[r.id] = r; });
+
+          if(showingEl) showingEl.textContent = 'Showing ' + fmtNum(rows.length + fetched.length) + ' of ' + fmtNum(total);
           var lastRefreshEl = document.getElementById('al-lastrefresh');
           if(lastRefreshEl) lastRefreshEl.textContent = 'Last refreshed ' + new Date().toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
-          document.getElementById('al-sc-total').textContent = fmtNum(total);
-          var criticalCount = rows.filter(function(r){ return severityBadge(r.eventCode).tier === 'critical'; }).length;
-          var casedCount = rows.filter(function(r){ return r.caseId != null; }).length;
-          var actionableCount = rows.filter(function(r){ return r.actionable; }).length;
-          document.getElementById('al-sc-critical').textContent = rows.length ? fmtNum(criticalCount) : '—';
-          document.getElementById('al-sc-critical-sub').textContent = rows.length ? (Math.round(criticalCount/rows.length*100) + '% of this page') : 'Of events on this page';
-          document.getElementById('al-sc-cased').textContent = rows.length ? fmtNum(casedCount) : '—';
-          document.getElementById('al-sc-actionable').textContent = rows.length ? fmtNum(actionableCount) : '—';
-          document.getElementById('al-sc-actionable-sub').textContent = rows.length ? (Math.round(actionableCount/rows.length*100) + '% of this page') : 'Of events on this page';
-
-          lastRowsById = {};
-          rows.forEach(function(r){ lastRowsById[r.id] = r; });
-
-          if(!rows.length){
-            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">No records match.</td></tr>';
-            renderPagination();
-            updateBulkBar();
-            return;
+          if(isLoadMore){
+            rows = rows.concat(fetched);
+            if(fetched.length) appendRowsAL(fetched);
+          } else {
+            rows = fetched;
+            renderRowsAL();
           }
-          tbody.innerHTML = rows.map(function(r){
-            var sev = severityBadge(r.eventCode);
-            // driverDisplayName is dds_alert_logs()'s own coalesce(case
-            // override, resolved masterlist name, DDS's own operator text,
-            // MineStat's own unresolved raw name for the same asset+shift —
-            // dds_case_records' driver_needs_review, 0094) — falsy only when
-            // NONE of those had anything, meaning "no operator was ever
-            // logged" (an unresolved-but-non-blank name still shows its raw
-            // text via that same coalesce). driverLinkLabel() reflects that:
-            // it never returns 'Needs Review' at this call site, but stays
-            // as the one place the no-operator label itself is decided.
-            // needsReview comes from the server (not re-derived from
-            // r.operator here) so the MineStat-fallback case — r.operator
-            // itself blank, driverDisplayName still showing a real
-            // unresolved name — is flagged too.
-            var driver = r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator);
-            var needsReview = !!r.needsReview;
-            var statusLabel = r.statusValue ? esc(r.statusValue) : '<span style="color:var(--muted)">Not logged</span>';
-            var actionIsKnownOther = r.actionType && AL_ACTION_OPTIONS.indexOf(r.actionType) === -1;
-            return '<tr data-al-row-id="' + r.id + '" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">' +
-              '<td class="al-check-cell"><input type="checkbox" class="al-row-check" data-al-check="' + r.id + '"></td>' +
-              '<td>' + esc(fmtDateOnly(r.shiftDate)) + '</td>' +
-              '<td class="al-asset">' + esc(r.assetId || '—') + '</td>' +
-              '<td class="al-event"><span class="al-badge ' + sev.tier + '">' + esc(r.eventCode || '—') + '</span></td>' +
-              '<td>' + fmtNum(r.eventCount) + '</td>' +
-              '<td class="al-time">' + esc(fmtTimeOnly(r.startTime)) + '</td>' +
-              '<td class="al-time">' + esc(fmtTimeOnly(r.endTime)) + '</td>' +
-              '<td class="al-time">' + esc(fmtTimeOnly(r.updateTime)) + '</td>' +
-              '<td><input type="text" class="al-inline-input" data-al-empid="' + r.id + '" value="' + esc(r.empNo || '') + '" placeholder="—"></td>' +
-              '<td data-al-empname="' + r.id + '">' + esc(driver) + (needsReview ? ' <span class="dm-tag amber" title="Operator text did not match any masterlist employee — see Name Review">Needs Review</span>' : '') + '</td>' +
-              '<td>' +
-                '<select class="al-inline-select" data-al-action="' + r.id + '">' + actionOptionsHtml(r.actionType) + '</select>' +
-                '<input type="text" class="al-inline-input al-action-other' + (actionIsKnownOther ? ' on' : '') + '" data-al-action-other="' + r.id + '" placeholder="Describe action..." value="' + (actionIsKnownOther ? esc(r.actionType) : '') + '">' +
-              '</td>' +
-              '<td>' + esc(r.actionBy || '—') + '</td>' +
-              '<td><span class="al-status">' + statusLabel + '</span></td>' +
-              '<td class="al-remarks" title="' + esc(r.remarks || '') + '">' + esc(r.remarks || '—') + '</td>' +
-            '</tr>';
-          }).join('');
-          renderPagination();
+          updateSummaryCardsAL();
+          loadingMore = false;
+          updateFooterAL();
           updateBulkBar();
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
           console.error('Alert Logs fetch failed', err);
-          tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
+          loadingMore = false;
+          if(isLoadMore){
+            updateFooterAL();
+          } else {
+            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
+          }
         });
+      });
+    }
+
+    function renderRowsAL(){
+      var tbody = document.getElementById('al-tbody');
+      if(!tbody) return;
+      if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">No records match.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(alRowHtml).join('');
+    }
+    function appendRowsAL(newRows){
+      var tbody = document.getElementById('al-tbody');
+      if(!tbody) return;
+      tbody.insertAdjacentHTML('beforeend', newRows.map(alRowHtml).join(''));
+    }
+
+    // ---- infinite scroll: fetch the next batch once the user scrolls
+    // near the bottom of the table's own scroll container ----
+    var alScrollWrap = document.querySelector('.al-table-wrap');
+    if(alScrollWrap){
+      alScrollWrap.addEventListener('scroll', function(){
+        var nearBottom = alScrollWrap.scrollTop + alScrollWrap.clientHeight >= alScrollWrap.scrollHeight - 120;
+        if(nearBottom) load({ loadMore: true });
       });
     }
 
@@ -9616,13 +9687,6 @@
       load();
     });
 
-    document.getElementById('al-page-prev').addEventListener('click', function(){
-      state.offset = Math.max(0, state.offset - state.limit); load();
-    });
-    document.getElementById('al-page-next').addEventListener('click', function(){
-      if(state.offset + state.limit < state.total) { state.offset += state.limit; load(); }
-    });
-
     document.querySelectorAll('.al-table th[data-sort]').forEach(function(th){
       th.addEventListener('click', function(){
         var col = th.getAttribute('data-sort');
@@ -9805,6 +9869,21 @@
           signedOutTable('drivers'); signedOutTable('assets');
           return;
         }
+        // Fill the available row area instead of always fetching a fixed
+        // 100 — see fitRowLimit's own comment (shared with Alert Logs /
+        // Driver Streaks, same underlying issue: a large monitor's row
+        // area can be visibly taller than a fixed page's worth of rows).
+        // Both tabs share the same page-level height budget, so one
+        // measurement (off whichever tab is currently on-screen) sets
+        // both — switching tabs doesn't change how much vertical space is
+        // available. 40px matches .da-table td's real row height (now
+        // shared with .al-table, per direct instruction); 200 is
+        // dds_driver_event_summary()/dds_asset_event_summary()'s own
+        // server-side cap.
+        var activeWrap = document.querySelector('.da-view.on .da-table-wrap-flex');
+        var fitLimit = fitRowLimit(activeWrap, 40, SUMMARY_PAGE_LIMIT, 100, 200);
+        summaryState.drivers.limit = fitLimit;
+        summaryState.assets.limit = fitLimit;
         loadWeeklyRiskBackground();
         loadSummaryTableCached('drivers');
         loadSummaryTableCached('assets');
@@ -9844,9 +9923,14 @@
     // filtering an already-fetched array, so this scales the same way as
     // that page regardless of fleet size.
     var SUMMARY_PAGE_LIMIT = 100;
+    // loadingMore/reachedEnd per kind — infinite scroll instead of numbered
+    // pagination, same pattern as Alert Logs/Driver Streaks, per direct
+    // instruction. Drivers and assets scroll independently (only one tab
+    // is visible at a time, but each keeps its own accumulated rows so
+    // switching tabs doesn't lose scroll progress on the other).
     var summaryState = {
-      drivers: { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null, offset:0, limit:SUMMARY_PAGE_LIMIT },
-      assets:  { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null, offset:0, limit:SUMMARY_PAGE_LIMIT }
+      drivers: { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null, offset:0, limit:SUMMARY_PAGE_LIMIT, loadingMore:false, reachedEnd:false },
+      assets:  { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null, offset:0, limit:SUMMARY_PAGE_LIMIT, loadingMore:false, reachedEnd:false }
     };
     var summaryGuard = { drivers: makeGuard(), assets: makeGuard() };
 
@@ -9870,24 +9954,48 @@
       return 'da-summary:' + kind + ':' + JSON.stringify([st.search||'', st.sort, st.dir, st.from||'', st.to||'', st.shift||'', st.offset||0]);
     }
 
-    // opts.silent: true for a background refresh of already-shown cached
-    // data — skips the "Loading…" flash and skips re-rendering on success
-    // (the visible table already reflects this exact cache key's last
-    // known rows; only the cache timestamp needs to move forward so the
-    // next page visit doesn't immediately re-trigger another background
+    // Infinite scroll instead of numbered pagination (same pattern as
+    // Alert Logs/Driver Streaks, per direct instruction) — previously this
+    // table fetched a flat 100-row page with no way to reach anything past
+    // it, silently truncating any fleet with more than 100 flagged
+    // drivers/assets in the current filter window despite the footer's
+    // own "Showing N of total" text implying more existed. Scrolling near
+    // the bottom now fetches and appends the next batch instead.
+    //
+    // opts.silent: true for a background refresh of already-cached data —
+    // skips the "Loading…" flash and skips re-rendering on success (the
+    // visible table already reflects this exact cache key's last known
+    // rows; only the cache timestamp needs to move forward so the next
+    // page visit doesn't immediately re-trigger another background
     // fetch). A background fetch still calls renderSummaryTable if the
     // rows actually differ from what's on screen, so a genuinely new alert
-    // arriving server-side is never hidden behind a stale cache.
+    // arriving server-side is never hidden behind a stale cache. Caching
+    // only ever applies to the FIRST batch (offset 0, shown instantly on
+    // page nav) — a scroll-triggered loadMore batch always fetches fresh.
+    //
+    // opts.loadMore: true for a scroll-triggered next batch — appends
+    // instead of replacing, and is a no-op while a batch is already in
+    // flight or the last batch came back short (reachedEnd).
     function loadSummaryTable(kind, opts){
       opts = opts || {};
+      var isLoadMore = !!opts.loadMore;
+      var st = summaryState[kind];
+      if(isLoadMore && (st.loadingMore || st.reachedEnd)) return;
+
       var token = summaryGuard[kind].start();
       var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
       if(!tbody) return;
       var key = summaryCacheKey(kind);
 
-      if(!opts.silent) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+      if(isLoadMore){
+        st.loadingMore = true;
+        updateSummaryFooter(kind);
+      } else {
+        st.offset = 0;
+        st.reachedEnd = false;
+        if(!opts.silent) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+      }
 
-      var st = summaryState[kind];
       var fn = kind === 'drivers' ? 'dds_driver_event_summary' : 'dds_asset_event_summary';
       DB.rpc(fn, {
         p_search: st.search || null, p_sort: st.sort, p_dir: st.dir, p_limit: st.limit, p_offset: st.offset,
@@ -9896,74 +10004,70 @@
         .then(function(res){
           if(!summaryGuard[kind].isCurrent(token)) return;
           if(res.error) throw res.error;
-          var rows = (res.data && res.data.rows) || [];
+          var fetched = (res.data && res.data.rows) || [];
           var total = (res.data && res.data.total) || 0;
-          window.__ddsCache.set(key, { rows: rows, total: total });
-          var changed = JSON.stringify(rows) !== JSON.stringify(st.rows) || total !== st.total;
-          st.rows = rows;
           st.total = total;
-          if(!opts.silent || changed) renderSummaryTable(kind);
-          renderSummaryPager(kind);
+          if(fetched.length < st.limit) st.reachedEnd = true;
+          st.offset += fetched.length;
+
+          if(isLoadMore){
+            st.rows = st.rows.concat(fetched);
+            appendSummaryRows(kind, fetched);
+          } else {
+            var changed = JSON.stringify(fetched) !== JSON.stringify(st.rows) || total !== st.total;
+            st.rows = fetched;
+            window.__ddsCache.set(key, { rows: st.rows, total: total });
+            if(!opts.silent || changed) renderSummaryTable(kind);
+          }
+          st.loadingMore = false;
+          updateSummaryFooter(kind);
         }).catch(function(err){
           if(!summaryGuard[kind].isCurrent(token)) return;
           console.error((kind === 'drivers' ? 'Driver' : 'Asset') + ' event summary fetch failed', err);
-          if(!opts.silent) errorTable(kind, err);
+          st.loadingMore = false;
+          if(isLoadMore){ updateSummaryFooter(kind); }
+          else if(!opts.silent) errorTable(kind, err);
         });
     }
 
-    // Same pager pattern as Alert Logs (al-page-prev/next/numbers, see
-    // renderSortHeaders() area above) — previously this table fetched a
-    // flat 100-row page with no way to reach anything past it, silently
-    // truncating any fleet with more than 100 flagged drivers/assets in
-    // the current filter window despite the footer's own "Showing N of
-    // total" text implying more existed.
-    function renderSummaryPager(kind){
+    function updateSummaryFooter(kind){
       var st = summaryState[kind];
-      var totalPages = Math.max(1, Math.ceil(st.total / st.limit));
-      var curPage = Math.floor(st.offset / st.limit) + 1;
       var rangeEl = document.querySelector('[data-da-rowsrange="' + kind + '"]');
-      var shownFrom = st.total === 0 ? 0 : st.offset + 1;
-      var shownTo = Math.min(st.offset + st.limit, st.total);
-      if(rangeEl) rangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(st.total);
+      if(rangeEl) rangeEl.textContent = 'Rows ' + (st.rows.length ? '1–' + fmtNum(st.rows.length) : '0') + ' of ' + fmtNum(st.total);
+      var statusEl = document.querySelector('[data-da-load-status="' + kind + '"]');
+      if(statusEl) statusEl.textContent = st.loadingMore ? 'Loading more…' : (st.reachedEnd && st.rows.length ? 'All ' + kind + ' loaded' : '');
+    }
 
-      var prevBtn = document.querySelector('[data-da-page-prev="' + kind + '"]');
-      var nextBtn = document.querySelector('[data-da-page-next="' + kind + '"]');
-      if(prevBtn) prevBtn.disabled = curPage <= 1;
-      if(nextBtn) nextBtn.disabled = curPage >= totalPages;
-
-      var numsEl = document.querySelector('[data-da-page-numbers="' + kind + '"]');
-      if(numsEl){
-        var start = Math.max(1, curPage - 2);
-        var end = Math.min(totalPages, start + 4);
-        start = Math.max(1, end - 4);
-        var html = '';
-        for(var p = start; p <= end; p++){
-          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
-            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
-        }
-        numsEl.innerHTML = html;
-        numsEl.querySelectorAll('[data-page]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            st.offset = (Number(btn.getAttribute('data-page')) - 1) * st.limit;
-            loadSummaryTable(kind);
-          });
-        });
+    // Appends only the newly-fetched rows (infinite scroll) — avoids
+    // re-rendering (and losing scroll position / checked boxes on) rows
+    // already on screen. Mirrors renderSummaryTable's own per-row build
+    // (buildDriverRow/buildAssetRow) plus its shown-count/empty-note
+    // updates, just without the full-tbody wipe.
+    function appendSummaryRows(kind, newRows){
+      var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
+      if(!tbody || !newRows.length) return;
+      newRows.forEach(function(r){
+        tbody.appendChild(kind === 'drivers' ? buildDriverRow(r) : buildAssetRow(r));
+      });
+      if(kind === 'drivers') updateDriversBulkBar();
+      var st = summaryState[kind];
+      var shownEl = document.querySelector('[data-da-shown="' + kind + '"]');
+      if(shownEl) shownEl.textContent = 'Showing ' + fmtNum(st.rows.length) + ' of ' + fmtNum(st.total);
+      var emptyNote = document.querySelector('[data-da-empty-note="' + kind + '"]');
+      if(emptyNote && kind === 'drivers'){
+        var pendingCount = st.rows.filter(function(r){ return !r.done; }).length;
+        emptyNote.textContent = pendingCount ? pendingCount + ' row(s) need action' : 'All caught up';
       }
     }
-    document.querySelectorAll('[data-da-page-prev]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var kind = btn.getAttribute('data-da-page-prev');
-        var st = summaryState[kind];
-        st.offset = Math.max(0, st.offset - st.limit);
-        loadSummaryTable(kind);
-      });
-    });
-    document.querySelectorAll('[data-da-page-next]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var kind = btn.getAttribute('data-da-page-next');
-        var st = summaryState[kind];
-        if(st.offset + st.limit < st.total) st.offset += st.limit;
-        loadSummaryTable(kind);
+
+    // ---- infinite scroll: fetch the next batch once the user scrolls
+    // near the bottom of each tab's own scroll container ----
+    ['drivers','assets'].forEach(function(kind){
+      var wrap = document.querySelector('#da-view-' + kind + ' .da-table-wrap-flex');
+      if(!wrap) return;
+      wrap.addEventListener('scroll', function(){
+        var nearBottom = wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 120;
+        if(nearBottom) loadSummaryTable(kind, { loadMore: true });
       });
     });
 
@@ -9978,10 +10082,17 @@
       var key = summaryCacheKey(kind);
       var cached = window.__ddsCache.get(key);
       if(cached){
-        summaryState[kind].rows = cached.rows;
-        summaryState[kind].total = cached.total;
+        var st = summaryState[kind];
+        st.rows = cached.rows;
+        st.total = cached.total;
+        // Cached rows are always the FIRST batch (offset 0) — resume
+        // scrolling from where that batch left off, and mark reachedEnd
+        // if it was already short of a full page (so a scroll on a small
+        // cached result doesn't fire a needless loadMore fetch).
+        st.offset = cached.rows.length;
+        st.reachedEnd = cached.rows.length < st.limit;
         renderSummaryTable(kind);
-        renderSummaryPager(kind);
+        updateSummaryFooter(kind);
         if(window.__ddsCache.isStale(key, DA_CACHE_MAX_AGE_MS)) loadSummaryTable(kind, { silent: true });
       } else {
         loadSummaryTable(kind);
@@ -11073,6 +11184,17 @@
         reachedEnd = false;
         rows = [];
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+        // Fill the available row area on this first batch instead of
+        // always fetching a fixed 50 — see fitRowLimit's own comment
+        // (shared with Alert Logs / Driver & Asset Monitoring). Infinite
+        // scroll normally fetches more as the user scrolls near the
+        // bottom, but that trigger never fires if the content is already
+        // shorter than the container (nothing to scroll) — exactly what
+        // happens when a search/filter narrows the match count below a
+        // screen's worth on a large monitor. 40px matches .da-table td's
+        // real row height (now shared with .al-table, per direct
+        // instruction); 500 is dds_driver_streaks()'s own server-side cap.
+        state.limit = fitRowLimit(scrollWrap, 40, state.limit, 50, 500);
       }
       requireSession().then(function(sess){
         if(!sess){
