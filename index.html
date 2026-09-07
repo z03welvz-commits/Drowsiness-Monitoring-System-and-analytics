@@ -7377,9 +7377,10 @@
       lines.push('<div style="margin-bottom:10px">' + fmtNum(stats.rawCount) + ' row(s) read from the file.</div>');
       if(stats.skippedCount) lines.push('<div style="margin-bottom:8px;color:var(--text-dim)">' + fmtNum(stats.skippedCount) + ' row(s) skipped — missing required fields.</div>');
       if(stats.invalidCount) lines.push('<div style="margin-bottom:8px;color:var(--text-dim)">' + fmtNum(stats.invalidCount) + ' row(s) skipped — invalid value (e.g. Shift isn\'t Day/Night).</div>');
+      if(stats.outOfScopeCount) lines.push('<div style="margin-bottom:8px;color:var(--text-dim)">' + fmtNum(stats.outOfScopeCount) + ' row(s) skipped — asset outside the tracked fleet range' + (stats.outOfScopeLabel ? (' (' + stats.outOfScopeLabel + ')') : '') + '.</div>');
       if(stats.dupCount) lines.push('<div style="margin-bottom:8px;color:#e8952e">' + fmtNum(stats.dupCount) + ' duplicate row(s) within this file — only the ' + (stats.keepFirst ? 'first' : 'last') + ' occurrence will be kept.</div>');
       if(stats.existingCount) lines.push('<div style="margin-bottom:8px;color:#3b7cf6">' + fmtNum(stats.existingCount) + ' row(s) already exist in the database — they will be updated in place.</div>');
-      if(!stats.skippedCount && !stats.invalidCount && !stats.dupCount && !stats.existingCount){
+      if(!stats.skippedCount && !stats.invalidCount && !stats.outOfScopeCount && !stats.dupCount && !stats.existingCount){
         lines.push('<div style="color:var(--muted)">No duplicates or issues found.</div>');
       }
       preflightBody.innerHTML = lines.join('');
@@ -7397,10 +7398,15 @@
       preflightCancelBtn.addEventListener('click', onCancel);
     }
 
-    // opts: { rows, rawCount, skippedCount, keyFn, keepFirst, dedupe, isInvalid, fetchExisting }
+    // opts: { rows, rawCount, skippedCount, keyFn, keepFirst, dedupe, isInvalid,
+    //         isOutOfScope, outOfScopeLabel, fetchExisting }
     // Resolves { proceed:false } on Cancel, or { proceed:true, rows: cleanRows }
     // on confirm — cleanRows is what actually gets uploaded (post-dedupe,
-    // post-invalid-filter), so the count shown is exactly what lands.
+    // post-invalid-filter, post-scope-filter), so the count shown is exactly
+    // what lands. isOutOfScope is a separate predicate/counter from
+    // isInvalid — the same "count it and show it, never drop silently"
+    // pattern, kept distinct because "outside the tracked fleet" is a scope
+    // decision, not a data-quality defect like a bad Shift value.
     function runPreflight(opts){
       var validRows = opts.rows;
       var invalidCount = 0;
@@ -7408,6 +7414,12 @@
         var kept = [];
         validRows.forEach(function(r){ if(opts.isInvalid(r)) invalidCount++; else kept.push(r); });
         validRows = kept;
+      }
+      var outOfScopeCount = 0;
+      if(opts.isOutOfScope){
+        var keptScope = [];
+        validRows.forEach(function(r){ if(opts.isOutOfScope(r)) outOfScopeCount++; else keptScope.push(r); });
+        validRows = keptScope;
       }
 
       var cleanRows = validRows, dupCount = 0;
@@ -7438,6 +7450,7 @@
           showPreflightModal({
             rawCount: opts.rawCount, skippedCount: opts.skippedCount,
             dupCount: dupCount, invalidCount: invalidCount,
+            outOfScopeCount: outOfScopeCount, outOfScopeLabel: opts.outOfScopeLabel,
             existingCount: existingCount, finalCount: cleanRows.length,
             keepFirst: !!opts.keepFirst
           }, function(proceed){
@@ -7781,6 +7794,30 @@
     // slot in imports at all, so their uploads write straight to
     // dds_upsert_drivers()/contributing_factors — same RPCs/tables the manual
     // Add Record forms already use — with no import-history row created.
+    // Fleet scope for MineStat uploads: MineStat is a shared multi-site
+    // export, and only these Unit IDs belong to this deployment's tracked
+    // fleet. Measured live before adding this filter: 429 distinct asset
+    // IDs have ever appeared in minestat_shifts, but only 119 of them are
+    // in scope — the other ~310 (66% of all 175,238 historical rows)
+    // belong to other sites/equipment sharing the same export. Filtering
+    // at upload time keeps that noise from ever reaching Supabase, rather
+    // than uploading everything and filtering in the UI afterward — real
+    // storage savings for every future upload, though it does not shrink
+    // rows already stored from past uploads (a separate cleanup, not run
+    // here). DT-613 and DT-713 are confirmed GAPS in the real fleet
+    // numbering, not typos to correct — live data jumps DT-612 -> DT-614
+    // and DT-711 -> DT-712 -> DT-714 with no row ever recorded for either.
+    var MINESTAT_ASSET_SCOPE = (function(){
+      var set = new Set();
+      for(var i = 575; i <= 579; i++) set.add('DT-' + i);
+      for(var i = 605; i <= 720; i++){ if(i !== 613 && i !== 713) set.add('DT-' + i); }
+      return set;
+    })();
+    var MINESTAT_ASSET_SCOPE_LABEL = 'DT-575–579, DT-605–720 excl. DT-613/DT-713';
+    function isMinestatAssetOutOfScope(r){
+      return !MINESTAT_ASSET_SCOPE.has(String(r.UNIT || '').trim().toUpperCase());
+    }
+
     function ingestMinestatFile(file){
       var kind = 'minestat';
       var zone = document.getElementById('dm-dropzone-' + kind);
@@ -7818,6 +7855,7 @@
             // batch server-side; caught here as an early, friendly skip
             // instead of a raw Postgres constraint error.
             isInvalid: function(r){ return r.SHIFT !== 'DAY' && r.SHIFT !== 'NIGHT'; },
+            isOutOfScope: isMinestatAssetOutOfScope, outOfScopeLabel: MINESTAT_ASSET_SCOPE_LABEL,
             keyFn: minestatRowKey, keepFirst: false,
             fetchExisting: fetchExistingMinestatKeys
           });
