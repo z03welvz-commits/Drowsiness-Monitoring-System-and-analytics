@@ -883,6 +883,9 @@
   .da-status{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:6px;padding:0 9px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .da-status.required{background:#fdeaea;color:#e53553}
   .da-status.actioned{background:#dff5ea;color:#18a05e}
+  .da-status.monitoring{background:#e3edfd;color:#3b7cf6}
+  .da-status.resolved{background:#dff5ea;color:#18a05e}
+  .da-status.ok{background:var(--surface2);color:var(--muted)}
 
   .da-rec{font-size:var(--fs-caption);font-weight:650;display:flex;align-items:center;gap:6px}
   .da-rec-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
@@ -2592,11 +2595,13 @@
                 <th data-ds-sort="emp_no">Emp No</th>
                 <th data-ds-sort="name">Driver Name</th>
                 <th data-ds-sort="total_count">Total Counts</th>
+                <th>Status</th>
                 <th>Action Performed</th>
+                <th>Date Actioned</th>
                 <th></th>
               </tr>
             </thead>
-            <tbody id="ds-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+            <tbody id="ds-tbody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
           </table>
         </div>
         <div class="da-table-foot">
@@ -10927,18 +10932,55 @@
       return html;
     }
 
+    // dds_driver_streaks() has always returned `status` and `lastAction`
+    // (0082/0083), but this table never rendered either — the dropdown was
+    // the ONLY visible trace of whether an action had ever been logged, so a
+    // successful save and a silently-failed one looked identical unless you
+    // reopened the dropdown and checked which option was pre-selected. These
+    // two columns surface what the server already computes.
+    var STATUS_META = {
+      required:   { cls: 'required',   label: 'Action required' },
+      actioned:   { cls: 'actioned',   label: 'Actioned' },
+      monitoring: { cls: 'monitoring', label: 'Monitoring' },
+      resolved:   { cls: 'resolved',   label: 'Resolved' },
+      ok:         { cls: 'ok',         label: 'OK' }
+    };
+    function statusBadgeHtml(r){
+      var meta = STATUS_META[r.status] || STATUS_META.ok;
+      var extra = (r.status === 'monitoring' && r.monitorUntil)
+        ? ' <span style="color:var(--muted);font-size:10px">until ' + esc(r.monitorUntil) + '</span>' : '';
+      return '<span class="da-status ' + meta.cls + '">' + meta.label + '</span>' + extra;
+    }
+    // lastAction.at comes back as a UTC ISO timestamp (dds_driver_streaks()),
+    // not the "MM/DD/YYYY HH:MM:SS" shape this file's own fmtDateTimeShort
+    // expects — parsed and reformatted directly rather than reusing that
+    // helper on a string shape it doesn't handle.
+    function fmtActionAt(iso){
+      if(!iso) return '—';
+      var d = new Date(iso);
+      if(isNaN(d.getTime())) return '—';
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var dd = String(d.getDate()).padStart(2, '0');
+      return mm + '/' + dd + '/' + d.getFullYear();
+    }
+
     function rowHtml(r, i){
       var currentType = r.lastAction ? r.lastAction.type : null;
       var isOtherCurrent = currentType && ACTION_OPTIONS.indexOf(currentType) === -1;
+      var dateActionedHtml = r.lastAction
+        ? esc(fmtActionAt(r.lastAction.at)) + (r.lastAction.by ? ' <span style="color:var(--muted);font-size:10px">by ' + esc(r.lastAction.by) + '</span>' : '')
+        : '—';
       return '<tr data-ds-row="' + i + '">' +
         '<td>' + fmtNum(r.streakDays) + ' <span style="color:var(--muted);font-size:10px">(' + esc(r.runStart) + '–' + esc(r.runEnd) + ')</span></td>' +
         '<td>' + esc(r.empNo) + '</td>' +
         '<td>' + esc(r.name) + '</td>' +
         '<td>' + fmtNum(r.totalCount) + '</td>' +
+        '<td>' + statusBadgeHtml(r) + '</td>' +
         '<td>' +
           '<select data-ds-action="' + i + '">' + actionSelectHtml(r.empNo, currentType) + '</select>' +
           '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;' + (isOtherCurrent ? '' : 'display:none') + '" value="' + esc(isOtherCurrent ? (r.lastAction.note || '') : '') + '">' +
         '</td>' +
+        '<td>' + dateActionedHtml + '</td>' +
         '<td><button class="dm-icon-btn" type="button" data-ds-detail="' + i + '" title="See details" aria-label="See details">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>' +
         '</button></td>' +
@@ -10950,7 +10992,7 @@
     // just fully replaced.
     function renderRows(){
       if(!rows.length){
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map(rowHtml).join('');
@@ -10976,11 +11018,11 @@
         state.offset = 0;
         reachedEnd = false;
         rows = [];
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
       }
       requireSession().then(function(sess){
         if(!sess){
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           loadingMore = false;
           return;
         }
@@ -11035,7 +11077,7 @@
         if(isLoadMore){
           updateFooter();
         } else {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
         }
       });
     }
