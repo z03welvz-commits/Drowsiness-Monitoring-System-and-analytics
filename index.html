@@ -5888,17 +5888,29 @@
     }
     DDS.normName = ddsNormName;
 
-    // ---- dds_strip_suffix (0018 original rule + 0054's comma-shape rules) ----
-    var SUFFIX_RE_TRAILING_COMMA = /,\s*(JR|SR|II|III|IV)\s*$/g;
-    var SUFFIX_RE_BEFORE_COMMA   = /^(.*?)\s+(JR|SR|II|III|IV)\s*,/g;
-    var SUFFIX_RE_TRAILING       = /\s+(JR|SR|II|III|IV)$/g;
+    // ---- dds_strip_suffix (0018/0054's positional rules, widened by 0090 to
+    // strip the suffix wherever it sits) ----
+    // 0054 only caught three shapes: trailing ("..., JUAN JR"), a trailing
+    // comma-segment ("SANTOS, JUAN, JR"), and before-comma ("SANTOS JR,
+    // JUAN"). Live MineStat imports surfaced two more real shapes: a suffix
+    // as a MIDDLE comma segment with content after it ("JAPITANA, JR, RAMIL
+    // Z") and a suffix embedded mid-string with words on both sides, often
+    // from a stray comma already inside the source LAST_NAME cell
+    // ("CABIGAS,, JOEVANIE JR HELECAME"). Stripping the token wherever it
+    // appears as a standalone word — then cleaning up whatever comma/space
+    // artifact removing it leaves behind — provably subsumes all three of
+    // the old positional rules (every previously-handled shape still
+    // collapses to the same result) so it replaces them rather than running
+    // alongside them. Mirrors dds_strip_suffix() (0090) field-for-field.
+    var SUFFIX_TOKEN_RE = /\b(JR|SR|II|III|IV)\b/g;
     function ddsStripSuffix(s){
       if(s == null) s = '';
       var out = String(s)
-        .replace(SUFFIX_RE_TRAILING_COMMA, '')
-        .replace(SUFFIX_RE_BEFORE_COMMA, '$1,')
-        .replace(SUFFIX_RE_TRAILING, '')
-        .trim();
+        .replace(SUFFIX_TOKEN_RE, '')       // strip the suffix token wherever it sits
+        .replace(/\s+,/g, ',')              // collapse a stray space left before a comma
+        .replace(/\s*,\s*,/g, ',')          // collapse a double comma left behind
+        .replace(/\s+/g, ' ')               // collapse a double space left behind
+        .replace(/^[, ]+|[, ]+$/g, '');     // trim leading/trailing comma-space
       return out === '' ? null : out;
     }
     DDS.stripSuffix = ddsStripSuffix;
@@ -5922,13 +5934,18 @@
       var base = str.indexOf(',') > -1 ? str.split(',')[0] : str;
       return ddsCollapseSurnamePrefix(ddsStripSuffix(base) || '');
     }
+    // 0091: strips the suffix from its OWN input first, the same way
+    // ddsSurnameOf already does, before reading off the given-name segment
+    // — otherwise a suffix sitting as its own middle comma segment
+    // ("JAPITANA, JR, RAMIL Z") gets read as if "JR" were the given name.
+    // Also takes ONLY the second comma-delimited segment (matching SQL's
+    // split_part(s, ',', 2)), not "everything after the first comma" — the
+    // two diverge once a suffix's removal leaves 3+ comma segments.
     function ddsFirstOf(s){
-      if(s == null) s = '';
-      var str = String(s);
-      var commaIdx = str.indexOf(',');
-      if(commaIdx === -1) return null;
-      var afterComma = str.slice(commaIdx + 1).trim();
-      var firstToken = afterComma.split(' ')[0];
+      var stripped = ddsStripSuffix(s) || '';
+      var parts = stripped.split(',');
+      if(parts.length < 2) return null;
+      var firstToken = parts[1].trim().split(' ')[0];
       return firstToken || null;
     }
     function ddsSurnameFirstKey(s){
