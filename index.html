@@ -11485,59 +11485,87 @@
       }
     }
 
-    function applyStreakAction(r, actionType, isOther, otherText, i){
-      var loggedBy = window.prompt('Logged by (name of whoever performed this action):', '');
-      if(loggedBy === null){
-        // Cancelled — nothing was ever sent over the network, so just
-        // redraw this one row back to its last-known state instead of a
-        // full reload. A full reload here previously made a deliberate
-        // Cancel look identical to a failed save: same flicker, same
-        // silence, no way to tell which one happened.
-        var rowEl = tbody.querySelector('tr[data-ds-row="' + i + '"]');
-        if(rowEl) rowEl.outerHTML = rowHtml(r, i);
-        return;
-      }
-      loggedBy = loggedBy.trim();
-      if(!loggedBy){
-        alert('Logging an action requires a "Logged by" name.');
-        load();
-        return;
-      }
-      setRowSaving(i, true);
-      var finalType = isOther ? 'Other' : actionType;
-      DB.rpc('dds_bulk_log_case_action_by_driver', {
-        p_emp_nos: [r.empNo], p_include_unspecified: false,
-        p_from: mdyToIso(r.runStart),
-        p_to: mdyToIso(r.runEnd),
-        p_shift: null,
-        p_action_type: finalType,
-        p_action_is_other: !!isOther,
-        p_action_date: new Date().toISOString().slice(0,10),
-        p_status_value: 'Logged',
-        p_remarks: isOther ? otherText : null
-      }).then(function(res){
-        if(res.error) throw res.error;
-        var updated = (res.data && res.data.updated) || 0;
-        if(!updated){
-          // A successful call with nothing matched is indistinguishable from
-          // a real save unless we check the row count ourselves — surface it
-          // instead of silently reloading as if it worked.
-          throw new Error('No matching events found for ' + r.empNo + ' between ' + r.runStart + ' and ' + r.runEnd + ' — nothing was saved.');
-        }
-        return DB.rpc('dds_log_entity_action', {
-          p_entity_type: 'driver', p_entity_id: r.empNo,
-          p_action_type: isOther ? 'Other' : actionType,
-          p_action_other_text: isOther ? otherText : null,
-          p_note: 'Logged from Driver Streaks (' + r.runStart + '–' + r.runEnd + ')',
-          p_logged_by: loggedBy
+    // The "Logged by" prompt used to start blank, so whatever a person
+    // typed there (entity_action_log.logged_by, shown here as "Date
+    // Actioned ... by X") had no connection to who was actually signed
+    // in — Alert Logs' own "Action By" column, by contrast, always shows
+    // the real account (alert_cases.updated_by -> profiles.username, set
+    // server-side from auth.uid(), never typed). Comparing the two for
+    // the very same action showed two different names for "who did this."
+    // Pre-filling the prompt with the real signed-in account's own
+    // username closes that gap for the common case (matches Alert Logs
+    // automatically) while still allowing an override — logging on behalf
+    // of someone else (a dispatcher relaying a call-in) is a real,
+    // deliberate use of this field elsewhere in the app (Driver & Asset
+    // Monitoring's own action modal has the same free-text box), so the
+    // field stays editable rather than being replaced with a fixed value.
+    var myUsername = null;
+    function getMyUsername(){
+      if(myUsername != null) return Promise.resolve(myUsername);
+      return requireSession().then(function(sess){
+        if(!sess) return '';
+        return DB.from('profiles').select('username').eq('user_id', sess.user.id).maybeSingle().then(function(res){
+          myUsername = (res.data && res.data.username) || sess.user.email || '';
+          return myUsername;
         });
-      }).then(function(res){
-        if(res && res.error) throw res.error;
-        load();
-      }).catch(function(err){
-        console.error('Log streak action failed', err);
-        alert('Could not log action: ' + ((err && err.message) || 'unknown error'));
-        load();
+      });
+    }
+
+    function applyStreakAction(r, actionType, isOther, otherText, i){
+      getMyUsername().then(function(defaultName){
+        var loggedBy = window.prompt('Logged by (name of whoever performed this action):', defaultName);
+        if(loggedBy === null){
+          // Cancelled — nothing was ever sent over the network, so just
+          // redraw this one row back to its last-known state instead of a
+          // full reload. A full reload here previously made a deliberate
+          // Cancel look identical to a failed save: same flicker, same
+          // silence, no way to tell which one happened.
+          var rowEl = tbody.querySelector('tr[data-ds-row="' + i + '"]');
+          if(rowEl) rowEl.outerHTML = rowHtml(r, i);
+          return;
+        }
+        loggedBy = loggedBy.trim();
+        if(!loggedBy){
+          alert('Logging an action requires a "Logged by" name.');
+          load();
+          return;
+        }
+        setRowSaving(i, true);
+        var finalType = isOther ? 'Other' : actionType;
+        DB.rpc('dds_bulk_log_case_action_by_driver', {
+          p_emp_nos: [r.empNo], p_include_unspecified: false,
+          p_from: mdyToIso(r.runStart),
+          p_to: mdyToIso(r.runEnd),
+          p_shift: null,
+          p_action_type: finalType,
+          p_action_is_other: !!isOther,
+          p_action_date: new Date().toISOString().slice(0,10),
+          p_status_value: 'Logged',
+          p_remarks: isOther ? otherText : null
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var updated = (res.data && res.data.updated) || 0;
+          if(!updated){
+            // A successful call with nothing matched is indistinguishable from
+            // a real save unless we check the row count ourselves — surface it
+            // instead of silently reloading as if it worked.
+            throw new Error('No matching events found for ' + r.empNo + ' between ' + r.runStart + ' and ' + r.runEnd + ' — nothing was saved.');
+          }
+          return DB.rpc('dds_log_entity_action', {
+            p_entity_type: 'driver', p_entity_id: r.empNo,
+            p_action_type: isOther ? 'Other' : actionType,
+            p_action_other_text: isOther ? otherText : null,
+            p_note: 'Logged from Driver Streaks (' + r.runStart + '–' + r.runEnd + ')',
+            p_logged_by: loggedBy
+          });
+        }).then(function(res){
+          if(res && res.error) throw res.error;
+          load();
+        }).catch(function(err){
+          console.error('Log streak action failed', err);
+          alert('Could not log action: ' + ((err && err.message) || 'unknown error'));
+          load();
+        });
       });
     }
 
