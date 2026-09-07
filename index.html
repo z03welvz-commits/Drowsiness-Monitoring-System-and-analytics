@@ -6330,19 +6330,22 @@
           tbody.innerHTML = rows.map(function(r){
             var sev = severityBadge(r.eventCode);
             // driverDisplayName is dds_alert_logs()'s own coalesce(case
-            // override, resolved masterlist name, operator text) — it is
-            // falsy only when the operator text itself was also blank, so a
-            // falsy value here always means "no operator was ever logged",
-            // never "logged but unresolved" (an unresolved-but-non-blank
-            // operator still shows its raw text via that same coalesce).
-            // The linking problem this misses — a real name that FAILED to
-            // resolve — is instead flagged separately below via needsReview,
-            // since driverDisplayName's fallback to raw operator text means
-            // it looks identical to a resolved name unless empNo is also
-            // checked. driverLinkLabel() stays the one place the
-            // no-operator label itself is decided.
+            // override, resolved masterlist name, DDS's own operator text,
+            // MineStat's own unresolved raw name for the same asset+shift —
+            // see dds_case_records' driver_needs_review, 0094) — it is
+            // falsy only when NONE of those had anything, so a falsy value
+            // here always means "no operator was ever logged", never
+            // "logged but unresolved" (an unresolved-but-non-blank name
+            // still shows its raw text via that same coalesce). The linking
+            // problem this misses — a real name that FAILED to resolve —
+            // is flagged separately via the server's own needsReview
+            // (not re-derived from r.operator here: that would miss the
+            // MineStat-fallback case, where r.operator itself is blank but
+            // driverDisplayName still shows a real unresolved name).
+            // driverLinkLabel() stays the one place the no-operator label
+            // itself is decided.
             var driver = r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator);
-            var needsReview = !r.empNo && !!r.operator;
+            var needsReview = !!r.needsReview;
             var editPayload = { id: r.id, startTime: r.startTime, endTime: r.endTime, updateTime: r.updateTime, assetId: r.assetId || '', eventCode: r.eventCode || '', eventCount: r.eventCount || 1, operator: r.operator || '' };
             return '<tr>' +
               '<td>' + esc(fmtDateShort(r.startTime)) + '</td>' +
@@ -9025,17 +9028,21 @@
           }
           tbody.innerHTML = rows.map(function(r){
             var sev = severityBadge(r.eventCode);
-            // driverDisplayName is dds_alert_logs()'s own
-            // coalesce(case override, resolved masterlist name, operator
-            // text) — it is falsy only when the operator text itself was
-            // also blank, so a falsy value here always means "no operator
-            // was ever logged", never "logged but unresolved" (an
-            // unresolved-but-non-blank operator still shows its raw text).
-            // driverLinkLabel() reflects that: it never returns 'Needs
-            // Review' at this call site, but stays as the one place the
-            // rule lives rather than a bare 'Unspecified' literal.
+            // driverDisplayName is dds_alert_logs()'s own coalesce(case
+            // override, resolved masterlist name, DDS's own operator text,
+            // MineStat's own unresolved raw name for the same asset+shift —
+            // dds_case_records' driver_needs_review, 0094) — falsy only when
+            // NONE of those had anything, meaning "no operator was ever
+            // logged" (an unresolved-but-non-blank name still shows its raw
+            // text via that same coalesce). driverLinkLabel() reflects that:
+            // it never returns 'Needs Review' at this call site, but stays
+            // as the one place the no-operator label itself is decided.
+            // needsReview comes from the server (not re-derived from
+            // r.operator here) so the MineStat-fallback case — r.operator
+            // itself blank, driverDisplayName still showing a real
+            // unresolved name — is flagged too.
             var driver = r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator);
-            var needsReview = !r.empNo && !!r.operator;
+            var needsReview = !!r.needsReview;
             var statusLabel = r.statusValue ? esc(r.statusValue) : '<span style="color:var(--muted)">Not logged</span>';
             var actionIsKnownOther = r.actionType && AL_ACTION_OPTIONS.indexOf(r.actionType) === -1;
             return '<tr data-al-row-id="' + r.id + '" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">' +
@@ -10737,11 +10744,17 @@
       }
       instTbody.innerHTML = instRows.map(function(r){
         // driverName mirrors Alert Logs' own Emp Name resolution (case
-        // override -> resolved masterlist name -> raw operator text) — null
-        // only when the event itself never carried an operator, same
-        // "genuinely blank" vs "unresolved" distinction driverLinkLabel()
-        // makes everywhere else, not a lookup failure specific to this modal.
+        // override -> resolved masterlist name -> DDS's own operator text
+        // -> MineStat's own unresolved raw name for the same asset+shift —
+        // dds_case_records' driver_needs_review, 0094) — null only when the
+        // event never carried an operator anywhere, same "genuinely blank"
+        // vs "unresolved" distinction driverLinkLabel() makes everywhere
+        // else. needsReview comes straight from the server, same reason
+        // Alert Logs stopped re-deriving it from r.operator: that would miss
+        // the MineStat-fallback case (r.operator blank, driverName still a
+        // real unresolved name).
         var driver = r.driverName || driverLinkLabel(r.empNo, null) || '—';
+        var needsReview = !!r.needsReview;
         return '<tr>' +
           '<td>' + esc(r.shiftDate || '—') + '</td>' +
           '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : 'Day') + '</td>' +
@@ -10750,7 +10763,7 @@
           '<td>' + esc(fmtDateTimeShort(r.updateTime)) + '</td>' +
           '<td>' + esc(r.eventCode || '—') + '</td>' +
           '<td>' + fmtNum(r.eventCount || 0) + '</td>' +
-          '<td>' + esc(driver) + '</td>' +
+          '<td>' + esc(driver) + (needsReview ? ' <span class="dm-tag amber" title="Name did not match any masterlist employee — see Name Review">Needs Review</span>' : '') + '</td>' +
         '</tr>';
       }).join('');
     }
