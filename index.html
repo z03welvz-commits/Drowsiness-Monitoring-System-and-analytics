@@ -334,6 +334,13 @@
   .feed-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6}
   .feed-title.green-title{color:#16803c}
   .view-all{background:none;border:none;color:#2563eb;font-size:11px;font-weight:650;cursor:pointer;padding:4px 6px;border-radius:6px}
+  /* Export button — same compact footprint everywhere it appears (a table's
+     own header row), so the export affordance reads the same on every page
+     rather than each table growing its own one-off button style. */
+  .export-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:1px solid var(--border);background:var(--card);border-radius:7px;color:var(--text-dim);font-size:11px;font-weight:600;cursor:pointer;flex:0 0 auto;transition:border-color .15s,color .15s;white-space:nowrap}
+  .export-btn:hover{border-color:var(--blue);color:var(--blue)}
+  .export-btn:disabled{opacity:.6;cursor:default}
+  .export-btn svg{width:12px;height:12px;flex:0 0 auto}
   .view-all:hover{background:#edf5ff}
   .view-all:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 
@@ -1874,6 +1881,7 @@
           <h3 class="al-table-title">Detected Events <small id="al-table-showing">Loading…</small></h3>
           <button class="al-filter" type="button" id="al-find-dupes" style="cursor:pointer;flex:0 0 auto" title="Find events on the same asset and event code logged within 60 seconds of each other in the current date range — a common sign of a duplicate log entry">Find duplicates</button>
           <button class="al-filter" type="button" id="al-select-toggle" style="cursor:pointer;flex:0 0 auto">Select</button>
+          <button class="export-btn" type="button" id="al-export-btn" title="Export every row matching the current filters, not just this page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
         </div>
         <div class="al-filters">
           <div class="al-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="al-search" placeholder="Search asset, driver, or event..." style="all:unset;flex:1;min-width:0;font-size:11px;color:var(--text-dim)"></div>
@@ -2459,6 +2467,7 @@
             </select>
             <button class="al-filter" type="button" id="da-refresh-drivers" style="cursor:pointer">↻&nbsp; Refresh</button>
             <button class="al-clear" type="button" id="da-clear-drivers">Clear filters</button>
+            <button class="export-btn" type="button" id="da-export-drivers" title="Export every driver matching the current filters, not just this page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
             <button class="da-history-link" type="button" data-da-open-history="drivers">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
               View resolved / history
@@ -2520,6 +2529,7 @@
             </select>
             <button class="al-filter" type="button" id="da-refresh-assets" style="cursor:pointer">↻&nbsp; Refresh</button>
             <button class="al-clear" type="button" id="da-clear-assets">Clear filters</button>
+            <button class="export-btn" type="button" id="da-export-assets" title="Export every asset matching the current filters, not just this page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
             <button class="da-history-link" type="button" data-da-open-history="assets">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
               View resolved / history
@@ -2572,6 +2582,7 @@
           <input type="date" class="al-filter" id="ds-to" aria-label="Streak end on/before date" title="Only show streaks ending on/before this date">
           <button class="al-filter" type="button" id="ds-clear" style="cursor:pointer">Clear filters</button>
           <button class="al-filter" type="button" id="ds-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
+          <button class="export-btn" type="button" id="ds-export-btn" title="Export every streak matching the current filters, not just what's scrolled into view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
         </div>
         <div class="da-table-wrap da-table-wrap-flex">
           <table class="da-table" id="ds-table">
@@ -3367,6 +3378,52 @@
     });
   }
   function fmtNum(n){ return (n == null ? 0 : n).toLocaleString('en-US'); }
+
+  // ==================== Shared table export (every table's Export button) ====================
+  // One XLSX file per export, built from an explicit [{key,label}] column
+  // list + a plain-object row array — not a copy of the rendered <table>'s
+  // HTML, so hidden/formatting-only cells never leak into the file and a
+  // column that's a link/icon in the UI can still export its real value.
+  // XLSX (SheetJS, already loaded for file uploads) both parses and writes,
+  // so this needs no new dependency. Timestamped filename so repeated
+  // exports of the same table never silently overwrite one another.
+  function exportRowsToXlsx(baseName, columns, rows){
+    var header = columns.map(function(c){ return c.label; });
+    var aoa = [header].concat((rows || []).map(function(row){
+      return columns.map(function(c){
+        var v = row[c.key];
+        return v == null ? '' : v;
+      });
+    }));
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Export');
+    var stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    XLSX.writeFile(wb, baseName + '_' + stamp + '.xlsx');
+  }
+  // Wires a button to export whatever getRows() currently returns — a thin
+  // wrapper so each table's own render code only has to say what its rows
+  // and columns are, not how the button/click/filename plumbing works.
+  // getRows may return a promise (tables whose full filtered set has to be
+  // fetched fresh — the current page alone isn't "the export").
+  function wireExportButton(buttonId, baseName, columns, getRows){
+    var btn = document.getElementById(buttonId);
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      var original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Exporting…';
+      Promise.resolve(getRows()).then(function(rows){
+        exportRowsToXlsx(baseName, columns, rows || []);
+      }).catch(function(err){
+        console.error('Export failed:', err);
+        alert('Export failed — please try again.');
+      }).finally(function(){
+        btn.disabled = false;
+        btn.textContent = original;
+      });
+    });
+  }
 
   // ==================== Shared chart interactivity helpers ====================
   // Two small, reusable pieces so every SVG line chart in the app can get
@@ -9438,6 +9495,57 @@
       searchTimer = setTimeout(function(){ state.search = v.trim(); state.offset = 0; load(); }, 350);
     });
 
+    // ---- Export: every row matching the current filters, not just the
+    // current page — dds_alert_logs() clamps p_limit to 200 server-side, so
+    // this pages through it internally (same filters/sort as the live
+    // table) rather than reusing fetchLogs()'s own state.limit/offset. ----
+    var AL_EXPORT_PAGE_SIZE = 200;
+    var AL_EXPORT_MAX_ROWS = 20000;
+    var AL_EXPORT_COLUMNS = [
+      { key:'shiftDate', label:'Date' }, { key:'assetId', label:'Asset ID' },
+      { key:'eventCode', label:'Event Code' }, { key:'eventCount', label:'Event Count' },
+      { key:'startTime', label:'Start Time' }, { key:'endTime', label:'End Time' },
+      { key:'updateTime', label:'Update Time' }, { key:'empNo', label:'Emp ID' },
+      { key:'driverName', label:'Emp Name' }, { key:'action', label:'Action Performed' },
+      { key:'actionBy', label:'Action By' }, { key:'status', label:'Status' }, { key:'remarks', label:'Remarks' }
+    ];
+    function alExportRow(r){
+      return {
+        shiftDate: fmtDateOnly(r.shiftDate), assetId: r.assetId || '',
+        eventCode: r.eventCode || '', eventCount: r.eventCount || 0,
+        startTime: fmtTimeOnly(r.startTime), endTime: fmtTimeOnly(r.endTime), updateTime: fmtTimeOnly(r.updateTime),
+        empNo: r.empNo || '', driverName: r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator) || '',
+        action: r.actionType || '', actionBy: r.actionBy || '', status: r.statusValue || '', remarks: r.remarks || ''
+      };
+    }
+    function fetchAllAlertLogsForExport(){
+      var collected = [];
+      function loop(offset){
+        return DB.rpc('dds_alert_logs', {
+          p_from: toISODate(state.from), p_to: toISODate(state.to),
+          p_shift: state.shift || null, p_status: state.status,
+          p_search: state.search || null,
+          p_limit: AL_EXPORT_PAGE_SIZE, p_offset: offset,
+          p_sort: state.sort, p_dir: state.dir
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var rows = (res.data && res.data.rows) || [];
+          var total = (res.data && res.data.total) || 0;
+          collected = collected.concat(rows);
+          var hitCap = collected.length >= AL_EXPORT_MAX_ROWS;
+          if(rows.length < AL_EXPORT_PAGE_SIZE || collected.length >= total || hitCap){
+            if(total > collected.length){
+              alert('Exported the first ' + fmtNum(collected.length) + ' of ' + fmtNum(total) + ' matching rows — narrow the date range or filters above for a complete export.');
+            }
+            return collected.slice(0, AL_EXPORT_MAX_ROWS).map(alExportRow);
+          }
+          return loop(offset + AL_EXPORT_PAGE_SIZE);
+        });
+      }
+      return loop(0);
+    }
+    wireExportButton('al-export-btn', 'alert_logs', AL_EXPORT_COLUMNS, fetchAllAlertLogsForExport);
+
     document.getElementById('al-clear-filters').addEventListener('click', function(){
       state.from = null; state.to = null; state.shift = null; state.status = 'all'; state.search = ''; state.offset = 0;
       document.getElementById('al-from').value = '';
@@ -9914,6 +10022,66 @@
         th.classList.toggle('asc', col === st.sort && st.dir === 'asc');
       });
     }
+
+    // ---- Export: every row matching the current filters, not just the
+    // current page — dds_driver_event_summary/dds_asset_event_summary clamp
+    // p_limit to 200 server-side, same shape as Alert Logs' export. ----
+    var DA_EXPORT_PAGE_SIZE = 200;
+    var DA_EXPORT_MAX_ROWS = 20000;
+    var DA_EXPORT_COLUMNS = {
+      drivers: [
+        { key:'empNo', label:'Emp ID' }, { key:'empName', label:'Emp Name' },
+        { key:'eventCodes', label:'Event Codes (count)' }, { key:'total', label:'Counts' },
+        { key:'status', label:'Status' }
+      ],
+      assets: [
+        { key:'assetId', label:'Asset No' }, { key:'eventCodes', label:'Event Codes (count)' },
+        { key:'total', label:'Event Counts' }, { key:'avgSyncTime', label:'Avg Sync Time' }
+      ]
+    };
+    function daExportEventCodes(codes){
+      return (codes || []).map(function(c){ return (c.eventCode || 'Alert') + ' (' + fmtNum(c.count) + ')'; }).join(', ');
+    }
+    function daExportRow(kind, r){
+      if(kind === 'drivers'){
+        return {
+          empNo: r.empNo || '', empName: r.empName || '', eventCodes: daExportEventCodes(r.eventCodes),
+          total: r.total || 0, status: r.done ? 'Done' : 'Pending'
+        };
+      }
+      return {
+        assetId: r.assetId || '', eventCodes: daExportEventCodes(r.eventCodes),
+        total: r.total || 0, avgSyncTime: fmtSyncSecondsShort(r.avgSyncSeconds)
+      };
+    }
+    function fetchAllSummaryForExport(kind){
+      var st = summaryState[kind];
+      var fn = kind === 'drivers' ? 'dds_driver_event_summary' : 'dds_asset_event_summary';
+      var collected = [];
+      function loop(offset){
+        return DB.rpc(fn, {
+          p_search: st.search || null, p_sort: st.sort, p_dir: st.dir,
+          p_limit: DA_EXPORT_PAGE_SIZE, p_offset: offset,
+          p_from: st.from || null, p_to: st.to || null, p_shift: st.shift || null
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var rows = (res.data && res.data.rows) || [];
+          var total = (res.data && res.data.total) || 0;
+          collected = collected.concat(rows);
+          var hitCap = collected.length >= DA_EXPORT_MAX_ROWS;
+          if(rows.length < DA_EXPORT_PAGE_SIZE || collected.length >= total || hitCap){
+            if(total > collected.length){
+              alert('Exported the first ' + fmtNum(collected.length) + ' of ' + fmtNum(total) + ' matching rows — narrow the filters above for a complete export.');
+            }
+            return collected.slice(0, DA_EXPORT_MAX_ROWS).map(function(r){ return daExportRow(kind, r); });
+          }
+          return loop(offset + DA_EXPORT_PAGE_SIZE);
+        });
+      }
+      return loop(0);
+    }
+    wireExportButton('da-export-drivers', 'flagged_drivers', DA_EXPORT_COLUMNS.drivers, function(){ return fetchAllSummaryForExport('drivers'); });
+    wireExportButton('da-export-assets', 'flagged_assets', DA_EXPORT_COLUMNS.assets, function(){ return fetchAllSummaryForExport('assets'); });
 
     document.querySelectorAll('.da-table th[data-da-sort]').forEach(function(th){
       th.addEventListener('click', function(){
@@ -10883,6 +11051,61 @@
     });
     var refreshBtn = document.getElementById('ds-refresh');
     if(refreshBtn) refreshBtn.addEventListener('click', load);
+
+    // ---- Export: every streak matching the current filters, not just what
+    // has been scrolled into view so far — dds_driver_streaks() clamps
+    // p_limit to 500 server-side, so this pages through it (same search/
+    // sort as the live table), then applies the same client-side run-date
+    // narrowing load() already does, since the RPC itself has no from/to. ----
+    var DS_EXPORT_PAGE_SIZE = 500;
+    var DS_EXPORT_MAX_ROWS = 20000;
+    var DS_EXPORT_COLUMNS = [
+      { key:'streakDays', label:'Streak (days)' }, { key:'runStart', label:'Run Start' }, { key:'runEnd', label:'Run End' },
+      { key:'empNo', label:'Emp No' }, { key:'name', label:'Driver Name' }, { key:'totalCount', label:'Total Counts' },
+      { key:'status', label:'Status' }, { key:'lastActionType', label:'Last Action' }, { key:'lastActionNote', label:'Last Action Note' }
+    ];
+    function dsExportRow(r){
+      return {
+        streakDays: r.streakDays || 0, runStart: r.runStart || '', runEnd: r.runEnd || '',
+        empNo: r.empNo || '', name: r.name || '', totalCount: r.totalCount || 0, status: r.status || '',
+        lastActionType: r.lastAction ? (r.lastAction.type || '') : '', lastActionNote: r.lastAction ? (r.lastAction.note || '') : ''
+      };
+    }
+    function fetchAllStreaksForExport(){
+      var collected = [];
+      function loop(offset){
+        return DB.rpc('dds_driver_streaks', {
+          p_search: state.search || null, p_min_streak: 1,
+          p_sort: state.sort, p_dir: state.dir,
+          p_limit: DS_EXPORT_PAGE_SIZE, p_offset: offset
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var data = res.data || {};
+          var fetched = data.rows || [];
+          var total = data.total || 0;
+          collected = collected.concat(fetched);
+          var hitCap = collected.length >= DS_EXPORT_MAX_ROWS;
+          if(fetched.length < DS_EXPORT_PAGE_SIZE || collected.length >= total || hitCap){
+            var filtered = collected;
+            if(state.from || state.to){
+              filtered = filtered.filter(function(r){
+                var start = new Date(r.runStart), end = new Date(r.runEnd);
+                if(state.from && end < new Date(state.from)) return false;
+                if(state.to && start > new Date(state.to)) return false;
+                return true;
+              });
+            }
+            if(total > collected.length){
+              alert('Exported the first ' + fmtNum(collected.length) + ' of ' + fmtNum(total) + ' matching streaks — narrow the search above for a complete export.');
+            }
+            return filtered.slice(0, DS_EXPORT_MAX_ROWS).map(dsExportRow);
+          }
+          return loop(offset + DS_EXPORT_PAGE_SIZE);
+        });
+      }
+      return loop(0);
+    }
+    wireExportButton('ds-export-btn', 'driver_streaks', DS_EXPORT_COLUMNS, fetchAllStreaksForExport);
     document.querySelectorAll('#ds-table th[data-ds-sort]').forEach(function(th){
       th.addEventListener('click', function(){
         var col = th.getAttribute('data-ds-sort');
