@@ -9723,6 +9723,37 @@
         // driver/asset flips status back to "required" server-side (see
         // trg_entity_status_reopen, 0033) so it's never permanently
         // silenced by an old action.
+        //
+        // dds_log_entity_action() only writes entity_status/entity_action_log
+        // — it never touches alert_cases, which is what Alert Logs' Action
+        // Performed/Action By/Status/Remarks columns actually read
+        // (dds_alert_logs()). Without this second write, those columns
+        // stayed null for every event under this driver forever, no matter
+        // how many actions got logged here — same class of gap Driver
+        // Streaks' action dropdown had before its own fix. Scoped to this
+        // driver's trailing-7-day window, matching what "N counts this
+        // week" in this modal's own context line already shows (fetchWeekly()
+        // always calls dds_driver_asset_weekly with null/null — the RPC's own
+        // default 7-day window — not whatever date filter the table happens
+        // to have active). Assets have the identical gap but no equivalent
+        // by-asset bulk RPC exists yet, so this is driver-only for now.
+        if(entityType === 'driver'){
+          return DB.rpc('dds_bulk_log_case_action_by_driver', {
+            p_emp_nos: [currentTarget.id], p_include_unspecified: false,
+            p_from: null, p_to: null, p_shift: null,
+            p_action_type: selectedType === 'Other' ? otherText : selectedType,
+            p_action_is_other: selectedType === 'Other',
+            p_action_date: new Date().toISOString().slice(0,10),
+            p_status_value: 'Logged',
+            p_remarks: selectedType === 'Other' ? otherText : (note || null)
+          }).then(function(res2){
+            if(res2.error) throw res2.error;
+            if(!((res2.data && res2.data.updated) || 0)){
+              throw new Error('No matching events found for ' + currentTarget.id + ' in the last 7 days — action was logged, but Alert Logs won\'t show it.');
+            }
+          });
+        }
+      }).then(function(){
         closeActionModal();
         return fetchWeekly();
       }).then(function(fresh){
