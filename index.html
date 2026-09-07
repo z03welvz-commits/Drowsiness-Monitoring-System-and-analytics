@@ -539,14 +539,14 @@
   .al-clear:hover{background:#edf5ff}
 
   .al-table-wrap{overflow-x:auto;overflow-y:auto}
-  .al-table{width:100%;border-collapse:collapse;min-width:1500px}
+  .al-table{width:100%;border-collapse:collapse;min-width:1500px;table-layout:fixed}
   .al-table thead th{position:sticky;top:0;z-index:1}
   .al-table th{height:34px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 11px;background:var(--surface2);white-space:nowrap}
   .al-table th[data-sort]{cursor:pointer;user-select:none}
   .al-table th[data-sort]:hover{color:#1259b6}
   .al-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
   .al-table th[data-sort].sorted.asc::after{content:' ▴'}
-  .al-table td{height:40px;border-bottom:1px solid var(--border);padding:0 11px;font-size:11px;color:var(--text-dim);white-space:nowrap}
+  .al-table td{height:40px;border-bottom:1px solid var(--border);padding:0 11px;font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .al-table tr:hover td{background:var(--surface2)}
   .al-table td.al-remarks{max-width:220px;overflow:hidden;text-overflow:ellipsis}
   .al-time{color:var(--muted)}
@@ -599,11 +599,20 @@
   .al-status.ack::before{background:#94a3b8}
   .al-table tbody tr{cursor:pointer}
   .al-table tbody tr .al-check-cell{cursor:default}
-  /* Checkbox column stays out of the way until "Select" is toggled on —
-     hidden by default on both the header cell and every row cell, shown
-     together once #al-table has the .selecting class. */
-  .al-table .al-check-cell{display:none}
-  .al-table.selecting .al-check-cell{display:table-cell}
+  /* Checkbox column stays out of the way until "Select" is toggled on.
+     This used to be display:none/table-cell on the cells themselves, but
+     with table-layout:fixed that collapsed column made Chromium misalign
+     EVERY other column's width by one position (each column silently took
+     on the width meant for the column before it — confirmed by comparing
+     rendered th widths against the colgroup with the checkbox column
+     shown vs. hidden). Collapsing the <col> itself (width 0, kept in
+     normal flow) instead of display:none-ing the cells avoids that
+     mis-layout; overflow:hidden+zero padding keeps the collapsed checkbox
+     invisible and out of the way. */
+  .al-table col.al-check-col{width:0}
+  .al-table.selecting col.al-check-col{width:34px}
+  .al-table .al-check-cell{overflow:hidden;padding:0}
+  .al-table.selecting .al-check-cell{padding:0 11px}
   #al-select-toggle.on{background:#eaf1fd;color:#1259b6;border-color:#bcd6fb}
 
   /* Inline-editable cells (Emp ID, Action Performed) — kept visually close
@@ -848,6 +857,12 @@
 
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
+  /* table-layout:fixed only for the 3 real data tables that ship a
+     matching <colgroup> (below) — NOT the bare .da-table class, which
+     several small read-only history/detail modals also reuse without a
+     colgroup; fixed layout there would size their columns off min-width
+     alone instead of their (much smaller, varying) real content. */
+  #da-table-drivers,#da-table-assets,#ds-table{table-layout:fixed}
   /* 34px/40px — matches .al-table th/td (Alert Logs) exactly, per direct
      instruction that every table share one fixed row height instead of
      each page picking its own (this was 38px/56px). A uniform, denser row
@@ -858,7 +873,7 @@
   .da-table th[data-da-sort]:hover{color:#1259b6}
   .da-table th[data-da-sort].sorted::after{content:' ▾';font-size:8px}
   .da-table th[data-da-sort].sorted.asc::after{content:' ▴'}
-  .da-table td{height:40px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap}
+  .da-table td{height:40px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .da-table tr:hover td{background:var(--surface2)}
   .da-table tr.flag-high td{background:#fff9f9}
   .da-table tr.flag-high:hover td{background:#fef2f2}
@@ -906,6 +921,12 @@
   .ds-action-dd-menu{position:absolute;top:calc(100% + 2px);left:0;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:60;overflow:hidden;padding:4px}
   .ds-action-dd-menu[hidden]{display:none}
   .ds-action-dd-menu button{all:unset;box-sizing:border-box;display:block;width:100%;padding:7px 10px;border-radius:5px;font-size:12px;color:var(--text-dim);cursor:pointer}
+  /* The "Other…" describe-it text box sits beside the dropdown button in
+     the same fixed-height row/column — it has no width of its own
+     elsewhere (da-bulk-other's 150px rule only applies inside the bulk
+     toolbar), so it was falling back to the browser's default input width
+     (~170px) and visibly overflowing the Action Performed column. */
+  input[data-ds-other]{width:90px}
   .ds-action-dd-menu button:hover,.ds-action-dd-menu button:focus-visible{background:var(--surface2)}
 
   .da-rec{font-size:var(--fs-caption);font-weight:650;display:flex;align-items:center;gap:6px}
@@ -1024,6 +1045,13 @@
   .da-bulk-clear{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:650;color:var(--muted);padding:0 4px;white-space:nowrap}
   .da-bulk-clear:hover{color:var(--text-dim)}
   .da-th-check{width:34px;padding:0 0 0 17px!important}
+  /* #al-table's checkbox th carries both da-th-check (always-visible
+     driver/asset tables' own 17px-padded look) and al-check-cell (Alert
+     Logs' own collapse-to-zero-when-not-selecting behavior) — this
+     higher-specificity pair wins over da-th-check's !important padding so
+     the collapse above actually reaches zero instead of a 17px sliver. */
+  .al-table .da-th-check.al-check-cell{padding:0!important}
+  .al-table.selecting .da-th-check.al-check-cell{padding:0 0 0 17px!important}
   .da-table td.da-td-check{padding:0 0 0 17px}
   .da-row-check{cursor:pointer;width:14px;height:14px}
 
@@ -1955,6 +1983,28 @@
         </div>
         <div class="al-table-wrap">
           <table class="al-table" id="al-table">
+            <!-- Autofit with a floor: table-layout:auto plus a width:1%
+                 trick looked promising but proved unreliable across
+                 columns whose cell is an <input> rather than plain text
+                 (all:unset strips the input's own sizing signal, so auto
+                 layout mis-measured its column — confirmed live, it
+                 visibly clipped Emp ID's 7-digit value). table-layout:
+                 fixed is what's actually deterministic: every column
+                 below gets the explicit px width it needs for its real
+                 content (checkbox/date/id/status columns), and the three
+                 columns with genuinely variable-length content — Emp
+                 Name, Action Performed, Remarks — are left with no width
+                 at all, so fixed layout's own spec'd behavior splits
+                 whatever space remains evenly between exactly those
+                 three, instead of every column sharing it. -->
+            <colgroup>
+              <col class="al-check-col"><col style="width:130px"><col style="width:90px">
+              <col style="width:140px"><col style="width:90px"><col style="width:80px">
+              <col style="width:80px"><col style="width:90px"><col style="width:100px">
+              <col><col>
+              <col style="width:120px"><col style="width:120px">
+              <col>
+            </colgroup>
             <thead>
               <tr>
                 <th class="da-th-check al-check-cell"><input type="checkbox" id="al-selectall" aria-label="Select all loaded rows"></th>
@@ -2520,6 +2570,15 @@
           </div>
           <div class="da-table-wrap da-table-wrap-flex">
             <table class="da-table" id="da-table-drivers">
+              <!-- Autofit with a floor — see #al-table's own colgroup
+                   comment (table-layout:fixed, set on #da-table-drivers
+                   itself). Emp Name and Event Code (both genuinely
+                   variable-length) split the leftover width; Emp ID and
+                   the rest get an explicit width sized to their content. -->
+              <colgroup>
+                <col style="width:34px"><col style="width:90px"><col><col>
+                <col style="width:90px"><col style="width:110px"><col style="width:140px">
+              </colgroup>
               <thead>
                 <tr>
                   <th class="da-th-check"><input type="checkbox" id="da-drivers-selectall" aria-label="Select all drivers"></th><th data-da-sort="emp_no">Emp ID</th><th data-da-sort="emp_name">Emp Name</th><th>Event Code</th><th data-da-sort="total">Counts</th><th>Status</th><th></th>
@@ -2562,6 +2621,15 @@
           </div>
           <div class="da-table-wrap da-table-wrap-flex">
             <table class="da-table" id="da-table-assets">
+              <!-- Autofit with a floor — see #al-table's own colgroup
+                   comment (table-layout:fixed, set on #da-table-assets
+                   itself). Event Code (genuinely variable-length) gets the
+                   leftover width; the rest get an explicit width sized to
+                   their content. -->
+              <colgroup>
+                <col style="width:90px"><col><col style="width:110px">
+                <col style="width:110px"><col style="width:140px">
+              </colgroup>
               <thead>
                 <tr>
                   <th data-da-sort="asset_id">Asset No</th><th>Event Code</th><th data-da-sort="total">Event Counts</th><th>Avg Sync Time</th><th></th>
@@ -2609,6 +2677,17 @@
         </div>
         <div class="da-table-wrap da-table-wrap-flex">
           <table class="da-table" id="ds-table">
+            <!-- Autofit with a floor — see #al-table's own colgroup
+                 comment (table-layout:fixed, set on #ds-table itself).
+                 Driver Name (genuinely variable-length) gets the leftover
+                 width; Emp No (the reported case — plenty of blank space
+                 around a 7-digit value) and the rest get an explicit
+                 width sized to their content. -->
+            <colgroup>
+              <col style="width:200px"><col style="width:90px"><col>
+              <col style="width:100px"><col style="width:150px"><col style="width:240px">
+              <col style="width:170px"><col style="width:56px">
+            </colgroup>
             <thead>
               <tr>
                 <th data-ds-sort="streak_days">Streak (days)</th>
