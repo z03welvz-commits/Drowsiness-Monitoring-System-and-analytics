@@ -170,6 +170,14 @@
   .status-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);font-size:var(--fs-body);font-weight:650}
   .status-pill .livedot{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.25)}
 
+  /* ---------- Overview date-range filter ---------- */
+  .ov-filter-bar{display:flex;align-items:center;gap:9px;padding:11px 17px;margin-bottom:14px;flex-wrap:wrap}
+  .ov-filter-label{font-size:11px;font-weight:700;color:var(--text-dim);white-space:nowrap}
+  .ov-filter-to{font-size:11px;color:var(--muted)}
+  .ov-filter-bar .al-filter{width:auto}
+  .ov-filter-bar .al-filter.on{background:var(--accent,#1361d8);border-color:var(--accent,#1361d8);color:#fff}
+  .ov-filter-note{font-size:11px;color:var(--muted);margin-left:auto}
+
   /* ---------- kpi row ---------- */
   .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:14px}
   .kpi{padding:16px 17px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr auto;column-gap:10px;grid-template-areas:"head head" "value sub" "spark spark"}
@@ -1418,35 +1426,47 @@
       </div>
     </section>
 
+    <section class="card ov-filter-bar" aria-label="Date range filter">
+      <span class="ov-filter-label">Date range</span>
+      <input type="date" class="al-filter" id="ov-from" aria-label="From date" style="flex:0 0 auto">
+      <span class="ov-filter-to">to</span>
+      <input type="date" class="al-filter" id="ov-to" aria-label="To date" style="flex:0 0 auto">
+      <button class="al-filter" type="button" data-ov-quick="7" style="flex:0 0 auto">7D</button>
+      <button class="al-filter" type="button" data-ov-quick="30" style="flex:0 0 auto">30D</button>
+      <button class="al-filter" type="button" data-ov-quick="90" style="flex:0 0 auto">90D</button>
+      <button class="al-clear" type="button" id="ov-filter-reset">Reset</button>
+      <span class="ov-filter-note" id="ov-filter-note"></span>
+    </section>
+
     <section class="kpis" aria-label="Key metrics" id="ov-kpi-row">
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
         <div class="kpi-value" id="ov-kpi-total-value">—</div>
-        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-total-delta">—</span></div>
+        <div class="kpi-sub"><span id="ov-kpi-total-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-total-delta">—</span></div>
         <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-total-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon pink" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>SLEEP ALERTS</div>
         <div class="kpi-value" id="ov-kpi-sleep-value">—</div>
-        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-sleep-delta">—</span></div>
+        <div class="kpi-sub"><span id="ov-kpi-sleep-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-sleep-delta">—</span></div>
         <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-sleep-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>DROWSINESS ALERTS</div>
         <div class="kpi-value" id="ov-kpi-drowsy-value">—</div>
-        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-drowsy-delta">—</span></div>
+        <div class="kpi-sub"><span id="ov-kpi-drowsy-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-drowsy-delta">—</span></div>
         <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drowsy-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon bluebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>DRIVERS INVOLVED</div>
         <div class="kpi-value" id="ov-kpi-drivers-value">—</div>
-        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-drivers-delta">—</span></div>
+        <div class="kpi-sub"><span id="ov-kpi-drivers-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-drivers-delta">—</span></div>
         <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drivers-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon greenbg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>ASSETS REPORTING</div>
         <div class="kpi-value" id="ov-kpi-assets-value">—</div>
-        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-assets-delta">—</span></div>
+        <div class="kpi-sub"><span id="ov-kpi-assets-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-assets-delta">—</span></div>
         <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-assets-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
     </section>
@@ -1457,7 +1477,7 @@
           <div class="chart-head">
             <div class="chart-title-group">
               <span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-4 4"/></svg></span>
-              <h3 class="chart-title">Total Alerts — Last 7 Days</h3>
+              <h3 class="chart-title">Total Alerts — <span id="ov-trend-range-label">Last 7 Days</span></h3>
             </div>
             <span class="trend-badge down" id="ov-trend-badge">—</span>
           </div>
@@ -3595,6 +3615,23 @@
   // supabase/migrations/0028_dds_metrics_emp_no.sql — see MIGRATION_STATUS.md.
   (function(){
     var guard = makeGuard();
+    // Date-range filter state. null/null means "not set yet" — load()
+    // fills both in from dds_latest_event_date() on first run, rather
+    // than defaulting to real calendar today, so the initial 7-day
+    // window is the 7 days that actually have data even when uploads
+    // lag behind the calendar.
+    var state = { from: null, to: null };
+    var cachedLatestDate = null; // Date object, filled on first load()
+
+    // ---- date helpers: <input type="date"> uses YYYY-MM-DD; dds_metrics()
+    // and this page's own toMDY()/addDays() use MM/DD/YYYY / Date objects ----
+    function isoToDate(iso){ // 'YYYY-MM-DD' -> Date (local midnight)
+      var p = iso.split('-');
+      return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    }
+    function dateToIso(d){
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
 
     // ---- clock ----
     var clockTimeEl = document.getElementById('ov-clock-time');
@@ -3617,6 +3654,10 @@
     // (matches index.html's own iso() helper, Cloud.metrics call site) ----
     function toMDY(d){
       return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear();
+    }
+    function mdyToDate(mdy){ // 'MM/DD/YYYY' -> Date (local midnight)
+      var p = mdy.split('/');
+      return new Date(Number(p[2]), Number(p[0]) - 1, Number(p[1]));
     }
     function startOfDay(d){ var x = new Date(d); x.setHours(0,0,0,0); return x; }
     function addDays(d, n){ var x = new Date(d); x.setDate(x.getDate()+n); return x; }
@@ -3705,9 +3746,15 @@
 
     // ==================== 7-day trend chart ====================
     function renderTrend(cur){
-      var trend = (cur.trend || []).slice(-7);
+      // No length cap here — this needs to plot the FULL selected date
+      // range (7/30/90 days, or a custom picked range), not just its last
+      // 7 entries, now that Overview has its own date-range filter. cur.trend
+      // is already exactly as long as the p_from..p_to range load() fetched.
+      var trend = cur.trend || [];
       var svg = document.getElementById('ov-trend-svg');
       if(!svg) return;
+      var rangeLabelEl = document.getElementById('ov-trend-range-label');
+      if(rangeLabelEl) rangeLabelEl.textContent = trend.length ? ('Last ' + trend.length + ' Days') : 'No Data';
       if(!trend.length){
         // No rows for the window (e.g. right after a fleet data reset) —
         // clear every element this function draws into rather than
@@ -3725,7 +3772,7 @@
         var meanLabelEl = document.getElementById('ov-trend-mean-label');
         if(meanLabelEl) meanLabelEl.textContent = '';
         var peakLabelEl = document.getElementById('ov-trend-peak-label');
-        if(peakLabelEl) peakLabelEl.textContent = 'No data this week';
+        if(peakLabelEl) peakLabelEl.textContent = 'No data in range';
         var badgeEl = document.getElementById('ov-trend-badge');
         if(badgeEl){ badgeEl.className = 'trend-badge'; badgeEl.textContent = '—'; }
         return;
@@ -3760,10 +3807,15 @@
 
       var peakIdx = 0;
       trend.forEach(function(t, i){ if(t.units > trend[peakIdx].units) peakIdx = i; });
+      // Beyond ~31 points (a month), one dot per day starts overlapping
+      // into a solid smear rather than readable markers — the line itself
+      // still carries the shape, so only the peak stays marked.
+      var showAllDots = trend.length <= 31;
       var dotsEl = document.getElementById('ov-trend-dots');
       if(dotsEl){
         dotsEl.innerHTML = trend.map(function(t, i){
           var isPeak = i === peakIdx;
+          if(!isPeak && !showAllDots) return '';
           return '<circle class="trend-dot' + (isPeak ? ' peak' : '') + '" cx="' + xFor(i).toFixed(1) +
             '" cy="' + yFor(t.units).toFixed(1) + '" r="' + (isPeak ? 4.5 : 4) + '"></circle>';
         }).join('');
@@ -3771,7 +3823,14 @@
 
       var xaxis = document.getElementById('ov-trend-xaxis');
       if(xaxis){
+        // Thin labels for longer ranges — one per day reads fine up to
+        // about 2 weeks, but a 90-day range would otherwise print 90
+        // overlapping labels. Always keeps the first/last so the range's
+        // actual bounds stay visible regardless of spacing.
+        var labelStep = Math.max(1, Math.ceil(trend.length / 12));
         xaxis.innerHTML = trend.map(function(t, i){
+          var isEdge = i === 0 || i === trend.length - 1;
+          if(!isEdge && i % labelStep !== 0) return '';
           // Date (e.g. "Aug 26"), not day-of-week — a weekday name alone
           // doesn't say WHICH week, so two different weeks' Tuesdays were
           // indistinguishable on this axis. Per direct instruction.
@@ -3788,7 +3847,7 @@
       var meanY = yFor(avg);
       if(meanLine){ meanLine.setAttribute('y1', meanY.toFixed(1)); meanLine.setAttribute('y2', meanY.toFixed(1)); }
       var meanLabel = document.getElementById('ov-trend-mean-label');
-      if(meanLabel){ meanLabel.setAttribute('y', (meanY-4).toFixed(1)); meanLabel.textContent = '7d avg: ' + Math.round(avg); }
+      if(meanLabel){ meanLabel.setAttribute('y', (meanY-4).toFixed(1)); meanLabel.textContent = trend.length + 'd avg: ' + Math.round(avg); }
 
       var peakLabel = document.getElementById('ov-trend-peak-label');
       if(peakLabel) peakLabel.textContent = 'Peak day (' + fmtNum(trend[peakIdx].units) + ')';
@@ -4015,71 +4074,137 @@
         }
         setUsername((sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there');
 
-        var today = startOfDay(new Date());
-        var weekStart = addDays(today, -6);
-        var prevWeekEnd = addDays(weekStart, -1);
-        var prevWeekStart = addDays(prevWeekEnd, -6);
+        // Resolves the active range: whatever the filter bar currently
+        // has, or — on first load only — the 7 days ending on the latest
+        // date that actually has data (not literal calendar "today",
+        // which can be several days ahead of the last real upload).
+        function resolveRange(){
+          if(state.from && state.to) return Promise.resolve();
+          return DB.rpc('dds_latest_event_date', {}).then(function(res){
+            if(res.error) throw res.error;
+            var latest = res.data ? isoToDate(res.data) : startOfDay(new Date());
+            cachedLatestDate = latest;
+            state.to = toMDY(latest);
+            state.from = toMDY(addDays(latest, -6));
+          });
+        }
 
-        // KPIs/feed/insight all read the trailing 7-day window (`week`),
-        // not literally "today" — per direct instruction: a day with zero
-        // new alerts (a real, honest gap between imports, not a bug —
-        // confirmed live against the database) should never leave the
-        // whole Overview page looking empty. `prevWeek` (the 7 days before
-        // that) replaces the old "yesterday" comparison so deltas stay an
-        // apples-to-apples 7d-vs-prior-7d, not a mismatched 7d-vs-1-day.
-        Promise.all([
-          fetchMetrics(toMDY(weekStart), toMDY(today)),
-          fetchMetrics(toMDY(prevWeekStart), toMDY(prevWeekEnd))
-        ]).then(function(results){
+        resolveRange().then(function(){
           if(!guard.isCurrent(token)) return;
-          var week = results[0], prevWeek = results[1];
-          setStatus(true);
-          renderTrend(week);
-          renderFeed(week);
-          renderDriverStreaks();
-          renderKpis(week, prevWeek);
+          syncFilterUi();
 
-          // Hourly chart is inherently a single-day shape (24 buckets) —
-          // summing a week into it would silently become a different
-          // chart ("typical hourly pattern"), not "today's hourly
-          // pattern". Per direct instruction: falls back from literal
-          // "today" to the most recent day that actually has data,
-          // derived from `week.trend[]` (already fetched, no extra
-          // round-trip needed to find it) rather than guessing a date.
-          var trend = week.trend || [];
-          var lastWithData = null;
-          for(var i = trend.length - 1; i >= 0; i--){
-            if(trend[i].units > 0){ lastWithData = trend[i].date; break; }
-          }
-          var hourlyDayLabelEl = document.getElementById('ov-hourly-daylabel');
-          if(!lastWithData){
-            renderHourly({ hourly: { DAY:[], NIGHT:[] } });
-            if(hourlyDayLabelEl) hourlyDayLabelEl.textContent = 'No Data This Week';
-          } else {
-            var isToday = lastWithData === toMDY(today);
-            if(hourlyDayLabelEl) hourlyDayLabelEl.textContent = isToday ? 'Today' : lastWithData;
-            fetchMetrics(lastWithData, lastWithData).then(function(dayData){
-              if(!guard.isCurrent(token)) return;
-              renderHourly(dayData);
-            }).catch(function(err){
-              if(!guard.isCurrent(token)) return;
-              console.warn('Hourly chart fetch failed', err);
-              renderHourly({ hourly: { DAY:[], NIGHT:[] } });
+          var to = mdyToDate(state.to), from = mdyToDate(state.from);
+          var rangeDays = Math.round((to - from) / 86400000) + 1;
+          var prevTo = addDays(from, -1);
+          var prevFrom = addDays(prevTo, -(rangeDays - 1));
+
+          // KPIs/feed/insight all read the selected range (`week`), not
+          // literally "today" — per direct instruction: a day with zero
+          // new alerts (a real, honest gap between imports, not a bug —
+          // confirmed live against the database) should never leave the
+          // whole Overview page looking empty. `prevWeek` (the same-length
+          // window immediately before it) keeps deltas apples-to-apples
+          // regardless of what range length is selected.
+          Promise.all([
+            fetchMetrics(state.from, state.to),
+            fetchMetrics(toMDY(prevFrom), toMDY(prevTo))
+          ]).then(function(results){
+            if(!guard.isCurrent(token)) return;
+            var week = results[0], prevWeek = results[1];
+            setStatus(true);
+            renderTrend(week);
+            renderFeed(week);
+            renderDriverStreaks();
+            renderKpis(week, prevWeek);
+            var periodLabel = 'vs prior ' + rangeDays + 'd';
+            ['total','sleep','drowsy','drivers','assets'].forEach(function(key){
+              var el = document.getElementById('ov-kpi-' + key + '-period');
+              if(el) el.textContent = periodLabel;
             });
-          }
+
+            // Hourly Trend: dds_metrics()'s own `hourly` field already
+            // aggregates every event across the full p_from..p_to range
+            // it was called with (grouped by hour-of-day server-side) —
+            // it was never actually a single-day-only shape, so reusing
+            // `week` directly here (rather than a second, single-day
+            // fetch) makes this chart genuinely reflect "the available
+            // duration as selected and displayed in the trend charts",
+            // per direct instruction, with no extra round-trip.
+            renderHourly(week);
+            var hourlyDayLabelEl = document.getElementById('ov-hourly-daylabel');
+            if(hourlyDayLabelEl){
+              hourlyDayLabelEl.textContent = (week.trend || []).length
+                ? (state.from === state.to ? state.from : state.from + ' – ' + state.to)
+                : 'No Data in Range';
+            }
+          }).catch(function(err){
+            if(!guard.isCurrent(token)) return;
+            setStatus(false);
+            console.error('Overview metrics fetch failed', err);
+            var text = document.getElementById('ov-status-text');
+            if(text) text.textContent = 'Unable to load fleet data';
+            ['ov-feed-list','ov-streak-body'].forEach(function(id){
+              var el = document.getElementById(id);
+              if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
+            });
+          });
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
           setStatus(false);
-          console.error('Overview metrics fetch failed', err);
+          console.error('Could not resolve default date range', err);
           var text = document.getElementById('ov-status-text');
           if(text) text.textContent = 'Unable to load fleet data';
-          ['ov-feed-list','ov-streak-body'].forEach(function(id){
-            var el = document.getElementById(id);
-            if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
-          });
         });
       });
     }
+
+    // ---- date-range filter bar ----
+    var ovFromInput = document.getElementById('ov-from');
+    var ovToInput = document.getElementById('ov-to');
+    var ovQuickBtns = document.querySelectorAll('[data-ov-quick]');
+    var ovResetBtn = document.getElementById('ov-filter-reset');
+    var ovFilterNote = document.getElementById('ov-filter-note');
+
+    // Reflects `state` into the input fields and highlights the matching
+    // quick-range button (if the current range exactly matches one) —
+    // called after every load() so the bar can never drift from what the
+    // rest of the page is actually showing.
+    function syncFilterUi(){
+      if(ovFromInput) ovFromInput.value = dateToIso(mdyToDate(state.from));
+      if(ovToInput) ovToInput.value = dateToIso(mdyToDate(state.to));
+      var days = Math.round((mdyToDate(state.to) - mdyToDate(state.from)) / 86400000) + 1;
+      ovQuickBtns.forEach(function(b){
+        b.classList.toggle('on', Number(b.getAttribute('data-ov-quick')) === days);
+      });
+      if(ovFilterNote) ovFilterNote.textContent = cachedLatestDate ? ('Latest data: ' + toMDY(cachedLatestDate)) : '';
+    }
+
+    function applyQuickRange(days){
+      var anchor = cachedLatestDate || startOfDay(new Date());
+      state.to = toMDY(anchor);
+      state.from = toMDY(addDays(anchor, -(days - 1)));
+      load();
+    }
+
+    ovQuickBtns.forEach(function(b){
+      b.addEventListener('click', function(){ applyQuickRange(Number(b.getAttribute('data-ov-quick'))); });
+    });
+    if(ovFromInput) ovFromInput.addEventListener('change', function(){
+      if(!ovFromInput.value) return;
+      state.from = toMDY(isoToDate(ovFromInput.value));
+      load();
+    });
+    if(ovToInput) ovToInput.addEventListener('change', function(){
+      if(!ovToInput.value) return;
+      state.to = toMDY(isoToDate(ovToInput.value));
+      load();
+    });
+    if(ovResetBtn) ovResetBtn.addEventListener('click', function(){
+      // Nulling both forces resolveRange() back to its default: 7 days
+      // ending on the latest date with real data.
+      state.from = null; state.to = null;
+      load();
+    });
 
     // Phase 8: re-fetch every time this page becomes active (nav-click or
     // data-goto), not just once at script load — see window.__ddsPageLoad's
