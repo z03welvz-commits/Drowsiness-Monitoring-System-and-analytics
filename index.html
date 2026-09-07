@@ -887,6 +887,25 @@
   .da-status.resolved{background:#dff5ea;color:#18a05e}
   .da-status.ok{background:var(--surface2);color:var(--muted)}
 
+  /* Driver Streaks' "Action Performed" control — a plain in-page button +
+     absolutely-positioned menu instead of a native <select>. A native
+     select's dropdown list is an OS-level popup, not part of the page's
+     own DOM, and on at least one real environment testing this feature its
+     clicks were not registering as a selection at all (the browser closed
+     the list without changing the select's value — confirmed by frame-by-
+     frame screen-recording review). Ordinary buttons inside the page get
+     the exact same click handling that already reliably opens this menu,
+     so they don't have that failure mode. */
+  .ds-action-dd{position:relative;display:inline-block;vertical-align:middle}
+  .ds-action-dd-btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:space-between;gap:8px;min-width:110px;height:28px;padding:0 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text-dim);font-size:11px;cursor:pointer}
+  .ds-action-dd-btn:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+  .ds-action-dd-btn:disabled{opacity:.55;cursor:not-allowed}
+  .ds-action-dd-btn::after{content:'';flex:0 0 auto;width:0;height:0;margin-left:4px;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--muted)}
+  .ds-action-dd-menu{position:absolute;top:calc(100% + 2px);left:0;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:60;overflow:hidden;padding:4px}
+  .ds-action-dd-menu[hidden]{display:none}
+  .ds-action-dd-menu button{all:unset;box-sizing:border-box;display:block;width:100%;padding:7px 10px;border-radius:5px;font-size:12px;color:var(--text-dim);cursor:pointer}
+  .ds-action-dd-menu button:hover,.ds-action-dd-menu button:focus-visible{background:var(--surface2)}
+
   .da-rec{font-size:var(--fs-caption);font-weight:650;display:flex;align-items:center;gap:6px}
   .da-rec-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
   .da-rec.spare .da-rec-dot{background:#e53553}
@@ -10922,13 +10941,16 @@
     }
 
     var ACTION_OPTIONS = ['Spare', 'Replace', 'Continue'];
-    function actionSelectHtml(empNo, currentType){
-      var isKnown = currentType && ACTION_OPTIONS.indexOf(currentType) !== -1;
-      var html = '<option value=""' + (!currentType ? ' selected' : '') + '>—</option>';
+    function actionButtonLabel(currentType){
+      if(!currentType) return '—';
+      return ACTION_OPTIONS.indexOf(currentType) !== -1 ? currentType : 'Other…';
+    }
+    function actionMenuHtml(i){
+      var html = '<button type="button" data-ds-opt="' + i + '" data-value="">—</button>';
       ACTION_OPTIONS.forEach(function(opt){
-        html += '<option value="' + opt + '"' + (currentType === opt ? ' selected' : '') + '>' + opt + '</option>';
+        html += '<button type="button" data-ds-opt="' + i + '" data-value="' + opt + '">' + opt + '</button>';
       });
-      html += '<option value="Other"' + (currentType && !isKnown ? ' selected' : '') + '>Other…</option>';
+      html += '<button type="button" data-ds-opt="' + i + '" data-value="Other">Other…</button>';
       return html;
     }
 
@@ -10977,7 +10999,10 @@
         '<td>' + fmtNum(r.totalCount) + '</td>' +
         '<td>' + statusBadgeHtml(r) + '</td>' +
         '<td>' +
-          '<select data-ds-action="' + i + '">' + actionSelectHtml(r.empNo, currentType) + '</select>' +
+          '<div class="ds-action-dd" data-ds-action="' + i + '">' +
+            '<button type="button" class="ds-action-dd-btn" data-ds-dd-btn="' + i + '" aria-haspopup="true" aria-expanded="false">' + esc(actionButtonLabel(currentType)) + '</button>' +
+            '<div class="ds-action-dd-menu" data-ds-dd-menu="' + i + '" hidden>' + actionMenuHtml(i) + '</div>' +
+          '</div>' +
           '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;' + (isOtherCurrent ? '' : 'display:none') + '" value="' + esc(isOtherCurrent ? (r.lastAction.note || '') : '') + '">' +
         '</td>' +
         '<td>' + dateActionedHtml + '</td>' +
@@ -11178,23 +11203,64 @@
         load();
       });
     });
-    // ---- row actions: dropdown applies immediately, "Other" reveals a
-    // text box first and applies on blur/Enter (matching the existing
-    // bulk-action bar's Other handling elsewhere in this app) ----
-    tbody.addEventListener('change', function(e){
-      var sel = e.target.closest('select[data-ds-action]');
-      if(!sel) return;
-      var i = Number(sel.getAttribute('data-ds-action'));
-      var r = rows[i];
-      if(!r) return;
-      var otherInput = tbody.querySelector('input[data-ds-other="' + i + '"]');
-      if(sel.value === 'Other'){
-        if(otherInput){ otherInput.style.display = ''; otherInput.focus(); }
-        return; // wait for the free-text value before writing anything
+    // ---- row actions: a plain button + in-page menu, not a native
+    // <select> — confirmed via frame-by-frame screen-recording review that
+    // a native select's OS-level popup could be opened and hovered, then
+    // closed by a click, WITHOUT the value ever actually changing (the
+    // closed control still read "—" afterward). A native select's list is
+    // rendered outside the page's own DOM, so its click handling doesn't
+    // go through the same path as everything else on the page; a menu
+    // built from ordinary buttons gets the exact same click handling that
+    // already reliably opens it. "Other" reveals a text box first and
+    // applies on blur/Enter (matching the bulk-action bar's Other handling
+    // elsewhere in this app) ----
+    function closeAllActionMenus(exceptI){
+      tbody.querySelectorAll('.ds-action-dd-menu').forEach(function(menu){
+        var mi = menu.getAttribute('data-ds-dd-menu');
+        if(exceptI != null && mi === String(exceptI)) return;
+        menu.hidden = true;
+        var btn = tbody.querySelector('[data-ds-dd-btn="' + mi + '"]');
+        if(btn) btn.setAttribute('aria-expanded', 'false');
+      });
+    }
+    tbody.addEventListener('click', function(e){
+      var toggleBtn = e.target.closest('[data-ds-dd-btn]');
+      if(toggleBtn){
+        var ti = toggleBtn.getAttribute('data-ds-dd-btn');
+        var menu = tbody.querySelector('[data-ds-dd-menu="' + ti + '"]');
+        if(!menu) return;
+        var willOpen = menu.hidden;
+        closeAllActionMenus(willOpen ? ti : null);
+        menu.hidden = !willOpen;
+        toggleBtn.setAttribute('aria-expanded', String(willOpen));
+        return;
       }
-      if(otherInput) otherInput.style.display = 'none';
-      if(!sel.value) return; // reset to blank — no action to log
-      applyStreakAction(r, sel.value, false, null, i);
+      var optBtn = e.target.closest('[data-ds-opt]');
+      if(optBtn){
+        var i = Number(optBtn.getAttribute('data-ds-opt'));
+        var value = optBtn.getAttribute('data-value');
+        var r = rows[i];
+        closeAllActionMenus(null);
+        if(!r) return;
+        var btnEl = tbody.querySelector('[data-ds-dd-btn="' + i + '"]');
+        var otherInput = tbody.querySelector('input[data-ds-other="' + i + '"]');
+        if(value === 'Other'){
+          if(btnEl) btnEl.textContent = 'Other…';
+          if(otherInput){ otherInput.style.display = ''; otherInput.focus(); }
+          return; // wait for the free-text value before writing anything
+        }
+        if(otherInput) otherInput.style.display = 'none';
+        if(btnEl) btnEl.textContent = value || '—';
+        if(!value) return; // "—" — no action to log
+        applyStreakAction(r, value, false, null, i);
+        return;
+      }
+    });
+    // Click anywhere outside an open menu closes it — same as any other
+    // custom dropdown in the app.
+    document.addEventListener('click', function(e){
+      if(e.target.closest('.ds-action-dd')) return;
+      closeAllActionMenus(null);
     });
     tbody.addEventListener('keydown', function(e){
       if(e.key !== 'Enter') return;
@@ -11248,19 +11314,20 @@
     // a save that silently failed looked identical (the dropdown just sat
     // there either way), which is exactly what read as "nothing happened."
     function setRowSaving(i, isSaving){
-      var sel = tbody.querySelector('select[data-ds-action="' + i + '"]');
-      if(!sel) return;
-      sel.disabled = isSaving;
+      var wrap = tbody.querySelector('.ds-action-dd[data-ds-action="' + i + '"]');
+      var btn = tbody.querySelector('[data-ds-dd-btn="' + i + '"]');
+      if(btn) btn.disabled = isSaving;
       var otherInput = tbody.querySelector('input[data-ds-other="' + i + '"]');
       if(otherInput) otherInput.disabled = isSaving;
-      var tag = sel.parentNode.querySelector('.ds-saving-tag');
+      if(!wrap) return;
+      var tag = wrap.parentNode.querySelector('.ds-saving-tag');
       if(isSaving){
         if(!tag){
           tag = document.createElement('span');
           tag.className = 'ds-saving-tag';
           tag.style.cssText = 'margin-left:6px;color:var(--muted);font-size:10px;white-space:nowrap';
           tag.textContent = 'Saving…';
-          sel.parentNode.appendChild(tag);
+          wrap.parentNode.appendChild(tag);
         }
       } else if(tag){
         tag.remove();
