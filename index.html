@@ -3308,7 +3308,7 @@
         <div class="da-table-wrap">
           <table class="da-inst-table" id="ds-detail-table">
             <thead>
-              <tr><th>Date</th><th>Shift</th><th>Asset ID</th><th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th></tr>
+              <tr><th>Date</th><th>Shift(s)</th><th># of Alerts</th><th>Day Total</th><th>Qualifies (&ge;20/day)</th></tr>
             </thead>
             <tbody id="ds-detail-tbody"></tbody>
           </table>
@@ -11256,41 +11256,47 @@
     var detailCloseBtn = document.getElementById('ds-detail-close');
 
     function openDriverStreakDetail(r){
-      detailTitle.textContent = 'Complete event history — ' + r.name + ' (' + r.empNo + ')';
+      detailTitle.textContent = 'Daily summary — ' + r.name + ' (' + r.empNo + ')';
       detailSub.textContent = 'Streak: ' + r.runStart + ' – ' + r.runEnd + ' (' + fmtNum(r.streakDays) + ' day(s))';
       detailSummary.innerHTML = '';
-      detailTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px 0">Loading…</td></tr>';
+      detailTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px 0">Loading…</td></tr>';
       detailMask.classList.add('on');
-      // Complete history means the driver's full record, not scoped to
-      // just the current streak window — the user explicitly asked for
-      // "a table of complete history," distinct from the action-logging
-      // scope above, which IS deliberately limited to the streak's dates.
-      DB.rpc('dds_driver_alert_instances', { p_emp_no: r.empNo, p_from: null, p_to: null, p_limit: 500, p_offset: 0 }).then(function(res){
+      // One row per day instead of one row per alert — the qualifying rule
+      // (dds_driver_streaks(), 0088) is sum(event_count) per day >= 20, not
+      // any single alert reaching 20, so a flat event list buried that sum
+      // under a dozen individually-small rows and made a genuinely
+      // qualifying day look unexplained. Aggregated server-side (0097) so
+      // this stays correct however much history a driver has, rather than
+      // summing whatever page of individual events happened to be fetched.
+      // Complete history, not scoped to just the current streak window —
+      // same "full record" scope the old per-event view used.
+      DB.rpc('dds_driver_daily_summary', { p_emp_no: r.empNo, p_from: null, p_to: null, p_limit: 500, p_offset: 0 }).then(function(res){
         if(res.error) throw res.error;
         var data = res.data || {};
-        var instRows = data.rows || [];
+        var dayRows = data.rows || [];
         detailSummary.innerHTML =
-          '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.total || 0) + '</span></div>' +
-          '<div class="da-inst-stat"><span class="da-inst-stat-label">Rows</span><span class="da-inst-stat-value">' + fmtNum(data.rowCount || 0) + '</span></div>';
-        if(!instRows.length){
-          detailTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px 0">No event history found.</td></tr>';
+          '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.grandTotal || 0) + '</span></div>' +
+          '<div class="da-inst-stat"><span class="da-inst-stat-label">Days</span><span class="da-inst-stat-value">' + fmtNum(data.totalDays || 0) + '</span></div>';
+        if(!dayRows.length){
+          detailTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px 0">No event history found.</td></tr>';
           return;
         }
-        detailTbody.innerHTML = instRows.map(function(er){
+        detailTbody.innerHTML = dayRows.map(function(dr){
+          var shiftsLabel = (dr.shifts || []).map(function(s){ return s === 'NIGHT' ? 'Night' : 'Day'; }).join(' + ') || '—';
+          var qualifiesTag = dr.qualifies
+            ? '<span class="dm-tag red">Qualifies</span>'
+            : '<span class="dm-tag greenbg">Below threshold</span>';
           return '<tr>' +
-            '<td>' + esc(er.shiftDate || '—') + '</td>' +
-            '<td>' + esc(er.shift || '—') + '</td>' +
-            '<td>' + esc(er.unit || '—') + '</td>' +
-            '<td>' + esc(fmtDateTimeShort(er.startTime)) + '</td>' +
-            '<td>' + esc(fmtDateTimeShort(er.endTime)) + '</td>' +
-            '<td>' + esc(fmtDateTimeShort(er.updateTime)) + '</td>' +
-            '<td>' + esc(er.eventCode || '—') + '</td>' +
-            '<td>' + fmtNum(er.eventCount || 0) + '</td>' +
+            '<td>' + esc(dr.shiftDate || '—') + '</td>' +
+            '<td>' + esc(shiftsLabel) + '</td>' +
+            '<td>' + fmtNum(dr.numEvents || 0) + '</td>' +
+            '<td>' + fmtNum(dr.dayTotal || 0) + '</td>' +
+            '<td>' + qualifiesTag + '</td>' +
           '</tr>';
         }).join('');
       }).catch(function(err){
-        console.error('Driver history fetch failed', err);
-        detailTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+        console.error('Driver daily summary fetch failed', err);
+        detailTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
       });
     }
 
