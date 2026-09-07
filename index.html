@@ -10665,7 +10665,7 @@
         instTheadRow.innerHTML = '<th class="chk-col"></th><th>Unit</th><th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th><th>Action</th><th>Status</th>';
       } else {
         instTitle.textContent = 'Alert history — ' + id;
-        instTheadRow.innerHTML = '<th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th>';
+        instTheadRow.innerHTML = '<th>Date</th><th>Shift</th><th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th><th>Driver</th>';
       }
       instSub.textContent = 'Loading…';
       instSummary.innerHTML = '';
@@ -10732,16 +10732,25 @@
     }
     function renderInstRowsAssets(){
       if(!instRows.length){
-        instTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px 0">No alert instances found.</td></tr>';
+        instTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px 0">No alert instances found.</td></tr>';
         return;
       }
       instTbody.innerHTML = instRows.map(function(r){
+        // driverName mirrors Alert Logs' own Emp Name resolution (case
+        // override -> resolved masterlist name -> raw operator text) — null
+        // only when the event itself never carried an operator, same
+        // "genuinely blank" vs "unresolved" distinction driverLinkLabel()
+        // makes everywhere else, not a lookup failure specific to this modal.
+        var driver = r.driverName || driverLinkLabel(r.empNo, null) || '—';
         return '<tr>' +
+          '<td>' + esc(r.shiftDate || '—') + '</td>' +
+          '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : 'Day') + '</td>' +
           '<td>' + esc(fmtDateTimeShort(r.startTime)) + '</td>' +
           '<td>' + esc(fmtDateTimeShort(r.endTime)) + '</td>' +
           '<td>' + esc(fmtDateTimeShort(r.updateTime)) + '</td>' +
           '<td>' + esc(r.eventCode || '—') + '</td>' +
           '<td>' + fmtNum(r.eventCount || 0) + '</td>' +
+          '<td>' + esc(driver) + '</td>' +
         '</tr>';
       }).join('');
     }
