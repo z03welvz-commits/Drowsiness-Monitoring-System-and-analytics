@@ -1,21 +1,30 @@
 -- ============================================================================
 -- DDS — 0087_no_operator_sentinel_emp_no
 -- ----------------------------------------------------------------------------
--- RECONSTRUCTED from live database state on 2026-09-07 — original migration
--- SQL text was not recoverable from Supabase's migration history
--- (supabase_migrations.schema_migrations only stores version+name, not the
--- applied SQL body). This file reflects the live definition as of
--- reconstruction time, not necessarily the original diff.
+-- MineStat ingest already detects the literal "NO OPERATOR / EQUIPMENT DOWN /
+-- OR STANDBY" placeholder a real export uses for "nobody was assigned this
+-- shift" (since 0024) and correctly keeps it out of the name-review queue
+-- (minestat_name_review only ever gets rows where no_operator = false) — that
+-- distinction between "confirmed no operator" and "a real name that failed to
+-- match" already works and is not being touched here.
 --
--- Inferred intent: dds_minestat_ingest() previously likely left emp_no NULL
--- for MineStat rows whose name fields are the literal
--- "NO OPERATOR / EQUIPMENT DOWN / OR STANDBY" placeholder (m.no_operator).
--- The live definition instead writes a '0000000' sentinel emp_no (and tier
--- 'no_operator') for those rows, so they resolve to a stable, non-null,
--- non-reviewable operator key distinct from a real driver's emp_no, and are
--- excluded from the name-review queue (dds_minestat_name_review_list) the
--- same way real unresolved names are queued for review.
+-- What it did NOT do: a confirmed no_operator row set emp_no = NULL — the
+-- exact same value used for "we don't know who this was." Once that reaches
+-- events via the DDS<->MineStat backfill, both cases render identically as
+-- "Unspecified" everywhere in the app, so a genuinely-empty shift and an
+-- attribution failure could never be told apart downstream.
+--
+-- Fix: give "confirmed no operator" a real, stable identity — emp_no
+-- '0000000' — instead of null. A placeholder row in `drivers` gives every
+-- join/display a clean "No Operator" label instead of a bare code. Because
+-- dds_backfill_emp_no_from_minestat() already only backfills shifts where
+-- minestat_shifts.emp_no is not null, this sentinel propagates to `events`
+-- through that existing logic — no separate change needed on the DDS side.
 -- ============================================================================
+
+insert into public.drivers (emp_no, full_name, status)
+values ('0000000', 'No Operator', 'active')
+on conflict (emp_no) do nothing;
 
 create or replace function public.dds_minestat_ingest(p_import_id uuid, p_rows jsonb)
 returns integer

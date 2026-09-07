@@ -1,28 +1,34 @@
 -- ============================================================================
 -- DDS — 0086_entity_status_reopen_actioned_recurrence
 -- ----------------------------------------------------------------------------
--- RECONSTRUCTED from live database state on 2026-09-07 — original migration
--- SQL text was not recoverable from Supabase's migration history
--- (supabase_migrations.schema_migrations only stores version+name, not the
--- applied SQL body). This file reflects the live definition as of
--- reconstruction time, not necessarily the original diff.
+-- dds_entity_status_reopen() (the trigger that fires on every new events
+-- row) currently live only reopens entity_status rows with status =
+-- 'monitoring' — a value nothing in this app ever writes, so in practice
+-- this trigger is a permanent no-op. It has no branch for 'actioned' at all,
+-- unlike the committed-but-superseded 0048 version (which reopened
+-- 'actioned' rows via a different, older pattern check). Neither version is
+-- what's wanted: per explicit instruction, "recurrence" should fire when a
+-- driver/asset who already has a logged action (status = 'actioned') is
+-- STILL in a qualifying streak — i.e. the same >=3-day streak threshold
+-- dds_driver_asset_weekly()/dds_driver_streaks() already use everywhere else
+-- to decide "required" in the first place, not a separate pattern rule.
 --
--- Inferred intent: dds_entity_status_reopen() (the AFTER INSERT trigger on
--- events, trg_entity_status_reopen) is extended so a re-triggered streak
--- reopens entity_status from 'actioned' as well as 'monitoring' — previously
--- it likely only reopened out of 'monitoring'. When a driver/asset that was
--- marked actioned or monitoring starts a fresh qualifying streak (>= 3 days,
--- via dds_current_streak), its status flips back to 'required' and
--- recurrence_count increments, so recurrence tracking captures repeat
--- offenders even after they were actioned rather than just monitored.
+-- Fix: reopen on either 'monitoring' OR 'actioned' via the same
+-- dds_current_streak(entity_type, entity_id) >= 3 check (defaults: >10
+-- units/day, 90-day lookback — the shared threshold this app already uses
+-- consistently). Recurrence_count still increments either way, since it's
+-- the same "this keeps happening after we thought it was handled" signal
+-- regardless of which status the row was reopened from. 'monitoring' kept
+-- rather than dropped, since removing it would be a separate, unrequested
+-- behavior change (nothing currently writes it, so keeping it is zero-risk).
 -- ============================================================================
 
 create or replace function public.dds_entity_status_reopen()
 returns trigger
 language plpgsql
 security definer
-set search_path to 'public'
-as $function$
+set search_path = public
+as $$
 declare
   v_asset_id text;
   v_driver_key text;
@@ -65,4 +71,4 @@ begin
 
   return new;
 end;
-$function$;
+$$;

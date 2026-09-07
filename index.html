@@ -15,6 +15,24 @@
     --red:#ef4444; --purple:#7c3aed; --shadow:0 3px 12px rgba(15,23,42,.045);
     --shadow-hover:0 6px 20px rgba(15,23,42,.08);
     --focus-ring:0 0 0 3px rgba(37,99,235,.35);
+
+    /* Chart series palette — the dataviz skill's validated 8-hue categorical
+       order (fixed order, never cycled/reassigned by rank), re-checked with
+       `validate_palette.js` against THIS app's own card surfaces (#fff light /
+       #151b2b dark): all 8 clear the lightness/chroma/CVD/normal-vision
+       floors in both modes, first 3 clear the harder all-pairs test needed
+       for small-multiples/scatter use. Chart series should reference these
+       (--series-N) instead of one-off hex literals so every chart in the app
+       draws "Day"/"Total Alerts"/etc. from the same slot consistently.
+       Series 8 doubles as the "peak/highlight" accent (a status-like use,
+       not a competing 9th series). */
+    --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a; --series-4:#eda100;
+    --series-5:#e87ba4; --series-6:#008300; --series-7:#4a3aa7; --series-8:#e34948;
+    /* One-hue ordinal ramp (position-in-sequence, not identity) for the Alert
+       Sync Time buckets — light end kept >=2:1 on the card surface per the
+       skill's ordinal check. Assigned by BUCKET, never by which bar happens
+       to be tallest, so the ramp doesn't repaint on new data. */
+    --ord-1:#86b6ef; --ord-2:#5598e7; --ord-3:#2a78d6; --ord-4:#1c5cab; --ord-5:#104281;
     /* Surface tokens used by the ~20 button/input/modal rules that
        hardcode #fff/#1e293b/#94a3b8 instead of referencing var(--card)/
        var(--text)/var(--muted) (surveyed live: 22 such background:var(--card)
@@ -60,6 +78,13 @@
     --bg:#0b1220; --card:#151b2b; --surface2:#111726; --text:#e7ecf5; --text-dim:#e7ecf5;
     --muted:#8a94ab; --border:#262f45; --grid:#1f2740;
     --shadow:0 3px 12px rgba(0,0,0,.35); --shadow-hover:0 6px 20px rgba(0,0,0,.5);
+
+    /* Dark-mode steps for the same 8 chart slots — re-validated against the
+       #151b2b card surface (see the light :root block's comment), not a
+       flat brightness flip. */
+    --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; --series-4:#c98500;
+    --series-5:#d55181; --series-6:#008300; --series-7:#9085e9; --series-8:#e66767;
+    --ord-1:#cde2fb; --ord-2:#86b6ef; --ord-3:#3987e5; --ord-4:#256abf; --ord-5:#184f95;
   }
   :root[data-theme="dark"] .sidebar{background:#01193d}
   :root[data-theme="dark"] .brand{border-bottom-color:rgba(255,255,255,.08)}
@@ -100,7 +125,15 @@
   .sidebar.collapsed.pinned-open .brand-text,.sidebar.collapsed.pinned-open .nav-label,.sidebar.collapsed.pinned-open .section-label,.sidebar.collapsed.pinned-open .mode-toggle span{opacity:1;pointer-events:auto}
   .brand-text,.nav-label,.section-label,.mode-toggle span{transition:opacity .12s ease}
   .sidebar.collapsed .nav-item,.sidebar.collapsed .mode-toggle{justify-content:center}
-  .sidebar.collapsed .nav-item{gap:0}
+  .sidebar.collapsed .nav-item,.sidebar.collapsed .mode-toggle{gap:0}
+  /* .mode-toggle span ("Dark mode"/"Sign out") fades via opacity like
+     .nav-label, but opacity alone doesn't free its layout space — the
+     invisible text was still pushing the icon off-center in the
+     collapsed rail. Zeroing its width (restored on hover/pinned-open,
+     alongside every other collapsed-fade element) fixes that. */
+  .sidebar.collapsed .mode-toggle span{width:0;overflow:hidden}
+  .sidebar.collapsed:hover .mode-toggle,.sidebar.collapsed.pinned-open .mode-toggle{gap:10px}
+  .sidebar.collapsed:hover .mode-toggle span,.sidebar.collapsed.pinned-open .mode-toggle span{width:auto;overflow:visible}
   .sidebar-pin{all:unset;box-sizing:border-box;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#b9d7fb;flex:0 0 auto;margin-left:auto;cursor:pointer;transition:background-color .15s,color .15s;opacity:0;pointer-events:none}
   .sidebar-pin:hover{background:rgba(255,255,255,.1);color:#fff}
   .sidebar-pin:focus-visible{outline:2px solid #fff;outline-offset:-2px}
@@ -119,7 +152,7 @@
 
   .nav{padding:22px 14px;overflow-y:auto;overflow-x:hidden;flex:1 1 auto}
   .section-label{font-size:var(--fs-badge);letter-spacing:.08em;color:#7fa3d6;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase;white-space:nowrap}
-  .nav-item{all:unset;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
+  .nav-item{all:unset;position:relative;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:14px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
   .nav-item:hover{background:rgba(255,255,255,.07)}
   .nav-item:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .nav-item.active{background:#1361d8;color:#fff;font-weight:600}
@@ -176,22 +209,33 @@
   .status-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);font-size:var(--fs-body);font-weight:650}
   .status-pill .livedot{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.25)}
 
+  /* ---------- Overview date-range filter ---------- */
+  .ov-filter-bar{display:flex;align-items:center;gap:9px;padding:11px 17px;margin-bottom:14px;flex-wrap:wrap}
+  .ov-filter-label{font-size:11px;font-weight:700;color:var(--text-dim);white-space:nowrap}
+  .ov-filter-to{font-size:11px;color:var(--muted)}
+  .ov-filter-bar .al-filter{width:auto}
+  .ov-filter-bar .al-filter.on{background:var(--accent,#1361d8);border-color:var(--accent,#1361d8);color:#fff}
+  .ov-filter-note{font-size:11px;color:var(--muted);margin-left:auto}
+
   /* ---------- kpi row ---------- */
   .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:14px}
-  .kpi{padding:16px 17px;position:relative;overflow:hidden}
+  .kpi{padding:16px 17px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr auto;column-gap:10px;grid-template-areas:"head head" "value sub" "spark spark"}
   .kpi:hover{box-shadow:var(--shadow-hover)}
-  .kpi-head{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.035em;font-weight:700;color:var(--text-dim)}
+  .kpi-head{grid-area:head;display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.035em;font-weight:700;color:var(--text-dim)}
   .kpi-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}
   .kpi-icon svg{width:16px;height:16px}
   .red{background:#fee8e8;color:#ef4444}.pink{background:#fde7ec;color:#ec4a75}.amber{background:#fdf0dc;color:#e8952e}
   .bluebg{background:#e3edfd;color:#3b7cf6}.greenbg{background:#dff5ea;color:#18a05e}.purplebg{background:#f0e9fc;color:#7c3aed}
-  .kpi-value{font-size:var(--fs-display);font-weight:800;margin-top:11px;letter-spacing:-.02em}
-  .kpi-sub{font-size:11px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:5px}
+  /* Value stays left, the delta moves beside it (not below) on the
+     right, both vertically centered on the same grid row — value is
+     the number people scan for, delta is understated supporting
+     context, so it reads secondary without needing color to say so. */
+  .kpi-value{grid-area:value;align-self:center;font-size:var(--fs-display);font-weight:800;letter-spacing:-.02em}
+  .kpi-sub{grid-area:sub;align-self:center;justify-self:end;text-align:right;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
   .kpi-sub .delta{font-weight:700}
-  .kpi-sub .delta.down{color:#dc2626}
-  .kpi-sub .delta.up{color:#12805f}
+  .kpi-sub .delta.down,.kpi-sub .delta.up{color:var(--text-dim)}
   .kpi-sub .delta.flat{color:var(--muted)}
-  .kpi-spark{margin-top:8px;height:32px}
+  .kpi-spark{grid-area:spark;margin-top:8px;height:32px}
   .kpi-spark svg{width:100%;height:100%}
 
   /* ---------- 2-col layout: wide left, narrower right ---------- */
@@ -230,7 +274,7 @@
 
   .chart-area{padding-top:6px}
   .chart-area svg{width:100%;height:auto}
-  .axis{font-size:var(--fs-badge);fill:#64748b}
+  .axis{font-size:var(--fs-badge);fill:var(--muted)}
   .gridline{stroke:var(--grid);stroke-width:1}
   .hourbar.critical{fill:#e53553}
   .hourbar.high{fill:#f0902e}
@@ -239,6 +283,11 @@
   .hour-legend span{display:flex;align-items:center;gap:6px}
   .hour-legend i{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
   .hour-legend i.dot{border-radius:50%}
+  /* Grouped hourly bars are their own hit target (no crosshair on bar
+     charts) — hovered/focused bar lifts slightly so the pointer/keyboard
+     user sees it respond, matching the line charts' hover dot. */
+  .hbar{cursor:pointer;transition:filter .1s;outline:none}
+  .hbar:hover,.hbar:focus-visible{filter:brightness(1.12)}
 
   /* stat tiles */
   .stat-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -253,13 +302,15 @@
   .stat-tile-value{font-size:21px;font-weight:800;margin-top:5px;letter-spacing:-.01em}
   .stat-tile-caption{font-size:var(--fs-caption);color:var(--muted);margin-top:3px}
 
-  /* trend line chart (7-day total alerts) */
-  .trend-line{fill:none;stroke:#2563eb;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+  /* trend line chart (7-day total alerts) — stroke/fill draw from the
+     validated chart palette (--series-1) instead of a one-off hex so this
+     line matches every other "primary series" mark in the app. */
+  .trend-line{fill:none;stroke:var(--series-1);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
   .trend-area{fill:url(#trendFill);opacity:1}
-  .trend-mean{stroke:#cbd5e1;stroke-width:1.25;stroke-dasharray:4 4}
-  .trend-mean-label{font-size:var(--fs-badge);fill:#94a3b8}
-  .trend-dot{fill:#fff;stroke:#2563eb;stroke-width:2.5}
-  .trend-dot.peak{stroke:#e53553;fill:#e53553}
+  .trend-mean{stroke:var(--muted);stroke-width:1.25;stroke-dasharray:4 4;opacity:.55}
+  .trend-mean-label{font-size:var(--fs-badge);fill:var(--muted)}
+  .trend-dot{fill:var(--card);stroke:var(--series-1);stroke-width:2.5}
+  .trend-dot.peak{stroke:var(--series-8);fill:var(--series-8)}
   .trend-badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-caption);font-weight:700;padding:4px 10px;border-radius:999px}
   .trend-badge.down{background:#dff5ea;color:#12805f}
   .trend-badge.up{background:#fdeaea;color:#c0271f}
@@ -271,9 +322,16 @@
      markup/behavior reused by Overview's 7-day trend and Analytics' 30-day
      trend (see chartHover() below) so both charts feel identical to use. */
   .chart-hover-rect{fill:transparent;cursor:crosshair}
-  .chart-crosshair{stroke:#94a3b8;stroke-width:1;stroke-dasharray:3 3;opacity:0;pointer-events:none;transition:opacity .1s}
-  .chart-hover-dot{fill:#fff;stroke:#2563eb;stroke-width:2.5;opacity:0;pointer-events:none;transition:opacity .1s}
-  .chart-tooltip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:8px 11px;font-size:11px;color:var(--text-dim);opacity:0;transform:translate(-50%,-100%);transition:opacity .1s;white-space:nowrap;z-index:5}
+  .chart-crosshair{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3;opacity:0;pointer-events:none;transition:opacity .1s}
+  .chart-hover-dot{fill:var(--card);stroke:var(--series-1);stroke-width:2.5;opacity:0;pointer-events:none;transition:opacity .1s}
+  /* position:fixed (not absolute) + viewport coordinates in
+     wireChartHover() below — the chart card's own .chart-area clips
+     with overflow:hidden (needed so the flex layout can shrink it), and
+     an absolutely-positioned tooltip near the top of a chart was getting
+     clipped by that same rule before it could ever reach the eye. Fixed
+     positioning escapes that clip entirely and z-index:9999 keeps it
+     above every other card on the page. */
+  .chart-tooltip{position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:8px 11px;font-size:11px;color:var(--text-dim);opacity:0;transform:translate(-50%,-100%);transition:opacity .1s;white-space:nowrap;z-index:9999}
   .chart-tooltip.on{opacity:1}
   .chart-tooltip-date{font-weight:700;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px}
   .chart-tooltip-value{font-weight:800;font-size:14px;color:#1259b6}
@@ -291,6 +349,13 @@
   .feed-title{font-size:var(--fs-subhead);font-weight:750;color:#1259b6}
   .feed-title.green-title{color:#16803c}
   .view-all{background:none;border:none;color:#2563eb;font-size:11px;font-weight:650;cursor:pointer;padding:4px 6px;border-radius:6px}
+  /* Export button — same compact footprint everywhere it appears (a table's
+     own header row), so the export affordance reads the same on every page
+     rather than each table growing its own one-off button style. */
+  .export-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:1px solid var(--border);background:var(--card);border-radius:7px;color:var(--text-dim);font-size:11px;font-weight:600;cursor:pointer;flex:0 0 auto;transition:border-color .15s,color .15s;white-space:nowrap}
+  .export-btn:hover{border-color:var(--blue);color:var(--blue)}
+  .export-btn:disabled{opacity:.6;cursor:default}
+  .export-btn svg{width:12px;height:12px;flex:0 0 auto}
   .view-all:hover{background:#edf5ff}
   .view-all:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 
@@ -401,8 +466,7 @@
   .an-kpi-value{font-size:var(--fs-display);font-weight:800;color:var(--text);margin-top:11px;letter-spacing:-.02em;white-space:nowrap}
   .an-kpi-sub{font-size:11px;margin-top:6px;color:var(--muted);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .an-kpi-sub .delta{font-weight:650}
-  .an-kpi-sub .delta.up{color:#18a05e}
-  .an-kpi-sub .delta.down{color:#e53553}
+  .an-kpi-sub .delta.up,.an-kpi-sub .delta.down{color:var(--text-dim)}
   .an-kpi-sub .delta.flat{color:var(--muted)}
   /* Sparkline zone: right-aligned, vertically centered against the label/
      value/trend stack beside it, with real right-edge margin (the card's
@@ -442,10 +506,11 @@
   .an-legend{display:flex;gap:14px;font-size:var(--fs-body);color:var(--muted);font-weight:500}
   .an-legend span{display:flex;align-items:center;gap:5px}
   .an-swatch{width:16px;height:2px;border-radius:2px;flex:0 0 auto;display:inline-block}
-  .an-swatch.dashed{background:none!important;border-top:2px dashed #2954e8}
+  .an-swatch.dashed{background:none!important;border-top:2px dashed var(--series-2)}
   .an-chart-area{height:238px;padding-top:7px;position:relative}
   .an-chart-area svg{width:100%;height:100%;display:block}
-  .an-axis{font-size:8px;fill:#64748b}
+  .an-axis{font-size:8px;fill:var(--muted)}
+  .an-panel-label{font-size:9px;font-weight:700;fill:var(--text-dim);letter-spacing:.02em}
   .an-bar{fill:#2954e8}
   .an-bar.hot{fill:#e5484d}
   .an-bar.warn{fill:#d97706}
@@ -588,6 +653,28 @@
   .al-badge.critical{background:#fdeaea;color:#e53553}
   .al-badge.high{background:#fdf0dc;color:#e8952e}
   .al-badge.moderate{background:#e3edfd;color:#3b7cf6}
+  /* Sidebar nav count badge — same "open cases" number as the page's own
+     title badge (#ds-open-badge), mirrored here so it's visible without
+     opening the page. Solid fill (not the light-card .al-badge treatment)
+     since this sits on the sidebar's dark navy background. */
+  .nav-badge{display:inline-flex;height:18px;min-width:18px;align-items:center;justify-content:center;border-radius:999px;padding:0 6px;font-size:var(--fs-badge);font-weight:750;background:#e53553;color:#fff;flex:0 0 auto;font-variant-numeric:tabular-nums}
+  .nav-badge[hidden]{display:none}
+  /* Collapsed rail: float the badge as a small dot on the icon's corner —
+     like a messenger unread-count — instead of fading it out with the
+     label. Positioned off .nav-item's own fixed left padding (12px) plus
+     the icon's fixed 18px width, so it lands on the icon regardless of
+     what the (invisible) label is doing to the rest of the flex row, and
+     never shifts the icon itself since it's taken out of flow. The 2px
+     border matches the sidebar's own background, giving it the same
+     "cut out of the icon" ring real notification badges use. */
+  .sidebar.collapsed .nav-badge{
+    position:absolute;top:2px;left:23px;height:14px;min-width:14px;
+    padding:0 3px;font-size:9px;line-height:1;border:2px solid #012d68;
+  }
+  .sidebar.collapsed:hover .nav-badge,.sidebar.collapsed.pinned-open .nav-badge{
+    position:static;top:auto;left:auto;height:18px;min-width:18px;
+    padding:0 6px;font-size:var(--fs-badge);border:none;
+  }
   .al-status{font-size:var(--fs-caption);font-weight:650;display:inline-flex;align-items:center;gap:5px}
   .al-status::before{content:'';width:6px;height:6px;border-radius:50%;flex:0 0 auto}
   .al-status.reviewed{color:#18a05e}
@@ -617,10 +704,7 @@
   td[data-al-empname].unknown{color:#e53553}
 
   .al-table-foot{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;color:var(--muted);font-size:var(--fs-caption);flex-wrap:wrap;gap:8px}
-  .al-pages{display:flex;gap:5px;align-items:center}
-  .al-page{all:unset;box-sizing:border-box;cursor:pointer;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;display:grid;place-items:center;background:var(--card);font-size:var(--fs-caption);color:var(--text-dim)}
-  .al-page.on{background:#1259b6;color:#fff;border-color:#1259b6}
-  .al-page:disabled{opacity:.45;cursor:default}
+  .al-pages{display:flex;gap:8px;align-items:center}
 
   /* ---------- Data Management page (dm- prefix) ---------- */
   .dm-sync{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:7px 14px;flex:0 0 auto}
@@ -850,12 +934,17 @@
 
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
-  .da-table th{height:38px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
+  /* 34px/40px — matches .al-table th/td (Alert Logs) exactly, per direct
+     instruction that every table share one fixed row height instead of
+     each page picking its own (this was 38px/56px). A uniform, denser row
+     height also means more real rows fit in the same fixed-height
+     scrollable area before infinite scroll needs to kick in at all. */
+  .da-table th{height:34px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
   .da-table th[data-da-sort]{cursor:pointer;user-select:none}
   .da-table th[data-da-sort]:hover{color:#1259b6}
   .da-table th[data-da-sort].sorted::after{content:' ▾';font-size:8px}
   .da-table th[data-da-sort].sorted.asc::after{content:' ▴'}
-  .da-table td{height:56px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap}
+  .da-table td{height:40px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap}
   .da-table tr:hover td{background:var(--surface2)}
   .da-table tr.flag-high td{background:#fff9f9}
   .da-table tr.flag-high:hover td{background:#fef2f2}
@@ -882,6 +971,28 @@
   .da-status{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:6px;padding:0 9px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .da-status.required{background:#fdeaea;color:#e53553}
   .da-status.actioned{background:#dff5ea;color:#18a05e}
+  .da-status.monitoring{background:#e3edfd;color:#3b7cf6}
+  .da-status.resolved{background:#dff5ea;color:#18a05e}
+  .da-status.ok{background:var(--surface2);color:var(--muted)}
+
+  /* Driver Streaks' "Action Performed" control — a plain in-page button +
+     absolutely-positioned menu instead of a native <select>. A native
+     select's dropdown list is an OS-level popup, not part of the page's
+     own DOM, and on at least one real environment testing this feature its
+     clicks were not registering as a selection at all (the browser closed
+     the list without changing the select's value — confirmed by frame-by-
+     frame screen-recording review). Ordinary buttons inside the page get
+     the exact same click handling that already reliably opens this menu,
+     so they don't have that failure mode. */
+  .ds-action-dd{position:relative;display:inline-block;vertical-align:middle}
+  .ds-action-dd-btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:space-between;gap:8px;min-width:110px;height:28px;padding:0 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text-dim);font-size:11px;cursor:pointer}
+  .ds-action-dd-btn:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+  .ds-action-dd-btn:disabled{opacity:.55;cursor:not-allowed}
+  .ds-action-dd-btn::after{content:'';flex:0 0 auto;width:0;height:0;margin-left:4px;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--muted)}
+  .ds-action-dd-menu{position:absolute;top:calc(100% + 2px);left:0;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:60;overflow:hidden;padding:4px}
+  .ds-action-dd-menu[hidden]{display:none}
+  .ds-action-dd-menu button{all:unset;box-sizing:border-box;display:block;width:100%;padding:7px 10px;border-radius:5px;font-size:12px;color:var(--text-dim);cursor:pointer}
+  .ds-action-dd-menu button:hover,.ds-action-dd-menu button:focus-visible{background:var(--surface2)}
 
   .da-rec{font-size:var(--fs-caption);font-weight:650;display:flex;align-items:center;gap:6px}
   .da-rec-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
@@ -1036,14 +1147,13 @@
   button.su-export svg{width:13px;height:13px}
 
   .su-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:14px}
-  .su-kpi{padding:15px 16px}
-  .su-kpi-label{font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
+  .su-kpi{padding:15px 16px;display:grid;grid-template-columns:1fr auto;column-gap:10px;grid-template-areas:"label label" "value sub"}
+  .su-kpi-label{grid-area:label;font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
   .su-kpi-dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
-  .su-kpi-value{font-size:25px;font-weight:800;margin-top:10px;letter-spacing:-.01em}
-  .su-kpi-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:5px}
+  .su-kpi-value{grid-area:value;align-self:center;font-size:25px;font-weight:800;letter-spacing:-.01em}
+  .su-kpi-sub{grid-area:sub;align-self:center;justify-self:end;text-align:right;font-size:var(--fs-caption);color:var(--muted)}
   .su-kpi-sub .delta{font-weight:700}
-  .su-kpi-sub .delta.down{color:#12805f}
-  .su-kpi-sub .delta.up{color:#dc2626}
+  .su-kpi-sub .delta.down,.su-kpi-sub .delta.up{color:var(--text-dim)}
   .su-kpi-sub .delta.flat{color:var(--muted)}
 
   .su-trend-card{padding:0 16px 14px}
@@ -1377,6 +1487,12 @@
 </style>
 </head>
 <body>
+<div id="dds-auth-gate" style="position:fixed;inset:0;z-index:99999;background:#012d68;display:flex;align-items:center;justify-content:center">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32" style="animation:dds-auth-gate-spin 0.9s linear infinite">
+    <path d="M12 3a9 9 0 1 0 9 9"/>
+  </svg>
+  <style>@keyframes dds-auth-gate-spin{to{transform:rotate(360deg)}}</style>
+</div>
 <div class="app">
   <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="app-sidebar">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -1416,6 +1532,7 @@
           <span class="nav-alert-badge" id="nav-driver-streaks-badge" hidden>0</span>
         </span>
         <span class="nav-label">Driver Streaks</span>
+        <span class="nav-badge" id="ds-nav-badge" hidden>0</span>
       </button>
       <button class="nav-item" type="button" data-page="summary">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h6"/></svg></span>
@@ -1481,36 +1598,48 @@
       </div>
     </section>
 
+    <section class="card ov-filter-bar" aria-label="Date range filter">
+      <span class="ov-filter-label">Date range</span>
+      <input type="date" class="al-filter" id="ov-from" aria-label="From date" style="flex:0 0 auto">
+      <span class="ov-filter-to">to</span>
+      <input type="date" class="al-filter" id="ov-to" aria-label="To date" style="flex:0 0 auto">
+      <button class="al-filter" type="button" data-ov-quick="7" style="flex:0 0 auto">7D</button>
+      <button class="al-filter" type="button" data-ov-quick="30" style="flex:0 0 auto">30D</button>
+      <button class="al-filter" type="button" data-ov-quick="90" style="flex:0 0 auto">90D</button>
+      <button class="al-clear" type="button" id="ov-filter-reset">Reset</button>
+      <span class="ov-filter-note" id="ov-filter-note"></span>
+    </section>
+
     <section class="kpis" aria-label="Key metrics" id="ov-kpi-row">
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
         <div class="kpi-value" id="ov-kpi-total-value">—</div>
-        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-total-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-total-spark" points="0,16 100,16" fill="none" stroke="#e53553" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-sub"><span id="ov-kpi-total-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-total-delta">—</span></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-total-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon pink" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>SLEEP ALERTS</div>
         <div class="kpi-value" id="ov-kpi-sleep-value">—</div>
-        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-sleep-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-sleep-spark" points="0,16 100,16" fill="none" stroke="#ec4a75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-sub"><span id="ov-kpi-sleep-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-sleep-delta">—</span></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-sleep-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>DROWSINESS ALERTS</div>
         <div class="kpi-value" id="ov-kpi-drowsy-value">—</div>
-        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-drowsy-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drowsy-spark" points="0,16 100,16" fill="none" stroke="#e8952e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-sub"><span id="ov-kpi-drowsy-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-drowsy-delta">—</span></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drowsy-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon bluebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>DRIVERS INVOLVED</div>
         <div class="kpi-value" id="ov-kpi-drivers-value">—</div>
-        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-drivers-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drivers-spark" points="0,16 100,16" fill="none" stroke="#3b7cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-sub"><span id="ov-kpi-drivers-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-drivers-delta">—</span></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-drivers-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
         <div class="kpi-head"><span class="kpi-icon greenbg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>ASSETS REPORTING</div>
         <div class="kpi-value" id="ov-kpi-assets-value">—</div>
-        <div class="kpi-sub">vs prior 7d <span class="delta flat" id="ov-kpi-assets-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-assets-spark" points="0,16 100,16" fill="none" stroke="#18a05e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-sub"><span id="ov-kpi-assets-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-assets-delta">—</span></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="ov-kpi-assets-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
     </section>
 
@@ -1520,7 +1649,7 @@
           <div class="chart-head">
             <div class="chart-title-group">
               <span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-4 4"/></svg></span>
-              <h3 class="chart-title">Total Alerts — Last 7 Days</h3>
+              <h3 class="chart-title">Total Alerts — <span id="ov-trend-range-label">Last 7 Days</span></h3>
             </div>
             <span class="trend-badge down" id="ov-trend-badge">—</span>
           </div>
@@ -1528,8 +1657,8 @@
             <svg viewBox="0 0 720 200" role="img" aria-label="Line chart of total alerts over the last 7 days" id="ov-trend-svg">
               <defs>
                 <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#2563eb" stop-opacity="0.16"/>
-                  <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
+                  <stop offset="0%" style="stop-color:var(--series-1)" stop-opacity="0.16"/>
+                  <stop offset="100%" style="stop-color:var(--series-1)" stop-opacity="0"/>
                 </linearGradient>
               </defs>
               <line class="gridline" x1="40" y1="15" x2="700" y2="15"/><line class="gridline" x1="40" y1="52.5" x2="700" y2="52.5"/><line class="gridline" x1="40" y1="90" x2="700" y2="90"/><line class="gridline" x1="40" y1="127.5" x2="700" y2="127.5"/><line class="gridline" x1="40" y1="160" x2="700" y2="160"/>
@@ -1549,8 +1678,8 @@
               <div class="chart-tooltip-value" id="ov-trend-tooltip-value">—</div>
             </div>
             <div class="hour-legend">
-              <span><i style="background:#2563eb"></i>Total alerts</span>
-              <span><i class="dot" style="background:#e53553"></i><span id="ov-trend-peak-label">Peak day</span></span>
+              <span><i style="background:var(--series-1)"></i>Total alerts</span>
+              <span><i class="dot" style="background:var(--series-8)"></i><span id="ov-trend-peak-label">Peak day</span></span>
             </div>
           </div>
         </div>
@@ -1569,9 +1698,13 @@
               <g id="ov-hourly-bars"></g>
               <g id="ov-hourly-xaxis"></g>
             </svg>
+            <div class="chart-tooltip" id="ov-hourly-tooltip">
+              <div class="chart-tooltip-date" id="ov-hourly-tooltip-date">—</div>
+              <div class="chart-tooltip-value" id="ov-hourly-tooltip-value">—</div>
+            </div>
             <div class="hour-legend">
-              <span><i style="background:#f0902e"></i>Day shift</span>
-              <span><i style="background:#3b82f6"></i>Night shift</span>
+              <span><i style="background:var(--series-1)"></i>Day shift</span>
+              <span><i style="background:var(--series-2)"></i>Night shift</span>
             </div>
           </div>
         </div>
@@ -1735,15 +1868,37 @@
 
       <section class="an-charts-top an-row-wide-left">
         <div class="card an-chart-card" id="anAssetVolumeCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend (Last 30 Days)</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:#f5a524"></i>Total Alerts</span><span><i class="an-swatch dashed"></i>Distinct Assets</span></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend (Last 30 Days)</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Total Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Distinct Assets</span></div></div>
           <div class="an-chart-area">
+            <!-- Two stacked small multiples, NOT one dual-axis plot — Total
+                 Alerts and Distinct Assets are different units on different
+                 scales, so overlaying them on one y-range (the old chart)
+                 made their relative wiggle arbitrary and could visually
+                 invent a correlation that isn't in the data. Each panel
+                 keeps its own scale; a single crosshair still sweeps both
+                 (see renderTrend()) so one tooltip covers both values. -->
             <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-trend-svg">
-              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
-              <path id="an-trend-units" d="" fill="none" stroke="#f5a524" stroke-width="2.5"/>
-              <path id="an-trend-assets" d="" fill="none" stroke="#2954e8" stroke-width="2" stroke-dasharray="5 4"/>
+              <defs>
+                <linearGradient id="anTrendUnitsFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" style="stop-color:var(--series-1)" stop-opacity="0.14"/>
+                  <stop offset="100%" style="stop-color:var(--series-1)" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <text x="40" y="10" class="an-panel-label">Total Alerts</text>
+              <line class="gridline" x1="40" y1="98" x2="480" y2="98"/>
+              <g id="an-trend-units-axis"></g>
+              <path id="an-trend-units-area" fill="url(#anTrendUnitsFill)" d=""/>
+              <path id="an-trend-units" d="" fill="none" stroke="var(--series-1)" stroke-width="2"/>
+
+              <text x="40" y="118" class="an-panel-label">Distinct Assets</text>
+              <line class="gridline" x1="40" y1="206" x2="480" y2="206"/>
+              <g id="an-trend-assets-axis"></g>
+              <path id="an-trend-assets" d="" fill="none" stroke="var(--series-2)" stroke-width="2"/>
+
               <g id="an-trend-axis"></g>
-              <line class="chart-crosshair" id="an-trend-crosshair" x1="0" y1="10" x2="0" y2="208"/>
-              <circle class="chart-hover-dot" id="an-trend-hover-dot" r="4.5"/>
+              <line class="chart-crosshair" id="an-trend-crosshair" x1="0" y1="4" x2="0" y2="206"/>
+              <circle class="chart-hover-dot" id="an-trend-hover-dot" r="4" style="stroke:var(--series-1)"/>
+              <circle class="chart-hover-dot" id="an-trend-hover-dot2" r="4" style="stroke:var(--series-2)"/>
               <rect class="chart-hover-rect" id="an-trend-hover-rect" x="40" y="0" width="440" height="238"/>
             </svg>
             <div class="chart-tooltip" id="an-trend-tooltip">
@@ -1751,7 +1906,7 @@
               <div class="chart-tooltip-value" id="an-trend-tooltip-value">—</div>
             </div>
           </div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Total alerts vs. distinct assets reporting, over the selected period.</span></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Total alerts vs. distinct assets reporting, over the selected period — each on its own scale.</span></div>
         </div>
 
         <div class="card an-chart-card" id="anHourlyCard">
@@ -1763,10 +1918,19 @@
           <div class="an-chart-area">
             <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-hourly-svg">
               <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
+              <g id="an-hourly-yaxis"></g>
               <g id="an-hourly-lines"></g>
               <g id="an-hourly-axis"></g>
+              <line class="chart-crosshair" id="an-hourly-crosshair" x1="0" y1="25" x2="0" y2="208"/>
+              <circle class="chart-hover-dot" id="an-hourly-hover-dot" r="4"/>
+              <rect class="chart-hover-rect" id="an-hourly-hover-rect" x="40" y="0" width="440" height="238"/>
             </svg>
+            <div class="chart-tooltip" id="an-hourly-tooltip">
+              <div class="chart-tooltip-date" id="an-hourly-tooltip-date">—</div>
+              <div class="chart-tooltip-value" id="an-hourly-tooltip-value">—</div>
+            </div>
           </div>
+          <div class="an-legend" id="an-hourly-month-legend" style="display:none;flex-wrap:wrap;row-gap:4px;padding-top:6px"></div>
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-hourly-note">&mdash;</span></div>
         </div>
 
@@ -1778,6 +1942,10 @@
               <g id="an-sync-bars"></g>
               <g id="an-sync-axis"></g>
             </svg>
+            <div class="chart-tooltip" id="an-sync-tooltip">
+              <div class="chart-tooltip-date" id="an-sync-tooltip-date">—</div>
+              <div class="chart-tooltip-value" id="an-sync-tooltip-value">—</div>
+            </div>
           </div>
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-sync-note">&mdash;</span></div>
         </div>
@@ -1858,25 +2026,28 @@
         <div class="card al-sc crit">
           <div class="al-sc-label">Critical</div>
           <div class="al-sc-value" id="al-sc-critical">—</div>
-          <div class="al-sc-sub" id="al-sc-critical-sub">Of events on this page</div>
+          <div class="al-sc-sub" id="al-sc-critical-sub">Of events loaded</div>
         </div>
         <div class="card al-sc pend">
           <div class="al-sc-label">With a logged case</div>
           <div class="al-sc-value" id="al-sc-cased">—</div>
-          <div class="al-sc-sub">Of events on this page</div>
+          <div class="al-sc-sub">Of events loaded</div>
         </div>
         <div class="card al-sc act">
           <div class="al-sc-label">Actionable</div>
           <div class="al-sc-value" id="al-sc-actionable">—</div>
-          <div class="al-sc-sub" id="al-sc-actionable-sub">Of events on this page</div>
+          <div class="al-sc-sub" id="al-sc-actionable-sub">Of events loaded</div>
         </div>
       </section>
 
       <section class="card al-table-card">
         <div class="al-table-head">
           <h3 class="al-table-title">Detected Events <small id="al-table-showing">Loading…</small></h3>
-          <button class="al-filter" type="button" id="al-find-dupes" style="cursor:pointer;flex:0 0 auto" title="Find events on the same asset and event code logged within 60 seconds of each other in the current date range — a common sign of a duplicate log entry">Find duplicates</button>
-          <button class="al-filter" type="button" id="al-select-toggle" style="cursor:pointer;flex:0 0 auto">Select</button>
+          <div style="display:flex;align-items:center;gap:10px;flex:0 0 auto">
+            <button class="al-filter" type="button" id="al-find-dupes" style="cursor:pointer;flex:0 0 auto" title="Find events on the same asset and event code logged within 60 seconds of each other in the current date range — a common sign of a duplicate log entry">Find duplicates</button>
+            <button class="al-filter" type="button" id="al-select-toggle" style="cursor:pointer;flex:0 0 auto">Select</button>
+            <button class="export-btn" type="button" id="al-export-btn" title="Export every row matching the current filters, not just this page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
+          </div>
         </div>
         <div class="al-filters">
           <div class="al-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="al-search" placeholder="Search asset, driver, or event..." style="all:unset;flex:1;min-width:0;font-size:11px;color:var(--text-dim)"></div>
@@ -1904,6 +2075,9 @@
             <option value="Escalated">Escalated</option>
             <option value="Coached">Coached</option>
             <option value="Dismissed">Dismissed</option>
+            <option value="Spare">Spare</option>
+            <option value="Replace">Replace</option>
+            <option value="Continue">Continue</option>
             <option value="Other">Other…</option>
           </select>
           <input type="text" class="da-bulk-other" id="al-bulk-action-other" placeholder="Describe action...">
@@ -1923,7 +2097,7 @@
           <table class="al-table" id="al-table">
             <thead>
               <tr>
-                <th class="da-th-check al-check-cell"><input type="checkbox" id="al-selectall" aria-label="Select all rows on this page"></th>
+                <th class="da-th-check al-check-cell"><input type="checkbox" id="al-selectall" aria-label="Select all loaded rows"></th>
                 <th data-sort="shift_date">Date</th>
                 <th data-sort="asset_id">Asset ID</th>
                 <th data-sort="event_code">Event Code</th>
@@ -1946,11 +2120,9 @@
         </div>
         <div class="al-table-foot">
           <span id="al-lastrefresh">—</span>
-          <div class="al-pages" id="al-pages">
+          <div class="al-pages">
             <span id="al-rowsrange">—</span>
-            <button class="al-page" type="button" id="al-page-prev" disabled aria-label="Previous page">‹</button>
-            <span id="al-page-numbers"></span>
-            <button class="al-page" type="button" id="al-page-next" aria-label="Next page">›</button>
+            <span id="al-load-status" style="color:var(--muted)"></span>
           </div>
         </div>
       </section>
@@ -2462,6 +2634,7 @@
             </select>
             <button class="al-filter" type="button" id="da-refresh-drivers" style="cursor:pointer">↻&nbsp; Refresh</button>
             <button class="al-clear" type="button" id="da-clear-drivers">Clear filters</button>
+            <button class="export-btn" type="button" id="da-export-drivers" title="Export every driver matching the current filters, not just this page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
             <button class="da-history-link" type="button" data-da-open-history="drivers">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
               View resolved / history
@@ -2498,11 +2671,9 @@
           <div class="da-table-foot">
             <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
             <span data-da-empty-note="drivers"></span>
-            <div class="al-pages" data-da-pages="drivers">
+            <div class="al-pages">
               <span data-da-rowsrange="drivers">—</span>
-              <button class="al-page" type="button" data-da-page-prev="drivers" disabled aria-label="Previous page">‹</button>
-              <span data-da-page-numbers="drivers"></span>
-              <button class="al-page" type="button" data-da-page-next="drivers" aria-label="Next page">›</button>
+              <span data-da-load-status="drivers" style="color:var(--muted)"></span>
             </div>
           </div>
         </section>
@@ -2523,6 +2694,7 @@
             </select>
             <button class="al-filter" type="button" id="da-refresh-assets" style="cursor:pointer">↻&nbsp; Refresh</button>
             <button class="al-clear" type="button" id="da-clear-assets">Clear filters</button>
+            <button class="export-btn" type="button" id="da-export-assets" title="Export every asset matching the current filters, not just this page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
             <button class="da-history-link" type="button" data-da-open-history="assets">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
               View resolved / history
@@ -2541,11 +2713,9 @@
           <div class="da-table-foot">
             <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
             <span data-da-empty-note="assets"></span>
-            <div class="al-pages" data-da-pages="assets">
+            <div class="al-pages">
               <span data-da-rowsrange="assets">—</span>
-              <button class="al-page" type="button" data-da-page-prev="assets" disabled aria-label="Previous page">‹</button>
-              <span data-da-page-numbers="assets"></span>
-              <button class="al-page" type="button" data-da-page-next="assets" aria-label="Next page">›</button>
+              <span data-da-load-status="assets" style="color:var(--muted)"></span>
             </div>
           </div>
         </section>
@@ -2575,21 +2745,23 @@
           <input type="date" class="al-filter" id="ds-to" aria-label="Streak end on/before date" title="Only show streaks ending on/before this date">
           <button class="al-filter" type="button" id="ds-clear" style="cursor:pointer">Clear filters</button>
           <button class="al-filter" type="button" id="ds-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
+          <button class="export-btn" type="button" id="ds-export-btn" title="Export every streak matching the current filters, not just what's scrolled into view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
         </div>
         <div class="da-table-wrap da-table-wrap-flex">
           <table class="da-table" id="ds-table">
             <thead>
               <tr>
+                <th data-ds-sort="streak_days">Streak (days)</th>
                 <th data-ds-sort="emp_no">Emp No</th>
                 <th data-ds-sort="name">Driver Name</th>
                 <th data-ds-sort="total_count">Total Counts</th>
-                <th data-ds-sort="streak_days">Streak Days</th>
-                <th data-ds-sort="run_end">Streak Date</th>
+                <th>Status</th>
                 <th>Action Performed</th>
+                <th>Date Actioned</th>
                 <th></th>
               </tr>
             </thead>
-            <tbody id="ds-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+            <tbody id="ds-tbody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
           </table>
         </div>
         <div class="da-table-foot">
@@ -3288,7 +3460,7 @@
         <div class="da-table-wrap">
           <table class="da-inst-table" id="ds-detail-table">
             <thead>
-              <tr><th>Date</th><th>Shift</th><th>Asset ID</th><th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th></tr>
+              <tr><th>Date</th><th>Shift(s)</th><th># of Alerts</th><th>Day Total</th><th>Qualifies (&ge;20/day)</th></tr>
             </thead>
             <tbody id="ds-detail-tbody"></tbody>
           </table>
@@ -3359,6 +3531,83 @@
   }
   function fmtNum(n){ return (n == null ? 0 : n).toLocaleString('en-US'); }
 
+  // ==================== Shared "fill the viewport" page size ====================
+  // Alert Logs, Driver & Asset Monitoring, and Driver Streaks all fetch a
+  // fixed number of rows per page (20/100/50) regardless of screen size.
+  // Their table cards correctly stretch to fill the available viewport
+  // height (verified directly — a headless-browser render confirmed zero
+  // gap between the card and the page edge at any viewport size), but a
+  // FIXED row count doesn't scale with a TALLER viewport: on a large
+  // monitor, a fixed 20-row page can be visibly shorter than the
+  // now-taller scrollable row area, leaving genuine blank space between
+  // the last row and the footer — confirmed by reproducing it directly at
+  // 2560x1440 (20 rows filled a 1080-tall screen with no gap; the exact
+  // same 20 rows left ~250px of blank space at 1440-tall). Rather than
+  // guessing a bigger fixed number (which just moves the same problem to
+  // an even bigger screen), this measures the row area's actual current
+  // height and asks for exactly enough rows to fill it.
+  //
+  // Call this AFTER the page's `.active` class is applied (so the flex
+  // layout has already given the wrap its real height) and BEFORE the
+  // first fetch, passing the wrap element, one real rendered row's height
+  // in px, and bounds matching the page's existing default/RPC cap. +3
+  // rows past an exact fit so the row area is never left exactly
+  // flush-to-the-pixel, and so a mouse-wheel nudge immediately shows there
+  // is in fact more to scroll to rather than looking like a hard stop.
+  function fitRowLimit(wrapEl, rowHeightPx, fallback, min, max){
+    if(!wrapEl) return fallback;
+    var h = wrapEl.clientHeight;
+    if(!h) return fallback;
+    var n = Math.floor(h / rowHeightPx) + 3;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  // ==================== Shared table export (every table's Export button) ====================
+  // One XLSX file per export, built from an explicit [{key,label}] column
+  // list + a plain-object row array — not a copy of the rendered <table>'s
+  // HTML, so hidden/formatting-only cells never leak into the file and a
+  // column that's a link/icon in the UI can still export its real value.
+  // XLSX (SheetJS, already loaded for file uploads) both parses and writes,
+  // so this needs no new dependency. Timestamped filename so repeated
+  // exports of the same table never silently overwrite one another.
+  function exportRowsToXlsx(baseName, columns, rows){
+    var header = columns.map(function(c){ return c.label; });
+    var aoa = [header].concat((rows || []).map(function(row){
+      return columns.map(function(c){
+        var v = row[c.key];
+        return v == null ? '' : v;
+      });
+    }));
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Export');
+    var stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    XLSX.writeFile(wb, baseName + '_' + stamp + '.xlsx');
+  }
+  // Wires a button to export whatever getRows() currently returns — a thin
+  // wrapper so each table's own render code only has to say what its rows
+  // and columns are, not how the button/click/filename plumbing works.
+  // getRows may return a promise (tables whose full filtered set has to be
+  // fetched fresh — the current page alone isn't "the export").
+  function wireExportButton(buttonId, baseName, columns, getRows){
+    var btn = document.getElementById(buttonId);
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      var original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Exporting…';
+      Promise.resolve(getRows()).then(function(rows){
+        exportRowsToXlsx(baseName, columns, rows || []);
+      }).catch(function(err){
+        console.error('Export failed:', err);
+        alert('Export failed — please try again.');
+      }).finally(function(){
+        btn.disabled = false;
+        btn.textContent = original;
+      });
+    });
+  }
+
   // ==================== Shared chart interactivity helpers ====================
   // Two small, reusable pieces so every SVG line chart in the app can get
   // the same PowerBI-style feel — a smooth curve instead of straight
@@ -3371,6 +3620,77 @@
   // smooth curve segments through every point (not an approximation that
   // drifts away from the real values — every original point still sits
   // exactly on the curve, only the segments between them are curved).
+  // Bar path with the top two corners rounded and the baseline-anchored
+  // bottom edge left square — plain SVG `rect rx` rounds all four corners,
+  // which visibly clips the bar away from its own baseline. r is capped to
+  // both half-dimensions so a short/thin bar degrades to a smaller round
+  // rather than an invalid/negative curve.
+  function roundTopRectPath(x, y, w, h, r){
+    if(h <= 0 || w <= 0) return '';
+    r = Math.max(0, Math.min(r, w/2, h));
+    if(r === 0) return 'M' + x + ',' + (y+h) + ' H' + (x+w) + ' V' + y + ' H' + x + ' Z';
+    return 'M' + x.toFixed(1) + ',' + (y+h).toFixed(1) +
+      ' V' + (y+r).toFixed(1) +
+      ' Q' + x.toFixed(1) + ',' + y.toFixed(1) + ' ' + (x+r).toFixed(1) + ',' + y.toFixed(1) +
+      ' H' + (x+w-r).toFixed(1) +
+      ' Q' + (x+w).toFixed(1) + ',' + y.toFixed(1) + ' ' + (x+w).toFixed(1) + ',' + (y+r).toFixed(1) +
+      ' V' + (y+h).toFixed(1) + ' Z';
+  }
+
+  // Wires per-mark hover on a set of already-rendered bars/cells — bar
+  // charts get no crosshair (the mark IS the hit target per the dataviz
+  // interaction spec), just a tooltip that follows whichever bar the
+  // pointer/keyboard focus is currently on. `container` holds the marks,
+  // each carrying data-tip-label/data-tip-value attributes already escaped
+  // by the caller. Idempotent like wireChartHover — safe to call again
+  // after a re-render.
+  function wireBarHover(opts){
+    var container = document.getElementById(opts.containerId);
+    var tooltip = document.getElementById(opts.tooltipId);
+    var dateEl = document.getElementById(opts.dateId);
+    var valueEl = document.getElementById(opts.valueId);
+    if(!container || !tooltip) return;
+    var overHandler = container.__barHoverOver;
+    if(overHandler) container.removeEventListener('pointerover', overHandler);
+    var moveHandler = container.__barHoverMove;
+    if(moveHandler) container.removeEventListener('pointermove', moveHandler);
+    var outHandler = container.__barHoverOut;
+    if(outHandler) container.removeEventListener('pointerout', outHandler);
+    var focusHandler = container.__barHoverFocus;
+    if(focusHandler) container.removeEventListener('focusin', focusHandler);
+    var blurHandler = container.__barHoverBlur;
+    if(blurHandler) container.removeEventListener('focusout', blurHandler);
+
+    function showFor(mark, clientX, clientY){
+      if(!mark || !mark.hasAttribute('data-tip-label')) return;
+      if(dateEl) dateEl.textContent = mark.getAttribute('data-tip-label');
+      if(valueEl) valueEl.textContent = mark.getAttribute('data-tip-value');
+      tooltip.style.left = clientX + 'px';
+      tooltip.style.top = (clientY - 14) + 'px';
+      tooltip.classList.add('on');
+    }
+    overHandler = function(e){ showFor(e.target.closest('[data-tip-label]'), e.clientX, e.clientY); };
+    moveHandler = function(e){ showFor(e.target.closest('[data-tip-label]'), e.clientX, e.clientY); };
+    outHandler = function(){ tooltip.classList.remove('on'); };
+    focusHandler = function(e){
+      var mark = e.target.closest('[data-tip-label]');
+      if(!mark) return;
+      var r = mark.getBoundingClientRect();
+      showFor(mark, r.left + r.width/2, r.top);
+    };
+    blurHandler = function(){ tooltip.classList.remove('on'); };
+    container.addEventListener('pointerover', overHandler);
+    container.addEventListener('pointermove', moveHandler);
+    container.addEventListener('pointerout', outHandler);
+    container.addEventListener('focusin', focusHandler);
+    container.addEventListener('focusout', blurHandler);
+    container.__barHoverOver = overHandler;
+    container.__barHoverMove = moveHandler;
+    container.__barHoverOut = outHandler;
+    container.__barHoverFocus = focusHandler;
+    container.__barHoverBlur = blurHandler;
+  }
+
   function smoothPathD(points){
     if(!points.length) return '';
     if(points.length === 1) return 'M' + points[0][0] + ',' + points[0][1];
@@ -3403,6 +3723,11 @@
     var tooltip = document.getElementById(opts.tooltipId);
     var dateEl = document.getElementById(opts.dateId);
     var valueEl = document.getElementById(opts.valueId);
+    // Optional second dot for a shared-x, independently-scaled small-multiple
+    // pair (e.g. two stacked mini panels on one crosshair) — one series
+    // still drives nearest-point lookup, the second dot just rides the same
+    // index onto its own panel's points.
+    var dot2 = opts.dot2Id ? document.getElementById(opts.dot2Id) : null;
     if(!rect || !crosshair || !dot || !tooltip) return;
 
     var handler = rect.__chartHoverHandler;
@@ -3434,6 +3759,11 @@
       crosshair.style.opacity = '1';
       dot.setAttribute('cx', p[0]); dot.setAttribute('cy', p[1]);
       dot.style.opacity = '1';
+      if(dot2 && opts.getPoints2){
+        var points2 = opts.getPoints2();
+        var p2 = points2 && points2[nearest];
+        if(p2){ dot2.setAttribute('cx', p2[0]); dot2.setAttribute('cy', p2[1]); dot2.style.opacity = '1'; }
+      }
 
       var info = opts.getInfo(nearest);
       if(dateEl) dateEl.textContent = info.label;
@@ -3443,13 +3773,17 @@
       var viewBox = rect.ownerSVGElement.viewBox.baseVal;
       var scaleX = svgRect.width / viewBox.width;
       var scaleY = svgRect.height / viewBox.height;
-      tooltip.style.left = (p[0] * scaleX) + 'px';
-      tooltip.style.top = (p[1] * scaleY - 10) + 'px';
+      // Viewport-relative (svgRect.left/top), matching .chart-tooltip's
+      // position:fixed — see that rule's own comment for why this can't
+      // be positioned relative to the chart card anymore.
+      tooltip.style.left = (svgRect.left + p[0] * scaleX) + 'px';
+      tooltip.style.top = (svgRect.top + p[1] * scaleY - 10) + 'px';
       tooltip.classList.add('on');
     };
     leaveHandler = function(){
       crosshair.style.opacity = '0';
       dot.style.opacity = '0';
+      if(dot2) dot2.style.opacity = '0';
       tooltip.classList.remove('on');
     };
     rect.addEventListener('mousemove', handler);
@@ -3508,6 +3842,64 @@
       __session = res.data && res.data.session;
       return __session;
     });
+  }
+
+  // ---- Auth gate: no signed-out viewing of index.html, plus an
+  // inactivity timeout that forces re-sign-in ----
+  //
+  // The dashboard used to render its signed-out shell/local-mode content
+  // fully visibly, then quietly show "Sign in to load real data" per
+  // widget. Per explicit instruction, a visitor with no active session
+  // should never see this page's content at all — only login.html.
+  //
+  // #dds-auth-gate (the very first element in <body>, styled inline so it
+  // applies before this stylesheet or script has even finished parsing)
+  // covers the entire viewport until this check resolves: session found
+  // -> gate removed, real content revealed; no session -> redirect to
+  // login.html before the gate ever comes down, so nothing behind it is
+  // ever shown, not even for one frame.
+  (function(){
+    var gate = document.getElementById('dds-auth-gate');
+    requireSession().then(function(sess){
+      if(!sess){
+        window.location.replace('login.html');
+        return; // gate stays up for the remainder of this page's life
+      }
+      if(gate) gate.remove();
+      armInactivityTimeout();
+    }).catch(function(err){
+      console.error('Auth gate check failed', err);
+      window.location.replace('login.html');
+    });
+  })();
+
+  // Signs the user out and sends them back to login.html after a period
+  // of no interaction — a stale, unattended signed-in tab on a shared
+  // fleet-ops machine is exactly the case this closes. 20 minutes is a
+  // single constant to tune; nothing else needs to change if it moves.
+  var INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000;
+  function armInactivityTimeout(){
+    var timer = null;
+    var lastReset = 0;
+    function onTimeout(){
+      DB.auth.signOut().finally(function(){
+        window.location.replace('login.html');
+      });
+    }
+    function reset(){
+      // Activity events (mousemove especially) can fire dozens of times a
+      // second; only actually touch the timer at most once/second so this
+      // never becomes a hot path.
+      var now = Date.now();
+      if(now - lastReset < 1000) return;
+      lastReset = now;
+      if(timer) clearTimeout(timer);
+      timer = setTimeout(onTimeout, INACTIVITY_TIMEOUT_MS);
+    }
+    ['mousemove','mousedown','keydown','touchstart','scroll','wheel'].forEach(function(evt){
+      window.addEventListener(evt, reset, { passive: true, capture: true });
+    });
+    reset();
   }
 
   // Sets the header username chip (`.user` span with id="*-username" —
@@ -3651,6 +4043,23 @@
   // supabase/migrations/0028_dds_metrics_emp_no.sql — see MIGRATION_STATUS.md.
   (function(){
     var guard = makeGuard();
+    // Date-range filter state. null/null means "not set yet" — load()
+    // fills both in from dds_latest_event_date() on first run, rather
+    // than defaulting to real calendar today, so the initial 7-day
+    // window is the 7 days that actually have data even when uploads
+    // lag behind the calendar.
+    var state = { from: null, to: null };
+    var cachedLatestDate = null; // Date object, filled on first load()
+
+    // ---- date helpers: <input type="date"> uses YYYY-MM-DD; dds_metrics()
+    // and this page's own toMDY()/addDays() use MM/DD/YYYY / Date objects ----
+    function isoToDate(iso){ // 'YYYY-MM-DD' -> Date (local midnight)
+      var p = iso.split('-');
+      return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    }
+    function dateToIso(d){
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
 
     // ---- clock ----
     var clockTimeEl = document.getElementById('ov-clock-time');
@@ -3673,6 +4082,10 @@
     // (matches index.html's own iso() helper, Cloud.metrics call site) ----
     function toMDY(d){
       return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear();
+    }
+    function mdyToDate(mdy){ // 'MM/DD/YYYY' -> Date (local midnight)
+      var p = mdy.split('/');
+      return new Date(Number(p[2]), Number(p[0]) - 1, Number(p[1]));
     }
     function startOfDay(d){ var x = new Date(d); x.setHours(0,0,0,0); return x; }
     function addDays(d, n){ var x = new Date(d); x.setDate(x.getDate()+n); return x; }
@@ -3761,9 +4174,15 @@
 
     // ==================== 7-day trend chart ====================
     function renderTrend(cur){
-      var trend = (cur.trend || []).slice(-7);
+      // No length cap here — this needs to plot the FULL selected date
+      // range (7/30/90 days, or a custom picked range), not just its last
+      // 7 entries, now that Overview has its own date-range filter. cur.trend
+      // is already exactly as long as the p_from..p_to range load() fetched.
+      var trend = cur.trend || [];
       var svg = document.getElementById('ov-trend-svg');
       if(!svg) return;
+      var rangeLabelEl = document.getElementById('ov-trend-range-label');
+      if(rangeLabelEl) rangeLabelEl.textContent = trend.length ? ('Last ' + trend.length + ' Days') : 'No Data';
       if(!trend.length){
         // No rows for the window (e.g. right after a fleet data reset) —
         // clear every element this function draws into rather than
@@ -3781,7 +4200,7 @@
         var meanLabelEl = document.getElementById('ov-trend-mean-label');
         if(meanLabelEl) meanLabelEl.textContent = '';
         var peakLabelEl = document.getElementById('ov-trend-peak-label');
-        if(peakLabelEl) peakLabelEl.textContent = 'No data this week';
+        if(peakLabelEl) peakLabelEl.textContent = 'No data in range';
         var badgeEl = document.getElementById('ov-trend-badge');
         if(badgeEl){ badgeEl.className = 'trend-badge'; badgeEl.textContent = '—'; }
         return;
@@ -3816,10 +4235,15 @@
 
       var peakIdx = 0;
       trend.forEach(function(t, i){ if(t.units > trend[peakIdx].units) peakIdx = i; });
+      // Beyond ~31 points (a month), one dot per day starts overlapping
+      // into a solid smear rather than readable markers — the line itself
+      // still carries the shape, so only the peak stays marked.
+      var showAllDots = trend.length <= 31;
       var dotsEl = document.getElementById('ov-trend-dots');
       if(dotsEl){
         dotsEl.innerHTML = trend.map(function(t, i){
           var isPeak = i === peakIdx;
+          if(!isPeak && !showAllDots) return '';
           return '<circle class="trend-dot' + (isPeak ? ' peak' : '') + '" cx="' + xFor(i).toFixed(1) +
             '" cy="' + yFor(t.units).toFixed(1) + '" r="' + (isPeak ? 4.5 : 4) + '"></circle>';
         }).join('');
@@ -3827,7 +4251,14 @@
 
       var xaxis = document.getElementById('ov-trend-xaxis');
       if(xaxis){
+        // Thin labels for longer ranges — one per day reads fine up to
+        // about 2 weeks, but a 90-day range would otherwise print 90
+        // overlapping labels. Always keeps the first/last so the range's
+        // actual bounds stay visible regardless of spacing.
+        var labelStep = Math.max(1, Math.ceil(trend.length / 12));
         xaxis.innerHTML = trend.map(function(t, i){
+          var isEdge = i === 0 || i === trend.length - 1;
+          if(!isEdge && i % labelStep !== 0) return '';
           // Date (e.g. "Aug 26"), not day-of-week — a weekday name alone
           // doesn't say WHICH week, so two different weeks' Tuesdays were
           // indistinguishable on this axis. Per direct instruction.
@@ -3844,7 +4275,7 @@
       var meanY = yFor(avg);
       if(meanLine){ meanLine.setAttribute('y1', meanY.toFixed(1)); meanLine.setAttribute('y2', meanY.toFixed(1)); }
       var meanLabel = document.getElementById('ov-trend-mean-label');
-      if(meanLabel){ meanLabel.setAttribute('y', (meanY-4).toFixed(1)); meanLabel.textContent = '7d avg: ' + Math.round(avg); }
+      if(meanLabel){ meanLabel.setAttribute('y', (meanY-4).toFixed(1)); meanLabel.textContent = trend.length + 'd avg: ' + Math.round(avg); }
 
       var peakLabel = document.getElementById('ov-trend-peak-label');
       if(peakLabel) peakLabel.textContent = 'Peak day (' + fmtNum(trend[peakIdx].units) + ')';
@@ -3880,7 +4311,14 @@
       var max = Math.max.apply(null, totals.concat([1]));
       var top = Math.max(max, 3);
       var L = 40, R = 700, T = 20, B = 180;
-      var barW = (R - L) / 24 * 0.55;
+      // Grouped (side-by-side) bars, not overlaid — Day and Night used to be
+      // drawn as two bars at the SAME x position (Night on top of Day with
+      // opacity), so at any hour where both had alerts neither value was
+      // actually readable, only whichever bar happened to be drawn last
+      // blended through the other. A 2px surface gap separates the pair.
+      var slotW = (R - L) / 24;
+      var groupW = slotW * 0.62, gap = 2;
+      var barW = (groupW - gap) / 2;
       var yFor = function(v){ return B - (v/top) * (B-T); };
 
       var gridEl = document.getElementById('ov-hourly-gridlines');
@@ -3902,19 +4340,24 @@
         var html = '';
         for(var h=0;h<24;h++){
           var cx = L + ((h+0.5)/24) * (R-L);
+          var groupL = cx - groupW/2;
           var dv = day[h] || 0, nv = night[h] || 0;
+          var hourLabel = String(h).padStart(2,'0') + ':00';
           if(dv > 0){
             var dy = yFor(dv);
-            html += '<rect x="' + (cx-barW/2).toFixed(1) + '" y="' + dy.toFixed(1) + '" width="' + barW.toFixed(1) +
-              '" height="' + (B-dy).toFixed(1) + '" rx="3" style="fill:#f0902e"></rect>';
+            html += '<path class="hbar" tabindex="0" role="img" aria-label="' + hourLabel + ' Day shift, ' + dv + ' alerts" ' +
+              'data-tip-label="' + esc(hourLabel) + ' · Day" data-tip-value="' + fmtNum(dv) + ' alert' + (dv===1?'':'s') + '" ' +
+              'd="' + roundTopRectPath(groupL, dy, barW, B-dy, 3) + '" style="fill:var(--series-1)"></path>';
           }
           if(nv > 0){
             var ny = yFor(nv);
-            html += '<rect x="' + (cx-barW/2).toFixed(1) + '" y="' + ny.toFixed(1) + '" width="' + barW.toFixed(1) +
-              '" height="' + (B-ny).toFixed(1) + '" rx="3" style="fill:#3b82f6;opacity:.75"></rect>';
+            html += '<path class="hbar" tabindex="0" role="img" aria-label="' + hourLabel + ' Night shift, ' + nv + ' alerts" ' +
+              'data-tip-label="' + esc(hourLabel) + ' · Night" data-tip-value="' + fmtNum(nv) + ' alert' + (nv===1?'':'s') + '" ' +
+              'd="' + roundTopRectPath(groupL + barW + gap, ny, barW, B-ny, 3) + '" style="fill:var(--series-2)"></path>';
           }
         }
         barsEl.innerHTML = html;
+        wireBarHover({ containerId: 'ov-hourly-bars', tooltipId: 'ov-hourly-tooltip', dateId: 'ov-hourly-tooltip-date', valueId: 'ov-hourly-tooltip-value' });
       }
       var xaxisEl = document.getElementById('ov-hourly-xaxis');
       if(xaxisEl){
@@ -4071,71 +4514,137 @@
         }
         setUsername((sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there');
 
-        var today = startOfDay(new Date());
-        var weekStart = addDays(today, -6);
-        var prevWeekEnd = addDays(weekStart, -1);
-        var prevWeekStart = addDays(prevWeekEnd, -6);
+        // Resolves the active range: whatever the filter bar currently
+        // has, or — on first load only — the 7 days ending on the latest
+        // date that actually has data (not literal calendar "today",
+        // which can be several days ahead of the last real upload).
+        function resolveRange(){
+          if(state.from && state.to) return Promise.resolve();
+          return DB.rpc('dds_latest_event_date', {}).then(function(res){
+            if(res.error) throw res.error;
+            var latest = res.data ? isoToDate(res.data) : startOfDay(new Date());
+            cachedLatestDate = latest;
+            state.to = toMDY(latest);
+            state.from = toMDY(addDays(latest, -6));
+          });
+        }
 
-        // KPIs/feed/insight all read the trailing 7-day window (`week`),
-        // not literally "today" — per direct instruction: a day with zero
-        // new alerts (a real, honest gap between imports, not a bug —
-        // confirmed live against the database) should never leave the
-        // whole Overview page looking empty. `prevWeek` (the 7 days before
-        // that) replaces the old "yesterday" comparison so deltas stay an
-        // apples-to-apples 7d-vs-prior-7d, not a mismatched 7d-vs-1-day.
-        Promise.all([
-          fetchMetrics(toMDY(weekStart), toMDY(today)),
-          fetchMetrics(toMDY(prevWeekStart), toMDY(prevWeekEnd))
-        ]).then(function(results){
+        resolveRange().then(function(){
           if(!guard.isCurrent(token)) return;
-          var week = results[0], prevWeek = results[1];
-          setStatus(true);
-          renderTrend(week);
-          renderFeed(week);
-          renderDriverStreaks();
-          renderKpis(week, prevWeek);
+          syncFilterUi();
 
-          // Hourly chart is inherently a single-day shape (24 buckets) —
-          // summing a week into it would silently become a different
-          // chart ("typical hourly pattern"), not "today's hourly
-          // pattern". Per direct instruction: falls back from literal
-          // "today" to the most recent day that actually has data,
-          // derived from `week.trend[]` (already fetched, no extra
-          // round-trip needed to find it) rather than guessing a date.
-          var trend = week.trend || [];
-          var lastWithData = null;
-          for(var i = trend.length - 1; i >= 0; i--){
-            if(trend[i].units > 0){ lastWithData = trend[i].date; break; }
-          }
-          var hourlyDayLabelEl = document.getElementById('ov-hourly-daylabel');
-          if(!lastWithData){
-            renderHourly({ hourly: { DAY:[], NIGHT:[] } });
-            if(hourlyDayLabelEl) hourlyDayLabelEl.textContent = 'No Data This Week';
-          } else {
-            var isToday = lastWithData === toMDY(today);
-            if(hourlyDayLabelEl) hourlyDayLabelEl.textContent = isToday ? 'Today' : lastWithData;
-            fetchMetrics(lastWithData, lastWithData).then(function(dayData){
-              if(!guard.isCurrent(token)) return;
-              renderHourly(dayData);
-            }).catch(function(err){
-              if(!guard.isCurrent(token)) return;
-              console.warn('Hourly chart fetch failed', err);
-              renderHourly({ hourly: { DAY:[], NIGHT:[] } });
+          var to = mdyToDate(state.to), from = mdyToDate(state.from);
+          var rangeDays = Math.round((to - from) / 86400000) + 1;
+          var prevTo = addDays(from, -1);
+          var prevFrom = addDays(prevTo, -(rangeDays - 1));
+
+          // KPIs/feed/insight all read the selected range (`week`), not
+          // literally "today" — per direct instruction: a day with zero
+          // new alerts (a real, honest gap between imports, not a bug —
+          // confirmed live against the database) should never leave the
+          // whole Overview page looking empty. `prevWeek` (the same-length
+          // window immediately before it) keeps deltas apples-to-apples
+          // regardless of what range length is selected.
+          Promise.all([
+            fetchMetrics(state.from, state.to),
+            fetchMetrics(toMDY(prevFrom), toMDY(prevTo))
+          ]).then(function(results){
+            if(!guard.isCurrent(token)) return;
+            var week = results[0], prevWeek = results[1];
+            setStatus(true);
+            renderTrend(week);
+            renderFeed(week);
+            renderDriverStreaks();
+            renderKpis(week, prevWeek);
+            var periodLabel = 'vs prior ' + rangeDays + 'd';
+            ['total','sleep','drowsy','drivers','assets'].forEach(function(key){
+              var el = document.getElementById('ov-kpi-' + key + '-period');
+              if(el) el.textContent = periodLabel;
             });
-          }
+
+            // Hourly Trend: dds_metrics()'s own `hourly` field already
+            // aggregates every event across the full p_from..p_to range
+            // it was called with (grouped by hour-of-day server-side) —
+            // it was never actually a single-day-only shape, so reusing
+            // `week` directly here (rather than a second, single-day
+            // fetch) makes this chart genuinely reflect "the available
+            // duration as selected and displayed in the trend charts",
+            // per direct instruction, with no extra round-trip.
+            renderHourly(week);
+            var hourlyDayLabelEl = document.getElementById('ov-hourly-daylabel');
+            if(hourlyDayLabelEl){
+              hourlyDayLabelEl.textContent = (week.trend || []).length
+                ? (state.from === state.to ? state.from : state.from + ' – ' + state.to)
+                : 'No Data in Range';
+            }
+          }).catch(function(err){
+            if(!guard.isCurrent(token)) return;
+            setStatus(false);
+            console.error('Overview metrics fetch failed', err);
+            var text = document.getElementById('ov-status-text');
+            if(text) text.textContent = 'Unable to load fleet data';
+            ['ov-feed-list','ov-streak-body'].forEach(function(id){
+              var el = document.getElementById(id);
+              if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
+            });
+          });
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
           setStatus(false);
-          console.error('Overview metrics fetch failed', err);
+          console.error('Could not resolve default date range', err);
           var text = document.getElementById('ov-status-text');
           if(text) text.textContent = 'Unable to load fleet data';
-          ['ov-feed-list','ov-streak-body'].forEach(function(id){
-            var el = document.getElementById(id);
-            if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
-          });
         });
       });
     }
+
+    // ---- date-range filter bar ----
+    var ovFromInput = document.getElementById('ov-from');
+    var ovToInput = document.getElementById('ov-to');
+    var ovQuickBtns = document.querySelectorAll('[data-ov-quick]');
+    var ovResetBtn = document.getElementById('ov-filter-reset');
+    var ovFilterNote = document.getElementById('ov-filter-note');
+
+    // Reflects `state` into the input fields and highlights the matching
+    // quick-range button (if the current range exactly matches one) —
+    // called after every load() so the bar can never drift from what the
+    // rest of the page is actually showing.
+    function syncFilterUi(){
+      if(ovFromInput) ovFromInput.value = dateToIso(mdyToDate(state.from));
+      if(ovToInput) ovToInput.value = dateToIso(mdyToDate(state.to));
+      var days = Math.round((mdyToDate(state.to) - mdyToDate(state.from)) / 86400000) + 1;
+      ovQuickBtns.forEach(function(b){
+        b.classList.toggle('on', Number(b.getAttribute('data-ov-quick')) === days);
+      });
+      if(ovFilterNote) ovFilterNote.textContent = cachedLatestDate ? ('Latest data: ' + toMDY(cachedLatestDate)) : '';
+    }
+
+    function applyQuickRange(days){
+      var anchor = cachedLatestDate || startOfDay(new Date());
+      state.to = toMDY(anchor);
+      state.from = toMDY(addDays(anchor, -(days - 1)));
+      load();
+    }
+
+    ovQuickBtns.forEach(function(b){
+      b.addEventListener('click', function(){ applyQuickRange(Number(b.getAttribute('data-ov-quick'))); });
+    });
+    if(ovFromInput) ovFromInput.addEventListener('change', function(){
+      if(!ovFromInput.value) return;
+      state.from = toMDY(isoToDate(ovFromInput.value));
+      load();
+    });
+    if(ovToInput) ovToInput.addEventListener('change', function(){
+      if(!ovToInput.value) return;
+      state.to = toMDY(isoToDate(ovToInput.value));
+      load();
+    });
+    if(ovResetBtn) ovResetBtn.addEventListener('click', function(){
+      // Nulling both forces resolveRange() back to its default: 7 days
+      // ending on the latest date with real data.
+      state.from = null; state.to = null;
+      load();
+    });
 
     // Phase 8: re-fetch every time this page becomes active (nav-click or
     // data-goto), not just once at script load — see window.__ddsPageLoad's
@@ -4345,23 +4854,39 @@
     }
 
     // ==================== Alert Volume by Distinct Asset (trend) ====================
+    // Two independently-scaled small multiples sharing one x-axis, not one
+    // dual-axis plot — see the card's own HTML comment for why. Panel A
+    // (Total Alerts, T=18..B=98) and panel B (Distinct Assets, T=128..B=206)
+    // each get their own yFor(); only the x-position and the crosshair are
+    // shared between them.
     function renderTrend(cur){
       var trend = cur.trend || [];
       if(!trend.length){
         // Clear every element this function draws into instead of leaving
         // the previous fetch's line/axis on screen (e.g. right after a
         // fleet data reset, when there are legitimately zero rows).
-        ['an-trend-units','an-trend-assets'].forEach(function(id){ var el = document.getElementById(id); if(el) el.setAttribute('d', ''); });
-        var axisEl0 = document.getElementById('an-trend-axis');
-        if(axisEl0) axisEl0.innerHTML = '';
+        ['an-trend-units','an-trend-units-area','an-trend-assets'].forEach(function(id){ var el = document.getElementById(id); if(el) el.setAttribute('d', ''); });
+        ['an-trend-axis','an-trend-units-axis','an-trend-assets-axis'].forEach(function(id){ var el = document.getElementById(id); if(el) el.innerHTML = ''; });
         return;
       }
-      var L = 40, R = 480, T = 25, B = 208;
-      var maxUnits = Math.max.apply(null, trend.map(function(t){ return t.units; }).concat([1]));
-      var maxAssets = Math.max.apply(null, trend.map(function(t){ return t.assets; }).concat([1]));
+      var L = 40, R = 480;
+      var T1 = 18, B1 = 98;   // panel A — Total Alerts
+      var T2 = 128, B2 = 206; // panel B — Distinct Assets
+      var maxUnits = Math.max(Math.max.apply(null, trend.map(function(t){ return t.units; })), 1);
+      var maxAssets = Math.max(Math.max.apply(null, trend.map(function(t){ return t.assets; })), 1);
       var xFor = function(i){ return trend.length === 1 ? (L+R)/2 : L + (i / (trend.length - 1)) * (R - L); };
-      var yForUnits = function(v){ return B - (v / maxUnits) * (B - T); };
-      var yForAssets = function(v){ return B - (v / maxAssets) * (B - T); };
+      var yForUnits = function(v){ return B1 - (v / maxUnits) * (B1 - T1); };
+      var yForAssets = function(v){ return B2 - (v / maxAssets) * (B2 - T2); };
+
+      function panelAxis(elId, maxV, top){
+        var el = document.getElementById(elId);
+        if(!el) return;
+        el.innerHTML =
+          '<text x="34" y="' + (top+4).toFixed(1) + '" class="an-axis" text-anchor="end">' + fmtNum(Math.round(maxV)) + '</text>' +
+          '<text x="34" y="' + (top + (B1-T1) + 4).toFixed(1) + '" class="an-axis" text-anchor="end">0</text>';
+      }
+      panelAxis('an-trend-units-axis', maxUnits, T1);
+      panelAxis('an-trend-assets-axis', maxAssets, T2);
 
       // Smooth curves (Catmull-Rom -> Bezier) instead of straight polyline
       // segments — same technique as Overview's trend chart, every real
@@ -4369,8 +4894,10 @@
       var unitsXY = trend.map(function(t, i){ return [xFor(i), yForUnits(t.units)]; });
       var assetsXY = trend.map(function(t, i){ return [xFor(i), yForAssets(t.assets)]; });
       var unitsEl = document.getElementById('an-trend-units');
+      var unitsAreaEl = document.getElementById('an-trend-units-area');
       var assetsEl = document.getElementById('an-trend-assets');
       if(unitsEl) unitsEl.setAttribute('d', smoothPathD(unitsXY));
+      if(unitsAreaEl) unitsAreaEl.setAttribute('d', smoothPathD(unitsXY) + ' L' + xFor(trend.length-1).toFixed(1) + ',' + B1 + ' L' + xFor(0).toFixed(1) + ',' + B1 + ' Z');
       if(assetsEl) assetsEl.setAttribute('d', smoothPathD(assetsXY));
 
       var axisEl = document.getElementById('an-trend-axis');
@@ -4379,11 +4906,16 @@
         var seen = {};
         axisEl.innerHTML = idxs.filter(function(i){ if(seen[i]) return false; seen[i]=true; return true; })
           .map(function(i){
-            return '<text x="' + xFor(i).toFixed(1) + '" y="228" class="an-axis">' + esc(trend[i].date) + '</text>';
+            // Anchor the first/last labels inward (start/end) instead of
+            // the shared middle default — centered on the last point they'd
+            // otherwise run off the right edge of the viewBox and clip.
+            var anchor = i === 0 ? 'start' : (i === trend.length - 1 ? 'end' : 'middle');
+            return '<text x="' + xFor(i).toFixed(1) + '" y="222" class="an-axis" text-anchor="' + anchor + '">' + esc(trend[i].date) + '</text>';
           }).join('');
       }
 
       wireChartHover({
+        dot2Id: 'an-trend-hover-dot2', getPoints2: function(){ return assetsXY; },
         rectId: 'an-trend-hover-rect', crosshairId: 'an-trend-crosshair',
         dotId: 'an-trend-hover-dot', tooltipId: 'an-trend-tooltip',
         dateId: 'an-trend-tooltip-date', valueId: 'an-trend-tooltip-value',
@@ -4397,26 +4929,50 @@
 
     // ==================== Hourly Trend by Month ====================
     var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var LINE_COLORS = ['#2563eb','#f97316','#16a34a','#dc2626','#7c3aed','#0891b2','#db2777','#65a30d'];
+    // Fixed categorical order (the validated --series-1..8 slots), never
+    // cycled by rank — a chart with more than 8 months on screen at once
+    // is already past the point a line chart reads clearly, so the 9th+
+    // month reusing slot 1's hue is an accepted edge case, not a redesign.
+    // Slots 3-5 (aqua/yellow/magenta) sit under 3:1 contrast on the light
+    // card surface — the required "relief" is the legend this view renders
+    // below the chart, with every month directly labeled, never color-alone.
+    function seriesVar(i){ return 'var(--series-' + ((i % 8) + 1) + ')'; }
     function renderHourlyMonthly(cur){
       var months = cur.hourlyByMonth || [];
       var el = document.getElementById('an-hourly-lines');
       var axisEl = document.getElementById('an-hourly-axis');
+      var yaxisEl = document.getElementById('an-hourly-yaxis');
       var noteEl = document.getElementById('an-hourly-note');
+      var legendEl = document.getElementById('an-hourly-month-legend');
       if(!el) return;
-      if(!months.length){ el.innerHTML = ''; if(axisEl) axisEl.innerHTML=''; if(noteEl) noteEl.textContent = 'No monthly data yet.'; return; }
+      if(!months.length){
+        el.innerHTML = ''; if(axisEl) axisEl.innerHTML=''; if(yaxisEl) yaxisEl.innerHTML='';
+        if(legendEl) legendEl.innerHTML = '';
+        if(noteEl) noteEl.textContent = 'No monthly data yet.';
+        return;
+      }
       var L = 40, R = 480, T = 25, B = 208;
       var max = Math.max.apply(null, months.flatMap(function(m){ return m.hours; }).concat([1]));
       var xFor = function(h){ return L + (h / 23) * (R - L); };
       var yFor = function(v){ return B - (v / max) * (B - T); };
       el.innerHTML = months.map(function(m, i){
         var pts = m.hours.map(function(v, h){ return xFor(h).toFixed(1) + ',' + yFor(v).toFixed(1); }).join(' ');
-        return '<polyline points="' + pts + '" fill="none" stroke="' + LINE_COLORS[i % LINE_COLORS.length] + '" stroke-width="2"/>';
+        return '<polyline points="' + pts + '" fill="none" style="stroke:' + seriesVar(i) + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
       }).join('');
+      if(yaxisEl){
+        yaxisEl.innerHTML = '<text x="34" y="' + (T+4) + '" class="an-axis" text-anchor="end">' + fmtNum(Math.round(max)) + '</text>' +
+          '<text x="34" y="' + (B+4) + '" class="an-axis" text-anchor="end">0</text>';
+      }
       if(axisEl){
         var hourLabels = [1,5,9,13,17,21];
         axisEl.innerHTML = hourLabels.map(function(h){
           return '<text x="' + xFor(h).toFixed(1) + '" y="228" class="an-axis">' + h + ':00</text>';
+        }).join('');
+      }
+      if(legendEl){
+        legendEl.style.display = 'flex';
+        legendEl.innerHTML = months.map(function(m, i){
+          return '<span><i class="an-swatch" style="background:' + seriesVar(i) + '"></i>' + esc(m.label || MONTH_NAMES[i % 12]) + '</span>';
         }).join('');
       }
       if(noteEl) noteEl.textContent = 'One line per month — ' + months.length + ' month(s) shown.';
@@ -4429,14 +4985,21 @@
       var totals = Array.from({length:24}, function(_,h){ return (day[h]||0) + (night[h]||0); });
       var el = document.getElementById('an-hourly-lines');
       var axisEl = document.getElementById('an-hourly-axis');
+      var yaxisEl = document.getElementById('an-hourly-yaxis');
       var noteEl = document.getElementById('an-hourly-note');
+      var legendEl = document.getElementById('an-hourly-month-legend');
+      if(legendEl){ legendEl.style.display = 'none'; legendEl.innerHTML = ''; }
       if(!el) return;
       var L = 40, R = 480, T = 25, B = 208;
       var max = Math.max.apply(null, totals.concat([1]));
       var xFor = function(h){ return L + (h / 23) * (R - L); };
       var yFor = function(v){ return B - (v / max) * (B - T); };
-      var pts = totals.map(function(v, h){ return xFor(h).toFixed(1) + ',' + yFor(v).toFixed(1); }).join(' ');
-      el.innerHTML = '<polyline points="' + pts + '" fill="none" stroke="#2563eb" stroke-width="2.5"/>';
+      var ptsXY = totals.map(function(v, h){ return [xFor(h), yFor(v)]; });
+      el.innerHTML = '<polyline points="' + ptsXY.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' ') + '" fill="none" style="stroke:var(--series-1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+      if(yaxisEl){
+        yaxisEl.innerHTML = '<text x="34" y="' + (T+4) + '" class="an-axis" text-anchor="end">' + fmtNum(Math.round(max)) + '</text>' +
+          '<text x="34" y="' + (B+4) + '" class="an-axis" text-anchor="end">0</text>';
+      }
       if(axisEl){
         var hourLabels = [0,4,8,12,16,20];
         axisEl.innerHTML = hourLabels.map(function(h){
@@ -4450,12 +5013,21 @@
           ? ('Highest concentration around ' + String(peakHour).padStart(2,'0') + ':00.')
           : 'No hourly data yet.';
       }
+      wireChartHover({
+        rectId: 'an-hourly-hover-rect', crosshairId: 'an-hourly-crosshair',
+        dotId: 'an-hourly-hover-dot', tooltipId: 'an-hourly-tooltip',
+        dateId: 'an-hourly-tooltip-date', valueId: 'an-hourly-tooltip-value',
+        getPoints: function(){ return ptsXY; },
+        getInfo: function(h){ return { label: String(h).padStart(2,'0') + ':00', value: fmtNum(totals[h]) + ' alerts' }; }
+      });
     }
 
     var hourlyView = 'hour';
     var hourlyLastCur = null;
     function renderHourlyChart(cur){
       hourlyLastCur = cur;
+      var hoverEls = ['an-hourly-crosshair','an-hourly-hover-dot'].map(function(id){ return document.getElementById(id); });
+      hoverEls.forEach(function(el){ if(el) el.style.display = hourlyView === 'month' ? 'none' : ''; });
       if(hourlyView === 'month') renderHourlyMonthly(cur); else renderHourlyAverage(cur);
     }
     (function(){
@@ -4473,6 +5045,14 @@
 
     // ==================== Alert Count by Sync Interval ====================
     var SYNC_LABELS = ['<3h','3-6h','6-8h','8-10h','10h+'];
+    // Ordinal ramp (--ord-1..5), one bucket = one fixed step — these bars
+    // used to recolor by CURRENT VALUE (whichever bucket happened to be
+    // tallest went red), the "recolor on filter/rank" anti-pattern: a
+    // reader who learned "10h+ is red" would find a different bucket red
+    // on the next fetch. Buckets are ordinal (swapping their order would
+    // change what they mean), so color encodes bucket identity — position
+    // in the delay sequence — not which bar is currently biggest.
+    var SYNC_ORD = ['var(--ord-1)','var(--ord-2)','var(--ord-3)','var(--ord-4)','var(--ord-5)'];
     function renderSyncInterval(cur){
       var buckets = cur.syncBuckets || { labels: SYNC_LABELS, actionable: [], nonActionable: [] };
       var totals = SYNC_LABELS.map(function(_, i){
@@ -4481,17 +5061,18 @@
       var L = 40, R = 480, T = 25, B = 208;
       var peak = Math.max.apply(null, totals.concat([1]));
       var barW = 42, gap = (R - L - SYNC_LABELS.length * barW) / (SYNC_LABELS.length + 1);
-      var worstIdx = SYNC_LABELS.length - 1;
       var barsEl = document.getElementById('an-sync-bars');
       var axisEl = document.getElementById('an-sync-axis');
       if(barsEl){
         barsEl.innerHTML = totals.map(function(v, i){
-          var h = (v / peak) * (B - T);
+          var h = Math.max((v / peak) * (B - T), 0);
           var x = L + gap + i * (barW + gap);
           var y = B - h;
-          var fill = i === worstIdx && v > 0 ? '#dc2626' : (v / peak > 0.6 ? '#d97706' : '#3b82f6');
-          return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW + '" height="' + Math.max(h,0).toFixed(1) + '" rx="4" fill="' + fill + '"/>';
+          return '<path class="hbar" tabindex="0" role="img" aria-label="' + esc(SYNC_LABELS[i]) + ' sync time, ' + v + ' events" ' +
+            'data-tip-label="' + esc(SYNC_LABELS[i]) + ' sync" data-tip-value="' + fmtNum(v) + ' event' + (v===1?'':'s') + '" ' +
+            'd="' + roundTopRectPath(x, y, barW, h, 4) + '" style="fill:' + SYNC_ORD[i] + '"></path>';
         }).join('');
+        wireBarHover({ containerId: 'an-sync-bars', tooltipId: 'an-sync-tooltip', dateId: 'an-sync-tooltip-date', valueId: 'an-sync-tooltip-value' });
       }
       if(axisEl){
         axisEl.innerHTML = SYNC_LABELS.map(function(label, i){
@@ -4499,6 +5080,7 @@
           return '<text x="' + x.toFixed(1) + '" y="228" class="an-axis">' + esc(label) + '</text>';
         }).join('');
       }
+      var worstIdx = SYNC_LABELS.length - 1;
       var noteEl = document.getElementById('an-sync-note');
       if(noteEl){
         var total = totals.reduce(function(s,v){ return s+v; }, 0);
@@ -6009,17 +6591,29 @@
     }
     DDS.normName = ddsNormName;
 
-    // ---- dds_strip_suffix (0018 original rule + 0054's comma-shape rules) ----
-    var SUFFIX_RE_TRAILING_COMMA = /,\s*(JR|SR|II|III|IV)\s*$/g;
-    var SUFFIX_RE_BEFORE_COMMA   = /^(.*?)\s+(JR|SR|II|III|IV)\s*,/g;
-    var SUFFIX_RE_TRAILING       = /\s+(JR|SR|II|III|IV)$/g;
+    // ---- dds_strip_suffix (0018/0054's positional rules, widened by 0090 to
+    // strip the suffix wherever it sits) ----
+    // 0054 only caught three shapes: trailing ("..., JUAN JR"), a trailing
+    // comma-segment ("SANTOS, JUAN, JR"), and before-comma ("SANTOS JR,
+    // JUAN"). Live MineStat imports surfaced two more real shapes: a suffix
+    // as a MIDDLE comma segment with content after it ("JAPITANA, JR, RAMIL
+    // Z") and a suffix embedded mid-string with words on both sides, often
+    // from a stray comma already inside the source LAST_NAME cell
+    // ("CABIGAS,, JOEVANIE JR HELECAME"). Stripping the token wherever it
+    // appears as a standalone word — then cleaning up whatever comma/space
+    // artifact removing it leaves behind — provably subsumes all three of
+    // the old positional rules (every previously-handled shape still
+    // collapses to the same result) so it replaces them rather than running
+    // alongside them. Mirrors dds_strip_suffix() (0090) field-for-field.
+    var SUFFIX_TOKEN_RE = /\b(JR|SR|II|III|IV)\b/g;
     function ddsStripSuffix(s){
       if(s == null) s = '';
       var out = String(s)
-        .replace(SUFFIX_RE_TRAILING_COMMA, '')
-        .replace(SUFFIX_RE_BEFORE_COMMA, '$1,')
-        .replace(SUFFIX_RE_TRAILING, '')
-        .trim();
+        .replace(SUFFIX_TOKEN_RE, '')       // strip the suffix token wherever it sits
+        .replace(/\s+,/g, ',')              // collapse a stray space left before a comma
+        .replace(/\s*,\s*,/g, ',')          // collapse a double comma left behind
+        .replace(/\s+/g, ' ')               // collapse a double space left behind
+        .replace(/^[, ]+|[, ]+$/g, '');     // trim leading/trailing comma-space
       return out === '' ? null : out;
     }
     DDS.stripSuffix = ddsStripSuffix;
@@ -6043,13 +6637,18 @@
       var base = str.indexOf(',') > -1 ? str.split(',')[0] : str;
       return ddsCollapseSurnamePrefix(ddsStripSuffix(base) || '');
     }
+    // 0091: strips the suffix from its OWN input first, the same way
+    // ddsSurnameOf already does, before reading off the given-name segment
+    // — otherwise a suffix sitting as its own middle comma segment
+    // ("JAPITANA, JR, RAMIL Z") gets read as if "JR" were the given name.
+    // Also takes ONLY the second comma-delimited segment (matching SQL's
+    // split_part(s, ',', 2)), not "everything after the first comma" — the
+    // two diverge once a suffix's removal leaves 3+ comma segments.
     function ddsFirstOf(s){
-      if(s == null) s = '';
-      var str = String(s);
-      var commaIdx = str.indexOf(',');
-      if(commaIdx === -1) return null;
-      var afterComma = str.slice(commaIdx + 1).trim();
-      var firstToken = afterComma.split(' ')[0];
+      var stripped = ddsStripSuffix(s) || '';
+      var parts = stripped.split(',');
+      if(parts.length < 2) return null;
+      var firstToken = parts[1].trim().split(' ')[0];
       return firstToken || null;
     }
     function ddsSurnameFirstKey(s){
@@ -6377,19 +6976,22 @@
           tbody.innerHTML = rows.map(function(r){
             var sev = severityBadge(r.eventCode);
             // driverDisplayName is dds_alert_logs()'s own coalesce(case
-            // override, resolved masterlist name, operator text) — it is
-            // falsy only when the operator text itself was also blank, so a
-            // falsy value here always means "no operator was ever logged",
-            // never "logged but unresolved" (an unresolved-but-non-blank
-            // operator still shows its raw text via that same coalesce).
-            // The linking problem this misses — a real name that FAILED to
-            // resolve — is instead flagged separately below via needsReview,
-            // since driverDisplayName's fallback to raw operator text means
-            // it looks identical to a resolved name unless empNo is also
-            // checked. driverLinkLabel() stays the one place the
-            // no-operator label itself is decided.
+            // override, resolved masterlist name, DDS's own operator text,
+            // MineStat's own unresolved raw name for the same asset+shift —
+            // see dds_case_records' driver_needs_review, 0094) — it is
+            // falsy only when NONE of those had anything, so a falsy value
+            // here always means "no operator was ever logged", never
+            // "logged but unresolved" (an unresolved-but-non-blank name
+            // still shows its raw text via that same coalesce). The linking
+            // problem this misses — a real name that FAILED to resolve —
+            // is flagged separately via the server's own needsReview
+            // (not re-derived from r.operator here: that would miss the
+            // MineStat-fallback case, where r.operator itself is blank but
+            // driverDisplayName still shows a real unresolved name).
+            // driverLinkLabel() stays the one place the no-operator label
+            // itself is decided.
             var driver = r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator);
-            var needsReview = !r.empNo && !!r.operator;
+            var needsReview = !!r.needsReview;
             var editPayload = { id: r.id, startTime: r.startTime, endTime: r.endTime, updateTime: r.updateTime, assetId: r.assetId || '', eventCode: r.eventCode || '', eventCount: r.eventCount || 1, operator: r.operator || '' };
             return '<tr>' +
               '<td>' + esc(fmtDateShort(r.startTime)) + '</td>' +
@@ -7481,9 +8083,10 @@
       lines.push('<div style="margin-bottom:10px">' + fmtNum(stats.rawCount) + ' row(s) read from the file.</div>');
       if(stats.skippedCount) lines.push('<div style="margin-bottom:8px;color:var(--text-dim)">' + fmtNum(stats.skippedCount) + ' row(s) skipped — missing required fields.</div>');
       if(stats.invalidCount) lines.push('<div style="margin-bottom:8px;color:var(--text-dim)">' + fmtNum(stats.invalidCount) + ' row(s) skipped — invalid value (e.g. Shift isn\'t Day/Night).</div>');
+      if(stats.outOfScopeCount) lines.push('<div style="margin-bottom:8px;color:var(--text-dim)">' + fmtNum(stats.outOfScopeCount) + ' row(s) skipped — asset outside the tracked fleet range' + (stats.outOfScopeLabel ? (' (' + stats.outOfScopeLabel + ')') : '') + '.</div>');
       if(stats.dupCount) lines.push('<div style="margin-bottom:8px;color:#e8952e">' + fmtNum(stats.dupCount) + ' duplicate row(s) within this file — only the ' + (stats.keepFirst ? 'first' : 'last') + ' occurrence will be kept.</div>');
       if(stats.existingCount) lines.push('<div style="margin-bottom:8px;color:#3b7cf6">' + fmtNum(stats.existingCount) + ' row(s) already exist in the database — they will be updated in place.</div>');
-      if(!stats.skippedCount && !stats.invalidCount && !stats.dupCount && !stats.existingCount){
+      if(!stats.skippedCount && !stats.invalidCount && !stats.outOfScopeCount && !stats.dupCount && !stats.existingCount){
         lines.push('<div style="color:var(--muted)">No duplicates or issues found.</div>');
       }
       preflightBody.innerHTML = lines.join('');
@@ -7501,10 +8104,15 @@
       preflightCancelBtn.addEventListener('click', onCancel);
     }
 
-    // opts: { rows, rawCount, skippedCount, keyFn, keepFirst, dedupe, isInvalid, fetchExisting }
+    // opts: { rows, rawCount, skippedCount, keyFn, keepFirst, dedupe, isInvalid,
+    //         isOutOfScope, outOfScopeLabel, fetchExisting }
     // Resolves { proceed:false } on Cancel, or { proceed:true, rows: cleanRows }
     // on confirm — cleanRows is what actually gets uploaded (post-dedupe,
-    // post-invalid-filter), so the count shown is exactly what lands.
+    // post-invalid-filter, post-scope-filter), so the count shown is exactly
+    // what lands. isOutOfScope is a separate predicate/counter from
+    // isInvalid — the same "count it and show it, never drop silently"
+    // pattern, kept distinct because "outside the tracked fleet" is a scope
+    // decision, not a data-quality defect like a bad Shift value.
     function runPreflight(opts){
       var validRows = opts.rows;
       var invalidCount = 0;
@@ -7512,6 +8120,12 @@
         var kept = [];
         validRows.forEach(function(r){ if(opts.isInvalid(r)) invalidCount++; else kept.push(r); });
         validRows = kept;
+      }
+      var outOfScopeCount = 0;
+      if(opts.isOutOfScope){
+        var keptScope = [];
+        validRows.forEach(function(r){ if(opts.isOutOfScope(r)) outOfScopeCount++; else keptScope.push(r); });
+        validRows = keptScope;
       }
 
       var cleanRows = validRows, dupCount = 0;
@@ -7542,6 +8156,7 @@
           showPreflightModal({
             rawCount: opts.rawCount, skippedCount: opts.skippedCount,
             dupCount: dupCount, invalidCount: invalidCount,
+            outOfScopeCount: outOfScopeCount, outOfScopeLabel: opts.outOfScopeLabel,
             existingCount: existingCount, finalCount: cleanRows.length,
             keepFirst: !!opts.keepFirst
           }, function(proceed){
@@ -7885,6 +8500,30 @@
     // slot in imports at all, so their uploads write straight to
     // dds_upsert_drivers()/contributing_factors — same RPCs/tables the manual
     // Add Record forms already use — with no import-history row created.
+    // Fleet scope for MineStat uploads: MineStat is a shared multi-site
+    // export, and only these Unit IDs belong to this deployment's tracked
+    // fleet. Measured live before adding this filter: 429 distinct asset
+    // IDs have ever appeared in minestat_shifts, but only 119 of them are
+    // in scope — the other ~310 (66% of all 175,238 historical rows)
+    // belong to other sites/equipment sharing the same export. Filtering
+    // at upload time keeps that noise from ever reaching Supabase, rather
+    // than uploading everything and filtering in the UI afterward — real
+    // storage savings for every future upload, though it does not shrink
+    // rows already stored from past uploads (a separate cleanup, not run
+    // here). DT-613 and DT-713 are confirmed GAPS in the real fleet
+    // numbering, not typos to correct — live data jumps DT-612 -> DT-614
+    // and DT-711 -> DT-712 -> DT-714 with no row ever recorded for either.
+    var MINESTAT_ASSET_SCOPE = (function(){
+      var set = new Set();
+      for(var i = 575; i <= 579; i++) set.add('DT-' + i);
+      for(var i = 605; i <= 720; i++){ if(i !== 613 && i !== 713) set.add('DT-' + i); }
+      return set;
+    })();
+    var MINESTAT_ASSET_SCOPE_LABEL = 'DT-575–579, DT-605–720 excl. DT-613/DT-713';
+    function isMinestatAssetOutOfScope(r){
+      return !MINESTAT_ASSET_SCOPE.has(String(r.UNIT || '').trim().toUpperCase());
+    }
+
     function ingestMinestatFile(file){
       var kind = 'minestat';
       var zone = document.getElementById('dm-dropzone-' + kind);
@@ -7922,6 +8561,7 @@
             // batch server-side; caught here as an early, friendly skip
             // instead of a raw Postgres constraint error.
             isInvalid: function(r){ return r.SHIFT !== 'DAY' && r.SHIFT !== 'NIGHT'; },
+            isOutOfScope: isMinestatAssetOutOfScope, outOfScopeLabel: MINESTAT_ASSET_SCOPE_LABEL,
             keyFn: minestatRowKey, keepFirst: false,
             fetchExisting: fetchExistingMinestatKeys
           });
@@ -8861,6 +9501,17 @@
   (function(){
     var guard = makeGuard();
     var state = { from:null, to:null, shift:null, status:'all', search:'', sort:'start_time', dir:'desc', limit:20, offset:0, total:0 };
+    // Infinite scroll instead of numbered pagination — same pattern as
+    // Driver Streaks/Driver & Asset Monitoring, per direct instruction:
+    // `rows` accumulates everything fetched so far for the current filter
+    // set (reset to [] on a fresh load, appended to on scroll-triggered
+    // loadMore); the KPI summary cards and lastRowsById are computed over
+    // this whole accumulated set, not just the latest batch, so they stay
+    // accurate as more rows scroll in rather than describing only the
+    // newest page.
+    var rows = [];
+    var loadingMore = false;
+    var reachedEnd = false;
 
     var clockTimeEl = document.getElementById('al-clock-time');
     var clockDateEl = document.getElementById('al-clock-date');
@@ -8920,7 +9571,22 @@
     // Same vocabulary as the bulk-edit bar's Action Performed dropdown —
     // one list, used both places, so a value picked inline and one picked
     // via bulk edit always mean the same thing.
-    var AL_ACTION_OPTIONS = ['Reviewed', 'Escalated', 'Coached', 'Dismissed'];
+    //
+    // Includes Spare/Replace/Continue — not choices unique to this page,
+    // but real values Driver & Asset Monitoring and Driver Streaks write
+    // into this exact same alert_cases.action_type column for exactly
+    // these events. Before, anything outside Alert Logs' own original
+    // four-value list (Reviewed/Escalated/Coached/Dismissed) fell through
+    // to the "isKnown" check below as if it were free text: the select
+    // showed "Other…" while a separate always-visible text box showed the
+    // real value ("Continue", etc.) beside it. On a row a bulk driver
+    // action had touched, that meant every single row rendered BOTH a
+    // dropdown reading "Other…" AND a text box reading "Continue" stacked
+    // in the same cell — reported as garbled/overlapping text repeating
+    // down the whole column. Recognizing the full shared vocabulary here
+    // lets the select show the real value as itself, selected and
+    // collapsed, with the free-text box correctly hidden.
+    var AL_ACTION_OPTIONS = ['Reviewed', 'Escalated', 'Coached', 'Dismissed', 'Spare', 'Replace', 'Continue'];
     function actionOptionsHtml(current){
       var isKnown = current && AL_ACTION_OPTIONS.indexOf(current) !== -1;
       var html = '<option value=""' + (!current ? ' selected' : '') + '>—</option>';
@@ -8949,43 +9615,80 @@
       });
     }
 
-    function renderPagination(){
-      var totalPages = Math.max(1, Math.ceil(state.total / state.limit));
-      var curPage = Math.floor(state.offset / state.limit) + 1;
+    // Infinite-scroll footer — same shape as Driver Streaks'
+    // updateFooter(): a rows-range readout plus a load-status readout
+    // ("Loading more…" while a scroll-triggered batch is in flight,
+    // "All events loaded" once reachedEnd), no page-number buttons.
+    function updateFooterAL(){
       var rowsRangeEl = document.getElementById('al-rowsrange');
-      var shownFrom = state.total === 0 ? 0 : state.offset + 1;
-      var shownTo = Math.min(state.offset + state.limit, state.total);
-      if(rowsRangeEl) rowsRangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(state.total);
-
-      var prevBtn = document.getElementById('al-page-prev');
-      var nextBtn = document.getElementById('al-page-next');
-      if(prevBtn) prevBtn.disabled = curPage <= 1;
-      if(nextBtn) nextBtn.disabled = curPage >= totalPages;
-
-      var numsEl = document.getElementById('al-page-numbers');
-      if(numsEl){
-        // Cap visible page-number buttons at 5 (centered on current page)
-        // — real data can span thousands of pages; listing every page
-        // number would be both useless and slow to render.
-        var start = Math.max(1, curPage - 2);
-        var end = Math.min(totalPages, start + 4);
-        start = Math.max(1, end - 4);
-        var html = '';
-        for(var p = start; p <= end; p++){
-          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
-            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
-        }
-        numsEl.innerHTML = html;
-        numsEl.querySelectorAll('[data-page]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            state.offset = (Number(btn.getAttribute('data-page')) - 1) * state.limit;
-            load();
-          });
-        });
-      }
+      if(rowsRangeEl) rowsRangeEl.textContent = 'Rows ' + (rows.length ? '1–' + fmtNum(rows.length) : '0') + ' of ' + fmtNum(state.total);
+      var statusEl = document.getElementById('al-load-status');
+      if(statusEl) statusEl.textContent = loadingMore ? 'Loading more…' : (reachedEnd && rows.length ? 'All events loaded' : '');
     }
 
-    function load(){
+    // One row's markup — shared by a fresh render and an infinite-scroll
+    // append so both stay byte-for-byte identical.
+    function alRowHtml(r){
+      var sev = severityBadge(r.eventCode);
+      // driverDisplayName is dds_alert_logs()'s own coalesce(case
+      // override, resolved masterlist name, DDS's own operator text,
+      // MineStat's own unresolved raw name for the same asset+shift —
+      // dds_case_records' driver_needs_review, 0094) — falsy only when
+      // NONE of those had anything, meaning "no operator was ever
+      // logged" (an unresolved-but-non-blank name still shows its raw
+      // text via that same coalesce). driverLinkLabel() reflects that:
+      // it never returns 'Needs Review' at this call site, but stays
+      // as the one place the no-operator label itself is decided.
+      // needsReview comes from the server (not re-derived from
+      // r.operator here) so the MineStat-fallback case — r.operator
+      // itself blank, driverDisplayName still showing a real
+      // unresolved name — is flagged too.
+      var driver = r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator);
+      var needsReview = !!r.needsReview;
+      var statusLabel = r.statusValue ? esc(r.statusValue) : '<span style="color:var(--muted)">Not logged</span>';
+      var actionIsKnownOther = r.actionType && AL_ACTION_OPTIONS.indexOf(r.actionType) === -1;
+      return '<tr data-al-row-id="' + r.id + '" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">' +
+        '<td class="al-check-cell"><input type="checkbox" class="al-row-check" data-al-check="' + r.id + '"></td>' +
+        '<td>' + esc(fmtDateOnly(r.shiftDate)) + '</td>' +
+        '<td class="al-asset">' + esc(r.assetId || '—') + '</td>' +
+        '<td class="al-event"><span class="al-badge ' + sev.tier + '">' + esc(r.eventCode || '—') + '</span></td>' +
+        '<td>' + fmtNum(r.eventCount) + '</td>' +
+        '<td class="al-time">' + esc(fmtTimeOnly(r.startTime)) + '</td>' +
+        '<td class="al-time">' + esc(fmtTimeOnly(r.endTime)) + '</td>' +
+        '<td class="al-time">' + esc(fmtTimeOnly(r.updateTime)) + '</td>' +
+        '<td><input type="text" class="al-inline-input" data-al-empid="' + r.id + '" value="' + esc(r.empNo || '') + '" placeholder="—"></td>' +
+        '<td data-al-empname="' + r.id + '">' + esc(driver) + (needsReview ? ' <span class="dm-tag amber" title="Operator text did not match any masterlist employee — see Name Review">Needs Review</span>' : '') + '</td>' +
+        '<td>' +
+          '<select class="al-inline-select" data-al-action="' + r.id + '">' + actionOptionsHtml(r.actionType) + '</select>' +
+          '<input type="text" class="al-inline-input al-action-other' + (actionIsKnownOther ? ' on' : '') + '" data-al-action-other="' + r.id + '" placeholder="Describe action..." value="' + (actionIsKnownOther ? esc(r.actionType) : '') + '">' +
+        '</td>' +
+        '<td>' + esc(r.actionBy || '—') + '</td>' +
+        '<td><span class="al-status">' + statusLabel + '</span></td>' +
+        '<td class="al-remarks" title="' + esc(r.remarks || '') + '">' + esc(r.remarks || '—') + '</td>' +
+      '</tr>';
+    }
+
+    // Recomputed over the WHOLE accumulated `rows` set (everything scrolled
+    // into view so far for the current filters), not just the latest
+    // batch — otherwise these would flicker back down every time a
+    // scroll-triggered fetch added a new page's worth of rows.
+    function updateSummaryCardsAL(){
+      document.getElementById('al-sc-total').textContent = fmtNum(state.total);
+      var criticalCount = rows.filter(function(r){ return severityBadge(r.eventCode).tier === 'critical'; }).length;
+      var casedCount = rows.filter(function(r){ return r.caseId != null; }).length;
+      var actionableCount = rows.filter(function(r){ return r.actionable; }).length;
+      document.getElementById('al-sc-critical').textContent = rows.length ? fmtNum(criticalCount) : '—';
+      document.getElementById('al-sc-critical-sub').textContent = rows.length ? (Math.round(criticalCount/rows.length*100) + '% loaded') : 'Of events loaded';
+      document.getElementById('al-sc-cased').textContent = rows.length ? fmtNum(casedCount) : '—';
+      document.getElementById('al-sc-actionable').textContent = rows.length ? fmtNum(actionableCount) : '—';
+      document.getElementById('al-sc-actionable-sub').textContent = rows.length ? (Math.round(actionableCount/rows.length*100) + '% loaded') : 'Of events loaded';
+    }
+
+    function load(opts){
+      opts = opts || {};
+      var isLoadMore = !!opts.loadMore;
+      if(isLoadMore && (loadingMore || reachedEnd)) return;
+
       var token = guard.start();
       requireSession().then(function(sess){
         if(!guard.isCurrent(token)) return;
@@ -8999,6 +9702,26 @@
           });
           return;
         }
+        if(isLoadMore){
+          loadingMore = true;
+          updateFooterAL();
+        } else {
+          state.offset = 0;
+          reachedEnd = false;
+          rows = [];
+          lastRowsById = {};
+          if(tbody) tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+          // Fill the available row area on this first batch instead of
+          // always fetching a fixed 20 — see fitRowLimit's own comment.
+          // Infinite scroll normally fetches more as the user scrolls near
+          // the bottom, but that trigger never fires if the content is
+          // already shorter than the container (nothing to scroll) —
+          // exactly what happens when a search/filter narrows the match
+          // count below a screen's worth on a large monitor. 40px matches
+          // .al-table td's real row height; 200 is dds_alert_logs()'s own
+          // server-side cap.
+          state.limit = fitRowLimit(document.querySelector('.al-table-wrap'), 40, state.limit, 20, 200);
+        }
         setHeaderUsername(sess, 'al-username');
         renderSortHeaders();
 
@@ -9006,74 +9729,63 @@
           if(!guard.isCurrent(token)) return;
           if(res.error) throw res.error;
           var total = (res.data && res.data.total) || 0;
-          var rows = (res.data && res.data.rows) || [];
+          var fetched = (res.data && res.data.rows) || [];
           state.total = total;
+          if(fetched.length < state.limit) reachedEnd = true;
+          state.offset += fetched.length;
 
-          if(showingEl) showingEl.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(total);
+          fetched.forEach(function(r){ lastRowsById[r.id] = r; });
+
+          if(showingEl) showingEl.textContent = 'Showing ' + fmtNum(rows.length + fetched.length) + ' of ' + fmtNum(total);
           var lastRefreshEl = document.getElementById('al-lastrefresh');
           if(lastRefreshEl) lastRefreshEl.textContent = 'Last refreshed ' + new Date().toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
-          document.getElementById('al-sc-total').textContent = fmtNum(total);
-          var criticalCount = rows.filter(function(r){ return severityBadge(r.eventCode).tier === 'critical'; }).length;
-          var casedCount = rows.filter(function(r){ return r.caseId != null; }).length;
-          var actionableCount = rows.filter(function(r){ return r.actionable; }).length;
-          document.getElementById('al-sc-critical').textContent = rows.length ? fmtNum(criticalCount) : '—';
-          document.getElementById('al-sc-critical-sub').textContent = rows.length ? (Math.round(criticalCount/rows.length*100) + '% of this page') : 'Of events on this page';
-          document.getElementById('al-sc-cased').textContent = rows.length ? fmtNum(casedCount) : '—';
-          document.getElementById('al-sc-actionable').textContent = rows.length ? fmtNum(actionableCount) : '—';
-          document.getElementById('al-sc-actionable-sub').textContent = rows.length ? (Math.round(actionableCount/rows.length*100) + '% of this page') : 'Of events on this page';
-
-          lastRowsById = {};
-          rows.forEach(function(r){ lastRowsById[r.id] = r; });
-
-          if(!rows.length){
-            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">No records match.</td></tr>';
-            renderPagination();
-            updateBulkBar();
-            return;
+          if(isLoadMore){
+            rows = rows.concat(fetched);
+            if(fetched.length) appendRowsAL(fetched);
+          } else {
+            rows = fetched;
+            renderRowsAL();
           }
-          tbody.innerHTML = rows.map(function(r){
-            var sev = severityBadge(r.eventCode);
-            // driverDisplayName is dds_alert_logs()'s own
-            // coalesce(case override, resolved masterlist name, operator
-            // text) — it is falsy only when the operator text itself was
-            // also blank, so a falsy value here always means "no operator
-            // was ever logged", never "logged but unresolved" (an
-            // unresolved-but-non-blank operator still shows its raw text).
-            // driverLinkLabel() reflects that: it never returns 'Needs
-            // Review' at this call site, but stays as the one place the
-            // rule lives rather than a bare 'Unspecified' literal.
-            var driver = r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator);
-            var needsReview = !r.empNo && !!r.operator;
-            var statusLabel = r.statusValue ? esc(r.statusValue) : '<span style="color:var(--muted)">Not logged</span>';
-            var actionIsKnownOther = r.actionType && AL_ACTION_OPTIONS.indexOf(r.actionType) === -1;
-            return '<tr data-al-row-id="' + r.id + '" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">' +
-              '<td class="al-check-cell"><input type="checkbox" class="al-row-check" data-al-check="' + r.id + '"></td>' +
-              '<td>' + esc(fmtDateOnly(r.shiftDate)) + '</td>' +
-              '<td class="al-asset">' + esc(r.assetId || '—') + '</td>' +
-              '<td class="al-event"><span class="al-badge ' + sev.tier + '">' + esc(r.eventCode || '—') + '</span></td>' +
-              '<td>' + fmtNum(r.eventCount) + '</td>' +
-              '<td class="al-time">' + esc(fmtTimeOnly(r.startTime)) + '</td>' +
-              '<td class="al-time">' + esc(fmtTimeOnly(r.endTime)) + '</td>' +
-              '<td class="al-time">' + esc(fmtTimeOnly(r.updateTime)) + '</td>' +
-              '<td><input type="text" class="al-inline-input" data-al-empid="' + r.id + '" value="' + esc(r.empNo || '') + '" placeholder="—"></td>' +
-              '<td data-al-empname="' + r.id + '">' + esc(driver) + (needsReview ? ' <span class="dm-tag amber" title="Operator text did not match any masterlist employee — see Name Review">Needs Review</span>' : '') + '</td>' +
-              '<td>' +
-                '<select class="al-inline-select" data-al-action="' + r.id + '">' + actionOptionsHtml(r.actionType) + '</select>' +
-                '<input type="text" class="al-inline-input al-action-other' + (actionIsKnownOther ? ' on' : '') + '" data-al-action-other="' + r.id + '" placeholder="Describe action..." value="' + (actionIsKnownOther ? esc(r.actionType) : '') + '">' +
-              '</td>' +
-              '<td>' + esc(r.actionBy || '—') + '</td>' +
-              '<td><span class="al-status">' + statusLabel + '</span></td>' +
-              '<td class="al-remarks" title="' + esc(r.remarks || '') + '">' + esc(r.remarks || '—') + '</td>' +
-            '</tr>';
-          }).join('');
-          renderPagination();
+          updateSummaryCardsAL();
+          loadingMore = false;
+          updateFooterAL();
           updateBulkBar();
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
           console.error('Alert Logs fetch failed', err);
-          tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
+          loadingMore = false;
+          if(isLoadMore){
+            updateFooterAL();
+          } else {
+            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
+          }
         });
+      });
+    }
+
+    function renderRowsAL(){
+      var tbody = document.getElementById('al-tbody');
+      if(!tbody) return;
+      if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">No records match.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(alRowHtml).join('');
+    }
+    function appendRowsAL(newRows){
+      var tbody = document.getElementById('al-tbody');
+      if(!tbody) return;
+      tbody.insertAdjacentHTML('beforeend', newRows.map(alRowHtml).join(''));
+    }
+
+    // ---- infinite scroll: fetch the next batch once the user scrolls
+    // near the bottom of the table's own scroll container ----
+    var alScrollWrap = document.querySelector('.al-table-wrap');
+    if(alScrollWrap){
+      alScrollWrap.addEventListener('scroll', function(){
+        var nearBottom = alScrollWrap.scrollTop + alScrollWrap.clientHeight >= alScrollWrap.scrollHeight - 120;
+        if(nearBottom) load({ loadMore: true });
       });
     }
 
@@ -9504,6 +10216,57 @@
       searchTimer = setTimeout(function(){ state.search = v.trim(); state.offset = 0; load(); }, 350);
     });
 
+    // ---- Export: every row matching the current filters, not just the
+    // current page — dds_alert_logs() clamps p_limit to 200 server-side, so
+    // this pages through it internally (same filters/sort as the live
+    // table) rather than reusing fetchLogs()'s own state.limit/offset. ----
+    var AL_EXPORT_PAGE_SIZE = 200;
+    var AL_EXPORT_MAX_ROWS = 20000;
+    var AL_EXPORT_COLUMNS = [
+      { key:'shiftDate', label:'Date' }, { key:'assetId', label:'Asset ID' },
+      { key:'eventCode', label:'Event Code' }, { key:'eventCount', label:'Event Count' },
+      { key:'startTime', label:'Start Time' }, { key:'endTime', label:'End Time' },
+      { key:'updateTime', label:'Update Time' }, { key:'empNo', label:'Emp ID' },
+      { key:'driverName', label:'Emp Name' }, { key:'action', label:'Action Performed' },
+      { key:'actionBy', label:'Action By' }, { key:'status', label:'Status' }, { key:'remarks', label:'Remarks' }
+    ];
+    function alExportRow(r){
+      return {
+        shiftDate: fmtDateOnly(r.shiftDate), assetId: r.assetId || '',
+        eventCode: r.eventCode || '', eventCount: r.eventCount || 0,
+        startTime: fmtTimeOnly(r.startTime), endTime: fmtTimeOnly(r.endTime), updateTime: fmtTimeOnly(r.updateTime),
+        empNo: r.empNo || '', driverName: r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator) || '',
+        action: r.actionType || '', actionBy: r.actionBy || '', status: r.statusValue || '', remarks: r.remarks || ''
+      };
+    }
+    function fetchAllAlertLogsForExport(){
+      var collected = [];
+      function loop(offset){
+        return DB.rpc('dds_alert_logs', {
+          p_from: toISODate(state.from), p_to: toISODate(state.to),
+          p_shift: state.shift || null, p_status: state.status,
+          p_search: state.search || null,
+          p_limit: AL_EXPORT_PAGE_SIZE, p_offset: offset,
+          p_sort: state.sort, p_dir: state.dir
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var rows = (res.data && res.data.rows) || [];
+          var total = (res.data && res.data.total) || 0;
+          collected = collected.concat(rows);
+          var hitCap = collected.length >= AL_EXPORT_MAX_ROWS;
+          if(rows.length < AL_EXPORT_PAGE_SIZE || collected.length >= total || hitCap){
+            if(total > collected.length){
+              alert('Exported the first ' + fmtNum(collected.length) + ' of ' + fmtNum(total) + ' matching rows — narrow the date range or filters above for a complete export.');
+            }
+            return collected.slice(0, AL_EXPORT_MAX_ROWS).map(alExportRow);
+          }
+          return loop(offset + AL_EXPORT_PAGE_SIZE);
+        });
+      }
+      return loop(0);
+    }
+    wireExportButton('al-export-btn', 'alert_logs', AL_EXPORT_COLUMNS, fetchAllAlertLogsForExport);
+
     document.getElementById('al-clear-filters').addEventListener('click', function(){
       state.from = null; state.to = null; state.shift = null; state.status = 'all'; state.search = ''; state.offset = 0;
       document.getElementById('al-from').value = '';
@@ -9512,13 +10275,6 @@
       document.getElementById('al-status').value = 'all';
       document.getElementById('al-search').value = '';
       load();
-    });
-
-    document.getElementById('al-page-prev').addEventListener('click', function(){
-      state.offset = Math.max(0, state.offset - state.limit); load();
-    });
-    document.getElementById('al-page-next').addEventListener('click', function(){
-      if(state.offset + state.limit < state.total) { state.offset += state.limit; load(); }
     });
 
     document.querySelectorAll('.al-table th[data-sort]').forEach(function(th){
@@ -9703,6 +10459,21 @@
           signedOutTable('drivers'); signedOutTable('assets');
           return;
         }
+        // Fill the available row area instead of always fetching a fixed
+        // 100 — see fitRowLimit's own comment (shared with Alert Logs /
+        // Driver Streaks, same underlying issue: a large monitor's row
+        // area can be visibly taller than a fixed page's worth of rows).
+        // Both tabs share the same page-level height budget, so one
+        // measurement (off whichever tab is currently on-screen) sets
+        // both — switching tabs doesn't change how much vertical space is
+        // available. 40px matches .da-table td's real row height (now
+        // shared with .al-table, per direct instruction); 200 is
+        // dds_driver_event_summary()/dds_asset_event_summary()'s own
+        // server-side cap.
+        var activeWrap = document.querySelector('.da-view.on .da-table-wrap-flex');
+        var fitLimit = fitRowLimit(activeWrap, 40, SUMMARY_PAGE_LIMIT, 100, 200);
+        summaryState.drivers.limit = fitLimit;
+        summaryState.assets.limit = fitLimit;
         loadWeeklyRiskBackground();
         loadSummaryTableCached('drivers');
         loadSummaryTableCached('assets');
@@ -9742,9 +10513,14 @@
     // filtering an already-fetched array, so this scales the same way as
     // that page regardless of fleet size.
     var SUMMARY_PAGE_LIMIT = 100;
+    // loadingMore/reachedEnd per kind — infinite scroll instead of numbered
+    // pagination, same pattern as Alert Logs/Driver Streaks, per direct
+    // instruction. Drivers and assets scroll independently (only one tab
+    // is visible at a time, but each keeps its own accumulated rows so
+    // switching tabs doesn't lose scroll progress on the other).
     var summaryState = {
-      drivers: { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null, offset:0, limit:SUMMARY_PAGE_LIMIT },
-      assets:  { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null, offset:0, limit:SUMMARY_PAGE_LIMIT }
+      drivers: { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null, offset:0, limit:SUMMARY_PAGE_LIMIT, loadingMore:false, reachedEnd:false },
+      assets:  { rows:[], total:0, sort:'total', dir:'desc', search:'', from:null, to:null, shift:null, offset:0, limit:SUMMARY_PAGE_LIMIT, loadingMore:false, reachedEnd:false }
     };
     var summaryGuard = { drivers: makeGuard(), assets: makeGuard() };
 
@@ -9768,24 +10544,48 @@
       return 'da-summary:' + kind + ':' + JSON.stringify([st.search||'', st.sort, st.dir, st.from||'', st.to||'', st.shift||'', st.offset||0]);
     }
 
-    // opts.silent: true for a background refresh of already-shown cached
-    // data — skips the "Loading…" flash and skips re-rendering on success
-    // (the visible table already reflects this exact cache key's last
-    // known rows; only the cache timestamp needs to move forward so the
-    // next page visit doesn't immediately re-trigger another background
+    // Infinite scroll instead of numbered pagination (same pattern as
+    // Alert Logs/Driver Streaks, per direct instruction) — previously this
+    // table fetched a flat 100-row page with no way to reach anything past
+    // it, silently truncating any fleet with more than 100 flagged
+    // drivers/assets in the current filter window despite the footer's
+    // own "Showing N of total" text implying more existed. Scrolling near
+    // the bottom now fetches and appends the next batch instead.
+    //
+    // opts.silent: true for a background refresh of already-cached data —
+    // skips the "Loading…" flash and skips re-rendering on success (the
+    // visible table already reflects this exact cache key's last known
+    // rows; only the cache timestamp needs to move forward so the next
+    // page visit doesn't immediately re-trigger another background
     // fetch). A background fetch still calls renderSummaryTable if the
     // rows actually differ from what's on screen, so a genuinely new alert
-    // arriving server-side is never hidden behind a stale cache.
+    // arriving server-side is never hidden behind a stale cache. Caching
+    // only ever applies to the FIRST batch (offset 0, shown instantly on
+    // page nav) — a scroll-triggered loadMore batch always fetches fresh.
+    //
+    // opts.loadMore: true for a scroll-triggered next batch — appends
+    // instead of replacing, and is a no-op while a batch is already in
+    // flight or the last batch came back short (reachedEnd).
     function loadSummaryTable(kind, opts){
       opts = opts || {};
+      var isLoadMore = !!opts.loadMore;
+      var st = summaryState[kind];
+      if(isLoadMore && (st.loadingMore || st.reachedEnd)) return;
+
       var token = summaryGuard[kind].start();
       var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
       if(!tbody) return;
       var key = summaryCacheKey(kind);
 
-      if(!opts.silent) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+      if(isLoadMore){
+        st.loadingMore = true;
+        updateSummaryFooter(kind);
+      } else {
+        st.offset = 0;
+        st.reachedEnd = false;
+        if(!opts.silent) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+      }
 
-      var st = summaryState[kind];
       var fn = kind === 'drivers' ? 'dds_driver_event_summary' : 'dds_asset_event_summary';
       DB.rpc(fn, {
         p_search: st.search || null, p_sort: st.sort, p_dir: st.dir, p_limit: st.limit, p_offset: st.offset,
@@ -9794,74 +10594,70 @@
         .then(function(res){
           if(!summaryGuard[kind].isCurrent(token)) return;
           if(res.error) throw res.error;
-          var rows = (res.data && res.data.rows) || [];
+          var fetched = (res.data && res.data.rows) || [];
           var total = (res.data && res.data.total) || 0;
-          window.__ddsCache.set(key, { rows: rows, total: total });
-          var changed = JSON.stringify(rows) !== JSON.stringify(st.rows) || total !== st.total;
-          st.rows = rows;
           st.total = total;
-          if(!opts.silent || changed) renderSummaryTable(kind);
-          renderSummaryPager(kind);
+          if(fetched.length < st.limit) st.reachedEnd = true;
+          st.offset += fetched.length;
+
+          if(isLoadMore){
+            st.rows = st.rows.concat(fetched);
+            appendSummaryRows(kind, fetched);
+          } else {
+            var changed = JSON.stringify(fetched) !== JSON.stringify(st.rows) || total !== st.total;
+            st.rows = fetched;
+            window.__ddsCache.set(key, { rows: st.rows, total: total });
+            if(!opts.silent || changed) renderSummaryTable(kind);
+          }
+          st.loadingMore = false;
+          updateSummaryFooter(kind);
         }).catch(function(err){
           if(!summaryGuard[kind].isCurrent(token)) return;
           console.error((kind === 'drivers' ? 'Driver' : 'Asset') + ' event summary fetch failed', err);
-          if(!opts.silent) errorTable(kind, err);
+          st.loadingMore = false;
+          if(isLoadMore){ updateSummaryFooter(kind); }
+          else if(!opts.silent) errorTable(kind, err);
         });
     }
 
-    // Same pager pattern as Alert Logs (al-page-prev/next/numbers, see
-    // renderSortHeaders() area above) — previously this table fetched a
-    // flat 100-row page with no way to reach anything past it, silently
-    // truncating any fleet with more than 100 flagged drivers/assets in
-    // the current filter window despite the footer's own "Showing N of
-    // total" text implying more existed.
-    function renderSummaryPager(kind){
+    function updateSummaryFooter(kind){
       var st = summaryState[kind];
-      var totalPages = Math.max(1, Math.ceil(st.total / st.limit));
-      var curPage = Math.floor(st.offset / st.limit) + 1;
       var rangeEl = document.querySelector('[data-da-rowsrange="' + kind + '"]');
-      var shownFrom = st.total === 0 ? 0 : st.offset + 1;
-      var shownTo = Math.min(st.offset + st.limit, st.total);
-      if(rangeEl) rangeEl.textContent = 'Rows ' + fmtNum(shownFrom) + '–' + fmtNum(shownTo) + ' of ' + fmtNum(st.total);
+      if(rangeEl) rangeEl.textContent = 'Rows ' + (st.rows.length ? '1–' + fmtNum(st.rows.length) : '0') + ' of ' + fmtNum(st.total);
+      var statusEl = document.querySelector('[data-da-load-status="' + kind + '"]');
+      if(statusEl) statusEl.textContent = st.loadingMore ? 'Loading more…' : (st.reachedEnd && st.rows.length ? 'All ' + kind + ' loaded' : '');
+    }
 
-      var prevBtn = document.querySelector('[data-da-page-prev="' + kind + '"]');
-      var nextBtn = document.querySelector('[data-da-page-next="' + kind + '"]');
-      if(prevBtn) prevBtn.disabled = curPage <= 1;
-      if(nextBtn) nextBtn.disabled = curPage >= totalPages;
-
-      var numsEl = document.querySelector('[data-da-page-numbers="' + kind + '"]');
-      if(numsEl){
-        var start = Math.max(1, curPage - 2);
-        var end = Math.min(totalPages, start + 4);
-        start = Math.max(1, end - 4);
-        var html = '';
-        for(var p = start; p <= end; p++){
-          html += '<button class="al-page' + (p === curPage ? ' on' : '') + '" type="button" data-page="' + p + '"' +
-            (p === curPage ? ' aria-current="page"' : '') + '>' + p + '</button>';
-        }
-        numsEl.innerHTML = html;
-        numsEl.querySelectorAll('[data-page]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            st.offset = (Number(btn.getAttribute('data-page')) - 1) * st.limit;
-            loadSummaryTable(kind);
-          });
-        });
+    // Appends only the newly-fetched rows (infinite scroll) — avoids
+    // re-rendering (and losing scroll position / checked boxes on) rows
+    // already on screen. Mirrors renderSummaryTable's own per-row build
+    // (buildDriverRow/buildAssetRow) plus its shown-count/empty-note
+    // updates, just without the full-tbody wipe.
+    function appendSummaryRows(kind, newRows){
+      var tbody = document.querySelector('[data-da-tbody="' + kind + '"]');
+      if(!tbody || !newRows.length) return;
+      newRows.forEach(function(r){
+        tbody.appendChild(kind === 'drivers' ? buildDriverRow(r) : buildAssetRow(r));
+      });
+      if(kind === 'drivers') updateDriversBulkBar();
+      var st = summaryState[kind];
+      var shownEl = document.querySelector('[data-da-shown="' + kind + '"]');
+      if(shownEl) shownEl.textContent = 'Showing ' + fmtNum(st.rows.length) + ' of ' + fmtNum(st.total);
+      var emptyNote = document.querySelector('[data-da-empty-note="' + kind + '"]');
+      if(emptyNote && kind === 'drivers'){
+        var pendingCount = st.rows.filter(function(r){ return !r.done; }).length;
+        emptyNote.textContent = pendingCount ? pendingCount + ' row(s) need action' : 'All caught up';
       }
     }
-    document.querySelectorAll('[data-da-page-prev]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var kind = btn.getAttribute('data-da-page-prev');
-        var st = summaryState[kind];
-        st.offset = Math.max(0, st.offset - st.limit);
-        loadSummaryTable(kind);
-      });
-    });
-    document.querySelectorAll('[data-da-page-next]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var kind = btn.getAttribute('data-da-page-next');
-        var st = summaryState[kind];
-        if(st.offset + st.limit < st.total) st.offset += st.limit;
-        loadSummaryTable(kind);
+
+    // ---- infinite scroll: fetch the next batch once the user scrolls
+    // near the bottom of each tab's own scroll container ----
+    ['drivers','assets'].forEach(function(kind){
+      var wrap = document.querySelector('#da-view-' + kind + ' .da-table-wrap-flex');
+      if(!wrap) return;
+      wrap.addEventListener('scroll', function(){
+        var nearBottom = wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 120;
+        if(nearBottom) loadSummaryTable(kind, { loadMore: true });
       });
     });
 
@@ -9876,10 +10672,17 @@
       var key = summaryCacheKey(kind);
       var cached = window.__ddsCache.get(key);
       if(cached){
-        summaryState[kind].rows = cached.rows;
-        summaryState[kind].total = cached.total;
+        var st = summaryState[kind];
+        st.rows = cached.rows;
+        st.total = cached.total;
+        // Cached rows are always the FIRST batch (offset 0) — resume
+        // scrolling from where that batch left off, and mark reachedEnd
+        // if it was already short of a full page (so a scroll on a small
+        // cached result doesn't fire a needless loadMore fetch).
+        st.offset = cached.rows.length;
+        st.reachedEnd = cached.rows.length < st.limit;
         renderSummaryTable(kind);
-        renderSummaryPager(kind);
+        updateSummaryFooter(kind);
         if(window.__ddsCache.isStale(key, DA_CACHE_MAX_AGE_MS)) loadSummaryTable(kind, { silent: true });
       } else {
         loadSummaryTable(kind);
@@ -9994,6 +10797,66 @@
         th.classList.toggle('asc', col === st.sort && st.dir === 'asc');
       });
     }
+
+    // ---- Export: every row matching the current filters, not just the
+    // current page — dds_driver_event_summary/dds_asset_event_summary clamp
+    // p_limit to 200 server-side, same shape as Alert Logs' export. ----
+    var DA_EXPORT_PAGE_SIZE = 200;
+    var DA_EXPORT_MAX_ROWS = 20000;
+    var DA_EXPORT_COLUMNS = {
+      drivers: [
+        { key:'empNo', label:'Emp ID' }, { key:'empName', label:'Emp Name' },
+        { key:'eventCodes', label:'Event Codes (count)' }, { key:'total', label:'Counts' },
+        { key:'status', label:'Status' }
+      ],
+      assets: [
+        { key:'assetId', label:'Asset No' }, { key:'eventCodes', label:'Event Codes (count)' },
+        { key:'total', label:'Event Counts' }, { key:'avgSyncTime', label:'Avg Sync Time' }
+      ]
+    };
+    function daExportEventCodes(codes){
+      return (codes || []).map(function(c){ return (c.eventCode || 'Alert') + ' (' + fmtNum(c.count) + ')'; }).join(', ');
+    }
+    function daExportRow(kind, r){
+      if(kind === 'drivers'){
+        return {
+          empNo: r.empNo || '', empName: r.empName || '', eventCodes: daExportEventCodes(r.eventCodes),
+          total: r.total || 0, status: r.done ? 'Done' : 'Pending'
+        };
+      }
+      return {
+        assetId: r.assetId || '', eventCodes: daExportEventCodes(r.eventCodes),
+        total: r.total || 0, avgSyncTime: fmtSyncSecondsShort(r.avgSyncSeconds)
+      };
+    }
+    function fetchAllSummaryForExport(kind){
+      var st = summaryState[kind];
+      var fn = kind === 'drivers' ? 'dds_driver_event_summary' : 'dds_asset_event_summary';
+      var collected = [];
+      function loop(offset){
+        return DB.rpc(fn, {
+          p_search: st.search || null, p_sort: st.sort, p_dir: st.dir,
+          p_limit: DA_EXPORT_PAGE_SIZE, p_offset: offset,
+          p_from: st.from || null, p_to: st.to || null, p_shift: st.shift || null
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var rows = (res.data && res.data.rows) || [];
+          var total = (res.data && res.data.total) || 0;
+          collected = collected.concat(rows);
+          var hitCap = collected.length >= DA_EXPORT_MAX_ROWS;
+          if(rows.length < DA_EXPORT_PAGE_SIZE || collected.length >= total || hitCap){
+            if(total > collected.length){
+              alert('Exported the first ' + fmtNum(collected.length) + ' of ' + fmtNum(total) + ' matching rows — narrow the filters above for a complete export.');
+            }
+            return collected.slice(0, DA_EXPORT_MAX_ROWS).map(function(r){ return daExportRow(kind, r); });
+          }
+          return loop(offset + DA_EXPORT_PAGE_SIZE);
+        });
+      }
+      return loop(0);
+    }
+    wireExportButton('da-export-drivers', 'flagged_drivers', DA_EXPORT_COLUMNS.drivers, function(){ return fetchAllSummaryForExport('drivers'); });
+    wireExportButton('da-export-assets', 'flagged_assets', DA_EXPORT_COLUMNS.assets, function(){ return fetchAllSummaryForExport('assets'); });
 
     document.querySelectorAll('.da-table th[data-da-sort]').forEach(function(th){
       th.addEventListener('click', function(){
@@ -10321,6 +11184,37 @@
         // driver/asset flips status back to "required" server-side (see
         // trg_entity_status_reopen, 0033) so it's never permanently
         // silenced by an old action.
+        //
+        // dds_log_entity_action() only writes entity_status/entity_action_log
+        // — it never touches alert_cases, which is what Alert Logs' Action
+        // Performed/Action By/Status/Remarks columns actually read
+        // (dds_alert_logs()). Without this second write, those columns
+        // stayed null for every event under this driver forever, no matter
+        // how many actions got logged here — same class of gap Driver
+        // Streaks' action dropdown had before its own fix. Scoped to this
+        // driver's trailing-7-day window, matching what "N counts this
+        // week" in this modal's own context line already shows (fetchWeekly()
+        // always calls dds_driver_asset_weekly with null/null — the RPC's own
+        // default 7-day window — not whatever date filter the table happens
+        // to have active). Assets have the identical gap but no equivalent
+        // by-asset bulk RPC exists yet, so this is driver-only for now.
+        if(entityType === 'driver'){
+          return DB.rpc('dds_bulk_log_case_action_by_driver', {
+            p_emp_nos: [currentTarget.id], p_include_unspecified: false,
+            p_from: null, p_to: null, p_shift: null,
+            p_action_type: selectedType === 'Other' ? otherText : selectedType,
+            p_action_is_other: selectedType === 'Other',
+            p_action_date: new Date().toISOString().slice(0,10),
+            p_status_value: 'Logged',
+            p_remarks: selectedType === 'Other' ? otherText : (note || null)
+          }).then(function(res2){
+            if(res2.error) throw res2.error;
+            if(!((res2.data && res2.data.updated) || 0)){
+              throw new Error('No matching events found for ' + currentTarget.id + ' in the last 7 days — action was logged, but Alert Logs won\'t show it.');
+            }
+          });
+        }
+      }).then(function(){
         closeActionModal();
         return fetchWeekly();
       }).then(function(fresh){
@@ -10458,7 +11352,13 @@
         } else {
           histBody.innerHTML = '<table class="da-table"><thead><tr><th>' + (kind==='drivers'?'Driver':'Asset') + '</th><th>Last action</th><th>Logged by</th><th>When</th></tr></thead><tbody>' +
             resolved.map(function(rec){
-              var last = rec.history[rec.history.length - 1];
+              // dds_driver_asset_weekly() only ever returns the single most
+              // recent action as `lastAction` — `rec.history` was a field
+              // from the old localStorage-mock version of this page and was
+              // never populated by the real data path (see fetchHistory()'s
+              // comment above), so reading it here always threw once a row
+              // actually reached this branch.
+              var last = rec.lastAction;
               if(!last) return '';
               // dds_driver_asset_weekly()'s lastAction only carries the raw
               // action_type, never action_other_text — when the logged
@@ -10540,7 +11440,7 @@
         instTheadRow.innerHTML = '<th class="chk-col"></th><th>Unit</th><th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th><th>Action</th><th>Status</th>';
       } else {
         instTitle.textContent = 'Alert history — ' + id;
-        instTheadRow.innerHTML = '<th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th>';
+        instTheadRow.innerHTML = '<th>Date</th><th>Shift</th><th>Start Time</th><th>End Time</th><th>Update Time</th><th>Event Code</th><th>Event Count</th><th>Driver</th>';
       }
       instSub.textContent = 'Loading…';
       instSummary.innerHTML = '';
@@ -10614,16 +11514,31 @@
     }
     function renderInstRowsAssets(){
       if(!instRows.length){
-        instTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px 0">No alert instances found.</td></tr>';
+        instTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px 0">No alert instances found.</td></tr>';
         return;
       }
       instTbody.innerHTML = instRows.map(function(r){
+        // driverName mirrors Alert Logs' own Emp Name resolution (case
+        // override -> resolved masterlist name -> DDS's own operator text
+        // -> MineStat's own unresolved raw name for the same asset+shift —
+        // dds_case_records' driver_needs_review, 0094) — null only when the
+        // event never carried an operator anywhere, same "genuinely blank"
+        // vs "unresolved" distinction driverLinkLabel() makes everywhere
+        // else. needsReview comes straight from the server, same reason
+        // Alert Logs stopped re-deriving it from r.operator: that would miss
+        // the MineStat-fallback case (r.operator blank, driverName still a
+        // real unresolved name).
+        var driver = r.driverName || driverLinkLabel(r.empNo, null) || '—';
+        var needsReview = !!r.needsReview;
         return '<tr>' +
+          '<td>' + esc(r.shiftDate || '—') + '</td>' +
+          '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : 'Day') + '</td>' +
           '<td>' + esc(fmtDateTimeShort(r.startTime)) + '</td>' +
           '<td>' + esc(fmtDateTimeShort(r.endTime)) + '</td>' +
           '<td>' + esc(fmtDateTimeShort(r.updateTime)) + '</td>' +
           '<td>' + esc(r.eventCode || '—') + '</td>' +
           '<td>' + fmtNum(r.eventCount || 0) + '</td>' +
+          '<td>' + esc(driver) + (needsReview ? ' <span class="dm-tag amber" title="Name did not match any masterlist employee — see Name Review">Needs Review</span>' : '') + '</td>' +
         '</tr>';
       }).join('');
     }
@@ -10753,52 +11668,95 @@
       if(statusEl) statusEl.textContent = loadingMore ? 'Loading more…' : (reachedEnd && rows.length ? 'All streaks loaded' : '');
     }
 
-    // "Open" cases now surface as a badge on the sidebar's Driver Streaks
-    // nav icon (visible from any page, including the collapsed icon-only
-    // rail) rather than a badge on this page's own title — see
-    // refreshDriverStreaksNavBadge() in the router IIFE for the actual
-    // rendering. This just re-triggers that shared refresh whenever this
-    // page's own data changes, so logging an action updates the sidebar
-    // immediately instead of waiting for the next full page load.
-    function refreshOpenBadge(){
-      if(window.__ddsRefreshDriverStreaksNavBadge) window.__ddsRefreshDriverStreaksNavBadge();
+    // "Open" = status 'required' (a streak long enough to flag, with no
+    // active monitoring window logged) — same definition Driver & Asset
+    // Monitoring's own "Action Required" tile uses, via dds_driver_
+    // streaks()'s status field. Hidden entirely (not shown as "0 open")
+    // when the field is missing, so a live database that hasn't picked up
+    // this session's migration yet just shows no badge instead of a
+    // number that would look real but always read zero.
+    function updateOpenBadge(openCount){
+      var badge = document.getElementById('ds-open-badge');
+      if(badge){
+        if(openCount == null){ badge.hidden = true; }
+        else { badge.hidden = false; badge.textContent = fmtNum(openCount) + (openCount === 1 ? ' open case' : ' open cases'); }
+      }
+      // Same count, mirrored onto the sidebar nav item so it's visible
+      // without opening the page — sidebar space is tight, so just the
+      // number rather than the "N open cases" wording above.
+      var navBadge = document.getElementById('ds-nav-badge');
+      if(navBadge){
+        if(openCount == null || openCount === 0){ navBadge.hidden = true; }
+        else { navBadge.hidden = false; navBadge.textContent = fmtNum(openCount); }
+      }
     }
 
     var ACTION_OPTIONS = ['Spare', 'Replace', 'Continue'];
-    function actionSelectHtml(empNo, currentType){
-      var isKnown = currentType && ACTION_OPTIONS.indexOf(currentType) !== -1;
-      var html = '<option value=""' + (!currentType ? ' selected' : '') + '>—</option>';
+    function actionButtonLabel(currentType){
+      if(!currentType) return '—';
+      return ACTION_OPTIONS.indexOf(currentType) !== -1 ? currentType : 'Other…';
+    }
+    function actionMenuHtml(i){
+      var html = '<button type="button" data-ds-opt="' + i + '" data-value="">—</button>';
       ACTION_OPTIONS.forEach(function(opt){
-        html += '<option value="' + opt + '"' + (currentType === opt ? ' selected' : '') + '>' + opt + '</option>';
+        html += '<button type="button" data-ds-opt="' + i + '" data-value="' + opt + '">' + opt + '</button>';
       });
-      html += '<option value="Other"' + (currentType && !isKnown ? ' selected' : '') + '>Other…</option>';
+      html += '<button type="button" data-ds-opt="' + i + '" data-value="Other">Other…</button>';
       return html;
     }
 
+    // dds_driver_streaks() has always returned `status` and `lastAction`
+    // (0082/0083), but this table never rendered either — the dropdown was
+    // the ONLY visible trace of whether an action had ever been logged, so a
+    // successful save and a silently-failed one looked identical unless you
+    // reopened the dropdown and checked which option was pre-selected. These
+    // two columns surface what the server already computes.
+    var STATUS_META = {
+      required:   { cls: 'required',   label: 'Action required' },
+      actioned:   { cls: 'actioned',   label: 'Actioned' },
+      monitoring: { cls: 'monitoring', label: 'Monitoring' },
+      resolved:   { cls: 'resolved',   label: 'Resolved' },
+      ok:         { cls: 'ok',         label: 'OK' }
+    };
+    function statusBadgeHtml(r){
+      var meta = STATUS_META[r.status] || STATUS_META.ok;
+      var extra = (r.status === 'monitoring' && r.monitorUntil)
+        ? ' <span style="color:var(--muted);font-size:10px">until ' + esc(r.monitorUntil) + '</span>' : '';
+      return '<span class="da-status ' + meta.cls + '">' + meta.label + '</span>' + extra;
+    }
+    // lastAction.at comes back as a UTC ISO timestamp (dds_driver_streaks()),
+    // not the "MM/DD/YYYY HH:MM:SS" shape this file's own fmtDateTimeShort
+    // expects — parsed and reformatted directly rather than reusing that
+    // helper on a string shape it doesn't handle.
+    function fmtActionAt(iso){
+      if(!iso) return '—';
+      var d = new Date(iso);
+      if(isNaN(d.getTime())) return '—';
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var dd = String(d.getDate()).padStart(2, '0');
+      return mm + '/' + dd + '/' + d.getFullYear();
+    }
+
     function rowHtml(r, i){
-      // dds_log_entity_action only accepts a fixed set of action-type
-      // strings server-side, none of which are this page's own "Spare"/
-      // "Replace" labels — those get written through as type:'Other',
-      // note:'<the real label>' (see applyStreakAction). Reconstruct the
-      // real label here so a saved "Spare" action still shows as "Spare"
-      // in the dropdown on reload, not as a generic "Other…".
-      var currentType = null;
-      if(r.lastAction){
-        currentType = (r.lastAction.type === 'Other' && r.lastAction.note && ACTION_OPTIONS.indexOf(r.lastAction.note) !== -1)
-          ? r.lastAction.note
-          : r.lastAction.type;
-      }
+      var currentType = r.lastAction ? r.lastAction.type : null;
       var isOtherCurrent = currentType && ACTION_OPTIONS.indexOf(currentType) === -1;
+      var dateActionedHtml = r.lastAction
+        ? esc(fmtActionAt(r.lastAction.at)) + (r.lastAction.by ? ' <span style="color:var(--muted);font-size:10px">by ' + esc(r.lastAction.by) + '</span>' : '')
+        : '—';
       return '<tr data-ds-row="' + i + '">' +
+        '<td>' + fmtNum(r.streakDays) + ' <span style="color:var(--muted);font-size:10px">(' + esc(r.runStart) + '–' + esc(r.runEnd) + ')</span></td>' +
         '<td>' + esc(r.empNo) + '</td>' +
         '<td>' + esc(r.name) + '</td>' +
         '<td>' + fmtNum(r.totalCount) + '</td>' +
-        '<td>' + fmtNum(r.streakDays) + '</td>' +
-        '<td>' + esc(r.runStart) + ' – ' + esc(r.runEnd) + '</td>' +
+        '<td>' + statusBadgeHtml(r) + '</td>' +
         '<td>' +
-          '<select data-ds-action="' + i + '">' + actionSelectHtml(r.empNo, currentType) + '</select>' +
+          '<div class="ds-action-dd" data-ds-action="' + i + '">' +
+            '<button type="button" class="ds-action-dd-btn" data-ds-dd-btn="' + i + '" aria-haspopup="true" aria-expanded="false">' + esc(actionButtonLabel(currentType)) + '</button>' +
+            '<div class="ds-action-dd-menu" data-ds-dd-menu="' + i + '" hidden>' + actionMenuHtml(i) + '</div>' +
+          '</div>' +
           '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;' + (isOtherCurrent ? '' : 'display:none') + '" value="' + esc(isOtherCurrent ? (r.lastAction.note || '') : '') + '">' +
         '</td>' +
+        '<td>' + dateActionedHtml + '</td>' +
         '<td><button class="dm-icon-btn" type="button" data-ds-detail="' + i + '" title="See details" aria-label="See details">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>' +
         '</button></td>' +
@@ -10810,7 +11768,7 @@
     // just fully replaced.
     function renderRows(){
       if(!rows.length){
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map(rowHtml).join('');
@@ -10836,11 +11794,22 @@
         state.offset = 0;
         reachedEnd = false;
         rows = [];
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+        // Fill the available row area on this first batch instead of
+        // always fetching a fixed 50 — see fitRowLimit's own comment
+        // (shared with Alert Logs / Driver & Asset Monitoring). Infinite
+        // scroll normally fetches more as the user scrolls near the
+        // bottom, but that trigger never fires if the content is already
+        // shorter than the container (nothing to scroll) — exactly what
+        // happens when a search/filter narrows the match count below a
+        // screen's worth on a large monitor. 40px matches .da-table td's
+        // real row height (now shared with .al-table, per direct
+        // instruction); 500 is dds_driver_streaks()'s own server-side cap.
+        state.limit = fitRowLimit(scrollWrap, 40, state.limit, 50, 500);
       }
       requireSession().then(function(sess){
         if(!sess){
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           loadingMore = false;
           return;
         }
@@ -10853,10 +11822,15 @@
           var data = res.data || {};
           var fetched = data.rows || [];
           state.total = data.total || 0;
-          // Refresh the sidebar's open-cases badge from this same fetch —
-          // only on a fresh load, since a loadMore batch doesn't change
-          // how many total rows are open.
-          if(!isLoadMore) refreshOpenBadge();
+          // openCount is computed server-side over the FULL matching set
+          // (not just the rows fetched so far), so it stays correct
+          // regardless of how much has been scrolled into view. Only
+          // updated on a fresh load — a loadMore batch doesn't change how
+          // many total rows are open, and older Supabase deployments
+          // without this session's migration applied yet simply won't
+          // send the field at all (openCount undefined), so the badge
+          // stays hidden rather than showing a wrong/stale number.
+          if(!isLoadMore) updateOpenBadge(data.openCount);
           // Client-side date-range narrowing on the streak's own start/end
           // — the RPC itself doesn't take from/to (a streak is a computed
           // property of full history, not a filterable row attribute the
@@ -10890,7 +11864,7 @@
         if(isLoadMore){
           updateFooter();
         } else {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
         }
       });
     }
@@ -10928,6 +11902,61 @@
     });
     var refreshBtn = document.getElementById('ds-refresh');
     if(refreshBtn) refreshBtn.addEventListener('click', load);
+
+    // ---- Export: every streak matching the current filters, not just what
+    // has been scrolled into view so far — dds_driver_streaks() clamps
+    // p_limit to 500 server-side, so this pages through it (same search/
+    // sort as the live table), then applies the same client-side run-date
+    // narrowing load() already does, since the RPC itself has no from/to. ----
+    var DS_EXPORT_PAGE_SIZE = 500;
+    var DS_EXPORT_MAX_ROWS = 20000;
+    var DS_EXPORT_COLUMNS = [
+      { key:'streakDays', label:'Streak (days)' }, { key:'runStart', label:'Run Start' }, { key:'runEnd', label:'Run End' },
+      { key:'empNo', label:'Emp No' }, { key:'name', label:'Driver Name' }, { key:'totalCount', label:'Total Counts' },
+      { key:'status', label:'Status' }, { key:'lastActionType', label:'Last Action' }, { key:'lastActionNote', label:'Last Action Note' }
+    ];
+    function dsExportRow(r){
+      return {
+        streakDays: r.streakDays || 0, runStart: r.runStart || '', runEnd: r.runEnd || '',
+        empNo: r.empNo || '', name: r.name || '', totalCount: r.totalCount || 0, status: r.status || '',
+        lastActionType: r.lastAction ? (r.lastAction.type || '') : '', lastActionNote: r.lastAction ? (r.lastAction.note || '') : ''
+      };
+    }
+    function fetchAllStreaksForExport(){
+      var collected = [];
+      function loop(offset){
+        return DB.rpc('dds_driver_streaks', {
+          p_search: state.search || null, p_min_streak: 1,
+          p_sort: state.sort, p_dir: state.dir,
+          p_limit: DS_EXPORT_PAGE_SIZE, p_offset: offset
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var data = res.data || {};
+          var fetched = data.rows || [];
+          var total = data.total || 0;
+          collected = collected.concat(fetched);
+          var hitCap = collected.length >= DS_EXPORT_MAX_ROWS;
+          if(fetched.length < DS_EXPORT_PAGE_SIZE || collected.length >= total || hitCap){
+            var filtered = collected;
+            if(state.from || state.to){
+              filtered = filtered.filter(function(r){
+                var start = new Date(r.runStart), end = new Date(r.runEnd);
+                if(state.from && end < new Date(state.from)) return false;
+                if(state.to && start > new Date(state.to)) return false;
+                return true;
+              });
+            }
+            if(total > collected.length){
+              alert('Exported the first ' + fmtNum(collected.length) + ' of ' + fmtNum(total) + ' matching streaks — narrow the search above for a complete export.');
+            }
+            return filtered.slice(0, DS_EXPORT_MAX_ROWS).map(dsExportRow);
+          }
+          return loop(offset + DS_EXPORT_PAGE_SIZE);
+        });
+      }
+      return loop(0);
+    }
+    wireExportButton('ds-export-btn', 'driver_streaks', DS_EXPORT_COLUMNS, fetchAllStreaksForExport);
     document.querySelectorAll('#ds-table th[data-ds-sort]').forEach(function(th){
       th.addEventListener('click', function(){
         var col = th.getAttribute('data-ds-sort');
@@ -10936,23 +11965,64 @@
         load();
       });
     });
-    // ---- row actions: dropdown applies immediately, "Other" reveals a
-    // text box first and applies on blur/Enter (matching the existing
-    // bulk-action bar's Other handling elsewhere in this app) ----
-    tbody.addEventListener('change', function(e){
-      var sel = e.target.closest('select[data-ds-action]');
-      if(!sel) return;
-      var i = Number(sel.getAttribute('data-ds-action'));
-      var r = rows[i];
-      if(!r) return;
-      var otherInput = tbody.querySelector('input[data-ds-other="' + i + '"]');
-      if(sel.value === 'Other'){
-        if(otherInput){ otherInput.style.display = ''; otherInput.focus(); }
-        return; // wait for the free-text value before writing anything
+    // ---- row actions: a plain button + in-page menu, not a native
+    // <select> — confirmed via frame-by-frame screen-recording review that
+    // a native select's OS-level popup could be opened and hovered, then
+    // closed by a click, WITHOUT the value ever actually changing (the
+    // closed control still read "—" afterward). A native select's list is
+    // rendered outside the page's own DOM, so its click handling doesn't
+    // go through the same path as everything else on the page; a menu
+    // built from ordinary buttons gets the exact same click handling that
+    // already reliably opens it. "Other" reveals a text box first and
+    // applies on blur/Enter (matching the bulk-action bar's Other handling
+    // elsewhere in this app) ----
+    function closeAllActionMenus(exceptI){
+      tbody.querySelectorAll('.ds-action-dd-menu').forEach(function(menu){
+        var mi = menu.getAttribute('data-ds-dd-menu');
+        if(exceptI != null && mi === String(exceptI)) return;
+        menu.hidden = true;
+        var btn = tbody.querySelector('[data-ds-dd-btn="' + mi + '"]');
+        if(btn) btn.setAttribute('aria-expanded', 'false');
+      });
+    }
+    tbody.addEventListener('click', function(e){
+      var toggleBtn = e.target.closest('[data-ds-dd-btn]');
+      if(toggleBtn){
+        var ti = toggleBtn.getAttribute('data-ds-dd-btn');
+        var menu = tbody.querySelector('[data-ds-dd-menu="' + ti + '"]');
+        if(!menu) return;
+        var willOpen = menu.hidden;
+        closeAllActionMenus(willOpen ? ti : null);
+        menu.hidden = !willOpen;
+        toggleBtn.setAttribute('aria-expanded', String(willOpen));
+        return;
       }
-      if(otherInput) otherInput.style.display = 'none';
-      if(!sel.value) return; // reset to blank — no action to log
-      applyStreakAction(r, sel.value, false, null);
+      var optBtn = e.target.closest('[data-ds-opt]');
+      if(optBtn){
+        var i = Number(optBtn.getAttribute('data-ds-opt'));
+        var value = optBtn.getAttribute('data-value');
+        var r = rows[i];
+        closeAllActionMenus(null);
+        if(!r) return;
+        var btnEl = tbody.querySelector('[data-ds-dd-btn="' + i + '"]');
+        var otherInput = tbody.querySelector('input[data-ds-other="' + i + '"]');
+        if(value === 'Other'){
+          if(btnEl) btnEl.textContent = 'Other…';
+          if(otherInput){ otherInput.style.display = ''; otherInput.focus(); }
+          return; // wait for the free-text value before writing anything
+        }
+        if(otherInput) otherInput.style.display = 'none';
+        if(btnEl) btnEl.textContent = value || '—';
+        if(!value) return; // "—" — no action to log
+        applyStreakAction(r, value, false, null, i);
+        return;
+      }
+    });
+    // Click anywhere outside an open menu closes it — same as any other
+    // custom dropdown in the app.
+    document.addEventListener('click', function(e){
+      if(e.target.closest('.ds-action-dd')) return;
+      closeAllActionMenus(null);
     });
     tbody.addEventListener('keydown', function(e){
       if(e.key !== 'Enter') return;
@@ -10967,69 +12037,146 @@
       var i = Number(input.getAttribute('data-ds-other'));
       var r = rows[i];
       if(!r || !input.value.trim()) return;
-      applyStreakAction(r, 'Other', true, input.value.trim());
+      applyStreakAction(r, 'Other', true, input.value.trim(), i);
     }, true);
+
+    // r.runStart/r.runEnd come back from dds_driver_streaks() as MM/DD/YYYY
+    // strings. Converting those via `new Date(mdy).toISOString()` parses
+    // them as LOCAL midnight, then reformats in UTC — which silently rolls
+    // the date back a day in any timezone ahead of UTC. For a single-day
+    // streak that shifts p_from/p_to onto a day this driver had no events
+    // on at all, so the bulk RPC below matches zero rows and (correctly,
+    // from its own point of view) writes nothing. Parsing the string
+    // directly avoids the timezone round-trip entirely.
+    function mdyToIso(mdy){
+      var p = mdy && mdy.split('/');
+      if(!p || p.length !== 3) return null;
+      return p[2] + '-' + p[0] + '-' + p[1];
+    }
 
     // Applies the chosen action to every event within THIS driver's own
     // streak date range — dds_bulk_log_case_action_by_driver already
     // exists exactly for this (writes one alert_cases row per matching
-    // event via a set-based query), so no new RPC was needed for that
-    // part. This is the literal "any action logged should reflect on the
-    // recorded name during the duration" behavior the user asked for.
+    // event via a set-based query), so no new RPC was needed. This is the
+    // literal "any action logged should reflect on the recorded name
+    // during the duration" behavior the user asked for.
     //
-    // BUT: the row's own dropdown reads its "currently selected" value
-    // from r.lastAction, which dds_driver_streaks() populates from
-    // entity_action_log — a completely different table than the one
-    // dds_bulk_log_case_action_by_driver writes to (alert_cases). Without
-    // also writing entity_action_log here, the action genuinely saves
-    // (real alert_cases rows do get created/updated) but the dropdown has
-    // no way to show that on reload, since it's reading from a table this
-    // call never touched — which is exactly the bug reported live: adding
-    // an action "doesn't save" (it did — the UI just couldn't see it).
-    // dds_log_entity_action is the same RPC the existing Driver & Asset
-    // Monitoring "Log an action" modal already uses for this table.
-    // dds_log_entity_action validates p_action_type against a fixed set
-    // ('Counseled','Suspended','Reassigned','Cleared','Spare 3 Days',
-    // 'Monitor','Continue','Other') — this page's own action vocabulary
-    // (Spare/Replace/Continue/Other) only overlaps at 'Continue'. Anything
-    // else is routed through as 'Other' with the real chosen label kept as
-    // the note, so the write to entity_action_log always succeeds
-    // regardless of which of this page's own labels was picked, rather
-    // than failing validation for "Spare"/"Replace" specifically.
-    var ENTITY_ACTION_ALLOWED = ['Continue'];
-    function applyStreakAction(r, actionType, isOther, otherText){
-      requireSession().then(function(sess){
-        if(!sess) throw new Error('Sign in required.');
-        var loggedBy = (sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'Unknown';
-        var chosenLabel = isOther ? otherText : actionType;
-        var entityActionType = (!isOther && ENTITY_ACTION_ALLOWED.indexOf(actionType) !== -1) ? actionType : 'Other';
-        var entityActionNote = entityActionType === 'Other' ? chosenLabel : null;
-        return DB.rpc('dds_bulk_log_case_action_by_driver', {
+    // That alert_cases write is what Alert Logs reads — it does NOT touch
+    // entity_status/entity_action_log, which is what Driver & Asset
+    // Monitoring's status pill and this page's own "last action" column
+    // (dds_driver_streaks()'s lastAction, sourced from entity_action_log)
+    // actually read. Without also calling dds_log_entity_action(), an
+    // action logged here could never appear in either place. logged_by is
+    // a required column on entity_action_log with no session-derived
+    // default anywhere else in the app (Driver & Asset Monitoring's own
+    // equivalent modal always prompts for it too), so ask for it here
+    // rather than inventing a value.
+    // Disables this row's controls and shows an inline "Saving…" tag for
+    // the duration of the two-RPC write — without it, a save in flight and
+    // a save that silently failed looked identical (the dropdown just sat
+    // there either way), which is exactly what read as "nothing happened."
+    function setRowSaving(i, isSaving){
+      var wrap = tbody.querySelector('.ds-action-dd[data-ds-action="' + i + '"]');
+      var btn = tbody.querySelector('[data-ds-dd-btn="' + i + '"]');
+      if(btn) btn.disabled = isSaving;
+      var otherInput = tbody.querySelector('input[data-ds-other="' + i + '"]');
+      if(otherInput) otherInput.disabled = isSaving;
+      if(!wrap) return;
+      var tag = wrap.parentNode.querySelector('.ds-saving-tag');
+      if(isSaving){
+        if(!tag){
+          tag = document.createElement('span');
+          tag.className = 'ds-saving-tag';
+          tag.style.cssText = 'margin-left:6px;color:var(--muted);font-size:10px;white-space:nowrap';
+          tag.textContent = 'Saving…';
+          wrap.parentNode.appendChild(tag);
+        }
+      } else if(tag){
+        tag.remove();
+      }
+    }
+
+    // The "Logged by" prompt used to start blank, so whatever a person
+    // typed there (entity_action_log.logged_by, shown here as "Date
+    // Actioned ... by X") had no connection to who was actually signed
+    // in — Alert Logs' own "Action By" column, by contrast, always shows
+    // the real account (alert_cases.updated_by -> profiles.username, set
+    // server-side from auth.uid(), never typed). Comparing the two for
+    // the very same action showed two different names for "who did this."
+    // Pre-filling the prompt with the real signed-in account's own
+    // username closes that gap for the common case (matches Alert Logs
+    // automatically) while still allowing an override — logging on behalf
+    // of someone else (a dispatcher relaying a call-in) is a real,
+    // deliberate use of this field elsewhere in the app (Driver & Asset
+    // Monitoring's own action modal has the same free-text box), so the
+    // field stays editable rather than being replaced with a fixed value.
+    var myUsername = null;
+    function getMyUsername(){
+      if(myUsername != null) return Promise.resolve(myUsername);
+      return requireSession().then(function(sess){
+        if(!sess) return '';
+        return DB.from('profiles').select('username').eq('user_id', sess.user.id).maybeSingle().then(function(res){
+          myUsername = (res.data && res.data.username) || sess.user.email || '';
+          return myUsername;
+        });
+      });
+    }
+
+    function applyStreakAction(r, actionType, isOther, otherText, i){
+      getMyUsername().then(function(defaultName){
+        var loggedBy = window.prompt('Logged by (name of whoever performed this action):', defaultName);
+        if(loggedBy === null){
+          // Cancelled — nothing was ever sent over the network, so just
+          // redraw this one row back to its last-known state instead of a
+          // full reload. A full reload here previously made a deliberate
+          // Cancel look identical to a failed save: same flicker, same
+          // silence, no way to tell which one happened.
+          var rowEl = tbody.querySelector('tr[data-ds-row="' + i + '"]');
+          if(rowEl) rowEl.outerHTML = rowHtml(r, i);
+          return;
+        }
+        loggedBy = loggedBy.trim();
+        if(!loggedBy){
+          alert('Logging an action requires a "Logged by" name.');
+          load();
+          return;
+        }
+        setRowSaving(i, true);
+        var finalType = isOther ? 'Other' : actionType;
+        DB.rpc('dds_bulk_log_case_action_by_driver', {
           p_emp_nos: [r.empNo], p_include_unspecified: false,
-          p_from: r.runStart ? new Date(r.runStart).toISOString().slice(0,10) : null,
-          p_to: r.runEnd ? new Date(r.runEnd).toISOString().slice(0,10) : null,
+          p_from: mdyToIso(r.runStart),
+          p_to: mdyToIso(r.runEnd),
           p_shift: null,
-          p_action_type: chosenLabel,
+          p_action_type: finalType,
           p_action_is_other: !!isOther,
           p_action_date: new Date().toISOString().slice(0,10),
           p_status_value: 'Logged',
           p_remarks: isOther ? otherText : null
         }).then(function(res){
           if(res.error) throw res.error;
+          var updated = (res.data && res.data.updated) || 0;
+          if(!updated){
+            // A successful call with nothing matched is indistinguishable from
+            // a real save unless we check the row count ourselves — surface it
+            // instead of silently reloading as if it worked.
+            throw new Error('No matching events found for ' + r.empNo + ' between ' + r.runStart + ' and ' + r.runEnd + ' — nothing was saved.');
+          }
           return DB.rpc('dds_log_entity_action', {
             p_entity_type: 'driver', p_entity_id: r.empNo,
-            p_action_type: entityActionType,
-            p_action_other_text: entityActionNote,
-            p_note: entityActionNote,
+            p_action_type: isOther ? 'Other' : actionType,
+            p_action_other_text: isOther ? otherText : null,
+            p_note: 'Logged from Driver Streaks (' + r.runStart + '–' + r.runEnd + ')',
             p_logged_by: loggedBy
           });
+        }).then(function(res){
+          if(res && res.error) throw res.error;
+          load();
+        }).catch(function(err){
+          console.error('Log streak action failed', err);
+          alert('Could not log action: ' + ((err && err.message) || 'unknown error'));
+          load();
         });
-      }).then(function(res){
-        if(res && res.error) throw res.error;
-        load();
-      }).catch(function(err){
-        console.error('Log streak action failed', err);
-        alert('Could not log action: ' + ((err && err.message) || 'unknown error'));
       });
     }
 
@@ -11042,41 +12189,47 @@
     var detailCloseBtn = document.getElementById('ds-detail-close');
 
     function openDriverStreakDetail(r){
-      detailTitle.textContent = 'Complete event history — ' + r.name + ' (' + r.empNo + ')';
+      detailTitle.textContent = 'Daily summary — ' + r.name + ' (' + r.empNo + ')';
       detailSub.textContent = 'Streak: ' + r.runStart + ' – ' + r.runEnd + ' (' + fmtNum(r.streakDays) + ' day(s))';
       detailSummary.innerHTML = '';
-      detailTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px 0">Loading…</td></tr>';
+      detailTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px 0">Loading…</td></tr>';
       detailMask.classList.add('on');
-      // Complete history means the driver's full record, not scoped to
-      // just the current streak window — the user explicitly asked for
-      // "a table of complete history," distinct from the action-logging
-      // scope above, which IS deliberately limited to the streak's dates.
-      DB.rpc('dds_driver_alert_instances', { p_emp_no: r.empNo, p_from: null, p_to: null, p_limit: 500, p_offset: 0 }).then(function(res){
+      // One row per day instead of one row per alert — the qualifying rule
+      // (dds_driver_streaks(), 0088) is sum(event_count) per day >= 20, not
+      // any single alert reaching 20, so a flat event list buried that sum
+      // under a dozen individually-small rows and made a genuinely
+      // qualifying day look unexplained. Aggregated server-side (0097) so
+      // this stays correct however much history a driver has, rather than
+      // summing whatever page of individual events happened to be fetched.
+      // Complete history, not scoped to just the current streak window —
+      // same "full record" scope the old per-event view used.
+      DB.rpc('dds_driver_daily_summary', { p_emp_no: r.empNo, p_from: null, p_to: null, p_limit: 500, p_offset: 0 }).then(function(res){
         if(res.error) throw res.error;
         var data = res.data || {};
-        var instRows = data.rows || [];
+        var dayRows = data.rows || [];
         detailSummary.innerHTML =
-          '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.total || 0) + '</span></div>' +
-          '<div class="da-inst-stat"><span class="da-inst-stat-label">Rows</span><span class="da-inst-stat-value">' + fmtNum(data.rowCount || 0) + '</span></div>';
-        if(!instRows.length){
-          detailTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px 0">No event history found.</td></tr>';
+          '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.grandTotal || 0) + '</span></div>' +
+          '<div class="da-inst-stat"><span class="da-inst-stat-label">Days</span><span class="da-inst-stat-value">' + fmtNum(data.totalDays || 0) + '</span></div>';
+        if(!dayRows.length){
+          detailTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px 0">No event history found.</td></tr>';
           return;
         }
-        detailTbody.innerHTML = instRows.map(function(er){
+        detailTbody.innerHTML = dayRows.map(function(dr){
+          var shiftsLabel = (dr.shifts || []).map(function(s){ return s === 'NIGHT' ? 'Night' : 'Day'; }).join(' + ') || '—';
+          var qualifiesTag = dr.qualifies
+            ? '<span class="dm-tag red">Qualifies</span>'
+            : '<span class="dm-tag greenbg">Below threshold</span>';
           return '<tr>' +
-            '<td>' + esc(er.shiftDate || '—') + '</td>' +
-            '<td>' + esc(er.shift || '—') + '</td>' +
-            '<td>' + esc(er.unit || '—') + '</td>' +
-            '<td>' + esc(fmtDateTimeShort(er.startTime)) + '</td>' +
-            '<td>' + esc(fmtDateTimeShort(er.endTime)) + '</td>' +
-            '<td>' + esc(fmtDateTimeShort(er.updateTime)) + '</td>' +
-            '<td>' + esc(er.eventCode || '—') + '</td>' +
-            '<td>' + fmtNum(er.eventCount || 0) + '</td>' +
+            '<td>' + esc(dr.shiftDate || '—') + '</td>' +
+            '<td>' + esc(shiftsLabel) + '</td>' +
+            '<td>' + fmtNum(dr.numEvents || 0) + '</td>' +
+            '<td>' + fmtNum(dr.dayTotal || 0) + '</td>' +
+            '<td>' + qualifiesTag + '</td>' +
           '</tr>';
         }).join('');
       }).catch(function(err){
-        console.error('Driver history fetch failed', err);
-        detailTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+        console.error('Driver daily summary fetch failed', err);
+        detailTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
       });
     }
 

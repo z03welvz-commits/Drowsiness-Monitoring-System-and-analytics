@@ -1,29 +1,37 @@
 -- ============================================================================
 -- DDS — 0084_driver_asset_weekly_actioned_status
 -- ----------------------------------------------------------------------------
--- RECONSTRUCTED from live database state on 2026-09-07 — original migration
--- SQL text was not recoverable from Supabase's migration history
--- (supabase_migrations.schema_migrations only stores version+name, not the
--- applied SQL body). This file reflects the live definition as of
--- reconstruction time (which also folds in later touches from 0088, which
--- raised the qualifying-day threshold from 10 to 20), not necessarily the
--- original 0084 diff.
+-- "View resolved / history" on Driver & Asset Monitoring (index.html:9850)
+-- filters dds_driver_asset_weekly()'s rows for status === 'actioned'. That
+-- value used to pass straight through from entity_status.status (0033,
+-- still true as of 0048's `coalesce(es.status, 'required')`). 0064 replaced
+-- that passthrough with a computed CASE — only 'monitoring' is special-cased
+-- (itself dead code: grepped every migration and nothing ever writes
+-- entity_status.status = 'monitoring' or sets monitor_until; the only writers
+-- of entity_status are dds_log_entity_action(), which sets 'actioned', and
+-- dds_entity_status_reopen(), which flips 'actioned' back to 'required' on a
+-- new qualifying alert pattern) — every other value, 'actioned' included,
+-- silently fell through to the streak-based required/ok computation. Net
+-- effect: the History modal could never show anything, since the one status
+-- value it looks for was unreachable.
 --
--- Inferred intent: dds_driver_asset_weekly()'s per-entity `status` derivation
--- gains an 'actioned' branch — mirroring dds_driver_streaks()/entity_status's
--- new 'actioned' state — so a driver/asset with entity_status.status =
--- 'actioned' (logged via dds_log_entity_action) shows as actioned in the
--- Driver & Asset Monitoring weekly grid instead of falling through to
--- required/ok.
+-- Fix: add an explicit 'actioned' branch, checked before the streak
+-- fallback. The (currently unreachable, but harmless) 'monitoring' branch is
+-- left in place unchanged rather than removed, since it's still what the
+-- schema/RPC contract documents for that state if it's ever wired up later.
+-- No other change from 0065 — same CTEs, same work_mem tuning, same
+-- signature.
 -- ============================================================================
 
-create or replace function public.dds_driver_asset_weekly(p_from date default null, p_to date default null)
-returns jsonb
+create or replace function public.dds_driver_asset_weekly(
+  p_from date default null,
+  p_to   date default null
+) returns jsonb
 language sql
 stable
-set search_path to 'public'
-set work_mem to '64MB'
-as $function$
+set search_path = public
+set work_mem = '64MB'
+as $$
   with bounds as (
     select
       coalesce(p_from, current_date - interval '6 days')::date as v_from,
@@ -68,6 +76,7 @@ as $function$
     select distinct asset_id as entity_id from filtered
   ),
 
+  -- ── Batched streak computation, both entity types (unchanged from 0065) ──
   driver_entity_last_day as (
     select coalesce(emp_no, 'UNSPECIFIED') as entity_id, max(shift_date) as last_day
     from public.events
@@ -91,7 +100,7 @@ as $function$
   driver_ranked as (
     select cal.entity_id,
            row_number() over (partition by cal.entity_id order by cal.cal_date desc) as rn,
-           (coalesce(ed.day_total, 0) >= 20) as qualifies
+           (coalesce(ed.day_total, 0) > 10) as qualifies
     from driver_cal cal
     left join driver_entity_days ed on ed.entity_id = cal.entity_id and ed.shift_date = cal.cal_date
   ),
@@ -128,7 +137,7 @@ as $function$
   asset_ranked as (
     select cal.entity_id,
            row_number() over (partition by cal.entity_id order by cal.cal_date desc) as rn,
-           (coalesce(ed.day_total, 0) >= 20) as qualifies
+           (coalesce(ed.day_total, 0) > 10) as qualifies
     from asset_cal cal
     left join asset_entity_days ed on ed.entity_id = cal.entity_id and ed.shift_date = cal.cal_date
   ),
@@ -144,6 +153,7 @@ as $function$
     from asset_entity_last_day l
     left join asset_first_break fb on fb.entity_id = l.entity_id
   ),
+  -- ── end batched streak computation ───────────────────────────────────
 
   driver_names as (
     select coalesce(d.full_name, e.entity_id) as name, e.entity_id as driver_key
@@ -215,4 +225,4 @@ as $function$
     'drivers', coalesce((select jsonb_agg(row) from drivers_out), '[]'::jsonb),
     'assets',  coalesce((select jsonb_agg(row) from assets_out), '[]'::jsonb)
   );
-$function$;
+$$;
