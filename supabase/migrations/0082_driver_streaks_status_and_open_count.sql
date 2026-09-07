@@ -1,22 +1,12 @@
 -- ============================================================================
 -- DDS — 0082_driver_streaks_status_and_open_count
 -- ----------------------------------------------------------------------------
--- Two fixes to dds_driver_streaks():
---
--- 1. Its `status` field was a plain passthrough of entity_status.status
---    ('monitoring' or null -> 'ok'), never actually 'required' — unlike
---    dds_driver_asset_weekly(), which derives 'required' when a driver's
---    streak is long enough (>=3 days) AND nobody has an active monitoring
---    window logged for them. Driver Streaks' own status column silently
---    never matched the "Action Required" semantic used everywhere else in
---    the app. Now computed the same way, verbatim.
---
--- 2. Adds `openCount` to the response: the total number of matching rows
---    (across the full result set, not just the current page/scroll batch)
---    whose status is 'required' — i.e. genuinely still open, nobody has
---    logged an action and the monitoring window (if any) has lapsed. This
---    backs a badge on the Driver Streaks page showing how many open cases
---    exist, independent of how many rows have been scrolled into view.
+-- SUPERSEDED: this file has been resynced from the live database to reflect
+-- later migrations that touched dds_driver_streaks() after this one:
+--   - 0084/0085: adds an 'actioned' status branch (es.status = 'actioned').
+--   - 0088: raised the qualifying-day threshold from `day_total > 10` to
+--     `day_total >= 20`.
+-- The body below is the CURRENT live definition, not the original 0082 diff.
 -- ============================================================================
 
 create or replace function public.dds_driver_streaks(
@@ -59,7 +49,7 @@ begin
     select emp_no, shift_date,
            shift_date - (row_number() over (partition by emp_no order by shift_date))::int as grp
     from daily
-    where day_total > 10
+    where day_total >= 20
   ),
   runs as (
     select emp_no, min(shift_date) as run_start, max(shift_date) as run_end, count(*) as run_len
@@ -92,11 +82,13 @@ begin
     coalesce(t.total_count, 0) as total_count,
     -- Same derivation dds_driver_asset_weekly() uses: an active monitoring
     -- window wins (monitoring if still current, resolved if it lapsed);
-    -- otherwise a long-enough streak with no active monitoring is 'required'.
+    -- an explicit 'actioned' status wins next; otherwise a long-enough
+    -- streak with no active monitoring is 'required'.
     case
       when es.status = 'monitoring' then
         case when es.monitor_until is not null and es.monitor_until >= current_date
              then 'monitoring' else 'resolved' end
+      when es.status = 'actioned' then 'actioned'
       else
         case when lr.run_len >= 3 then 'required' else 'ok' end
     end as status,
