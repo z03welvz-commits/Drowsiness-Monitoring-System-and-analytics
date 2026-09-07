@@ -11210,7 +11210,7 @@
         load();
         return;
       }
-      var finalType = isOther ? otherText : actionType;
+      var finalType = isOther ? 'Other' : actionType;
       DB.rpc('dds_bulk_log_case_action_by_driver', {
         p_emp_nos: [r.empNo], p_include_unspecified: false,
         p_from: mdyToIso(r.runStart),
