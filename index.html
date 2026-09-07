@@ -113,6 +113,13 @@
   .sidebar{width:280px;flex:0 0 280px;background:#012d68;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;transition:width .18s ease,flex-basis .18s ease;z-index:20}
   .sidebar.collapsed{width:72px;flex-basis:72px}
   .sidebar.collapsed:hover,.sidebar.collapsed.pinned-open{width:280px;flex-basis:280px}
+  /* Mobile nav toggle + backdrop: hidden entirely above the 820px breakpoint
+     where the sidebar behaves as the desktop hover-rail above. Below it, the
+     sidebar switches to a fixed off-canvas drawer (see the max-width:820px
+     block) and this button becomes its only way to open/close it. */
+  .mobile-nav-toggle{display:none;position:fixed;top:14px;left:14px;z-index:30;width:40px;height:40px;border-radius:9px;border:none;background:var(--card);color:var(--text);box-shadow:0 2px 10px rgba(15,23,42,.15);align-items:center;justify-content:center;cursor:pointer}
+  .mobile-nav-toggle svg{width:20px;height:20px}
+  .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:19}
   .sidebar.collapsed .brand-text,.sidebar.collapsed .nav-label,.sidebar.collapsed .section-label,.sidebar.collapsed .mode-toggle span{opacity:0;pointer-events:none}
   .sidebar.collapsed:hover .brand-text,.sidebar.collapsed:hover .nav-label,.sidebar.collapsed:hover .section-label,.sidebar.collapsed:hover .mode-toggle span,
   .sidebar.collapsed.pinned-open .brand-text,.sidebar.collapsed.pinned-open .nav-label,.sidebar.collapsed.pinned-open .section-label,.sidebar.collapsed.pinned-open .mode-toggle span{opacity:1;pointer-events:auto}
@@ -149,9 +156,16 @@
   .nav-item:hover{background:rgba(255,255,255,.07)}
   .nav-item:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .nav-item.active{background:#1361d8;color:#fff;font-weight:600}
-  .nav-icon{width:18px;height:18px;flex:0 0 auto;display:grid;place-items:center;opacity:.95}
+  .nav-icon{width:18px;height:18px;flex:0 0 auto;display:grid;place-items:center;opacity:.95;position:relative}
   .nav-icon svg{width:17px;height:17px}
   .nav-label{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Nav-item alert badge: anchored to the icon itself (not the label) so
+     it stays visible even when the sidebar is collapsed to an icon-only
+     rail — the whole point per direct instruction is that something
+     needing attention shows up regardless of which page is open or
+     whether the sidebar is expanded. */
+  .nav-alert-badge{position:absolute;top:-5px;right:-7px;min-width:15px;height:15px;padding:0 4px;border-radius:999px;background:#e53553;color:#fff;font-size:9px;font-weight:800;line-height:15px;text-align:center;box-shadow:0 0 0 2px #012d68}
+  .nav-alert-badge[hidden]{display:none}
   .signout-mobile{display:none}
   .management{margin-top:18px}
   .sidebar-bottom{flex:0 0 auto;padding:14px 12px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:2px}
@@ -300,6 +314,7 @@
   .trend-badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-caption);font-weight:700;padding:4px 10px;border-radius:999px}
   .trend-badge.down{background:#dff5ea;color:#12805f}
   .trend-badge.up{background:#fdeaea;color:#c0271f}
+  .trend-badge.flat{background:var(--surface2);color:var(--text-dim)}
 
   /* Shared PowerBI-style interactive hover overlay for SVG line charts:
      a vertical crosshair that tracks the pointer, snapped to the nearest
@@ -393,36 +408,81 @@
   .page.active{display:block}
 
   /* ---------- Analytics page (an- prefix avoids colliding with Overview's chrome classes) ----------
-     Restyled to match the dashboard.jsx reference layout: a divided Key
-     Insights strip, chart cards with sparkline/legend headers, segmented
-     ranked bar-lists with axis ticks, a donut with side legend, and a
-     compact alerts table with pagination chrome. Card borders/radius/
-     shadow still come from .card everywhere — the .an- prefix below only
-     covers what's genuinely Analytics-specific. */
+     Key Insights now reuses Overview/Summary's own .kpis/.kpi card grid
+     (see "kpi row" above) instead of a one-off divided strip — per direct
+     instruction, the strip (4 cols + a wider 5th, gap:0, border-left
+     dividers) read as visually inconsistent with the rest of the app, and
+     broke outright once the grid wrapped to 2-3 columns at narrower widths
+     (a border-left divider only makes sense between horizontally-adjacent
+     cells in the SAME row; once cells wrap to multiple rows the dividers
+     appear on arbitrary sides). Individual .card elements in a gapped grid
+     don't have that failure mode at any column count. Chart cards below
+     still use their own .an- classes — those aren't KPI cards and don't
+     share this component. */
+  .an-filterbar{padding:11px 17px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:18px}
+  .an-filterbar .al-search{flex:1 1 240px;max-width:340px}
+  .an-filterbar .al-filter{flex:0 0 auto;width:auto;min-width:130px}
+  .an-filterbar select.al-filter{-webkit-appearance:none;appearance:none}
+  .an-active-filter{display:flex;align-items:center;gap:6px;background:#e6eefe;color:#2954e8;border-radius:999px;padding:6px 8px 6px 12px;font-size:11px;font-weight:650;flex:0 0 auto}
+  /* This codebase's own established pattern for every other hidden-toggled
+     badge/chip (.nav-alert-badge[hidden], .al-badge[hidden], .dm-review-
+     badge[hidden]) — a class with its own explicit `display` needs a
+     matching [hidden] override, or the `hidden` attribute is silently
+     defeated by that display value. Confirmed live: the chip stayed
+     visually visible as an empty blue circle after being cleared, despite
+     `chip.hidden === true` in the DOM. */
+  .an-active-filter[hidden]{display:none}
+  .an-active-filter button{all:unset;cursor:pointer;width:16px;height:16px;display:grid;place-items:center;border-radius:50%;font-size:13px;line-height:1}
+  .an-active-filter button:hover{background:rgba(41,84,232,.15)}
   .an-insights-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
   .an-synced-note{display:flex;align-items:center;gap:6px;font-size:var(--fs-body);color:#18a05e;font-weight:500}
   .an-synced-note::before{content:'';width:6px;height:6px;border-radius:50%;background:#18a05e;flex:0 0 auto}
 
-  /* Key Insights: 4 KPI columns + 1 wider "alert type count" column, divided
-     by vertical rules instead of separate cards — matches jsx's KeyInsights
-     grid exactly (repeat(4,1fr) 1.1fr). */
-  .an-kpis{display:grid;grid-template-columns:repeat(4,1fr) 1.1fr;gap:0}
-  .an-kpi-col{padding:0 22px;border-left:1px solid var(--border);display:grid;grid-template-columns:1fr auto;column-gap:8px;grid-template-areas:"head head" "value sub" "spark spark"}
-  .an-kpi-col:first-child{border-left:none;padding-left:0}
-  .an-kpi-col:last-child{padding-right:0}
-  .an-kpi-head{grid-area:head;display:flex;align-items:center;gap:8px}
-  .an-kpi-icon{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto}
-  .an-kpi-icon svg{width:14px;height:14px}
-  .an-kpi-label{font-size:var(--fs-caption);font-weight:700;color:var(--muted);letter-spacing:.03em}
-  .an-kpi-value{grid-area:value;align-self:center;font-size:23px;font-weight:800;color:var(--text)}
-  .an-kpi-sub{grid-area:sub;align-self:center;justify-self:end;text-align:right;font-size:var(--fs-body);color:var(--muted)}
+  /* minmax(0,1fr), not bare 1fr: a bare 1fr track is still allowed to grow
+     past its fair share to fit non-shrinkable content (e.g. the sparkline's
+     old fixed flex-basis), which silently pushed the whole grid — and the
+     page — wider than the viewport at narrower desktop widths (confirmed:
+     26px of real horizontal overflow at 1366px before this fix). Every
+     column of every row on this page below is a grid, but this row is the
+     one whose children previously had non-shrinking fixed widths. */
+  .an-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:18px}
+  /* .card supplies background/border/radius/shadow only — no padding of its
+     own (every other page's KPI cards get padding from their own modifier
+     class, e.g. .kpi{padding:16px 17px}). This card's content was sitting
+     flush against its own edges with zero breathing room until this rule
+     was added: the sparkline's line and the card's bottom edge were only
+     ~1px apart, reading as the whole card overlapping/crowding itself. */
+  .an-kpi{padding:18px 20px}
+  /* Two-column body: label/value/trend stack on the left, the sparkline
+     gets its own dedicated zone on the right instead of stretching full-
+     width below everything — per direct instruction, this reads as an
+     accent chart rather than a cramped underline, and gets real margin
+     from the card's own right/bottom edges instead of touching them. */
+  .an-kpi-body{display:flex;align-items:stretch;gap:12px;min-width:0}
+  .an-kpi-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+  .an-kpi-head{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.035em;font-weight:700;color:var(--text-dim)}
+  .an-kpi-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}
+  .an-kpi-icon svg{width:16px;height:16px}
+  .an-kpi-value{font-size:var(--fs-display);font-weight:800;color:var(--text);margin-top:11px;letter-spacing:-.02em;white-space:nowrap}
+  .an-kpi-sub{font-size:11px;margin-top:6px;color:var(--muted);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .an-kpi-sub .delta{font-weight:650}
   .an-kpi-sub .delta.up,.an-kpi-sub .delta.down{color:var(--text-dim)}
   .an-kpi-sub .delta.flat{color:var(--muted)}
-  .an-kpi-spark{grid-area:spark;height:34px;margin-top:10px}
-  .an-kpi-spark svg{width:100%;height:100%;display:block}
-  .an-typecount-bars{display:flex;gap:4px;margin-top:16px}
-  .an-typecount-bars i{width:16px;height:20px;border-radius:3px;background:#7c5cfc;flex:0 0 auto}
+  /* Sparkline zone: right-aligned, vertically centered against the label/
+     value/trend stack beside it, with real right-edge margin (the card's
+     own 20px padding) instead of running edge-to-edge. Width shrinks with
+     the card via clamp() + min-width:0 rather than a fixed flex-basis —
+     a fixed width doesn't shrink, so at 5-across on a 1366px-wide screen
+     the row's true minimum content width exceeded its grid track and the
+     whole page gained a horizontal scrollbar. */
+  .an-kpi-spark{flex:1 1 84px;width:auto;min-width:0;max-width:136px;height:56px;align-self:center;position:relative}
+  .an-kpi-spark svg{width:100%;height:100%;display:block;overflow:visible}
+  /* Soft breathing glow at the sparkline's endpoint — a slow opacity pulse
+     rather than a size/position change, so it reads as "alive" without
+     drawing attention away from the KPI value it sits beside. */
+  .an-kpi-spark [id$="-glow"]{animation:an-spark-glow-pulse 2.6s ease-in-out infinite}
+  @keyframes an-spark-glow-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+  @media (prefers-reduced-motion: reduce){ .an-kpi-spark [id$="-glow"]{animation:none} }
 
   /* Every direct row of #page-analytics gets the same 18px vertical gap
      below it (Key Insights -> Row 1 -> Row 2 -> Row 3) — a uniform
@@ -430,8 +490,14 @@
      .an-charts-top, so no row's bottom gap can silently collapse to 0
      when a new row type is added after it. The last row's trailing
      margin is harmless (page has bottom padding already). */
-  #page-analytics > .an-insights-bar,#page-analytics > .an-charts-top,#page-analytics > .an-charts-bottom{margin-bottom:18px}
+  #page-analytics > .an-charts-top,#page-analytics > .an-charts-bottom{margin-bottom:18px}
   .an-charts-top,.an-charts-bottom{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  /* Alert Trend needs more horizontal room than its two siblings (it plots
+     two lines against a 30-day x-axis, vs. Hourly Trend's single line and
+     Alert Sync Time's 5-bar histogram) — this class does what an inline
+     style="flex:1.35" on a grid child silently couldn't (flex properties
+     have no effect inside display:grid; that rule was dead code, the row
+     had actually been rendering all 3 columns equal-width). */
   .an-row-wide-left{grid-template-columns:1.35fr 1fr 1fr}
   .an-row-wide-table{grid-template-columns:1.55fr 1fr}
   .an-chart-card{padding:0 14px 12px;overflow:hidden}
@@ -453,12 +519,25 @@
   .an-view-toggle{font-size:12px;color:#2954e8;font-weight:600;cursor:pointer;background:none;border:none;padding:4px 6px}
 
   /* Ranked lists (Top Assets, Top Employees): segmented progress bars with a
-     shared axis row beneath, matching jsx's BarListCard/TopEmployeesCard. */
-  .an-rank-list{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:14px;margin-top:4px}
-  .an-rank-row{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text)}
+     shared axis row beneath, matching jsx's BarListCard/TopEmployeesCard.
+     Fixed max-height + scroll-y — per direct instruction, these now load
+     the FULL ranked list (up to 93 assets / 155 drivers in a 7-day window,
+     not just a top-10 slice) rather than pushing the card, and the page,
+     taller with every row; a shared list length instead scrolls within a
+     fixed-height panel, same footprint at 5 rows or 150. */
+  .an-rank-list{flex:1;display:flex;flex-direction:column;gap:12px;margin-top:4px;max-height:230px;overflow-y:auto;padding-right:4px}
+  .an-rank-row{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text);cursor:pointer;border-radius:6px;padding:2px 4px;margin:0 -4px;transition:background-color .12s}
+  .an-rank-row:hover{background:var(--surface2)}
+  .an-rank-row.active{background:#e6eefe}
   .an-rank-name{width:62px;flex:0 0 auto;font-weight:650}
   .an-rank-track{flex:1;height:9px;background:var(--surface2);border-radius:5px;overflow:hidden}
-  .an-rank-fill{height:100%;background:#2954e8;border-radius:5px}
+  /* display:block — a bare <span> defaults to inline, which silently
+     ignores the inline width:X% and the height:100% below it, so this
+     "bar" never rendered any visible fill at all (confirmed live: the
+     element's own box was 0x0 despite style="width:89%" being set
+     correctly in the DOM). Wasn't width math, wasn't a CSS specificity
+     conflict — inline elements just don't respect either property. */
+  .an-rank-fill{display:block;height:100%;background:#2954e8;border-radius:5px;transition:width .3s ease}
   .an-rank-value{width:44px;flex:0 0 auto;text-align:right;font-size:12px;font-weight:700;color:var(--text)}
   .an-rank-axis{display:flex;justify-content:space-between;margin-top:12px;font-size:10px;color:var(--muted);padding-left:72px}
 
@@ -492,11 +571,19 @@
   .an-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .an-donut-center b{font-size:16px;font-weight:800;color:var(--text)}
   .an-donut-center span{font-size:var(--fs-label);color:var(--muted)}
-  .an-donut-legend{display:flex;flex-direction:column;gap:8px;font-size:var(--fs-body);flex:1;min-width:0}
-  .an-donut-legend-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .an-donut-legend{display:flex;flex-direction:column;gap:10px;font-size:var(--fs-body);flex:1;min-width:0}
+  /* Name and value always stack in their own row (not side-by-side) so a
+     long name (e.g. "Drowsiness Alert") wrapping to 2 lines can never
+     overlap the value — previously they shared one flex row with
+     align-items:center, which vertically centered "127 (5%)" against the
+     row's full 2-line height and landed it on top of the name's wrapped
+     second line. Stacking costs a little vertical density but the value
+     never has to guess how much horizontal room a variable-length name
+     leaves it, at any container width. */
+  .an-donut-legend-row{display:flex;flex-direction:column;gap:1px}
   .an-donut-legend-name{display:flex;align-items:center;gap:6px;color:var(--text);font-weight:500;min-width:0}
   .an-donut-legend-name i{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
-  .an-donut-legend-val{color:var(--muted);font-weight:600;white-space:nowrap}
+  .an-donut-legend-val{color:var(--muted);font-weight:600;white-space:nowrap;padding-left:14px}
   .an-donut-legend-val b{color:var(--muted);font-weight:600}
 
   /* Recent Alerts Overview table (page-local — Alert Logs owns the full paginated table) */
@@ -563,7 +650,6 @@
   #page-alerts.active .al-table-wrap{flex:1;min-height:0}
   .al-badge{display:inline-flex;height:21px;align-items:center;border-radius:999px;padding:0 9px;font-size:var(--fs-badge);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .al-badge[hidden]{display:none}
-  .title h1 .al-badge{vertical-align:middle;margin-left:10px}
   .al-badge.critical{background:#fdeaea;color:#e53553}
   .al-badge.high{background:#fdf0dc;color:#e8952e}
   .al-badge.moderate{background:#e3edfd;color:#3b7cf6}
@@ -1370,6 +1456,21 @@
     .al-summary{grid-template-columns:1fr 1fr}
     .su-kpis{grid-template-columns:repeat(2,1fr)}
     .se-field-row{grid-template-columns:1fr}
+    /* Below this width the sidebar can no longer share the row with page
+       content at any usable size (it was eating 45-60% of a phone-width
+       viewport even in its "collapsed" 72px+hover-to-280px rail form) — it
+       switches to a fixed off-canvas drawer, closed by default, opened by
+       .mobile-nav-toggle. .main becomes the full-width, single-column flow;
+       .app no longer needs to be a flex row since the sidebar is out of
+       normal flow (position:fixed) once .mobile-nav-open is not set. */
+    .app{display:block}
+    .mobile-nav-toggle{display:flex}
+    .sidebar{position:fixed;top:0;left:0;height:100vh;width:280px;flex-basis:280px;transform:translateX(-100%);transition:transform .2s ease}
+    .sidebar.collapsed{width:280px;flex-basis:280px}
+    .sidebar.collapsed .brand-text,.sidebar.collapsed .nav-label,.sidebar.collapsed .section-label,.sidebar.collapsed .mode-toggle span{opacity:1;pointer-events:auto}
+    .sidebar.mobile-open{transform:translateX(0)}
+    .sidebar-backdrop.on{display:block}
+    .main{padding-top:64px}
     #page-driver-asset.active{height:calc(100vh - 36px)}
     #page-alerts.active{height:calc(100vh - 36px)}
     #page-driver-streaks.active{height:calc(100vh - 36px)}
@@ -1421,6 +1522,10 @@
   <style>@keyframes dds-auth-gate-spin{to{transform:rotate(360deg)}}</style>
 </div>
 <div class="app">
+  <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="app-sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
   <aside class="sidebar collapsed" id="app-sidebar">
     <div class="brand">
       <div class="brand-icon" aria-hidden="true">
@@ -1450,7 +1555,10 @@
         <span class="nav-label">Driver &amp; Asset Monitoring</span>
       </button>
       <button class="nav-item" type="button" data-page="driver-streaks">
-        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+          <span class="nav-alert-badge" id="nav-driver-streaks-badge" hidden>0</span>
+        </span>
         <span class="nav-label">Driver Streaks</span>
         <span class="nav-badge" id="ds-nav-badge" hidden>0</span>
       </button>
@@ -1715,47 +1823,79 @@
         </div>
       </header>
 
-      <section class="card an-insights-bar" aria-label="Key insights">
-        <div class="an-insights-head">
-          <div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><h3 class="chart-title">Key Insights</h3></div>
-          <span class="an-synced-note" id="an-synced-note">Data synced just now</span>
+      <div class="card an-filterbar" id="an-filterbar">
+        <div class="al-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="an-search" placeholder="Search asset ID or driver..." style="all:unset;flex:1;min-width:0;font-size:11px;color:var(--text-dim)"></div>
+        <input type="date" class="al-filter" id="an-from" aria-label="From date">
+        <input type="date" class="al-filter" id="an-to" aria-label="To date">
+        <select class="al-filter" id="an-asset" aria-label="Asset filter">
+          <option value="">All assets</option>
+        </select>
+        <button class="al-filter" type="button" id="an-clear-filters">Clear filters</button>
+        <div class="an-active-filter" id="an-active-filter" hidden>
+          <span id="an-active-filter-text"></span>
+          <button type="button" id="an-active-filter-clear" aria-label="Clear selection filter">&times;</button>
         </div>
-        <div class="an-kpis" id="an-kpi-row">
-          <div class="an-kpi-col">
-            <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fde8e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span><span class="an-kpi-label">TOTAL ALERTS</span></div>
-            <div class="an-kpi-value" id="an-kpi-total-value">&mdash;</div>
-            <div class="an-kpi-sub" id="an-kpi-total-change">&mdash;</div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-total-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="an-insights-head">
+        <div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><h3 class="chart-title">Key Insights</h3></div>
+        <span class="an-synced-note" id="an-synced-note">Data synced just now</span>
+      </div>
+      <section class="an-kpis" id="an-kpi-row" aria-label="Key insights">
+        <div class="card an-kpi">
+          <div class="an-kpi-body">
+            <div class="an-kpi-main">
+              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fde8e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
+              <div class="an-kpi-value" id="an-kpi-total-value">&mdash;</div>
+              <div class="an-kpi-sub" id="an-kpi-total-change">&mdash;</div>
+            </div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-total" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e5484d" stop-opacity=".22"/><stop offset="100%" stop-color="#e5484d" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-total"><stop offset="0%" stop-color="#e5484d" stop-opacity=".55"/><stop offset="100%" stop-color="#e5484d" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-total-fill" fill="url(#an-spark-fill-total)" stroke="none" d=""/><polyline id="an-kpi-total-spark" points="0,28 100,28" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-total-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-total)"/><circle id="an-kpi-total-dot" cx="100" cy="28" r="2.5" fill="#e5484d"/></svg></div>
           </div>
-          <div class="an-kpi-col">
-            <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#e6eefe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><span class="an-kpi-label">TOTAL UNITS</span></div>
-            <div class="an-kpi-value" id="an-kpi-units-value">&mdash;</div>
-            <div class="an-kpi-sub" id="an-kpi-units-change">&mdash;</div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-units-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="card an-kpi">
+          <div class="an-kpi-body">
+            <div class="an-kpi-main">
+              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#e6eefe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>TOTAL UNITS</div>
+              <div class="an-kpi-value" id="an-kpi-units-value">&mdash;</div>
+              <div class="an-kpi-sub" id="an-kpi-units-change">&mdash;</div>
+            </div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-units" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2954e8" stop-opacity=".22"/><stop offset="100%" stop-color="#2954e8" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-units"><stop offset="0%" stop-color="#2954e8" stop-opacity=".55"/><stop offset="100%" stop-color="#2954e8" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-units-fill" fill="url(#an-spark-fill-units)" stroke="none" d=""/><polyline id="an-kpi-units-spark" points="0,28 100,28" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-units-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-units)"/><circle id="an-kpi-units-dot" cx="100" cy="28" r="2.5" fill="#2954e8"/></svg></div>
           </div>
-          <div class="an-kpi-col">
-            <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fdf0dc" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><span class="an-kpi-label">AVG SYNC TIME</span></div>
-            <div class="an-kpi-value" id="an-kpi-sync-value">&mdash;</div>
-            <div class="an-kpi-sub" id="an-kpi-sync-change">&mdash;</div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-sync-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="card an-kpi">
+          <div class="an-kpi-body">
+            <div class="an-kpi-main">
+              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fdf0dc" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>AVG SYNC TIME</div>
+              <div class="an-kpi-value" id="an-kpi-sync-value">&mdash;</div>
+              <div class="an-kpi-sub" id="an-kpi-sync-change">&mdash;</div>
+            </div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-sync" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5a524" stop-opacity=".22"/><stop offset="100%" stop-color="#f5a524" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-sync"><stop offset="0%" stop-color="#f5a524" stop-opacity=".55"/><stop offset="100%" stop-color="#f5a524" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-sync-fill" fill="url(#an-spark-fill-sync)" stroke="none" d=""/><polyline id="an-kpi-sync-spark" points="0,28 100,28" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-sync-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-sync)"/><circle id="an-kpi-sync-dot" cx="100" cy="28" r="2.5" fill="#f5a524"/></svg></div>
           </div>
-          <div class="an-kpi-col">
-            <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#ddf6e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span><span class="an-kpi-label">ACTIONABLE RATIO</span></div>
-            <div class="an-kpi-value" id="an-kpi-ratio-value">&mdash;</div>
-            <div class="an-kpi-sub" id="an-kpi-ratio-change">&mdash;</div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><polyline id="an-kpi-ratio-spark" points="0,16 100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="card an-kpi">
+          <div class="an-kpi-body">
+            <div class="an-kpi-main">
+              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#ddf6e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span>ACTIONABLE RATIO</div>
+              <div class="an-kpi-value" id="an-kpi-ratio-value">&mdash;</div>
+              <div class="an-kpi-sub" id="an-kpi-ratio-change">&mdash;</div>
+            </div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-ratio" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#12b76a" stop-opacity=".22"/><stop offset="100%" stop-color="#12b76a" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-ratio"><stop offset="0%" stop-color="#12b76a" stop-opacity=".55"/><stop offset="100%" stop-color="#12b76a" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-ratio-fill" fill="url(#an-spark-fill-ratio)" stroke="none" d=""/><polyline id="an-kpi-ratio-spark" points="0,28 100,28" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-ratio-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-ratio)"/><circle id="an-kpi-ratio-dot" cx="100" cy="28" r="2.5" fill="#12b76a"/></svg></div>
           </div>
-          <div class="an-kpi-col">
-            <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#efe9fe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#7c5cfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></span><span class="an-kpi-label">ALERT TYPE COUNT</span></div>
-            <div class="an-kpi-value" id="an-kpi-typecount-value">&mdash;</div>
-            <div class="an-kpi-sub">vs previous 7 days</div>
-            <div class="an-typecount-bars" id="an-kpi-typecount-bars" aria-hidden="true"></div>
+        </div>
+        <div class="card an-kpi">
+          <div class="an-kpi-body">
+            <div class="an-kpi-main">
+              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#efe9fe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#7c5cfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>DRIVERS INVOLVED</div>
+              <div class="an-kpi-value" id="an-kpi-drivers-value">&mdash;</div>
+              <div class="an-kpi-sub" id="an-kpi-drivers-change">&mdash;</div>
+            </div>
+            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-drivers" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c5cfc" stop-opacity=".22"/><stop offset="100%" stop-color="#7c5cfc" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-drivers"><stop offset="0%" stop-color="#7c5cfc" stop-opacity=".55"/><stop offset="100%" stop-color="#7c5cfc" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-drivers-fill" fill="url(#an-spark-fill-drivers)" stroke="none" d=""/><polyline id="an-kpi-drivers-spark" points="0,28 100,28" fill="none" stroke="#7c5cfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-drivers-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-drivers)"/><circle id="an-kpi-drivers-dot" cx="100" cy="28" r="2.5" fill="#7c5cfc"/></svg></div>
           </div>
         </div>
       </section>
 
-      <section class="an-charts-top">
-        <div class="card an-chart-card" style="flex:1.35" id="anAssetVolumeCard">
+      <section class="an-charts-top an-row-wide-left">
+        <div class="card an-chart-card" id="anAssetVolumeCard">
           <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend (Last 30 Days)</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Total Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Distinct Assets</span></div></div>
           <div class="an-chart-area">
             <!-- Two stacked small multiples, NOT one dual-axis plot — Total
@@ -2581,7 +2721,7 @@
               </colgroup>
               <thead>
                 <tr>
-                  <th class="da-th-check"><input type="checkbox" id="da-drivers-selectall" aria-label="Select all drivers"></th><th data-da-sort="emp_no">Emp ID</th><th data-da-sort="emp_name">Emp Name</th><th>Event Code</th><th data-da-sort="total">Counts</th><th>Status</th><th></th>
+                  <th class="da-th-check"><input type="checkbox" id="da-drivers-selectall" aria-label="Select all drivers"></th><th data-da-sort="emp_no">Emp ID</th><th data-da-sort="emp_name">Emp Name</th><th>Event Code</th><th data-da-sort="total">Counts</th><th title="Whether every individual alert instance below has been reviewed — separate from any corrective action logged for this driver">Review Status</th><th></th>
                 </tr>
               </thead>
               <tbody data-da-tbody="drivers"><!-- rows injected by script --></tbody>
@@ -2660,7 +2800,7 @@
     <div id="page-driver-streaks" class="page">
       <header class="topbar">
         <div class="title">
-          <h1>Driver Streaks <span class="al-badge critical" id="ds-open-badge" hidden>0 open</span></h1>
+          <h1>Driver Streaks</h1>
           <p>Every driver's current alert streak, across the full history — not just the last 7 days</p>
         </div>
       </header>
@@ -2732,28 +2872,28 @@
       <section class="su-kpis" aria-label="7-day totals">
         <div class="card su-kpi">
           <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#ef4444"></span>TOTAL ALERTS</div>
-          <div class="su-kpi-value">7</div>
-          <div class="su-kpi-sub">7-day avg <strong>8</strong>/day · <span class="delta down">↓ 18% vs prior 7d</span></div>
+          <div class="su-kpi-value" id="su-kpi-total-value">—</div>
+          <div class="su-kpi-sub">7-day avg <strong id="su-kpi-total-avg">—</strong>/day · <span class="delta flat" id="su-kpi-total-delta">—</span></div>
         </div>
         <div class="card su-kpi">
           <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#ec4a75"></span>SLEEP ALERTS</div>
-          <div class="su-kpi-value">4</div>
-          <div class="su-kpi-sub"><span class="delta down">↓ 21% vs prior 7d</span></div>
+          <div class="su-kpi-value" id="su-kpi-sleep-value">—</div>
+          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-sleep-delta">—</span></div>
         </div>
         <div class="card su-kpi">
           <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#e8952e"></span>DROWSINESS ALERTS</div>
-          <div class="su-kpi-value">3</div>
-          <div class="su-kpi-sub"><span class="delta down">↓ 12% vs prior 7d</span></div>
+          <div class="su-kpi-value" id="su-kpi-drowsy-value">—</div>
+          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-drowsy-delta">—</span></div>
         </div>
         <div class="card su-kpi">
           <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#3b7cf6"></span>DRIVERS INVOLVED</div>
-          <div class="su-kpi-value">6</div>
-          <div class="su-kpi-sub"><span class="delta up">↑ 7% vs prior 7d</span></div>
+          <div class="su-kpi-value" id="su-kpi-drivers-value">—</div>
+          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-drivers-delta">—</span></div>
         </div>
         <div class="card su-kpi">
           <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#18a05e"></span>ASSETS REPORTING</div>
-          <div class="su-kpi-value">6</div>
-          <div class="su-kpi-sub"><span class="delta flat">— 0% vs prior 7d</span></div>
+          <div class="su-kpi-value" id="su-kpi-assets-value">—</div>
+          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-assets-delta">—</span></div>
         </div>
       </section>
 
@@ -2763,40 +2903,27 @@
             <span class="su-trend-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-4 4"/></svg></span>
             Total Alerts — 7-Day Trend
           </h3>
-          <span class="trend-badge down">↓ 22% vs prior day</span>
+          <span class="trend-badge flat" id="su-trend-badge">—</span>
         </div>
         <div class="chart-area">
-          <svg viewBox="0 0 720 200" role="img" aria-label="Line chart of total alerts over the last 7 days: Wednesday 9, Thursday 6, Friday 12, Saturday 5, Sunday 9, Monday 9, Tuesday 7 (today), with a 7-day average of 8">
+          <svg viewBox="0 0 720 200" role="img" aria-label="Line chart of total alerts over the last 7 days" id="su-trend-svg">
             <defs>
               <linearGradient id="suTrendFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#2563eb" stop-opacity="0.16"/>
                 <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
               </linearGradient>
             </defs>
-            <line class="gridline" x1="40" y1="15" x2="700" y2="15"/><line class="gridline" x1="40" y1="52.5" x2="700" y2="52.5"/><line class="gridline" x1="40" y1="90" x2="700" y2="90"/><line class="gridline" x1="40" y1="127.5" x2="700" y2="127.5"/><line class="gridline" x1="40" y1="160" x2="700" y2="160"/>
-            <text x="30" y="19" class="axis" text-anchor="end">12</text><text x="30" y="56.5" class="axis" text-anchor="end">9</text><text x="30" y="94" class="axis" text-anchor="end">6</text><text x="30" y="131.5" class="axis" text-anchor="end">3</text><text x="30" y="164" class="axis" text-anchor="end">0</text>
-            <line class="trend-mean" x1="40" y1="61.6" x2="700" y2="61.6"/>
-            <text x="695" y="57.6" class="trend-mean-label" text-anchor="end">7d avg: 8</text>
-            <path class="trend-area" d="M60,51.2 L153,87.5 L246,15 L339,99.6 L432,51.2 L525,51.2 L618,75.4 L618,160 L60,160 Z" fill="url(#suTrendFill)"/>
-            <polyline class="trend-line" points="60,51.2 153,87.5 246,15 339,99.6 432,51.2 525,51.2 618,75.4"/>
-            <circle class="trend-dot" cx="60" cy="51.2" r="4"/>
-            <circle class="trend-dot" cx="153" cy="87.5" r="4"/>
-            <circle class="trend-dot peak" cx="246" cy="15" r="4.5"/>
-            <circle class="trend-dot" cx="339" cy="99.6" r="4"/>
-            <circle class="trend-dot" cx="432" cy="51.2" r="4"/>
-            <circle class="trend-dot" cx="525" cy="51.2" r="4"/>
-            <circle class="trend-dot" cx="618" cy="75.4" r="4.5"/>
-            <text x="60" y="182" class="axis" text-anchor="middle">Wed</text>
-            <text x="153" y="182" class="axis" text-anchor="middle">Thu</text>
-            <text x="246" y="182" class="axis" text-anchor="middle">Fri</text>
-            <text x="339" y="182" class="axis" text-anchor="middle">Sat</text>
-            <text x="432" y="182" class="axis" text-anchor="middle">Sun</text>
-            <text x="525" y="182" class="axis" text-anchor="middle">Mon</text>
-            <text x="618" y="182" class="axis" text-anchor="middle" font-weight="700" fill="#1259b6">Tue</text>
+            <g id="su-trend-yaxis"></g>
+            <line class="trend-mean" id="su-trend-mean-line" x1="40" y1="0" x2="700" y2="0"/>
+            <text id="su-trend-mean-label" x="695" y="0" class="trend-mean-label" text-anchor="end"></text>
+            <path class="trend-area" id="su-trend-area" d=""/>
+            <polyline class="trend-line" id="su-trend-line" points=""/>
+            <g id="su-trend-dots"></g>
+            <g id="su-trend-xaxis"></g>
           </svg>
           <div class="hour-legend">
             <span><i style="background:#2563eb"></i>Total alerts</span>
-            <span><i class="dot" style="background:#e53553"></i>Peak day (Fri · 12)</span>
+            <span><i class="dot" style="background:#e53553"></i><span id="su-trend-peak-label">Peak day</span></span>
           </div>
         </div>
       </div>
@@ -2878,19 +3005,19 @@
             <div class="su-open-list">
               <div class="su-open-row">
                 <span class="su-open-label">Events in view</span>
-                <span class="su-open-value">1,842</span>
+                <span class="su-open-value" id="su-open-total">—</span>
               </div>
               <div class="su-open-row">
                 <span class="su-open-label">Critical severity</span>
-                <span class="su-open-value warn">126</span>
+                <span class="su-open-value warn" id="su-open-critical">—</span>
               </div>
               <div class="su-open-row">
                 <span class="su-open-label">Pending review</span>
-                <span class="su-open-value warn">18</span>
+                <span class="su-open-value warn" id="su-open-pending">—</span>
               </div>
               <div class="su-open-row">
                 <span class="su-open-label">Actioned (of actionable)</span>
-                <span class="su-open-value good">94%</span>
+                <span class="su-open-value good" id="su-open-actioned">—</span>
               </div>
             </div>
             <div class="su-open-cta">
@@ -3950,6 +4077,40 @@
         goToPage(btn.getAttribute('data-goto'));
       });
     });
+
+    // ---- Sidebar "something needs attention" badges ----
+    // Unlike Data Management's dm-review-badge (only ever refreshed when
+    // that page's own code happens to run), this is meant to be visible
+    // from ANY page — per direct instruction, the point is surfacing an
+    // open Driver Streaks case even while looking at Overview or Alert
+    // Logs, not just when that page is already open. Anchored to the
+    // nav-icon itself (not the label) so it survives the sidebar's
+    // collapsed icon-only rail too (see .nav-alert-badge CSS).
+    function refreshDriverStreaksNavBadge(){
+      var badge = document.getElementById('nav-driver-streaks-badge');
+      if(!badge) return;
+      requireSession().then(function(sess){
+        if(!sess){ badge.hidden = true; return; }
+        return DB.rpc('dds_driver_streaks', {
+          p_search: null, p_min_streak: 1, p_sort: 'streak_days', p_dir: 'desc',
+          p_limit: 1, p_offset: 0
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var openCount = (res.data || {}).openCount;
+          if(openCount == null || openCount <= 0){ badge.hidden = true; return; }
+          badge.hidden = false;
+          badge.textContent = openCount > 99 ? '99+' : String(openCount);
+        });
+      }).catch(function(err){
+        console.error('Driver streaks nav badge fetch failed', err);
+      });
+    }
+    refreshDriverStreaksNavBadge();
+    // Re-checked whenever Driver Streaks itself finishes loading (its own
+    // load() already fetches openCount for the in-page badge — see that
+    // page's own IIFE) so logging an action there updates the sidebar
+    // badge immediately instead of waiting for a full app reload.
+    window.__ddsRefreshDriverStreaksNavBadge = refreshDriverStreaksNavBadge;
   })();
 
   // ---------- Overview page: real dds_metrics() data, Phase 4 ----------
@@ -4582,15 +4743,65 @@
     var guard = makeGuard();
     function fmtPct(n, d){ return (n == null ? 0 : n).toFixed(d == null ? 0 : d) + '%'; }
 
+    // Single source of truth for every filter/selection on this page — the
+    // filter bar (search/from/to/asset) and the cross-filter click-to-select
+    // on Top Assets/Top Employees/the donut all write here, and `load()`
+    // reads from here on every re-fetch, so every chart and KPI on the page
+    // always reflects the same combined filter set rather than each control
+    // owning its own private state that only some charts see.
+    var filterState = { search: '', from: null, to: null, assetId: null, crossAsset: null, crossDriver: null };
+    function activeAssetIds(){
+      // Filter-bar asset picker and a clicked Top-Assets row both narrow to
+      // one asset; if both are set the more specific click-to-filter wins.
+      var id = filterState.crossAsset || filterState.assetId;
+      return id ? [id] : null;
+    }
+    function setCrossFilter(kind, value){
+      if(kind === 'asset'){ filterState.crossAsset = value; filterState.crossDriver = null; }
+      else { filterState.crossDriver = value; filterState.crossAsset = null; }
+      renderActiveFilterChip();
+      load();
+    }
+    function renderActiveFilterChip(){
+      var chip = document.getElementById('an-active-filter');
+      var text = document.getElementById('an-active-filter-text');
+      if(!chip || !text) return;
+      if(filterState.crossAsset){
+        chip.hidden = false;
+        // dds_driver_event_summary()/dds_asset_event_summary() (the two
+        // ranked lists) have no per-asset filter parameter either — only
+        // dds_metrics() (KPIs, trend/hourly/sync charts, donut) supports
+        // p_asset_ids. Same honesty rule as the driver chip below: say what
+        // actually narrowed rather than imply an all-panel filter that two
+        // of the six panels on this page structurally can't apply.
+        text.textContent = 'Filtered to asset ' + filterState.crossAsset + ' — KPIs & charts narrowed (lists show all ' + (filterState.from || filterState.to ? 'in range' : 'drivers/assets') + ')';
+      } else if(filterState.crossDriver){
+        chip.hidden = false;
+        // dds_metrics() (the KPI cards, trend/hourly/sync charts, and donut)
+        // has no per-driver filter parameter — only p_asset_ids. Narrowing
+        // by driver can only reach the two ranked lists and Recent Alerts
+        // below, which do take a search/emp_no filter of their own. Saying
+        // so here instead of silently leaving the KPIs unfiltered avoids
+        // implying a driver click does the same full-page narrowing an
+        // asset click does, when it genuinely can't with the RPCs this page
+        // has available today.
+        text.textContent = 'Filtered to driver ' + filterState.crossDriver + ' — lists narrowed (KPIs/charts have no per-driver filter)';
+      } else {
+        chip.hidden = true;
+        text.textContent = '';
+      }
+    }
+
     var UNSPECIFIED_OPERATOR = 'Unspecified';
-    // dds_metrics()'s topOperators[].id is already the resolved display
-    // name ("SURNAME, First Middle") once a row's emp_no matches the
-    // masterlist — .empNo is the raw ID, meant as a fallback only for the
-    // rare case a name never resolved. This previously had the priority
-    // backwards (o.empNo || o.id), so "Top Employees by Alerts" showed raw
-    // employee numbers instead of names for every single resolved driver —
-    // only visible against real data, not the signed-out/empty state.
-    var driverLabel = function(o){ return o.id || o.empNo; };
+    // "Top Employees by Alerts" shows the driver's emp_no (not their full
+    // resolved name) per direct instruction — long "SURNAME, First Middle"
+    // names were wrapping to 2-3 lines each in this ranked list, reading as
+    // cluttered/messy against the single-line asset-ID rows in the sibling
+    // "Top Assets" list right beside it. .empNo is the raw employee number;
+    // .id is the resolved display name, kept as a fallback only for the
+    // rare row that has no empNo at all (so the row still shows something
+    // rather than going blank).
+    var driverLabel = function(o){ return o.empNo || o.id; };
 
     // ---- clock (same pattern as Overview) ----
     var clockTimeEl = document.querySelector('#page-analytics .time');
@@ -4604,8 +4815,10 @@
     setInterval(tickClock, 30000);
 
     function fetchMetrics(from, to){
-      return DB.rpc('dds_metrics', { p_from: from || null, p_to: to || null, p_shift: null, p_actionable_only: false })
-        .then(function(res){
+      return DB.rpc('dds_metrics', {
+        p_from: from || null, p_to: to || null, p_shift: null,
+        p_asset_ids: activeAssetIds(), p_event_codes: null, p_actionable_only: false
+      }).then(function(res){
           if(res.error) throw res.error;
           return res.data;
         });
@@ -4635,6 +4848,9 @@
       var valueEl = document.getElementById('an-kpi-' + key + '-value');
       var changeEl = document.getElementById('an-kpi-' + key + '-change');
       var sparkEl = document.getElementById('an-kpi-' + key + '-spark');
+      var fillEl = document.getElementById('an-kpi-' + key + '-fill');
+      var glowEl = document.getElementById('an-kpi-' + key + '-glow');
+      var dotEl = document.getElementById('an-kpi-' + key + '-dot');
       var fmt = formatter || fmtNum;
       if(valueEl) valueEl.textContent = fmt(curVal);
       if(changeEl){
@@ -4642,22 +4858,35 @@
         changeEl.innerHTML = '<span class="delta ' + (d7.cls === 'good' ? 'up' : (d7.cls === 'bad' ? 'down' : 'flat')) + '">' + esc(d7.text) + '</span> vs previous 7 days';
       }
       if(sparkEl){
+        // Viewbox is 100x56 (widened from the old 100x32 so the sparkline
+        // has real vertical room of its own, per direct instruction) — the
+        // line plots within y=6..50, leaving 6px headroom top and bottom
+        // before the fill/glow/dot are added on top of it.
+        var B = 50, T = 6;
         if(sparkVals && sparkVals.length){
           var max = Math.max.apply(null, sparkVals.concat([1]));
           var min = Math.min.apply(null, sparkVals.concat([0]));
           var range = Math.max(max - min, 1);
           var n = sparkVals.length;
-          var pts = sparkVals.map(function(v, i){
+          var ptsXY = sparkVals.map(function(v, i){
             var x = n === 1 ? 0 : (i / (n - 1)) * 100;
-            var y = 28 - ((v - min) / range) * 24;
-            return x.toFixed(1) + ',' + y.toFixed(1);
-          }).join(' ');
+            var y = B - ((v - min) / range) * (B - T);
+            return [x, y];
+          });
+          var pts = ptsXY.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
           sparkEl.setAttribute('points', pts);
+          if(fillEl) fillEl.setAttribute('d', 'M' + pts.replace(/ /g, ' L') + ' L100,56 L0,56 Z');
+          var last = ptsXY[ptsXY.length - 1];
+          if(glowEl){ glowEl.setAttribute('cx', last[0].toFixed(1)); glowEl.setAttribute('cy', last[1].toFixed(1)); }
+          if(dotEl){ dotEl.setAttribute('cx', last[0].toFixed(1)); dotEl.setAttribute('cy', last[1].toFixed(1)); }
         } else {
           // No data for the window (e.g. right after a fleet data reset) —
           // reset to the markup's own flat-line baseline rather than
           // leaving the previous fetch's sparkline shape in place.
-          sparkEl.setAttribute('points', '0,16 100,16');
+          sparkEl.setAttribute('points', '0,28 100,28');
+          if(fillEl) fillEl.setAttribute('d', '');
+          if(glowEl){ glowEl.setAttribute('cx', '100'); glowEl.setAttribute('cy', '28'); }
+          if(dotEl){ dotEl.setAttribute('cx', '100'); dotEl.setAttribute('cy', '28'); }
         }
       }
     }
@@ -4667,26 +4896,40 @@
       var trend = cur.trend || [];
       var totalsSpark = trend.slice(-14).map(function(t){ return t.units; });
       var assetsSpark = trend.slice(-14).map(function(t){ return t.assets; });
+      // dds_metrics()'s trend[] already carries a per-day avgSyncSeconds
+      // (confirmed in its own CTE) — previously unused here, so this card
+      // fell back to the "no data" flat baseline every time even though a
+      // real per-day shape was available. actionableRatio has no per-day
+      // equivalent in trend[] (only a whole-window total), so that KPI's
+      // flat line stays as the honest "no daily breakdown" state, not a bug.
+      // Days with only a handful of rows (an import still trickling in for
+      // "today", confirmed live: 09/07 had exactly 1 event) produce an
+      // average from a single data point — plotting it at full weight made
+      // the line take a sharp dive at the very end even while the real
+      // week-over-week average (the headline "+31%") was rising, which read
+      // as the chart flatly contradicting the number beside it. Per direct
+      // instruction: drop those near-empty trailing days from the sparkline
+      // rather than let a 1-row average outweigh a 300-row one visually.
+      var MIN_SYNC_SAMPLE = 5;
+      var syncSpark = trend.slice(-14)
+        .filter(function(t){ return (t.events || 0) >= MIN_SYNC_SAMPLE; })
+        .map(function(t){ return t.avgSyncSeconds || 0; });
 
       setKpi('total', kpis.totalAlerts, p7 ? p7.totalAlerts : null, totalsSpark);
       setKpi('units', kpis.distinctAssets, p7 ? p7.distinctAssets : null, assetsSpark);
-      setKpi('sync', kpis.avgSyncSeconds, p7 ? p7.avgSyncSeconds : null, null, fmtSyncSeconds);
+      setKpi('sync', kpis.avgSyncSeconds, p7 ? p7.avgSyncSeconds : null, syncSpark, fmtSyncSeconds);
       // actionableRatio is already a 0-100 percentage (dds_metrics() computes
       // it as (actionable/total)*100 server-side, confirmed live), not a 0-1
       // fraction — fmtPct(n) appends '%' directly, no extra *100 here.
       setKpi('ratio', kpis.actionableRatio, p7 ? p7.actionableRatio : null, null, function(v){ return fmtPct(v || 0); });
-
-      var typeCountEl = document.getElementById('an-kpi-typecount-value');
-      var typeBarsEl = document.getElementById('an-kpi-typecount-bars');
-      var codes = (cur.eventCodeDistribution || []).slice().sort(function(a,b){ return b.units - a.units; });
-      if(typeCountEl) typeCountEl.textContent = fmtNum(codes.length);
-      if(typeBarsEl){
-        var peak = Math.max.apply(null, codes.map(function(c){ return c.units; }).concat([1]));
-        typeBarsEl.innerHTML = codes.slice(0, 5).map(function(c){
-          var h = 8 + Math.round((c.units / peak) * 20);
-          return '<i style="height:' + h + 'px"></i>';
-        }).join('');
-      }
+      // Replaces the old "Alert Type Count" card (2 types, Sleep/Drowsy —
+      // already fully shown by the Alert Type Distribution donut below, so
+      // this card was redundant) per direct instruction. distinctOperators
+      // has no per-day equivalent in trend[] either (same as
+      // actionableRatio above — only a whole-window total), so this KPI's
+      // sparkline stays flat honestly rather than fabricate a daily shape
+      // that doesn't exist in the data.
+      setKpi('drivers', kpis.distinctOperators, p7 ? p7.distinctOperators : null, null);
     }
 
     // ==================== Alert Volume by Distinct Asset (trend) ====================
@@ -4935,36 +5178,92 @@
       var step = norm <= 1 ? 1 : (norm <= 2 ? 2 : (norm <= 5 ? 5 : 10));
       return step * mag;
     }
+    // items: [{label, value, key}]. `key` (emp_no or asset id) drives the
+    // click-to-cross-filter selection and its active-row highlight; `kind`
+    // says which filterState field a click sets.
     function renderRankedList(containerId, items, opts){
       var body = document.getElementById(containerId);
       if(!body) return;
       opts = opts || {};
-      items = items.slice(0, 5);
       if(!items.length){
         body.innerHTML = '<div class="da-empty">' + esc(opts.emptyText || 'No data') + '</div>';
         return;
       }
       var rawPeak = Math.max.apply(null, items.map(function(i){ return i.value; }).concat([1]));
       var axisMax = niceAxisMax(rawPeak);
+      var activeKey = opts.kind === 'asset' ? filterState.crossAsset : filterState.crossDriver;
       var rows = items.map(function(item){
         var pct = Math.round((item.value / axisMax) * 100);
-        return '<div class="an-rank-row"><span class="an-rank-name" title="' + esc(item.label) + '">' + esc(item.label) +
+        var isActive = activeKey != null && activeKey === item.key;
+        return '<div class="an-rank-row' + (isActive ? ' active' : '') + '" data-an-rank-key="' + esc(item.key) + '" title="Click to filter this page to ' + esc(item.label) + '"><span class="an-rank-name" title="' + esc(item.label) + '">' + esc(item.label) +
           '</span><span class="an-rank-track"><span class="an-rank-fill" style="width:' + pct + '%"></span></span>' +
           '<span class="an-rank-value">' + fmtNum(item.value) + '</span></div>';
       }).join('');
       var ticks = [0, 0.25, 0.5, 0.75, 1].map(function(f){ return fmtNum(Math.round(axisMax * f)); });
       body.innerHTML = '<div class="an-rank-list">' + rows + '</div>' +
         '<div class="an-rank-axis">' + ticks.map(function(t){ return '<span>' + esc(t) + '</span>'; }).join('') + '</div>';
+      body.querySelectorAll('.an-rank-row').forEach(function(row){
+        row.addEventListener('click', function(){
+          var key = row.getAttribute('data-an-rank-key');
+          if(opts.kind === 'asset') setCrossFilter('asset', filterState.crossAsset === key ? null : key);
+          else setCrossFilter('driver', filterState.crossDriver === key ? null : key);
+        });
+      });
     }
-    function renderTopDrivers(cur){
-      var items = (cur.topOperators || []).filter(function(o){ return o.id !== UNSPECIFIED_OPERATOR; });
-      renderRankedList('an-topdrivers-body', items.map(function(o){ return { label: driverLabel(o), value: o.total }; }),
-        { emptyText: 'No driver data — alert rows carry no driver name yet' });
+    // from/to are the SAME resolved primary window load() computed for the
+    // KPI cards (winFrom/winTo — the filter bar's explicit range, or else
+    // the standing trailing-7-day default) — passed in explicitly rather
+    // than read from filterState.from/to directly, which are only non-null
+    // once the user has actually picked a custom date. Without this these
+    // two lists silently queried all-time totals while every other panel
+    // on the page showed a 7-day window, so e.g. an asset's "Top Assets"
+    // total (7,965) had no relation to its trend-chart total for the same
+    // week — confirmed live, this was a real data-consistency bug, not
+    // just a display one.
+    function fetchTopDrivers(from, to){
+      return DB.rpc('dds_driver_event_summary', {
+        p_search: filterState.search || null, p_sort: 'total', p_dir: 'desc',
+        p_limit: 200, p_offset: 0,
+        p_from: from || null, p_to: to || null, p_shift: null
+      }).then(function(res){
+        if(res.error) throw res.error;
+        // emp_no_norm carries the literal string 'UNSPECIFIED' (a real
+        // sentinel value, confirmed live — 3,034 rows) for unresolved
+        // operator text, not null/empty, so a bare truthy check on empNo
+        // doesn't exclude it; per direct instruction this row is ignored
+        // entirely rather than shown as a fake "driver".
+        return ((res.data || {}).rows || []).filter(function(r){ return r.empNo && r.empNo !== UNSPECIFIED_OPERATOR.toUpperCase(); });
+      });
     }
-    function renderTopAssets(cur){
-      var items = cur.topAssets || [];
-      renderRankedList('an-topassets-body', items.map(function(a){ return { label: a.id, value: a.total }; }),
-        { emptyText: 'No assets in range' });
+    function fetchTopAssets(from, to){
+      return DB.rpc('dds_asset_event_summary', {
+        p_search: filterState.search || null, p_sort: 'total', p_dir: 'desc',
+        p_limit: 200, p_offset: 0,
+        p_from: from || null, p_to: to || null, p_shift: null
+      }).then(function(res){
+        if(res.error) throw res.error;
+        return (res.data || {}).rows || [];
+      });
+    }
+    function renderTopDrivers(from, to){
+      return fetchTopDrivers(from, to).then(function(rows){
+        var items = rows.map(function(r){ return { label: r.empNo, value: r.total, key: r.empNo }; });
+        renderRankedList('an-topdrivers-body', items,
+          { emptyText: 'No driver data for this filter', kind: 'driver' });
+      }).catch(function(err){
+        console.error('Top drivers fetch failed', err);
+        renderRankedList('an-topdrivers-body', [], { emptyText: 'Could not load driver data' });
+      });
+    }
+    function renderTopAssets(from, to){
+      return fetchTopAssets(from, to).then(function(rows){
+        var items = rows.map(function(r){ return { label: r.assetId, value: r.total, key: r.assetId }; });
+        renderRankedList('an-topassets-body', items,
+          { emptyText: 'No assets for this filter', kind: 'asset' });
+      }).catch(function(err){
+        console.error('Top assets fetch failed', err);
+        renderRankedList('an-topassets-body', [], { emptyText: 'Could not load asset data' });
+      });
     }
 
     // ==================== Alert Type Distribution (donut) ====================
@@ -5182,14 +5481,12 @@
     function signedOutState(){
       var kpiRow = document.getElementById('an-kpi-row');
       if(kpiRow){
-        ['total','units','sync','ratio'].forEach(function(key){
+        ['total','units','sync','ratio','drivers'].forEach(function(key){
           var v = document.getElementById('an-kpi-' + key + '-value');
           var c = document.getElementById('an-kpi-' + key + '-change');
           if(v) v.textContent = '—';
           if(c) c.textContent = 'Sign in to load real data';
         });
-        var typeEl = document.getElementById('an-kpi-typecount-value');
-        if(typeEl) typeEl.textContent = '—';
       }
       ['an-topdrivers-body','an-topassets-body'].forEach(function(id){
         var el = document.getElementById(id);
@@ -5207,6 +5504,15 @@
       if(syncedEl) syncedEl.textContent = 'Could not load: ' + ((err && err.message) || 'unknown error');
     }
 
+    function toMDY(d){ return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear(); }
+    // dds_driver_event_summary()/dds_asset_event_summary() take native
+    // Postgres `date` params (ISO YYYY-MM-DD via PostgREST), unlike
+    // dds_metrics()'s own p_from/p_to which are text it parses as MM/DD/
+    // YYYY — two different conventions on this page, confirmed against
+    // both functions' live signatures, not a typo to unify.
+    function toISO(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+    function parseISODate(s){ if(!s) return null; var p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+
     function load(){
       var token = guard.start();
       requireSession().then(function(sess){
@@ -5215,24 +5521,26 @@
         setHeaderUsername(sess, 'an-username');
 
         var today = new Date(); today.setHours(0,0,0,0);
-        var sixAgo = new Date(today); sixAgo.setDate(sixAgo.getDate()-6);
-        var prevPeriodEnd = new Date(sixAgo); prevPeriodEnd.setDate(prevPeriodEnd.getDate()-1);
-        var prevPeriodStart = new Date(prevPeriodEnd); prevPeriodStart.setDate(prevPeriodStart.getDate()-6);
-        function toMDY(d){ return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear(); }
+        // Primary window: the filter bar's explicit from/to when set,
+        // otherwise the standing trailing-7-day default. The comparison
+        // ("vs previous N days") window is always the equivalent-length
+        // period immediately before the primary one, so picking a custom
+        // range doesn't leave the KPI deltas comparing mismatched spans.
+        var rangeFrom = parseISODate(filterState.from);
+        var rangeTo = parseISODate(filterState.to);
+        var winTo = rangeTo || today;
+        var winFrom = rangeFrom || (function(){ var d = new Date(winTo); d.setDate(d.getDate()-6); return d; })();
+        var spanDays = Math.max(1, Math.round((winTo - winFrom) / 86400000) + 1);
+        var prevPeriodEnd = new Date(winFrom); prevPeriodEnd.setDate(prevPeriodEnd.getDate()-1);
+        var prevPeriodStart = new Date(prevPeriodEnd); prevPeriodStart.setDate(prevPeriodStart.getDate()-(spanDays-1));
 
-        // KPI deltas are "trailing 7 days vs the 7 days before that" — a
-        // real week-over-week comparison, not the page's overall totals.
-        // (Previously compared an unbounded all-time fetch to a single day
-        // 7 days ago, which produced a confident but meaningless delta.)
-        Promise.all([fetchMetrics(toMDY(sixAgo), toMDY(today)), fetchFactors()]).then(function(results){
+        Promise.all([fetchMetrics(toMDY(winFrom), toMDY(winTo)), fetchFactors(), renderTopDrivers(toISO(winFrom), toISO(winTo)), renderTopAssets(toISO(winFrom), toISO(winTo))]).then(function(results){
           if(!guard.isCurrent(token)) return;
           var cur = results[0], factors = results[1];
 
           renderTrend(cur);
           renderHourlyChart(cur);
           renderSyncInterval(cur);
-          renderTopDrivers(cur);
-          renderTopAssets(cur);
           renderAlertTypeDonut(cur);
           renderRecentAlerts(cur);
           renderFactorImpact(cur, factors);
@@ -5241,12 +5549,12 @@
           var syncedEl = document.getElementById('an-synced-note');
           if(syncedEl) syncedEl.textContent = 'Data synced just now';
 
-          // Comparison window: the 7 days immediately before the current
-          // trailing-7-day window above — a real week-over-week delta, not
-          // a single day. Non-fatal, same degrade-gracefully contract as
-          // Overview's own comparison fetch (Phase 4 precedent): failing
-          // here just leaves KPI deltas blank, the rest of the page already
-          // rendered from `cur` above.
+          // Comparison window: the same span length immediately before the
+          // primary window above — a real like-for-like delta, not a
+          // mismatched-length comparison. Non-fatal, same degrade-
+          // gracefully contract as Overview's own comparison fetch (Phase 4
+          // precedent): failing here just leaves KPI deltas blank, the rest
+          // of the page already rendered from `cur` above.
           fetchMetrics(toMDY(prevPeriodStart), toMDY(prevPeriodEnd)).then(function(p7){
             if(!guard.isCurrent(token)) return;
             renderKpis(cur, p7);
@@ -5262,9 +5570,70 @@
       });
     }
 
+    // ==================== filter bar ====================
+    var debounceTimer = null;
+    function debounceLoad(){
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(load, 300);
+    }
+    var searchInput = document.getElementById('an-search');
+    if(searchInput) searchInput.addEventListener('input', function(e){
+      filterState.search = e.target.value.trim();
+      debounceLoad();
+    });
+    var fromInput = document.getElementById('an-from');
+    if(fromInput) fromInput.addEventListener('change', function(e){
+      filterState.from = e.target.value || null;
+      load();
+    });
+    var toInput = document.getElementById('an-to');
+    if(toInput) toInput.addEventListener('change', function(e){
+      filterState.to = e.target.value || null;
+      load();
+    });
+    var assetSelect = document.getElementById('an-asset');
+    if(assetSelect) assetSelect.addEventListener('change', function(e){
+      filterState.assetId = e.target.value || null;
+      load();
+    });
+    var clearBtn = document.getElementById('an-clear-filters');
+    if(clearBtn) clearBtn.addEventListener('click', function(){
+      filterState.search = ''; filterState.from = null; filterState.to = null; filterState.assetId = null;
+      filterState.crossAsset = null; filterState.crossDriver = null;
+      if(searchInput) searchInput.value = '';
+      if(fromInput) fromInput.value = '';
+      if(toInput) toInput.value = '';
+      if(assetSelect) assetSelect.value = '';
+      renderActiveFilterChip();
+      load();
+    });
+    var activeFilterClearBtn = document.getElementById('an-active-filter-clear');
+    if(activeFilterClearBtn) activeFilterClearBtn.addEventListener('click', function(){
+      filterState.crossAsset = null; filterState.crossDriver = null;
+      renderActiveFilterChip();
+      load();
+    });
+
+    // Populate the asset dropdown once from the full (unfiltered) asset
+    // list — a lightweight one-off fetch, not tied to the filter/reload
+    // cycle above, so re-filtering never has to re-populate its own picker.
+    var assetOptionsLoaded = false;
+    function loadAssetOptions(){
+      if(assetOptionsLoaded || !assetSelect) return;
+      assetOptionsLoaded = true;
+      DB.rpc('dds_asset_event_summary', { p_search: null, p_sort: 'asset_id', p_dir: 'asc', p_limit: 200, p_offset: 0, p_from: null, p_to: null, p_shift: null })
+        .then(function(res){
+          if(res.error) throw res.error;
+          var rows = (res.data || {}).rows || [];
+          var options = rows.map(function(r){ return '<option value="' + esc(r.assetId) + '">' + esc(r.assetId) + '</option>'; }).join('');
+          assetSelect.insertAdjacentHTML('beforeend', options);
+        }).catch(function(err){ console.warn('Asset filter list fetch failed', err); });
+    }
+
     // Phase 8: re-fetch on every nav to this page — see window.__ddsPageLoad.
     window.__ddsPageLoad.analytics = load;
     load();
+    loadAssetOptions();
   })();
 
   // ---------- Summary page: renders live from the Driver & Asset Monitoring state ----------
@@ -5362,9 +5731,206 @@
       }).join('');
     }
 
+    // ==================== KPIs + 7-day trend: real dds_metrics() data ====================
+    // Same trailing-7-day-vs-prior-7-day window and countByTier() sleep/drowsy
+    // split as the Overview page's own dds_metrics() block above — kept as a
+    // separate fetch (not read from window.__daState, which only carries
+    // Driver & Asset Monitoring's per-entity streak data) so Summary's totals
+    // are real fleet-wide alert counts, not a proxy.
+    var summaryGuard = makeGuard();
+
+    function toMDY(d){
+      return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear();
+    }
+    function startOfDay(d){ var x = new Date(d); x.setHours(0,0,0,0); return x; }
+    function addDays(d, n){ var x = new Date(d); x.setDate(x.getDate()+n); return x; }
+    function countByTier(eventCodeDistribution, tier){
+      return (eventCodeDistribution || []).filter(function(c){ return severityBadge(c.code).tier === tier; })
+        .reduce(function(sum, c){ return sum + (c.units || 0); }, 0);
+    }
+    function summaryDelta(cur, prev){
+      if(prev == null || cur == null) return { cls:'flat', text:'—' };
+      var delta = cur - prev;
+      var pct = prev === 0 ? (cur === 0 ? 0 : 100) : Math.round(Math.abs(delta) / prev * 100);
+      if(delta === 0) return { cls:'flat', text:'— 0% vs prior 7d' };
+      return { cls: delta > 0 ? 'up' : 'down', text: (delta > 0 ? '↑ ' : '↓ ') + pct + '% vs prior 7d' };
+    }
+    function setSummaryKpi(key, cur, prev){
+      var valueEl = document.getElementById('su-kpi-' + key + '-value');
+      var deltaEl = document.getElementById('su-kpi-' + key + '-delta');
+      if(valueEl) valueEl.textContent = fmtNum(cur);
+      if(deltaEl){
+        var d = summaryDelta(cur, prev);
+        deltaEl.className = 'delta ' + d.cls;
+        deltaEl.textContent = d.text;
+      }
+    }
+
+    function renderSummaryTrend(week){
+      var trend = (week.trend || []).slice(-7);
+      var svg = document.getElementById('su-trend-svg');
+      if(!svg) return;
+      var rangeLabelEl = document.getElementById('su-range-label');
+      if(rangeLabelEl) rangeLabelEl.textContent = trend.length ?
+        (new Date(trend[0].date.split('/')[2], trend[0].date.split('/')[0]-1, trend[0].date.split('/')[1]).toLocaleDateString('en-US', { month:'short', day:'numeric' }) +
+         '–' + new Date(trend[trend.length-1].date.split('/')[2], trend[trend.length-1].date.split('/')[0]-1, trend[trend.length-1].date.split('/')[1]).toLocaleDateString('en-US', { month:'short', day:'numeric' }) +
+         ' · ' + trend.length + ' days') : '—';
+
+      var lineEl = document.getElementById('su-trend-line'), areaEl = document.getElementById('su-trend-area');
+      var peakLabelEl = document.getElementById('su-trend-peak-label'), badgeEl = document.getElementById('su-trend-badge');
+      if(!trend.length){
+        if(lineEl) lineEl.setAttribute('points', '');
+        if(areaEl) areaEl.setAttribute('d', '');
+        ['su-trend-dots','su-trend-xaxis','su-trend-yaxis'].forEach(function(id){ var el = document.getElementById(id); if(el) el.innerHTML = ''; });
+        var meanLineEl = document.getElementById('su-trend-mean-line');
+        if(meanLineEl){ meanLineEl.setAttribute('y1','0'); meanLineEl.setAttribute('y2','0'); }
+        var meanLabelEl = document.getElementById('su-trend-mean-label');
+        if(meanLabelEl) meanLabelEl.textContent = '';
+        if(peakLabelEl) peakLabelEl.textContent = 'No data this week';
+        if(badgeEl){ badgeEl.className = 'trend-badge flat'; badgeEl.textContent = '—'; }
+        return;
+      }
+
+      var L = 40, R = 700, T = 15, B = 160;
+      var max = Math.max.apply(null, trend.map(function(t){ return t.units; }).concat([1]));
+      var top = Math.max(max, 4);
+      var yFor = function(v){ return B - (v / top) * (B - T); };
+      var xFor = function(i){ return trend.length === 1 ? (L+R)/2 : L + (i / (trend.length - 1)) * (R - L); };
+
+      var yaxis = document.getElementById('su-trend-yaxis');
+      if(yaxis){
+        var steps = 4, html = '';
+        for(var s=0;s<=steps;s++){
+          var v = Math.round(top - (top/steps)*s);
+          var y = T + ((B-T)/steps)*s;
+          html += '<text x="30" y="' + (y+4) + '" class="axis" text-anchor="end">' + fmtNum(v) + '</text>';
+        }
+        yaxis.innerHTML = html;
+      }
+
+      var pts = trend.map(function(t, i){ return xFor(i).toFixed(1) + ',' + yFor(t.units).toFixed(1); }).join(' ');
+      if(lineEl) lineEl.setAttribute('points', pts);
+      if(areaEl) areaEl.setAttribute('d', 'M' + pts.replace(/ /g, ' L') + ' L' + xFor(trend.length-1).toFixed(1) + ',' + B + ' L' + xFor(0).toFixed(1) + ',' + B + ' Z');
+
+      var peakIdx = 0;
+      trend.forEach(function(t, i){ if(t.units > trend[peakIdx].units) peakIdx = i; });
+      var dotsEl = document.getElementById('su-trend-dots');
+      if(dotsEl){
+        dotsEl.innerHTML = trend.map(function(t, i){
+          var isPeak = i === peakIdx;
+          return '<circle class="trend-dot' + (isPeak ? ' peak' : '') + '" cx="' + xFor(i).toFixed(1) +
+            '" cy="' + yFor(t.units).toFixed(1) + '" r="' + (isPeak ? 4.5 : 4) + '"></circle>';
+        }).join('');
+      }
+
+      var xaxis = document.getElementById('su-trend-xaxis');
+      if(xaxis){
+        xaxis.innerHTML = trend.map(function(t, i){
+          var isToday = i === trend.length - 1;
+          var dayLabel = new Date(t.date.split('/')[2], t.date.split('/')[0]-1, t.date.split('/')[1])
+            .toLocaleDateString('en-US', { weekday:'short' });
+          return '<text x="' + xFor(i).toFixed(1) + '" y="182" class="axis" text-anchor="middle"' +
+            (isToday ? ' font-weight="700" fill="#1259b6"' : '') + '>' + esc(dayLabel) + '</text>';
+        }).join('');
+      }
+
+      var avg = trend.reduce(function(s,t){ return s + t.units; }, 0) / trend.length;
+      var meanLine = document.getElementById('su-trend-mean-line'), meanY = yFor(avg);
+      if(meanLine){ meanLine.setAttribute('y1', meanY.toFixed(1)); meanLine.setAttribute('y2', meanY.toFixed(1)); }
+      var meanLabel = document.getElementById('su-trend-mean-label');
+      if(meanLabel){ meanLabel.setAttribute('y', (meanY-4).toFixed(1)); meanLabel.textContent = '7d avg: ' + Math.round(avg); }
+      if(peakLabelEl) peakLabelEl.textContent = 'Peak day (' + esc(new Date(trend[peakIdx].date.split('/')[2], trend[peakIdx].date.split('/')[0]-1, trend[peakIdx].date.split('/')[1]).toLocaleDateString('en-US', { weekday:'short' })) + ' · ' + fmtNum(trend[peakIdx].units) + ')';
+
+      if(badgeEl && trend.length >= 2){
+        var todayV = trend[trend.length-1].units, prevV = trend[trend.length-2].units;
+        var d = summaryDelta(todayV, prevV);
+        badgeEl.className = 'trend-badge ' + (d.cls === 'flat' ? 'flat' : d.cls);
+        badgeEl.textContent = (d.cls === 'up' ? '↑ ' : (d.cls === 'down' ? '↓ ' : '— ')) +
+          (prevV === 0 ? '0' : Math.round(Math.abs(todayV-prevV)/prevV*100)) + '% vs prior day';
+      }
+    }
+
+    function fetchSummaryMetrics(from, to){
+      return DB.rpc('dds_metrics', { p_from: from, p_to: to, p_shift: null, p_actionable_only: false })
+        .then(function(res){
+          if(res.error) throw res.error;
+          return res.data;
+        });
+    }
+
+    // "Pending review" = rows with no action logged yet, same 'unset' status
+    // value Alert Logs' own filter dropdown uses ("Action status: Not yet
+    // logged") — dds_alert_logs()'s `total` field is a filtered count
+    // independent of page size, so a 1-row fetch is enough to read it.
+    function fetchAlertLogsTotal(from, to, status){
+      return DB.rpc('dds_alert_logs', {
+        p_from: from, p_to: to, p_shift: null, p_status: status,
+        p_search: null, p_limit: 1, p_offset: 0, p_sort: 'start_time', p_dir: 'desc'
+      }).then(function(res){
+        if(res.error) throw res.error;
+        return (res.data || {}).total || 0;
+      });
+    }
+
+    function loadSummaryMetrics(){
+      var token = summaryGuard.start();
+      requireSession().then(function(sess){
+        if(!summaryGuard.isCurrent(token) || !sess) return;
+        var today = startOfDay(new Date());
+        var weekStart = addDays(today, -6);
+        var prevWeekEnd = addDays(weekStart, -1);
+        var prevWeekStart = addDays(prevWeekEnd, -6);
+        Promise.all([
+          fetchSummaryMetrics(toMDY(weekStart), toMDY(today)),
+          fetchSummaryMetrics(toMDY(prevWeekStart), toMDY(prevWeekEnd))
+        ]).then(function(results){
+          if(!summaryGuard.isCurrent(token)) return;
+          var week = results[0], prevWeek = results[1];
+          var kpis = week.kpis || {}, prevKpis = prevWeek.kpis || {};
+          var curSleep = countByTier(week.eventCodeDistribution, 'critical');
+          var curDrowsy = countByTier(week.eventCodeDistribution, 'high');
+          var prevSleep = countByTier(prevWeek.eventCodeDistribution, 'critical');
+          var prevDrowsy = countByTier(prevWeek.eventCodeDistribution, 'high');
+          setSummaryKpi('total', kpis.totalAlerts, prevKpis.totalAlerts);
+          setSummaryKpi('sleep', curSleep, prevSleep);
+          setSummaryKpi('drowsy', curDrowsy, prevDrowsy);
+          setSummaryKpi('drivers', kpis.distinctOperators, prevKpis.distinctOperators);
+          setSummaryKpi('assets', kpis.distinctAssets, prevKpis.distinctAssets);
+          var avgEl = document.getElementById('su-kpi-total-avg');
+          if(avgEl) avgEl.textContent = fmtNum(Math.round((kpis.totalAlerts || 0) / 7));
+          renderSummaryTrend(week);
+
+          var totalEl = document.getElementById('su-open-total'), critEl = document.getElementById('su-open-critical');
+          if(totalEl) totalEl.textContent = fmtNum((week.meta || {}).rowCount != null ? week.meta.rowCount : kpis.totalAlerts);
+          if(critEl) critEl.textContent = fmtNum(curSleep);
+
+          Promise.all([
+            fetchAlertLogsTotal(toMDY(weekStart), toMDY(today), 'unset'),
+            fetchAlertLogsTotal(toMDY(weekStart), toMDY(today), 'all')
+          ]).then(function(counts){
+            if(!summaryGuard.isCurrent(token)) return;
+            var pending = counts[0], totalRows = counts[1];
+            var pendingEl = document.getElementById('su-open-pending');
+            if(pendingEl) pendingEl.textContent = fmtNum(pending);
+            var actionedEl = document.getElementById('su-open-actioned');
+            if(actionedEl){
+              var actionedPct = totalRows > 0 ? Math.round(((totalRows - pending) / totalRows) * 100) : 0;
+              actionedEl.textContent = actionedPct + '%';
+            }
+          }).catch(function(err){
+            console.warn('Summary open-items fetch failed', err);
+          });
+        }).catch(function(err){
+          if(!summaryGuard.isCurrent(token)) return;
+          console.error('Summary metrics fetch failed', err);
+        });
+      });
+    }
+
     function renderSummary(){
       renderRiskTable();
       renderActionsList();
+      loadSummaryMetrics();
     }
 
     // Re-render whenever the Summary nav item is opened, so a mid-session action
@@ -5653,6 +6219,30 @@
       setPinned(pinned);
 
       sidebarPinBtn.addEventListener('click', function(){ setPinned(!pinned); });
+    }
+
+    // ---- Mobile nav drawer: below the 820px breakpoint the sidebar is
+    // fixed off-canvas (see that media query's own comment) and this button/
+    // backdrop pair is its only open/close control. Independent of the
+    // desktop pin state above — .mobile-open only ever applies within the
+    // media query that also flips .sidebar to position:fixed, so the two
+    // toggles never fight over the same transform. ----
+    var mobileNavToggle = document.getElementById('mobile-nav-toggle');
+    var sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    if(sidebarEl && mobileNavToggle && sidebarBackdrop){
+      function setMobileNavOpen(on){
+        sidebarEl.classList.toggle('mobile-open', on);
+        sidebarBackdrop.classList.toggle('on', on);
+        mobileNavToggle.setAttribute('aria-expanded', on ? 'true' : 'false');
+        mobileNavToggle.setAttribute('aria-label', on ? 'Close navigation menu' : 'Open navigation menu');
+      }
+      mobileNavToggle.addEventListener('click', function(){
+        setMobileNavOpen(!sidebarEl.classList.contains('mobile-open'));
+      });
+      sidebarBackdrop.addEventListener('click', function(){ setMobileNavOpen(false); });
+      sidebarEl.querySelectorAll('.nav-item').forEach(function(btn){
+        btn.addEventListener('click', function(){ setMobileNavOpen(false); });
+      });
     }
 
     themeOpts.forEach(function(opt){
@@ -10224,8 +10814,12 @@
 
       var emptyNote = document.querySelector('[data-da-empty-note="' + kind + '"]');
       if(emptyNote && kind === 'drivers'){
+        // "need review" (not "need action") — r.done tracks whether every
+        // individual alert instance has been reviewed, not whether a
+        // driver-level corrective action was logged. See the Review Status
+        // column's own comment above for why this distinction matters.
         var pendingCount = rows.filter(function(r){ return !r.done; }).length;
-        emptyNote.textContent = pendingCount ? pendingCount + ' row(s) need action' : 'All caught up';
+        emptyNote.textContent = pendingCount ? pendingCount + ' row(s) need review' : 'All caught up';
       }
 
       updateSortHeaders(kind);
@@ -10233,9 +10827,19 @@
 
     function buildDriverRow(r){
       var tr = document.createElement('tr');
+      // "Reviewed"/"Needs Review" reflects whether every individual alert
+      // instance for this driver has been resolved (dds_driver_event_summary()'s
+      // `done`, derived from dds_case_records.is_unresolved_high_severity) — a
+      // separate concept from the driver-level corrective action (Continue/
+      // Spare/Replace) shown elsewhere as "Actioned"/"Action required". Per
+      // direct instruction: these were both labeled "Status" with "Done"/
+      // "Pending" wording, which looked like the same status disagreeing
+      // across pages when a corrective action had been logged but individual
+      // alerts hadn't; distinct labels make clear they answer different
+      // questions.
       var statusHtml = r.done
-        ? '<span class="da-inst-status done">Done</span>'
-        : '<span class="da-inst-status pending">Pending</span>';
+        ? '<span class="da-inst-status done">Reviewed</span>'
+        : '<span class="da-inst-status pending">Needs Review</span>';
       tr.innerHTML =
         '<td class="da-td-check"><input type="checkbox" class="da-row-check" data-da-driver-check="' + esc(r.empNo) + '" aria-label="Select ' + esc(r.empName) + '"></td>' +
         '<td>' + esc(r.empNo) + '</td>' +
@@ -10939,9 +11543,16 @@
         instRows = data.rows || [];
         instSub.textContent = fmtNum(instRows.length) + ' alert instance(s)';
         if(kind === 'drivers'){
+          // "Review Status" (not bare "Status") — this reflects whether every
+          // individual alert instance listed below has been reviewed, distinct
+          // from the driver-level corrective action shown as "Actioned"/
+          // "Action required" elsewhere (record-detail drawer, Summary). Per
+          // direct instruction: sharing the bare word "Status" made these two
+          // unrelated concepts look like the same status disagreeing with
+          // itself when only one of the two had been logged for a driver.
           instSummary.innerHTML =
             '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.total || 0) + '</span></div>' +
-            '<div class="da-inst-stat"><span class="da-inst-stat-label">Status</span><span class="da-inst-stat-value">' + (data.allHighSeverityActioned ? '<span class="da-inst-status done">Done</span>' : '<span class="da-inst-status pending">Pending</span>') + '</span></div>';
+            '<div class="da-inst-stat"><span class="da-inst-stat-label">Review Status</span><span class="da-inst-stat-value">' + (data.allHighSeverityActioned ? '<span class="da-inst-status done">Reviewed</span>' : '<span class="da-inst-status pending">Needs Review</span>') + '</span></div>';
           renderInstRowsDrivers();
         } else {
           instSummary.innerHTML =
@@ -11060,7 +11671,7 @@
           instSub.textContent = fmtNum(instRows.length) + ' alert instance(s)';
           instSummary.innerHTML =
             '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(res.data.total || 0) + '</span></div>' +
-            '<div class="da-inst-stat"><span class="da-inst-stat-label">Status</span><span class="da-inst-stat-value">' + (res.data.allHighSeverityActioned ? '<span class="da-inst-status done">Done</span>' : '<span class="da-inst-status pending">Pending</span>') + '</span></div>';
+            '<div class="da-inst-stat"><span class="da-inst-stat-label">Review Status</span><span class="da-inst-stat-value">' + (res.data.allHighSeverityActioned ? '<span class="da-inst-status done">Reviewed</span>' : '<span class="da-inst-status pending">Needs Review</span>') + '</span></div>';
           renderInstRowsDrivers();
         }
         bulkAction.value = ''; bulkOther.value = ''; bulkOther.classList.remove('on'); bulkDate.value = '';
