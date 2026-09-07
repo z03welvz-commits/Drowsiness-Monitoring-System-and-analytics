@@ -88,10 +88,10 @@
   .sidebar{width:280px;flex:0 0 280px;background:#012d68;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;transition:width .18s ease,flex-basis .18s ease;z-index:20}
   .sidebar.collapsed{width:72px;flex-basis:72px}
   .sidebar.collapsed:hover,.sidebar.collapsed.pinned-open{width:280px;flex-basis:280px}
-  .sidebar.collapsed .brand-text,.sidebar.collapsed .nav-label,.sidebar.collapsed .nav-badge,.sidebar.collapsed .section-label,.sidebar.collapsed .mode-toggle span{opacity:0;pointer-events:none}
-  .sidebar.collapsed:hover .brand-text,.sidebar.collapsed:hover .nav-label,.sidebar.collapsed:hover .nav-badge,.sidebar.collapsed:hover .section-label,.sidebar.collapsed:hover .mode-toggle span,
-  .sidebar.collapsed.pinned-open .brand-text,.sidebar.collapsed.pinned-open .nav-label,.sidebar.collapsed.pinned-open .nav-badge,.sidebar.collapsed.pinned-open .section-label,.sidebar.collapsed.pinned-open .mode-toggle span{opacity:1;pointer-events:auto}
-  .brand-text,.nav-label,.nav-badge,.section-label,.mode-toggle span{transition:opacity .12s ease}
+  .sidebar.collapsed .brand-text,.sidebar.collapsed .nav-label,.sidebar.collapsed .section-label,.sidebar.collapsed .mode-toggle span{opacity:0;pointer-events:none}
+  .sidebar.collapsed:hover .brand-text,.sidebar.collapsed:hover .nav-label,.sidebar.collapsed:hover .section-label,.sidebar.collapsed:hover .mode-toggle span,
+  .sidebar.collapsed.pinned-open .brand-text,.sidebar.collapsed.pinned-open .nav-label,.sidebar.collapsed.pinned-open .section-label,.sidebar.collapsed.pinned-open .mode-toggle span{opacity:1;pointer-events:auto}
+  .brand-text,.nav-label,.section-label,.mode-toggle span{transition:opacity .12s ease}
   .sidebar.collapsed .nav-item,.sidebar.collapsed .mode-toggle{justify-content:center}
   .sidebar.collapsed .nav-item{gap:0}
   .sidebar-pin{all:unset;box-sizing:border-box;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#b9d7fb;flex:0 0 auto;margin-left:auto;cursor:pointer;transition:background-color .15s,color .15s;opacity:0;pointer-events:none}
@@ -112,7 +112,7 @@
 
   .nav{padding:22px 14px;overflow-y:auto;overflow-x:hidden;flex:1 1 auto}
   .section-label{font-size:var(--fs-badge);letter-spacing:.08em;color:#7fa3d6;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase;white-space:nowrap}
-  .nav-item{all:unset;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
+  .nav-item{all:unset;position:relative;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:14px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
   .nav-item:hover{background:rgba(255,255,255,.07)}
   .nav-item:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .nav-item.active{background:#1361d8;color:#fff;font-weight:600}
@@ -506,8 +506,24 @@
      title badge (#ds-open-badge), mirrored here so it's visible without
      opening the page. Solid fill (not the light-card .al-badge treatment)
      since this sits on the sidebar's dark navy background. */
-  .nav-badge{display:inline-flex;height:18px;min-width:18px;align-items:center;justify-content:center;border-radius:999px;padding:0 6px;font-size:var(--fs-badge);font-weight:750;background:#e53553;color:#fff;flex:0 0 auto}
+  .nav-badge{display:inline-flex;height:18px;min-width:18px;align-items:center;justify-content:center;border-radius:999px;padding:0 6px;font-size:var(--fs-badge);font-weight:750;background:#e53553;color:#fff;flex:0 0 auto;font-variant-numeric:tabular-nums}
   .nav-badge[hidden]{display:none}
+  /* Collapsed rail: float the badge as a small dot on the icon's corner —
+     like a messenger unread-count — instead of fading it out with the
+     label. Positioned off .nav-item's own fixed left padding (12px) plus
+     the icon's fixed 18px width, so it lands on the icon regardless of
+     what the (invisible) label is doing to the rest of the flex row, and
+     never shifts the icon itself since it's taken out of flow. The 2px
+     border matches the sidebar's own background, giving it the same
+     "cut out of the icon" ring real notification badges use. */
+  .sidebar.collapsed .nav-badge{
+    position:absolute;top:2px;left:23px;height:14px;min-width:14px;
+    padding:0 3px;font-size:9px;line-height:1;border:2px solid #012d68;
+  }
+  .sidebar.collapsed:hover .nav-badge,.sidebar.collapsed.pinned-open .nav-badge{
+    position:static;top:auto;left:auto;height:18px;min-width:18px;
+    padding:0 6px;font-size:var(--fs-badge);border:none;
+  }
   .al-status{font-size:var(--fs-caption);font-weight:650;display:inline-flex;align-items:center;gap:5px}
   .al-status::before{content:'';width:6px;height:6px;border-radius:50%;flex:0 0 auto}
   .al-status.reviewed{color:#18a05e}
@@ -1282,6 +1298,12 @@
 </style>
 </head>
 <body>
+<div id="dds-auth-gate" style="position:fixed;inset:0;z-index:99999;background:#012d68;display:flex;align-items:center;justify-content:center">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32" style="animation:dds-auth-gate-spin 0.9s linear infinite">
+    <path d="M12 3a9 9 0 1 0 9 9"/>
+  </svg>
+  <style>@keyframes dds-auth-gate-spin{to{transform:rotate(360deg)}}</style>
+</div>
 <div class="app">
   <aside class="sidebar collapsed" id="app-sidebar">
     <div class="brand">
@@ -3387,6 +3409,64 @@
       __session = res.data && res.data.session;
       return __session;
     });
+  }
+
+  // ---- Auth gate: no signed-out viewing of index.html, plus an
+  // inactivity timeout that forces re-sign-in ----
+  //
+  // The dashboard used to render its signed-out shell/local-mode content
+  // fully visibly, then quietly show "Sign in to load real data" per
+  // widget. Per explicit instruction, a visitor with no active session
+  // should never see this page's content at all — only login.html.
+  //
+  // #dds-auth-gate (the very first element in <body>, styled inline so it
+  // applies before this stylesheet or script has even finished parsing)
+  // covers the entire viewport until this check resolves: session found
+  // -> gate removed, real content revealed; no session -> redirect to
+  // login.html before the gate ever comes down, so nothing behind it is
+  // ever shown, not even for one frame.
+  (function(){
+    var gate = document.getElementById('dds-auth-gate');
+    requireSession().then(function(sess){
+      if(!sess){
+        window.location.replace('login.html');
+        return; // gate stays up for the remainder of this page's life
+      }
+      if(gate) gate.remove();
+      armInactivityTimeout();
+    }).catch(function(err){
+      console.error('Auth gate check failed', err);
+      window.location.replace('login.html');
+    });
+  })();
+
+  // Signs the user out and sends them back to login.html after a period
+  // of no interaction — a stale, unattended signed-in tab on a shared
+  // fleet-ops machine is exactly the case this closes. 20 minutes is a
+  // single constant to tune; nothing else needs to change if it moves.
+  var INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000;
+  function armInactivityTimeout(){
+    var timer = null;
+    var lastReset = 0;
+    function onTimeout(){
+      DB.auth.signOut().finally(function(){
+        window.location.replace('login.html');
+      });
+    }
+    function reset(){
+      // Activity events (mousemove especially) can fire dozens of times a
+      // second; only actually touch the timer at most once/second so this
+      // never becomes a hot path.
+      var now = Date.now();
+      if(now - lastReset < 1000) return;
+      lastReset = now;
+      if(timer) clearTimeout(timer);
+      timer = setTimeout(onTimeout, INACTIVITY_TIMEOUT_MS);
+    }
+    ['mousemove','mousedown','keydown','touchstart','scroll','wheel'].forEach(function(evt){
+      window.addEventListener(evt, reset, { passive: true, capture: true });
+    });
+    reset();
   }
 
   // Sets the header username chip (`.user` span with id="*-username" —
