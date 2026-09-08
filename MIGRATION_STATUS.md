@@ -1622,6 +1622,37 @@ fixes:
   explicitly dropping the old overload so exactly one version of each
   function exists, and folded into the same migration file before commit.
 
+**Alert Trend chart rebuilt on Chart.js, from a supplied mockup.** Per
+direct instruction ("can we use this for trend, replacing the analytics
+trend over time?"), the hand-rolled SVG shared-axis plot is replaced with
+a Chart.js bar+2-line chart (design adapted from an uploaded mockup),
+reusing the app's own house legend (`.an-legend` in the card header, not
+the mockup's own bottom legend) and the validated `--series-N` palette
+(`--series-1`/`--series-2`/`--series-4`, resolved to real colors via
+`getComputedStyle` since canvas doesn't understand `var()`) instead of the
+mockup's own hardcoded red/blue/amber. Each series now gets its own y-axis
+(Alerts/Operating Hours visible, Assets Involved hidden) — this actually
+*removes* the old chart's documented "shared scale flattens the smaller
+series" tradeoff rather than accepting it, since a real multi-axis plot
+was cheap to add in Chart.js where it wasn't in the old hand-rolled SVG
+renderer. Assets Involved needed no new SQL — `trend[].assets` was already
+computed server-side and simply never plotted. The mockup's own built-in
+date-range dropdown was deliberately NOT carried over, per direct
+instruction — this chart reads `cur.trend` from the same `dds_metrics()`
+call the page's real filter bar (Month/Year/From/To/Asset) already
+drives, so a second, disconnected date control would only have
+re-introduced the exact "filter doesn't do anything" confusion the
+Month/Year rework above was fixing. Also per direct instruction
+("keep 2 graph per rows only"), every chart/list row on this page is now
+2 cards instead of the previous 3-then-3-then-2: Alert Trend+Hourly Trend,
+Alert Sync Time+Alert Type Distribution, Top Assets+Top Employees, Recent
+Alerts+Contributing Factors (already 2, unchanged). Verified with a
+Playwright test using the REAL published Chart.js bundle (not a mock) —
+confirmed exactly one chart instance survives repeated filter-triggered
+re-renders (no leak from creating a new `Chart()` without destroying the
+old one first), the card has no filter control of its own, and the chart
+re-renders when the page's real Asset filter changes.
+
 **Phase 5 is complete.** The mock's Driver & Asset Monitoring page
 (`#page-driver-asset`) wired end-to-end to real `dds_driver_asset_weekly()`/
 `dds_log_entity_action()`/`dds_entity_action_history()` data — no new SQL

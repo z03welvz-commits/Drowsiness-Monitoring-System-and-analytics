@@ -480,14 +480,14 @@
      when a new row type is added after it. The last row's trailing
      margin is harmless (page has bottom padding already). */
   #page-analytics > .an-charts-top,#page-analytics > .an-charts-bottom{margin-bottom:18px}
-  .an-charts-top,.an-charts-bottom{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-  /* Alert Trend needs more horizontal room than its two siblings (it plots
-     two lines against a 30-day x-axis, vs. Hourly Trend's single line and
-     Alert Sync Time's 5-bar histogram) — this class does what an inline
-     style="flex:1.35" on a grid child silently couldn't (flex properties
-     have no effect inside display:grid; that rule was dead code, the row
-     had actually been rendering all 3 columns equal-width). */
-  .an-row-wide-left{grid-template-columns:1.35fr 1fr 1fr}
+  /* Two cards per row throughout Analytics' chart/list sections, per direct
+     instruction — was 3-per-row for the top chart row until the Alert
+     Trend redesign (Chart.js, more series/legend) needed the extra width a
+     third sibling didn't leave room for. .an-row-2col is the explicit name
+     for this (equal to the repeat(2,1fr) default) so a reader doesn't have
+     to infer "2 cards = 2 columns" from card count alone. */
+  .an-charts-top,.an-charts-bottom{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+  .an-row-2col{grid-template-columns:repeat(2,1fr)}
   .an-row-wide-table{grid-template-columns:1.55fr 1fr}
   .an-chart-card{padding:0 14px 12px;overflow:hidden}
   .an-chart-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
@@ -1926,46 +1926,30 @@
         </div>
       </section>
 
-      <section class="an-charts-top an-row-wide-left">
+      <section class="an-charts-top an-row-2col">
         <div class="card an-chart-card" id="anAssetVolumeCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend (Last 30 Days)</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Total Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Total Operating Hours</span></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend (Last 30 Days)</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Operating Hours</span><span><i class="an-swatch" style="background:var(--series-4)"></i>Assets Involved</span></div></div>
           <div class="an-chart-area">
-            <!-- One shared-axis plot, per direct instruction (this used to
-                 be two independently-scaled stacked panels specifically to
-                 avoid implying a correlation between two different-unit
-                 series — see git history). Total Alerts and Total Operating
-                 Hours are still different magnitudes, so the smaller series
-                 can read as a near-flat line hugging the bottom; that's the
-                 accepted tradeoff of a shared scale, not a rendering bug.
-                 Operating hours comes from trend[].operatingHours — MineStat
-                 data (public.minestat_shifts.operating_hrs), a separate
-                 ingest path from the DDS alert events everything else on
-                 this page reads; see 0099_dds_metrics_operating_hours.sql. -->
-            <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-trend-svg">
-              <defs>
-                <linearGradient id="anTrendUnitsFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" style="stop-color:var(--series-1)" stop-opacity="0.14"/>
-                  <stop offset="100%" style="stop-color:var(--series-1)" stop-opacity="0"/>
-                </linearGradient>
-              </defs>
-              <line class="gridline" x1="40" y1="206" x2="480" y2="206"/>
-              <g id="an-trend-yaxis"></g>
-              <path id="an-trend-units-area" fill="url(#anTrendUnitsFill)" d=""/>
-              <path id="an-trend-units" d="" fill="none" stroke="var(--series-1)" stroke-width="2"/>
-              <path id="an-trend-hours" d="" fill="none" stroke="var(--series-2)" stroke-width="2"/>
-
-              <g id="an-trend-axis"></g>
-              <line class="chart-crosshair" id="an-trend-crosshair" x1="0" y1="10" x2="0" y2="206"/>
-              <circle class="chart-hover-dot" id="an-trend-hover-dot" r="4" style="stroke:var(--series-1)"/>
-              <circle class="chart-hover-dot" id="an-trend-hover-dot2" r="4" style="stroke:var(--series-2)"/>
-              <rect class="chart-hover-rect" id="an-trend-hover-rect" x="40" y="0" width="440" height="238"/>
-            </svg>
-            <div class="chart-tooltip" id="an-trend-tooltip">
-              <div class="chart-tooltip-date" id="an-trend-tooltip-date">—</div>
-              <div class="chart-tooltip-value" id="an-trend-tooltip-value">—</div>
-            </div>
+            <!-- Chart.js (bar + 2 lines), replacing the old hand-rolled SVG
+                 shared-axis plot. Each series now gets its OWN y-axis
+                 (Alerts/Operating Hours visible, Assets Involved hidden but
+                 still independently scaled) — this removes the previous
+                 "shared scale flattens the smaller series" tradeoff
+                 entirely rather than accepting it, since Chart.js makes a
+                 real multi-axis plot cheap where the old hand-rolled SVG
+                 renderer wasn't. Operating Hours still comes from
+                 trend[].operatingHours — MineStat data
+                 (public.minestat_shifts.operating_hrs), a separate ingest
+                 path from the DDS alert events everything else on this page
+                 reads (0099_dds_metrics_operating_hours.sql); Assets
+                 Involved is trend[].assets, already computed server-side
+                 and simply unplotted here before. No filter control of its
+                 own — this chart reads `cur` from the SAME dds_metrics()
+                 call the page's real filter bar (Month/Year/From/To/Asset)
+                 already drives, per direct instruction. -->
+            <canvas id="an-trend-canvas"></canvas>
           </div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Total alerts vs. total MineStat operating hours, over the selected period, on a shared scale.</span></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Daily alerts, MineStat operating hours, and distinct assets involved, over the selected period — each on its own scale.</span></div>
         </div>
 
         <div class="card an-chart-card" id="anHourlyCard">
@@ -1998,7 +1982,9 @@
           <div class="an-legend" id="an-hourly-month-legend" style="display:none;flex-wrap:wrap;row-gap:4px;padding-top:6px"></div>
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-hourly-note">&mdash;</span></div>
         </div>
+      </section>
 
+      <section class="an-charts-bottom an-row-2col">
         <div class="card an-chart-card" id="anSyncIntervalCard">
           <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span><h3 class="chart-title an-chart-title">Alert Sync Time</h3></div></div>
           <div class="an-chart-area">
@@ -2014,22 +2000,6 @@
           </div>
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-sync-note">&mdash;</span></div>
         </div>
-      </section>
-
-      <section class="an-charts-bottom">
-        <div class="card an-chart-card" id="anTopAssetsCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><h3 class="chart-title an-chart-title">Top Assets by Alerts</h3></div></div>
-          <div id="an-topassets-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
-            <div class="da-empty">Loading&hellip;</div>
-          </div>
-        </div>
-
-        <div class="card an-chart-card" id="anTopDriversCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><h3 class="chart-title an-chart-title">Top Employees by Alerts</h3></div><button class="view-all" type="button" data-goto="alerts">View all employees</button></div>
-          <div id="an-topdrivers-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
-            <div class="da-empty">Loading&hellip;</div>
-          </div>
-        </div>
 
         <div class="card an-chart-card" id="anAlertTypeDonutCard" style="display:flex;flex-direction:column">
           <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><h3 class="chart-title an-chart-title">Alert Type Distribution</h3></div></div>
@@ -2043,6 +2013,22 @@
             <div class="an-donut-legend" id="an-donut-legend">&mdash;</div>
           </div>
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Distribution by alert type.</span></div>
+        </div>
+      </section>
+
+      <section class="an-charts-bottom an-row-2col">
+        <div class="card an-chart-card" id="anTopAssetsCard" style="display:flex;flex-direction:column">
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><h3 class="chart-title an-chart-title">Top Assets by Alerts</h3></div></div>
+          <div id="an-topassets-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="da-empty">Loading&hellip;</div>
+          </div>
+        </div>
+
+        <div class="card an-chart-card" id="anTopDriversCard" style="display:flex;flex-direction:column">
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><h3 class="chart-title an-chart-title">Top Employees by Alerts</h3></div><button class="view-all" type="button" data-goto="alerts">View all employees</button></div>
+          <div id="an-topdrivers-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="da-empty">Loading&hellip;</div>
+          </div>
         </div>
       </section>
 
@@ -3626,6 +3612,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
 <script>
   // ---------- Shared Supabase client (Phase 3+: real backend, not mock data) ----------
   // Same project/key index.html uses (publishable key — safe to ship client-side,
@@ -5053,77 +5040,117 @@
       setKpi('drivers', kpis.distinctOperators, p7 ? p7.distinctOperators : null, driversSpark);
     }
 
-    // ==================== Alert Trend: Total Alerts vs. Total Operating Hours ====================
-    // One shared-axis plot, per direct instruction — see the card's own
-    // HTML comment for the tradeoff this accepts (this used to be two
-    // independently-scaled panels specifically to avoid that tradeoff, with
-    // Distinct Assets as the second series; also per direct instruction, that
-    // series is now Total Operating Hours — trend[].operatingHours, MineStat
-    // data summed server-side in dds_metrics(), see 0099_dds_metrics_
-    // operating_hours.sql). Both series now go through the same xFor()/
-    // yFor(), so a single y-axis (an-trend-yaxis) replaces the old per-panel
-    // pair.
+    // ==================== Alert Trend: Alerts / Operating Hours / Assets Involved ====================
+    // Chart.js (bar + 2 lines, each on its own y-axis), replacing the old
+    // hand-rolled SVG shared-axis plot per direct instruction (design
+    // adapted from a supplied mockup). No date-range control of its own —
+    // the mockup's own filter dropdown is deliberately NOT reproduced here;
+    // this chart reads `cur.trend`, the same dds_metrics() response the
+    // page's real filter bar (Month/Year/From/To/Asset) already drives, so
+    // it's affected by every one of those exactly like every other panel
+    // on this page.
+    function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+    // Chart.js instance kept module-level so re-renders (every filter
+    // change calls this again) update the existing chart in place —
+    // creating a new Chart() on the same <canvas> without destroying the
+    // old one first leaks instances and layers duplicate canvases.
+    var trendChart = null;
+    function trendDateLabel(mdy){
+      // trend[].date is "MM/DD/YYYY" (dds_metrics()'s own format) — reformatted
+      // to "Mon D" to match the chart's compact x-axis, same idea as
+      // monthLabel() below for the Hourly-by-Month legend.
+      var p = mdy.split('/');
+      var d = new Date(Number(p[2]), Number(p[0]) - 1, Number(p[1]));
+      return MONTH_NAMES[d.getMonth()] + ' ' + d.getDate();
+    }
     function renderTrend(cur){
       var trend = cur.trend || [];
-      if(!trend.length){
-        // Clear every element this function draws into instead of leaving
-        // the previous fetch's line/axis on screen (e.g. right after a
-        // fleet data reset, when there are legitimately zero rows).
-        ['an-trend-units','an-trend-units-area','an-trend-hours'].forEach(function(id){ var el = document.getElementById(id); if(el) el.setAttribute('d', ''); });
-        ['an-trend-axis','an-trend-yaxis'].forEach(function(id){ var el = document.getElementById(id); if(el) el.innerHTML = ''; });
-        return;
-      }
-      var L = 40, R = 480, T = 18, B = 206;
-      var max = Math.max(
-        Math.max.apply(null, trend.map(function(t){ return t.units; })),
-        Math.max.apply(null, trend.map(function(t){ return t.operatingHours || 0; })),
-        1
-      );
-      var xFor = function(i){ return trend.length === 1 ? (L+R)/2 : L + (i / (trend.length - 1)) * (R - L); };
-      var yFor = function(v){ return B - (v / max) * (B - T); };
+      var canvas = document.getElementById('an-trend-canvas');
+      if(!canvas || typeof Chart === 'undefined') return;
+      if(trendChart){ trendChart.destroy(); trendChart = null; }
+      if(!trend.length) return;
 
-      var yaxisEl = document.getElementById('an-trend-yaxis');
-      if(yaxisEl){
-        yaxisEl.innerHTML =
-          '<text x="34" y="' + (T+4).toFixed(1) + '" class="an-axis" text-anchor="end">' + fmtNum(Math.round(max)) + '</text>' +
-          '<text x="34" y="' + (B+4).toFixed(1) + '" class="an-axis" text-anchor="end">0</text>';
-      }
+      var labels = trend.map(function(t){ return trendDateLabel(t.date); });
+      var alertColor = cssVar('--series-1');
+      var hoursColor = cssVar('--series-2');
+      var assetsColor = cssVar('--series-4');
+      var axisColor = cssVar('--muted');
+      var gridColor = cssVar('--grid') || cssVar('--border');
 
-      // Monotone smooth curves (see smoothPathD()) instead of straight
-      // polyline segments — same technique as Overview's trend chart,
-      // every real data point still sits exactly on the curve.
-      var unitsXY = trend.map(function(t, i){ return [xFor(i), yFor(t.units)]; });
-      var hoursXY = trend.map(function(t, i){ return [xFor(i), yFor(t.operatingHours || 0)]; });
-      var unitsEl = document.getElementById('an-trend-units');
-      var unitsAreaEl = document.getElementById('an-trend-units-area');
-      var hoursEl = document.getElementById('an-trend-hours');
-      if(unitsEl) unitsEl.setAttribute('d', smoothPathD(unitsXY));
-      if(unitsAreaEl) unitsAreaEl.setAttribute('d', smoothPathD(unitsXY) + ' L' + xFor(trend.length-1).toFixed(1) + ',' + B + ' L' + xFor(0).toFixed(1) + ',' + B + ' Z');
-      if(hoursEl) hoursEl.setAttribute('d', smoothPathD(hoursXY));
-
-      var axisEl = document.getElementById('an-trend-axis');
-      if(axisEl){
-        var idxs = [0, Math.floor((trend.length-1)/3), Math.floor((trend.length-1)*2/3), trend.length-1];
-        var seen = {};
-        axisEl.innerHTML = idxs.filter(function(i){ if(seen[i]) return false; seen[i]=true; return true; })
-          .map(function(i){
-            // Anchor the first/last labels inward (start/end) instead of
-            // the shared middle default — centered on the last point they'd
-            // otherwise run off the right edge of the viewBox and clip.
-            var anchor = i === 0 ? 'start' : (i === trend.length - 1 ? 'end' : 'middle');
-            return '<text x="' + xFor(i).toFixed(1) + '" y="222" class="an-axis" text-anchor="' + anchor + '">' + esc(trend[i].date) + '</text>';
-          }).join('');
-      }
-
-      wireChartHover({
-        dot2Id: 'an-trend-hover-dot2', getPoints2: function(){ return hoursXY; },
-        rectId: 'an-trend-hover-rect', crosshairId: 'an-trend-crosshair',
-        dotId: 'an-trend-hover-dot', tooltipId: 'an-trend-tooltip',
-        dateId: 'an-trend-tooltip-date', valueId: 'an-trend-tooltip-value',
-        getPoints: function(){ return unitsXY; },
-        getInfo: function(i){
-          var t = trend[i];
-          return { label: t.date, value: fmtNum(t.units) + ' alerts · ' + fmtNum(Math.round(t.operatingHours || 0)) + ' operating hrs' };
+      trendChart = new Chart(canvas.getContext('2d'), {
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Alerts',
+              data: trend.map(function(t){ return t.units; }),
+              backgroundColor: alertColor,
+              borderRadius: 3,
+              yAxisID: 'yAlerts',
+              order: 2
+            },
+            {
+              type: 'line',
+              label: 'Operating Hours',
+              data: trend.map(function(t){ return Math.round(t.operatingHours || 0); }),
+              borderColor: hoursColor,
+              backgroundColor: hoursColor,
+              borderWidth: 2,
+              pointRadius: 2,
+              pointHoverRadius: 5,
+              tension: 0.35,
+              yAxisID: 'yOperating',
+              order: 1
+            },
+            {
+              type: 'line',
+              label: 'Assets Involved',
+              data: trend.map(function(t){ return t.assets || 0; }),
+              borderColor: assetsColor,
+              backgroundColor: assetsColor,
+              borderWidth: 2,
+              pointRadius: 2,
+              pointHoverRadius: 5,
+              tension: 0.35,
+              yAxisID: 'yAssets',
+              order: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false }, // house .an-legend in the card header covers this
+            tooltip: {
+              backgroundColor: '#111827',
+              padding: 10,
+              titleFont: { size: 12 },
+              bodyFont: { size: 11.5 },
+              callbacks: {
+                label: function(ctx){ return ctx.dataset.label + ': ' + fmtNum(ctx.parsed.y); }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: axisColor, font: { size: 9 } } },
+            yAlerts: {
+              position: 'left', beginAtZero: true,
+              ticks: { color: axisColor, font: { size: 9 } },
+              grid: { color: gridColor }
+            },
+            yOperating: {
+              position: 'right', beginAtZero: true,
+              ticks: { color: axisColor, font: { size: 9 } },
+              grid: { drawOnChartArea: false }
+            },
+            // Assets Involved gets its own scale (like yOperating) but stays
+            // hidden — same series count as the supplied mockup, without a
+            // 3rd set of axis labels crowding a card this size.
+            yAssets: { position: 'right', beginAtZero: true, display: false }
+          }
         }
       });
     }
