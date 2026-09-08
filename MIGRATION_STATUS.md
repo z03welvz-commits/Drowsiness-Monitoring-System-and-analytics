@@ -1653,6 +1653,34 @@ re-renders (no leak from creating a new `Chart()` without destroying the
 old one first), the card has no filter control of its own, and the chart
 re-renders when the page's real Asset filter changes.
 
+**Follow-up, live screenshot report: bars stretched to fill the chart when
+a filter returned few days** (visible with 5 points — each bar rendered
+~150px wide instead of a consistent, compact width). Root cause: Chart.js
+bar charts auto-size bar width to fill the available per-category space by
+default, so fewer categories meant fatter bars — the new chart had no
+`barThickness` set at all. Fixed with a fixed geometry the mockup itself
+specified (`barThickness: 48, maxBarThickness: 52`, line
+`borderWidth: 2.5`/`pointRadius: 3`/`tension: 0.2`) plus, per direct
+instruction, a physical-size guarantee for the whole card: `#anAssetVolumeCard`
+(min-width 500px/max-width 900px/min-height 300px) and its
+`.an-trend-viewport` (min-width 460px/max-width 860px/height 320px) are
+sized ONLY by CSS — `renderTrend()` never touches them regardless of how
+many days the filter returns. The one place data-point count is still
+allowed to affect a width is a new inner `#an-trend-scroll` wrapper: it
+stays at `100%` (i.e. exactly the fixed viewport) whenever every bar fits
+at its fixed 48px thickness, and only grows wider than the viewport (with
+the viewport scrolling horizontally to reach the rest) when there are
+enough days that fitting all of them at that fixed thickness genuinely
+needs more room — never the reverse (shrinking bars to fit, or growing the
+outer viewport/card). Verified with a Playwright test simulating 3, 5, 7,
+14, and 30-point filter results against the real Chart.js bundle: card
+size (545×445px) and viewport size (515×320px) were pixel-identical across
+all five, Chart.js's own computed bar width was exactly 48px in every
+case, and the inner scroll wrapper only exceeded 100% for the 14- and
+30-point cases (896px and 1920px respectively), confirming the fix holds
+in both the "few points would otherwise stretch" and "many points would
+otherwise squeeze" directions.
+
 **Phase 5 is complete.** The mock's Driver & Asset Monitoring page
 (`#page-driver-asset`) wired end-to-end to real `dds_driver_asset_weekly()`/
 `dds_log_entity_action()`/`dds_entity_action_history()` data — no new SQL

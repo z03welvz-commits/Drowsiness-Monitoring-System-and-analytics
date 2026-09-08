@@ -498,6 +498,28 @@
   .an-swatch.dashed{background:none!important;border-top:2px dashed var(--series-2)}
   .an-chart-area{height:238px;padding-top:7px;position:relative}
   .an-chart-area svg{width:100%;height:100%;display:block}
+  /* Alert Trend (Chart.js bar+2 lines) — fixed physical size, independent
+     of how many days the active filter returns, per direct instruction:
+     "the filter scope controls WHAT is displayed, never HOW LARGE the
+     chart is." #anAssetVolumeCard/an-trend-viewport's dimensions come ONLY
+     from this CSS, never from JS/data-length math — renderTrend() never
+     touches them. flex:1 1 0 is a no-op safeguard for if this card is ever
+     moved into a flex row instead of the current CSS Grid one (grid
+     doesn't read flex-basis at all, but a future flex layout would, per
+     the same class of bug .an-row-2col's own comment already covers for
+     flex vs. grid on this page). */
+  #anAssetVolumeCard{min-width:500px;max-width:900px;min-height:300px;flex:1 1 0}
+  .an-trend-viewport{
+    min-width:460px;max-width:860px;height:320px;min-height:280px;
+    overflow-x:auto;overflow-y:hidden;
+  }
+  /* The one thing renderTrend() IS allowed to size from data-point count —
+     and only outward (never below 100%), so a filter with many days
+     scrolls horizontally inside this fixed viewport instead of shrinking
+     bar width to fit or growing the viewport/card itself. Height is never
+     touched here; it always fills the fixed viewport above. */
+  .an-trend-scroll{height:100%;width:100%}
+  .an-trend-scroll canvas{width:100%;height:100%}
   .an-axis{font-size:8px;fill:var(--muted)}
   .an-panel-label{font-size:9px;font-weight:700;fill:var(--text-dim);letter-spacing:.02em}
   .an-bar{fill:#2954e8}
@@ -1929,7 +1951,7 @@
       <section class="an-charts-top an-row-2col">
         <div class="card an-chart-card" id="anAssetVolumeCard">
           <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend (Last 30 Days)</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Operating Hours</span><span><i class="an-swatch" style="background:var(--series-4)"></i>Assets Involved</span></div></div>
-          <div class="an-chart-area">
+          <div class="an-chart-area an-trend-viewport" id="an-trend-chart-area">
             <!-- Chart.js (bar + 2 lines), replacing the old hand-rolled SVG
                  shared-axis plot. Each series now gets its OWN y-axis
                  (Alerts/Operating Hours visible, Assets Involved hidden but
@@ -1946,8 +1968,22 @@
                  and simply unplotted here before. No filter control of its
                  own — this chart reads `cur` from the SAME dds_metrics()
                  call the page's real filter bar (Month/Year/From/To/Asset)
-                 already drives, per direct instruction. -->
-            <canvas id="an-trend-canvas"></canvas>
+                 already drives, per direct instruction.
+
+                 Per direct instruction: this card/viewport's physical size
+                 (.an-trend-viewport's own CSS below) is FIXED — it never
+                 grows or shrinks based on how many days the active filter
+                 returns, only the DATA inside it changes. #an-trend-scroll
+                 is the one exception, and only in the many-data-points
+                 direction: renderTrend() gives it an explicit width when
+                 (and only when) plotting every bar at its fixed thickness
+                 needs more room than the fixed viewport has, so it scrolls
+                 internally instead of shrinking bars to fit or stretching
+                 the viewport outward. With room to spare it's just 100%,
+                 i.e. exactly the fixed viewport width — never wider. -->
+            <div class="an-trend-scroll" id="an-trend-scroll">
+              <canvas id="an-trend-canvas"></canvas>
+            </div>
           </div>
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Daily alerts, MineStat operating hours, and distinct assets involved, over the selected period — each on its own scale.</span></div>
         </div>
@@ -5063,6 +5099,29 @@
       var d = new Date(Number(p[2]), Number(p[0]) - 1, Number(p[1]));
       return MONTH_NAMES[d.getMonth()] + ' ' + d.getDate();
     }
+    // Fixed bar geometry regardless of how many days the filter returns —
+    // per direct instruction, this is the ONLY place data-point count is
+    // allowed to influence any width, and only to size the SCROLLABLE
+    // CONTENT inside the fixed viewport (an-trend-chart-area, sized purely
+    // by CSS), never the viewport/card themselves. ~64px = 48px bar +
+    // ~16px inter-category gap, matching TREND_BAR_THICKNESS below.
+    var TREND_BAR_THICKNESS = 48;
+    var TREND_BAR_MAX_THICKNESS = 52;
+    var TREND_PX_PER_CATEGORY = 64;
+    function sizeTrendScroll(pointCount){
+      var areaEl = document.getElementById('an-trend-chart-area');
+      var scrollEl = document.getElementById('an-trend-scroll');
+      if(!scrollEl) return;
+      var viewportWidth = areaEl ? areaEl.clientWidth : 0;
+      var neededWidth = pointCount * TREND_PX_PER_CATEGORY;
+      // viewportWidth is 0 while the Analytics tab isn't the active page
+      // (a display:none ancestor collapses it) — treat that the same as
+      // "fits comfortably" rather than forcing a premature scroll width;
+      // window.__ddsPageLoad re-runs this on every nav to the tab, so the
+      // real width is measured correctly the moment it's actually visible.
+      scrollEl.style.width = (viewportWidth > 0 && neededWidth > viewportWidth)
+        ? neededWidth + 'px' : '100%';
+    }
     function renderTrend(cur){
       var trend = cur.trend || [];
       var canvas = document.getElementById('an-trend-canvas');
@@ -5070,6 +5129,7 @@
       if(trendChart){ trendChart.destroy(); trendChart = null; }
       if(!trend.length) return;
 
+      sizeTrendScroll(trend.length);
       var labels = trend.map(function(t){ return trendDateLabel(t.date); });
       var alertColor = cssVar('--series-1');
       var hoursColor = cssVar('--series-2');
@@ -5087,6 +5147,15 @@
               data: trend.map(function(t){ return t.units; }),
               backgroundColor: alertColor,
               borderRadius: 3,
+              // Fixed thickness (not just a max) so 3 bars sit ~48px wide
+              // with real whitespace between them instead of stretching to
+              // fill the chart, and 30 bars stay the SAME 48px instead of
+              // squeezing thin — sizeTrendScroll() above is what gives
+              // that many bars the horizontal room to keep this thickness
+              // (scrolling inside the fixed viewport) rather than Chart.js
+              // shrinking them to fit.
+              barThickness: TREND_BAR_THICKNESS,
+              maxBarThickness: TREND_BAR_MAX_THICKNESS,
               yAxisID: 'yAlerts',
               order: 2
             },
@@ -5096,10 +5165,10 @@
               data: trend.map(function(t){ return Math.round(t.operatingHours || 0); }),
               borderColor: hoursColor,
               backgroundColor: hoursColor,
-              borderWidth: 2,
-              pointRadius: 2,
+              borderWidth: 2.5,
+              pointRadius: 3,
               pointHoverRadius: 5,
-              tension: 0.35,
+              tension: 0.2,
               yAxisID: 'yOperating',
               order: 1
             },
@@ -5109,10 +5178,10 @@
               data: trend.map(function(t){ return t.assets || 0; }),
               borderColor: assetsColor,
               backgroundColor: assetsColor,
-              borderWidth: 2,
-              pointRadius: 2,
+              borderWidth: 2.5,
+              pointRadius: 3,
               pointHoverRadius: 5,
-              tension: 0.35,
+              tension: 0.2,
               yAxisID: 'yAssets',
               order: 0
             }
