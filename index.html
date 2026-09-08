@@ -961,6 +961,17 @@
   .da-table th[data-da-sort].sorted::after{content:' ▾';font-size:8px}
   .da-table th[data-da-sort].sorted.asc::after{content:' ▴'}
   .da-table td{height:40px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Driver Streaks' action dropdown (.ds-action-dd-menu) is position:absolute,
+     floating below its button — but every .da-table td clips overflow (the
+     rule right above this one) to get text-overflow:ellipsis on the columns
+     that actually hold long text. Without this override the menu was cut off
+     at its own cell's 40px-tall bottom edge, leaving only a sliver of its
+     box-shadow visible and the row(s) underneath painting over the rest —
+     it read as the dropdown being "overlapped" by the table when it was
+     really just clipped almost entirely away. This column holds only the
+     dropdown and the short "Other..." input, neither of which need ellipsis,
+     so overflow:visible here costs nothing. */
+  .da-table td.da-td-action{overflow:visible}
   .da-table tr:hover td{background:var(--surface2)}
   .da-table tr.flag-high td{background:#fff9f9}
   .da-table tr.flag-high:hover td{background:#fef2f2}
@@ -1007,6 +1018,9 @@
   .ds-action-dd-btn::after{content:'';flex:0 0 auto;width:0;height:0;margin-left:4px;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--muted)}
   .ds-action-dd-menu{position:absolute;top:calc(100% + 2px);left:0;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:60;overflow:hidden;padding:4px}
   .ds-action-dd-menu[hidden]{display:none}
+  /* Set by positionActionMenu() when there isn't room below within the
+     table's own scroll container — opens upward instead. */
+  .ds-action-dd-menu.flip-up{top:auto;bottom:calc(100% + 2px)}
   .ds-action-dd-menu button{all:unset;box-sizing:border-box;display:block;width:100%;padding:7px 10px;border-radius:5px;font-size:12px;color:var(--text-dim);cursor:pointer}
   /* The "Other…" describe-it text box sits beside the dropdown button in
      the same fixed-height row/column — it has no width of its own
@@ -11862,7 +11876,7 @@
         '<td>' + esc(r.name) + '</td>' +
         '<td>' + fmtNum(r.totalCount) + '</td>' +
         '<td>' + statusBadgeHtml(r) + '</td>' +
-        '<td>' +
+        '<td class="da-td-action">' +
           '<div class="ds-action-dd" data-ds-action="' + i + '">' +
             '<button type="button" class="ds-action-dd-btn" data-ds-dd-btn="' + i + '" aria-haspopup="true" aria-expanded="false">' + esc(actionButtonLabel(currentType)) + '</button>' +
             '<div class="ds-action-dd-menu" data-ds-dd-menu="' + i + '" hidden>' + actionMenuHtml(i) + '</div>' +
@@ -12098,6 +12112,28 @@
         if(btn) btn.setAttribute('aria-expanded', 'false');
       });
     }
+    // The menu is position:absolute below its button by default (see
+    // .ds-action-dd-menu). That's fine for most rows, but Driver Streaks'
+    // table scrolls within its own fixed-height viewport (.da-table-wrap-
+    // flex) — opening the dropdown on one of the last visible rows before
+    // that scroll boundary left the menu extending past the scroller's own
+    // clipped edge, with only a sliver of it actually visible (the same
+    // "overlapped/cut off" look .da-td-action's overflow:visible fixed for
+    // the cell-level clip above, just one level further out). Flip the menu
+    // to open upward instead whenever there isn't room below within the
+    // scroll container but there is above.
+    function positionActionMenu(btn, menu){
+      menu.classList.remove('flip-up');
+      var scroller = btn.closest('.da-table-wrap-flex') || btn.closest('.da-table-wrap');
+      if(!scroller) return;
+      var btnRect = btn.getBoundingClientRect();
+      var scrollerRect = scroller.getBoundingClientRect();
+      var spaceBelow = scrollerRect.bottom - btnRect.bottom;
+      var spaceAbove = btnRect.top - scrollerRect.top;
+      if(menu.offsetHeight > spaceBelow && spaceAbove > spaceBelow){
+        menu.classList.add('flip-up');
+      }
+    }
     tbody.addEventListener('click', function(e){
       var toggleBtn = e.target.closest('[data-ds-dd-btn]');
       if(toggleBtn){
@@ -12108,6 +12144,7 @@
         closeAllActionMenus(willOpen ? ti : null);
         menu.hidden = !willOpen;
         toggleBtn.setAttribute('aria-expanded', String(willOpen));
+        if(willOpen) positionActionMenu(toggleBtn, menu);
         return;
       }
       var optBtn = e.target.closest('[data-ds-opt]');
