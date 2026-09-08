@@ -1459,6 +1459,21 @@ named in the master prompt's 0–9 phase sequence at all; wiring them is a
 scope decision for a human to make explicitly, not something a phase number
 already answers.
 
+**Update (0100_dds_alert_logs_summary_totals.sql, live-applied) — a
+different, real bug in Alert Logs' summary cards, found via user report:**
+CRITICAL / WITH A LOGGED CASE / ACTIONABLE were computed client-side from
+`rows` — the infinite-scroll table's own accumulated, partially-loaded
+array — instead of the full filtered result set `dds_alert_logs()`'s
+`total` already reflects. Confirmed live: for a filter matching 997 events,
+the UI showed "19 critical" (89% of the ~20 rows loaded at first paint)
+against the real fleet-wide count of 886 — a ~47x understatement, with the
+"With a logged case" tile's sub-label never even wired to real data at all
+(no id on that element; permanently the static "Of events loaded"). Added
+`criticalTotal`/`casedTotal`/`actionableTotal` to `dds_alert_logs()`,
+aggregated over the same pre-LIMIT/OFFSET `filtered` CTE `total` already
+uses, and pointed index.html's `updateSummaryCardsAL()` at those instead of
+`rows`.
+
 **Phase 5 is complete.** The mock's Driver & Asset Monitoring page
 (`#page-driver-asset`) wired end-to-end to real `dds_driver_asset_weekly()`/
 `dds_log_entity_action()`/`dds_entity_action_history()` data — no new SQL

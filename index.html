@@ -558,13 +558,23 @@
 
   /* Alert Type Distribution donut (replaces the old Action-Taken donut —
      jsx's card groups by real event type, colored per severityBadge()) */
-  .an-donut-card{display:flex;align-items:center;gap:14px;flex:1}
+  /* justify-content:center — with only 1-2 event types actually occurring
+     in a given filter window (Sleep/Drowsiness, say), the legend's real
+     content is much narrower than the card. .an-donut-legend used to be
+     flex:1, stretching the (invisible) legend box to fill 100% of the
+     remaining card width while its actual text stayed left-anchored
+     inside that box — all the leftover space landed as dead air on the
+     right instead of being distributed around the donut+legend group.
+     Centering the pair as one unit spreads that same leftover space
+     evenly instead. With a full 4-tier legend the group's natural width
+     already fills most of the card, so this is a no-op in that case. */
+  .an-donut-card{display:flex;align-items:center;justify-content:center;gap:14px;flex:1}
   .an-donut-wrap{width:130px;height:130px;position:relative;flex:0 0 auto}
   .an-donut-wrap svg{width:100%;height:100%}
   .an-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .an-donut-center b{font-size:16px;font-weight:800;color:var(--text)}
   .an-donut-center span{font-size:var(--fs-label);color:var(--muted)}
-  .an-donut-legend{display:flex;flex-direction:column;gap:10px;font-size:var(--fs-body);flex:1;min-width:0}
+  .an-donut-legend{display:flex;flex-direction:column;gap:10px;font-size:var(--fs-body);flex:0 1 auto;min-width:0}
   /* Name and value always stack in their own row (not side-by-side) so a
      long name (e.g. "Drowsiness Alert") wrapping to 2 lines can never
      overlap the value — previously they shared one flex row with
@@ -2071,17 +2081,17 @@
         <div class="card al-sc crit">
           <div class="al-sc-label">Critical</div>
           <div class="al-sc-value" id="al-sc-critical">—</div>
-          <div class="al-sc-sub" id="al-sc-critical-sub">Of events loaded</div>
+          <div class="al-sc-sub" id="al-sc-critical-sub">Of events in view</div>
         </div>
         <div class="card al-sc pend">
           <div class="al-sc-label">With a logged case</div>
           <div class="al-sc-value" id="al-sc-cased">—</div>
-          <div class="al-sc-sub">Of events loaded</div>
+          <div class="al-sc-sub" id="al-sc-cased-sub">Of events in view</div>
         </div>
         <div class="card al-sc act">
           <div class="al-sc-label">Actionable</div>
           <div class="al-sc-value" id="al-sc-actionable">—</div>
-          <div class="al-sc-sub" id="al-sc-actionable-sub">Of events loaded</div>
+          <div class="al-sc-sub" id="al-sc-actionable-sub">Of events in view</div>
         </div>
       </section>
 
@@ -9684,7 +9694,7 @@
   // the moment case-logging exists elsewhere in the app.
   (function(){
     var guard = makeGuard();
-    var state = { from:null, to:null, shift:null, status:'all', search:'', sort:'start_time', dir:'desc', limit:20, offset:0, total:0 };
+    var state = { from:null, to:null, shift:null, status:'all', search:'', sort:'start_time', dir:'desc', limit:20, offset:0, total:0, criticalTotal:0, casedTotal:0, actionableTotal:0 };
     // Infinite scroll instead of numbered pagination — same pattern as
     // Driver Streaks/Driver & Asset Monitoring, per direct instruction:
     // `rows` accumulates everything fetched so far for the current filter
@@ -9852,20 +9862,28 @@
       '</tr>';
     }
 
-    // Recomputed over the WHOLE accumulated `rows` set (everything scrolled
-    // into view so far for the current filters), not just the latest
-    // batch — otherwise these would flicker back down every time a
-    // scroll-triggered fetch added a new page's worth of rows.
+    // criticalTotal/casedTotal/actionableTotal (0100_dds_alert_logs_
+    // summary_totals.sql) are computed server-side over every row matching
+    // the current filters — same grain as `total` — not just what's
+    // scrolled into the browser so far. This used to be recomputed from
+    // the accumulated `rows` array instead, which meant "CRITICAL 19"
+    // next to "EVENTS IN VIEW 997" was actually "19 of the 20 rows loaded
+    // so far are critical," a number with no reliable relationship to the
+    // real 997-event total, mislabeled "95% loaded" (a fetch-progress-
+    // shaped label for what was really a composition-of-what's-loaded
+    // number). "With a logged case" never even had that: its sub-label
+    // had no id, so it stayed the static "Of events loaded" forever.
     function updateSummaryCardsAL(){
-      document.getElementById('al-sc-total').textContent = fmtNum(state.total);
-      var criticalCount = rows.filter(function(r){ return severityBadge(r.eventCode).tier === 'critical'; }).length;
-      var casedCount = rows.filter(function(r){ return r.caseId != null; }).length;
-      var actionableCount = rows.filter(function(r){ return r.actionable; }).length;
-      document.getElementById('al-sc-critical').textContent = rows.length ? fmtNum(criticalCount) : '—';
-      document.getElementById('al-sc-critical-sub').textContent = rows.length ? (Math.round(criticalCount/rows.length*100) + '% loaded') : 'Of events loaded';
-      document.getElementById('al-sc-cased').textContent = rows.length ? fmtNum(casedCount) : '—';
-      document.getElementById('al-sc-actionable').textContent = rows.length ? fmtNum(actionableCount) : '—';
-      document.getElementById('al-sc-actionable-sub').textContent = rows.length ? (Math.round(actionableCount/rows.length*100) + '% loaded') : 'Of events loaded';
+      var total = state.total;
+      document.getElementById('al-sc-total').textContent = fmtNum(total);
+      function setTile(valueId, subId, count){
+        var valueEl = document.getElementById(valueId), subEl = document.getElementById(subId);
+        if(valueEl) valueEl.textContent = total ? fmtNum(count) : '—';
+        if(subEl) subEl.textContent = total ? (Math.round(count/total*100) + '% of events in view') : 'Of events in view';
+      }
+      setTile('al-sc-critical', 'al-sc-critical-sub', state.criticalTotal);
+      setTile('al-sc-cased', 'al-sc-cased-sub', state.casedTotal);
+      setTile('al-sc-actionable', 'al-sc-actionable-sub', state.actionableTotal);
     }
 
     function load(opts){
@@ -9915,6 +9933,14 @@
           var total = (res.data && res.data.total) || 0;
           var fetched = (res.data && res.data.rows) || [];
           state.total = total;
+          // Fleet-wide counts (0100_dds_alert_logs_summary_totals.sql) —
+          // same grain as `total`, computed over every row matching the
+          // current filters server-side, not just what's scrolled into
+          // the browser so far. Identical on every page of the same
+          // filter, so just overwriting them each fetch is fine.
+          state.criticalTotal = (res.data && res.data.criticalTotal) || 0;
+          state.casedTotal = (res.data && res.data.casedTotal) || 0;
+          state.actionableTotal = (res.data && res.data.actionableTotal) || 0;
           if(fetched.length < state.limit) reachedEnd = true;
           state.offset += fetched.length;
 
