@@ -84,7 +84,13 @@ session, never from a request parameter.
   },
 
   "trend": [                    // sorted ascending by date
-    { "date": "03/01/2025", "units": 210, "events": 34, "assets": 12 }
+    { "date": "03/01/2025", "units": 210, "events": 34, "assets": 12,
+      "operatingHours": 1438.1 }  // sum(minestat_shifts.operating_hrs) for
+                                   // this shift_date — a SEPARATE MineStat
+                                   // ingest path, not derived from `events`
+                                   // like every other field here. derive()
+                                   // has no input for this (0099_dds_metrics_
+                                   // operating_hours.sql, live SQL only).
   ],
 
   "shiftDistribution": {

@@ -142,6 +142,14 @@ if (sqlText.startsWith('"') && sqlText.endsWith('"')) {
 }
 const sql = typeof sqlText === 'string' ? JSON.parse(sqlText) : sqlText;
 
+// trend[].operatingHours (0099_dds_metrics_operating_hours.sql) is summed
+// from public.minestat_shifts — a separate ingest path derive() has no
+// input for at all (its only argument is DDS alert-event rows). Expected
+// to exist only on the SQL side; not a drift this test can check.
+if (Array.isArray(sql.trend)) {
+  for (const t of sql.trend) delete t.operatingHours;
+}
+
 const differences = diff(norm(js), norm(sql));
 
 if (differences.length) {

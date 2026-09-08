@@ -698,10 +698,29 @@ real insight cards.
   sparklines, per the user's explicit choice to preserve this mock UI
   element with real data rather than delete it.
 - **Alert Volume by Distinct Asset**: `trend[]` (units + assets series),
-  ported from `charts.trend`.
+  ported from `charts.trend`. **Update (0099_dds_metrics_operating_hours.sql,
+  live-applied):** the chart's second series was swapped from Distinct
+  Assets to Total Operating Hours per direct instruction, and the chart
+  itself moved from two independently-scaled panels to one shared axis. The
+  new `trend[].operatingHours` field is `sum(minestat_shifts.operating_hrs)`
+  for that `shift_date` — a genuinely separate data source (MineStat, not
+  DDS alert events), LEFT JOINed onto the existing per-day trend rows so a
+  day present in one source but not the other still gets a `0` instead of
+  dropping the row. `derive()`/`dds-state.js` has no equivalent (its only
+  input is DDS alert-event rows) — `test/compare-derived.mjs` and
+  `test/parity.sh` both strip this one field before diffing, by design, not
+  as a known gap.
 - **Hourly Trend by Month**: `hourlyByMonth[]` (`{month, hours[24]}`) —
   confirmed this is what Application A's real "Hourly Trend by Month" chart
   actually reads, NOT the simpler `hourly.DAY/NIGHT` split Overview uses.
+  **Bug found and fixed (this pass):** `dds_metrics()` has always returned
+  this shape correctly — verified live against 10 months of real data. The
+  chart was reading it as `m.label`, a field that has never existed on this
+  object (`month` is what's actually there), so it silently fell through to
+  an index-based `MONTH_NAMES[i % 12]` fallback — real Jun/Jul/Aug data
+  legended as Jan/Feb/Mar. Frontend-only fix (`monthLabel()` in index.html);
+  no migration needed for this part, contrary to the initial assumption
+  that the aggregation itself was missing.
 - **Alert Count by Sync Interval**: `syncBuckets` (`labels`/`actionable[]`/
   `nonActionable[]`), ported from `charts.syncInterval`.
 - **Alert Count by Driver**: `topOperators[]`, `UNSPECIFIED` filtered out,

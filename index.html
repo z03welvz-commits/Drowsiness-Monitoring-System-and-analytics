@@ -1908,15 +1908,19 @@
 
       <section class="an-charts-top an-row-wide-left">
         <div class="card an-chart-card" id="anAssetVolumeCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend (Last 30 Days)</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Total Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Distinct Assets</span></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend (Last 30 Days)</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Total Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Total Operating Hours</span></div></div>
           <div class="an-chart-area">
             <!-- One shared-axis plot, per direct instruction (this used to
                  be two independently-scaled stacked panels specifically to
                  avoid implying a correlation between two different-unit
-                 series — see git history). Total Alerts and Distinct Assets
-                 are still different magnitudes, so the smaller series can
-                 read as a near-flat line hugging the bottom; that's the
-                 accepted tradeoff of a shared scale, not a rendering bug. -->
+                 series — see git history). Total Alerts and Total Operating
+                 Hours are still different magnitudes, so the smaller series
+                 can read as a near-flat line hugging the bottom; that's the
+                 accepted tradeoff of a shared scale, not a rendering bug.
+                 Operating hours comes from trend[].operatingHours — MineStat
+                 data (public.minestat_shifts.operating_hrs), a separate
+                 ingest path from the DDS alert events everything else on
+                 this page reads; see 0099_dds_metrics_operating_hours.sql. -->
             <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-trend-svg">
               <defs>
                 <linearGradient id="anTrendUnitsFill" x1="0" y1="0" x2="0" y2="1">
@@ -1928,7 +1932,7 @@
               <g id="an-trend-yaxis"></g>
               <path id="an-trend-units-area" fill="url(#anTrendUnitsFill)" d=""/>
               <path id="an-trend-units" d="" fill="none" stroke="var(--series-1)" stroke-width="2"/>
-              <path id="an-trend-assets" d="" fill="none" stroke="var(--series-2)" stroke-width="2"/>
+              <path id="an-trend-hours" d="" fill="none" stroke="var(--series-2)" stroke-width="2"/>
 
               <g id="an-trend-axis"></g>
               <line class="chart-crosshair" id="an-trend-crosshair" x1="0" y1="10" x2="0" y2="206"/>
@@ -1941,7 +1945,7 @@
               <div class="chart-tooltip-value" id="an-trend-tooltip-value">—</div>
             </div>
           </div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Total alerts vs. distinct assets reporting, over the selected period, on a shared scale.</span></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Total alerts vs. total MineStat operating hours, over the selected period, on a shared scale.</span></div>
         </div>
 
         <div class="card an-chart-card" id="anHourlyCard">
@@ -5015,26 +5019,30 @@
       setKpi('drivers', kpis.distinctOperators, p7 ? p7.distinctOperators : null, null);
     }
 
-    // ==================== Alert Volume by Distinct Asset (trend) ====================
+    // ==================== Alert Trend: Total Alerts vs. Total Operating Hours ====================
     // One shared-axis plot, per direct instruction — see the card's own
     // HTML comment for the tradeoff this accepts (this used to be two
-    // independently-scaled panels specifically to avoid that tradeoff).
-    // Both series now go through the same xFor()/yFor(), so a single
-    // y-axis (an-trend-yaxis) replaces the old per-panel pair.
+    // independently-scaled panels specifically to avoid that tradeoff, with
+    // Distinct Assets as the second series; also per direct instruction, that
+    // series is now Total Operating Hours — trend[].operatingHours, MineStat
+    // data summed server-side in dds_metrics(), see 0099_dds_metrics_
+    // operating_hours.sql). Both series now go through the same xFor()/
+    // yFor(), so a single y-axis (an-trend-yaxis) replaces the old per-panel
+    // pair.
     function renderTrend(cur){
       var trend = cur.trend || [];
       if(!trend.length){
         // Clear every element this function draws into instead of leaving
         // the previous fetch's line/axis on screen (e.g. right after a
         // fleet data reset, when there are legitimately zero rows).
-        ['an-trend-units','an-trend-units-area','an-trend-assets'].forEach(function(id){ var el = document.getElementById(id); if(el) el.setAttribute('d', ''); });
+        ['an-trend-units','an-trend-units-area','an-trend-hours'].forEach(function(id){ var el = document.getElementById(id); if(el) el.setAttribute('d', ''); });
         ['an-trend-axis','an-trend-yaxis'].forEach(function(id){ var el = document.getElementById(id); if(el) el.innerHTML = ''; });
         return;
       }
       var L = 40, R = 480, T = 18, B = 206;
       var max = Math.max(
         Math.max.apply(null, trend.map(function(t){ return t.units; })),
-        Math.max.apply(null, trend.map(function(t){ return t.assets; })),
+        Math.max.apply(null, trend.map(function(t){ return t.operatingHours || 0; })),
         1
       );
       var xFor = function(i){ return trend.length === 1 ? (L+R)/2 : L + (i / (trend.length - 1)) * (R - L); };
@@ -5051,13 +5059,13 @@
       // polyline segments — same technique as Overview's trend chart,
       // every real data point still sits exactly on the curve.
       var unitsXY = trend.map(function(t, i){ return [xFor(i), yFor(t.units)]; });
-      var assetsXY = trend.map(function(t, i){ return [xFor(i), yFor(t.assets)]; });
+      var hoursXY = trend.map(function(t, i){ return [xFor(i), yFor(t.operatingHours || 0)]; });
       var unitsEl = document.getElementById('an-trend-units');
       var unitsAreaEl = document.getElementById('an-trend-units-area');
-      var assetsEl = document.getElementById('an-trend-assets');
+      var hoursEl = document.getElementById('an-trend-hours');
       if(unitsEl) unitsEl.setAttribute('d', smoothPathD(unitsXY));
       if(unitsAreaEl) unitsAreaEl.setAttribute('d', smoothPathD(unitsXY) + ' L' + xFor(trend.length-1).toFixed(1) + ',' + B + ' L' + xFor(0).toFixed(1) + ',' + B + ' Z');
-      if(assetsEl) assetsEl.setAttribute('d', smoothPathD(assetsXY));
+      if(hoursEl) hoursEl.setAttribute('d', smoothPathD(hoursXY));
 
       var axisEl = document.getElementById('an-trend-axis');
       if(axisEl){
@@ -5074,20 +5082,33 @@
       }
 
       wireChartHover({
-        dot2Id: 'an-trend-hover-dot2', getPoints2: function(){ return assetsXY; },
+        dot2Id: 'an-trend-hover-dot2', getPoints2: function(){ return hoursXY; },
         rectId: 'an-trend-hover-rect', crosshairId: 'an-trend-crosshair',
         dotId: 'an-trend-hover-dot', tooltipId: 'an-trend-tooltip',
         dateId: 'an-trend-tooltip-date', valueId: 'an-trend-tooltip-value',
         getPoints: function(){ return unitsXY; },
         getInfo: function(i){
           var t = trend[i];
-          return { label: t.date, value: fmtNum(t.units) + ' alerts · ' + fmtNum(t.assets) + ' assets' };
+          return { label: t.date, value: fmtNum(t.units) + ' alerts · ' + fmtNum(Math.round(t.operatingHours || 0)) + ' operating hrs' };
         }
       });
     }
 
     // ==================== Hourly Trend by Month ====================
     var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    // dds_metrics()'s hourlyByMonth[] entries carry `month` as a "YYYY-MM"
+    // key (confirmed in MIGRATION_STATUS.md and the live function), not a
+    // pre-formatted `label` — reading a nonexistent .label here always fell
+    // through to MONTH_NAMES[i % 12], which names every month by its
+    // position in the array (index 0 => "Jan") rather than the real
+    // calendar month, e.g. three real months of Jun/Jul/Aug data legended
+    // as "Jan, Feb, Mar".
+    function monthLabel(monthKey){
+      if(!monthKey) return '';
+      var parts = monthKey.split('-');
+      var mi = Number(parts[1]) - 1;
+      return (MONTH_NAMES[mi] || monthKey) + ' ' + parts[0];
+    }
     // Fixed categorical order (the validated --series-1..8 slots), never
     // cycled by rank — a chart with more than 8 months on screen at once
     // is already past the point a line chart reads clearly, so the 9th+
@@ -5131,7 +5152,7 @@
       if(legendEl){
         legendEl.style.display = 'flex';
         legendEl.innerHTML = months.map(function(m, i){
-          return '<span><i class="an-swatch" style="background:' + seriesVar(i) + '"></i>' + esc(m.label || MONTH_NAMES[i % 12]) + '</span>';
+          return '<span><i class="an-swatch" style="background:' + seriesVar(i) + '"></i>' + esc(monthLabel(m.month)) + '</span>';
         }).join('');
       }
       if(noteEl) noteEl.textContent = 'One line per month — ' + months.length + ' month(s) shown.';
