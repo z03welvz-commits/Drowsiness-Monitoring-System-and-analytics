@@ -95,8 +95,17 @@ js=norm(json.load(open(sys.argv[1]))); sq=norm(json.load(open(sys.argv[2])))
 # from public.minestat_shifts — a separate ingest path derive() has no
 # input for at all (its only argument is DDS alert-event rows). Expected
 # to exist only on the SQL side; not a drift this test can check.
+#
+# trend[].actionableRatio/distinctOperators (0103_dds_metrics_trend_
+# ratio_and_drivers.sql) are excluded for a different reason: derive()'s
+# own per-day `operators` count is keyed on raw OPERATOR text (falling
+# back to an 'Unspecified' sentinel for blanks), while the SQL side keys
+# distinctOperators on emp_no (excluding null emp_no rows entirely) — two
+# different identities over the same rows, not expected to agree numerically.
 for t in (sq.get('trend') or []):
     t.pop('operatingHours', None)
+    t.pop('actionableRatio', None)
+    t.pop('distinctOperators', None)
 def diff(a,b,p=''):
     out=[]
     if isinstance(a,dict) and isinstance(b,dict):
