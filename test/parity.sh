@@ -91,6 +91,12 @@ def norm(o):
     if isinstance(o,(int,float)) and not isinstance(o,bool): return round(float(o),6)
     return o
 js=norm(json.load(open(sys.argv[1]))); sq=norm(json.load(open(sys.argv[2])))
+# trend[].operatingHours (0099_dds_metrics_operating_hours.sql) is summed
+# from public.minestat_shifts — a separate ingest path derive() has no
+# input for at all (its only argument is DDS alert-event rows). Expected
+# to exist only on the SQL side; not a drift this test can check.
+for t in (sq.get('trend') or []):
+    t.pop('operatingHours', None)
 def diff(a,b,p=''):
     out=[]
     if isinstance(a,dict) and isinstance(b,dict):
