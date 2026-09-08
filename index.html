@@ -11950,23 +11950,19 @@
       }
     }
 
-    // "Cleared" added per user report: the only way this dropdown could
-    // represent "resolved, nothing further to do" used to be picking the
-    // "—" placeholder — which is NOT a real action and was never wired to
-    // save anything (see the click handler's own comment). That made
-    // "delete/clear the logged action" look broken: picking "—" flipped
-    // the button's text locally, but with nothing persisted, the very
-    // next load() re-render (any other row's save, a page revisit) pulled
-    // the driver's real lastAction back from the server and the old value
-    // reappeared — reads exactly like "I cleared it and it came back."
-    // dds_log_entity_action() already accepts 'Cleared' as one of its
-    // fixed action types (entity_action_log is append-only audit history
-    // by design — there is no delete-the-last-entry RPC, only "log a new
-    // decision"), so exposing it here gives the same real, saved outcome
-    // "—" only pretended to.
-    var ACTION_OPTIONS = ['Spare', 'Replace', 'Continue', 'Cleared'];
+    // "—" is a real, working reset (see the click handler, which submits
+    // it as a 'Cleared' action — 0102 makes that also delete entity_status
+    // so the badge/status recomputes clean — instead of the silent no-op
+    // it used to be). Per direct instruction, "—" means blank/no value,
+    // same as the default state before anything was ever logged: the
+    // button shows "—" again after a reset, not the literal word
+    // "Cleared" — so 'Cleared' is treated as equivalent to no value for
+    // display purposes even though it's a real, saved entity_action_log
+    // entry underneath. There is no separate "Cleared" menu button for
+    // this reason — "—" is the one control that means it.
+    var ACTION_OPTIONS = ['Spare', 'Replace', 'Continue'];
     // For a known value the button shows itself; for a real free-text
-    // "Other" entry it now shows that actual text directly (falling back to
+    // "Other" entry it shows that actual text directly (falling back to
     // the literal "Other…" only if somehow no text came back) — previously
     // this always showed the bare word "Other…" on the button while the
     // real text sat in a second, always-visible box beside it, which read
@@ -11974,16 +11970,13 @@
     // twice bug Alert Logs' own AL_ACTION_OPTIONS fix already avoids for
     // its known values.
     function actionButtonLabel(currentType, note){
-      if(!currentType) return '—';
+      if(!currentType || currentType === 'Cleared') return '—';
       if(ACTION_OPTIONS.indexOf(currentType) !== -1) return currentType;
       return note || 'Other…';
     }
     // "—" is always offered (not just while nothing has been logged yet):
-    // picking it now really resets the entity — see the click handler,
-    // which submits it as a real 'Cleared' action (0102 makes that also
-    // delete entity_status so the badge/status recomputes clean) instead of
-    // the silent no-op it used to be. Reported live: "i try to log or
-    // delete a log action item in streak, but it still remains."
+    // picking it now really resets the entity. Reported live: "i try to
+    // log or delete a log action item in streak, but it still remains."
     function actionMenuHtml(i){
       var html = '<button type="button" data-ds-opt="' + i + '" data-value="">—</button>';
       ACTION_OPTIONS.forEach(function(opt){
@@ -12027,7 +12020,7 @@
 
     function rowHtml(r, i){
       var currentType = r.lastAction ? r.lastAction.type : null;
-      var isOtherCurrent = currentType && ACTION_OPTIONS.indexOf(currentType) === -1;
+      var isOtherCurrent = currentType && currentType !== 'Cleared' && ACTION_OPTIONS.indexOf(currentType) === -1;
       var dateActionedHtml = r.lastAction
         ? esc(fmtActionAt(r.lastAction.at)) + (r.lastAction.by ? ' <span style="color:var(--muted);font-size:10px">by ' + esc(r.lastAction.by) + '</span>' : '')
         : '—';
