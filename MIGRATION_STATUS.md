@@ -1556,6 +1556,19 @@ live against `alert_cases`' real constraint definition
 that reproduces the exact constraint violation to prove the mirror call is
 now skipped rather than merely "handled."
 
+**Follow-up, cosmetic but per direct instruction:** once the reset above
+actually started working end-to-end, live testing surfaced that the
+dropdown displayed the literal word "Cleared" after a reset, rather than
+"—". Per direct instruction: "selecting '-' in the dropdown means blank,
+no value just like a default value, it should display '-' again, not
+'cleared'." `'Cleared'` is still the real, saved `entity_action_log` value
+underneath (it's what 0102 keys off of to reset `entity_status`) — only
+the *display* changed: `actionButtonLabel()` now treats `'Cleared'` the
+same as no value at all (`'—'`), and `ACTION_OPTIONS` dropped it as a
+separately-named, self-displaying choice, since "—" is now the one control
+that means it — a second menu button with a different label but the
+identical outcome and end display would only have been confusing.
+
 **Phase 5 is complete.** The mock's Driver & Asset Monitoring page
 (`#page-driver-asset`) wired end-to-end to real `dds_driver_asset_weekly()`/
 `dds_log_entity_action()`/`dds_entity_action_history()` data — no new SQL
