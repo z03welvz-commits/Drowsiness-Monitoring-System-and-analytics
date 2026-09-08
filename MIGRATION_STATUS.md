@@ -1529,6 +1529,33 @@ hidden until the user explicitly chooses to type something new. Driver &
 Asset Monitoring's own action history/timeline rendering already did this
 correctly and needed no change.
 
+**Follow-up to 0102 — the reset still failed live, with a genuine error
+dialog** (`Could not log action: new row for relation "alert_cases"
+violates check constraint "alert_cases_action_type_check"`), confirming
+0102 alone wasn't enough. Root cause: `submitStreakAction()` calls two
+RPCs in sequence — `dds_bulk_log_case_action_by_driver()` (mirrors the
+action into `alert_cases`, so Alert Logs' own Action Performed column
+shows it too) *then* `dds_log_entity_action()` (the one 0102 fixed).
+`alert_cases` has its own, separate `alert_cases_action_type_check`
+constraint — `NULL` or one of
+`Reviewed/Escalated/Coached/Dismissed/Spare/Continue/Other/Replace` —
+which has never included `'Cleared'`. Since the mirror call runs *first*
+and threw on that constraint, the promise chain aborted before
+`dds_log_entity_action()` ever ran — so neither the audit entry nor 0102's
+`entity_status` reset ever actually happened; the "—" click failed loudly
+instead of silently, but still failed. Fixed by skipping the
+`alert_cases` mirror entirely when the action is `'Cleared'` — there is no
+new per-event action to record when the meaning is "no action was
+performed," so there's nothing to mirror. The exact same
+`dds_bulk_log_case_action_by_driver()` call exists a second time, in
+Driver & Asset Monitoring's own corrective-action modal (its type-grid has
+always included a `Cleared` button), and would have failed identically the
+first time anyone picked it there — fixed with the same guard. Verified
+live against `alert_cases`' real constraint definition
+(`pg_get_constraintdef`) before writing the fix, and via a Playwright stub
+that reproduces the exact constraint violation to prove the mirror call is
+now skipped rather than merely "handled."
+
 **Phase 5 is complete.** The mock's Driver & Asset Monitoring page
 (`#page-driver-asset`) wired end-to-end to real `dds_driver_asset_weekly()`/
 `dds_log_entity_action()`/`dds_entity_action_history()` data — no new SQL

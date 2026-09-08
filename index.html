@@ -11451,7 +11451,13 @@
         // default 7-day window — not whatever date filter the table happens
         // to have active). Assets have the identical gap but no equivalent
         // by-asset bulk RPC exists yet, so this is driver-only for now.
-        if(entityType === 'driver'){
+        // 'Cleared' has nothing to mirror into Alert Logs (no action was
+        // performed on these events) — and alert_cases_action_type_check's
+        // fixed vocabulary (Reviewed/Escalated/Coached/Dismissed/Spare/
+        // Continue/Other/Replace) doesn't accept 'Cleared' at all, so
+        // sending it here always failed with a check-constraint violation.
+        // Same root cause and same fix as Driver Streaks' submitStreakAction().
+        if(entityType === 'driver' && selectedType !== 'Cleared'){
           return DB.rpc('dds_bulk_log_case_action_by_driver', {
             p_emp_nos: [currentTarget.id], p_include_unspecified: false,
             p_from: null, p_to: null, p_shift: null,
@@ -12499,7 +12505,17 @@
     function submitStreakAction(r, actionType, isOther, otherText, i, loggedBy){
       setRowSaving(i, true);
       var finalType = isOther ? 'Other' : actionType;
-      DB.rpc('dds_bulk_log_case_action_by_driver', {
+      // 'Cleared' ("—") has nothing to mirror into Alert Logs: it means no
+      // action was performed on these events, not a new one to record
+      // against them, and alert_cases_action_type_check's fixed vocabulary
+      // (Reviewed/Escalated/Coached/Dismissed/Spare/Continue/Other/Replace)
+      // doesn't even accept 'Cleared' as a value — sending it here failed
+      // outright with a check-constraint violation, which (since this call
+      // runs BEFORE dds_log_entity_action below) aborted the whole reset
+      // before entity_status ever got touched. Skipping straight to
+      // dds_log_entity_action for 'Cleared' is what actually lets 0102's
+      // fix run.
+      var mirrorToAlertCases = actionType === 'Cleared' ? Promise.resolve() : DB.rpc('dds_bulk_log_case_action_by_driver', {
         p_emp_nos: [r.empNo], p_include_unspecified: false,
         p_from: mdyToIso(r.runStart),
         p_to: mdyToIso(r.runEnd),
@@ -12518,6 +12534,8 @@
           // instead of silently reloading as if it worked.
           throw new Error('No matching events found for ' + r.empNo + ' between ' + r.runStart + ' and ' + r.runEnd + ' — nothing was saved.');
         }
+      });
+      mirrorToAlertCases.then(function(){
         return DB.rpc('dds_log_entity_action', {
           p_entity_type: 'driver', p_entity_id: r.empNo,
           p_action_type: isOther ? 'Other' : actionType,
