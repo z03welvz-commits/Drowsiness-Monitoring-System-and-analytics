@@ -5156,6 +5156,14 @@
               // shrinking them to fit.
               barThickness: TREND_BAR_THICKNESS,
               maxBarThickness: TREND_BAR_MAX_THICKNESS,
+              // Explicit even for the bar series — usePointStyle below
+              // makes every tooltip row use its dataset's own pointStyle
+              // instead of Chart.js's default plain color box, and a bar
+              // dataset has no pointStyle of its own to fall back to
+              // (Chart.js's fallback default is 'circle', which would
+              // misrepresent this series just as much as a square would
+              // the two line ones below).
+              pointStyle: 'rect',
               yAxisID: 'yAlerts',
               order: 2
             },
@@ -5168,6 +5176,7 @@
               borderWidth: 2.5,
               pointRadius: 3,
               pointHoverRadius: 5,
+              pointStyle: 'line', // tooltip swatch reads as a line, not a square, for a line series
               tension: 0.2,
               yAxisID: 'yOperating',
               order: 1
@@ -5181,6 +5190,7 @@
               borderWidth: 2.5,
               pointRadius: 3,
               pointHoverRadius: 5,
+              pointStyle: 'line',
               tension: 0.2,
               yAxisID: 'yAssets',
               order: 0
@@ -5198,6 +5208,11 @@
               padding: 10,
               titleFont: { size: 12 },
               bodyFont: { size: 11.5 },
+              // Reads each dataset's own pointStyle (set above) for its
+              // tooltip swatch instead of Chart.js's default plain color
+              // box — a line series shows an actual line, matching what
+              // it looks like on the chart itself.
+              usePointStyle: true,
               callbacks: {
                 label: function(ctx){ return ctx.dataset.label + ': ' + fmtNum(ctx.parsed.y); }
               }
