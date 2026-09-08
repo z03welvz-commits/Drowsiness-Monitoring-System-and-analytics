@@ -893,18 +893,26 @@
   .da-sort-note svg{width:11px;height:11px}
 
   /* Single-line table head: title + search + date/shift filters + refresh/
-     clear + history link, all in one row, no separate filter row below
-     it and no leftover gap — title stays compact/left, the rest shares
-     the remaining width via .al-filter's own flex:1 1 0. */
-  .da-table-head-oneline{flex-wrap:nowrap;gap:8px}
+     clear + history link, all in one row when there's room — title stays
+     compact/left, the rest shares the remaining width via .al-filter's own
+     flex:1 1 0. Width here isn't just a function of viewport: the sidebar
+     can be pinned/hovered open (280px) or collapsed to a 72px rail, so the
+     same viewport can hand this row anywhere from ~200px less to ~200px
+     more space from one moment to the next. A min-width floor on each
+     control (~100px is what a native mm/dd/yyyy date input needs to render
+     unclipped) plus flex-wrap:wrap (inherited from .da-table-head, not
+     overridden to nowrap here) means a too-narrow row drops to a second
+     line instead of shrinking controls past legibility — previously
+     flex-wrap:nowrap forced everything onto one line regardless, and with
+     min-width:0 on every control that meant the date inputs silently
+     clipped their placeholder to "m/dd/yyyy" / "n/dd/yyyy" whenever the
+     sidebar was pinned open (see Driver & Asset Monitoring bug report). */
+  .da-table-head-oneline{gap:8px}
   .da-table-head-oneline .da-table-title{flex:0 0 auto;white-space:nowrap}
-  .da-table-head-oneline .da-search{flex:0 1 220px;min-width:0}
-  .da-table-head-oneline .al-filter{flex:1 1 0;min-width:0}
+  .da-table-head-oneline .da-search{flex:0 1 220px;min-width:140px}
+  .da-table-head-oneline .al-filter{flex:1 1 100px;min-width:100px}
   .da-table-head-oneline .al-clear{flex:0 0 auto}
   .da-table-head-oneline .da-history-link{flex:0 0 auto}
-  @media (max-width:1100px){
-    .da-table-head-oneline{flex-wrap:wrap}
-  }
 
   /* Fit-to-viewport variant (Driver & Asset Monitoring only): the card
      takes whatever height #page-driver-asset's flex layout gives it, and
@@ -2728,7 +2736,7 @@
             </table>
           </div>
           <div class="da-table-foot">
-            <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
+            <span data-da-lastrefresh="drivers">—</span>
             <span data-da-empty-note="drivers"></span>
             <div class="al-pages">
               <span data-da-rowsrange="drivers">—</span>
@@ -2779,7 +2787,7 @@
             </table>
           </div>
           <div class="da-table-foot">
-            <span>Last refreshed 30 Jun 2026 · 11:32 AM</span>
+            <span data-da-lastrefresh="assets">—</span>
             <span data-da-empty-note="assets"></span>
             <div class="al-pages">
               <span data-da-rowsrange="assets">—</span>
@@ -10690,6 +10698,8 @@
           }
           st.loadingMore = false;
           updateSummaryFooter(kind);
+          var lastRefreshEl = document.querySelector('[data-da-lastrefresh="' + kind + '"]');
+          if(lastRefreshEl) lastRefreshEl.textContent = 'Last refreshed ' + new Date().toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
         }).catch(function(err){
           if(!summaryGuard[kind].isCurrent(token)) return;
           console.error((kind === 'drivers' ? 'Driver' : 'Asset') + ' event summary fetch failed', err);
