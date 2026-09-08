@@ -1474,6 +1474,61 @@ aggregated over the same pre-LIMIT/OFFSET `filtered` CTE `total` already
 uses, and pointed index.html's `updateSummaryCardsAL()` at those instead of
 `rows`.
 
+**Update (0101_dds_alert_logs_severity_filter.sql, live-applied) — user
+report: "there is a critical cases but there is no filter design for
+that."** Alert Logs' filter bar had a Search/Shift/Status row but nothing
+for Critical/High/Moderate severity, even though the summary cards above it
+already surface a Critical count. A prior comment on this same IIFE had
+deliberately left severity unfiltered, reasoning that `dds_alert_logs()`
+had no discrete parameter for it and faking one by filtering only the
+current fetched page would misreport counts — the exact anti-pattern this
+RPC's own sorting comment warns against. Fixed the real gap instead of
+working around it: added `p_severity` (`critical`/`high`/`moderate`/`all`)
+to `dds_alert_logs()`, bucketing `event_code` with the identical
+`ilike '%sleep%'` / `'%drowsi%'` substrings index.html's own
+`SEVERITY_RULES`/`severityBadge()` already use — `critical` here always
+means the same rows as the existing Critical summary tile. Applied over the
+same `filtered` CTE `total`/`criticalTotal`/etc. already read from, so the
+new dropdown, the summary cards, and CSV export (`fetchAllAlertLogsForExport`)
+all agree on one full-dataset definition. Added `<select id="al-severity">`
+to the filter bar, `state.severity`, and its `Clear filters` reset;
+widened `.al-filters` to `flex-wrap:wrap` with a `min-width` floor per
+control (same sidebar-collapse clipping fix already applied to Driver &
+Asset Monitoring's own filter row) so the 8th control doesn't reintroduce
+that bug.
+
+**Update (0102_dds_log_entity_action_cleared_resets_status.sql,
+live-applied) — user report: "i try to log or delete a log action item in
+streak, but it still remains on the log action. is this a bug?"** Yes.
+Driver Streaks' action dropdown had a "—" placeholder that only ever
+displayed as the button's idle label; clicking it while a real action
+already existed changed the button's text locally but called nothing, so
+the next reload silently restored the old value — a purely cosmetic
+"reset" with no backend effect. Root cause traced one level deeper than the
+UI: even the already-wired "Cleared" action type couldn't have fixed this
+by itself, because `dds_log_entity_action()` unconditionally wrote
+`entity_status.status = 'actioned'` for every action type, Cleared
+included — so there was no code path that ever un-set "actioned" at all.
+Fixed by making a `'Cleared'` action delete the entity's `entity_status`
+row instead of upserting it to `'actioned'`; both `dds_driver_streaks()`
+and `dds_driver_asset_weekly()` already fall back cleanly to a freshly
+computed baseline (`required`/`ok` from the real current streak) whenever
+no `entity_status` row exists, so this is a pure fix with no new states to
+add anywhere else — confirmed live against both functions' definitions
+before writing this migration. index.html's "—" now submits this same real
+`'Cleared'` action (previously a no-op) instead of only pretending to
+clear the row. Also fixed, same report: the dropdown button showed the
+literal word "Other…" for a logged free-text action while a second,
+always-visible box repeated the real text beside it — reported as
+"others:_____" garbled duplication. Both Driver Streaks' button and Alert
+Logs' own inline action `<select>` (same duplication, confirmed present
+there too — `alert_cases.action_type` has no fixed vocabulary, so an
+unknown value already *is* the real free text) now show that saved text
+directly instead of a generic "Other…" placeholder, with the redundant box
+hidden until the user explicitly chooses to type something new. Driver &
+Asset Monitoring's own action history/timeline rendering already did this
+correctly and needed no change.
+
 **Phase 5 is complete.** The mock's Driver & Asset Monitoring page
 (`#page-driver-asset`) wired end-to-end to real `dds_driver_asset_weekly()`/
 `dds_log_entity_action()`/`dds_entity_action_history()` data — no new SQL
