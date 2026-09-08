@@ -146,8 +146,19 @@ const sql = typeof sqlText === 'string' ? JSON.parse(sqlText) : sqlText;
 // from public.minestat_shifts — a separate ingest path derive() has no
 // input for at all (its only argument is DDS alert-event rows). Expected
 // to exist only on the SQL side; not a drift this test can check.
+//
+// trend[].actionableRatio/distinctOperators (0103_dds_metrics_trend_
+// ratio_and_drivers.sql) are excluded for a different reason: derive()'s
+// own per-day `operators` count is keyed on raw OPERATOR text (falling
+// back to an 'Unspecified' sentinel for blanks), while the SQL side keys
+// distinctOperators on emp_no (excluding null emp_no rows entirely) — two
+// different identities over the same rows, not expected to agree numerically.
 if (Array.isArray(sql.trend)) {
-  for (const t of sql.trend) delete t.operatingHours;
+  for (const t of sql.trend) {
+    delete t.operatingHours;
+    delete t.actionableRatio;
+    delete t.distinctOperators;
+  }
 }
 
 const differences = diff(norm(js), norm(sql));

@@ -413,7 +413,6 @@
      still use their own .an- classes — those aren't KPI cards and don't
      share this component. */
   .an-filterbar{padding:11px 17px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:18px}
-  .an-filterbar .al-search{flex:1 1 240px;max-width:340px}
   .an-filterbar .al-filter{flex:0 0 auto;width:auto;min-width:130px}
   .an-filterbar select.al-filter{-webkit-appearance:none;appearance:none}
   .an-active-filter{display:flex;align-items:center;gap:6px;background:#e6eefe;color:#2954e8;border-radius:999px;padding:6px 8px 6px 12px;font-size:11px;font-weight:650;flex:0 0 auto}
@@ -427,9 +426,6 @@
   .an-active-filter[hidden]{display:none}
   .an-active-filter button{all:unset;cursor:pointer;width:16px;height:16px;display:grid;place-items:center;border-radius:50%;font-size:13px;line-height:1}
   .an-active-filter button:hover{background:rgba(41,84,232,.15)}
-  .an-insights-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-  .an-synced-note{display:flex;align-items:center;gap:6px;font-size:var(--fs-body);color:#18a05e;font-weight:500}
-  .an-synced-note::before{content:'';width:6px;height:6px;border-radius:50%;background:#18a05e;flex:0 0 auto}
 
   /* minmax(0,1fr), not bare 1fr: a bare 1fr track is still allowed to grow
      past its fair share to fit non-shrinkable content (e.g. the sparkline's
@@ -1859,7 +1855,12 @@
       </header>
 
       <div class="card an-filterbar" id="an-filterbar">
-        <div class="al-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="an-search" placeholder="Search asset ID or driver..." style="all:unset;flex:1;min-width:0;font-size:11px;color:var(--text-dim)"></div>
+        <select class="al-filter" id="an-month" aria-label="Month quick-filter">
+          <option value="">All months</option>
+        </select>
+        <select class="al-filter" id="an-year" aria-label="Year quick-filter">
+          <option value="">All years</option>
+        </select>
         <input type="date" class="al-filter" id="an-from" aria-label="From date">
         <input type="date" class="al-filter" id="an-to" aria-label="To date">
         <select class="al-filter" id="an-asset" aria-label="Asset filter">
@@ -1872,10 +1873,6 @@
         </div>
       </div>
 
-      <div class="an-insights-head">
-        <div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><h3 class="chart-title">Key Insights</h3></div>
-        <span class="an-synced-note" id="an-synced-note">Data synced just now</span>
-      </div>
       <section class="an-kpis" id="an-kpi-row" aria-label="Key insights">
         <div class="card an-kpi">
           <div class="an-kpi-body">
@@ -4860,12 +4857,17 @@
     function fmtPct(n, d){ return (n == null ? 0 : n).toFixed(d == null ? 0 : d) + '%'; }
 
     // Single source of truth for every filter/selection on this page — the
-    // filter bar (search/from/to/asset) and the cross-filter click-to-select
-    // on Top Assets/Top Employees/the donut all write here, and `load()`
-    // reads from here on every re-fetch, so every chart and KPI on the page
-    // always reflects the same combined filter set rather than each control
-    // owning its own private state that only some charts see.
-    var filterState = { search: '', from: null, to: null, assetId: null, crossAsset: null, crossDriver: null };
+    // filter bar (month/year/from/to/asset) and the cross-filter click-to-
+    // select on Top Assets/Top Employees/the donut all write here, and
+    // `load()` reads from here on every re-fetch, so every chart and KPI on
+    // the page always reflects the same combined filter set rather than
+    // each control owning its own private state that only some charts see.
+    // The free-text search box this replaced only ever reached two of the
+    // ~10 panels here (Top Assets/Top Employees — dds_metrics() itself has
+    // no text-search parameter at all), which read as "the filters don't
+    // do anything" everywhere else on the page — month/year/from/to/asset
+    // all resolve to real dds_metrics() parameters every panel shares.
+    var filterState = { month: null, year: null, from: null, to: null, assetId: null, crossAsset: null, crossDriver: null };
     function activeAssetIds(){
       // Filter-bar asset picker and a clicked Top-Assets row both narrow to
       // one asset; if both are set the more specific click-to-filter wins.
@@ -4885,12 +4887,10 @@
       if(filterState.crossAsset){
         chip.hidden = false;
         // dds_driver_event_summary()/dds_asset_event_summary() (the two
-        // ranked lists) have no per-asset filter parameter either — only
-        // dds_metrics() (KPIs, trend/hourly/sync charts, donut) supports
-        // p_asset_ids. Same honesty rule as the driver chip below: say what
-        // actually narrowed rather than imply an all-panel filter that two
-        // of the six panels on this page structurally can't apply.
-        text.textContent = 'Filtered to asset ' + filterState.crossAsset + ' — KPIs & charts narrowed (lists show all ' + (filterState.from || filterState.to ? 'in range' : 'drivers/assets') + ')';
+        // ranked lists) now also take p_asset_id (0104), same as
+        // dds_metrics() (KPIs, trend/hourly/sync charts, donut) already did
+        // — an asset filter now narrows every panel on this page uniformly.
+        text.textContent = 'Filtered to asset ' + filterState.crossAsset;
       } else if(filterState.crossDriver){
         chip.hidden = false;
         // dds_metrics() (the KPI cards, trend/hourly/sync charts, and donut)
@@ -5015,9 +5015,7 @@
       // dds_metrics()'s trend[] already carries a per-day avgSyncSeconds
       // (confirmed in its own CTE) — previously unused here, so this card
       // fell back to the "no data" flat baseline every time even though a
-      // real per-day shape was available. actionableRatio has no per-day
-      // equivalent in trend[] (only a whole-window total), so that KPI's
-      // flat line stays as the honest "no daily breakdown" state, not a bug.
+      // real per-day shape was available.
       // Days with only a handful of rows (an import still trickling in for
       // "today", confirmed live: 09/07 had exactly 1 event) produce an
       // average from a single data point — plotting it at full weight made
@@ -5030,6 +5028,17 @@
       var syncSpark = trend.slice(-14)
         .filter(function(t){ return (t.events || 0) >= MIN_SYNC_SAMPLE; })
         .map(function(t){ return t.avgSyncSeconds || 0; });
+      // actionableRatio and distinctOperators were only ever whole-window
+      // totals until 0103 added a per-day breakdown to trend[] — both
+      // sparklines rendered as a permanently flat "no data" line before
+      // that (reported live: "its dead"). actionableRatio is a percentage
+      // like avgSyncSeconds, so it gets the same low-sample-day filter;
+      // distinctOperators is a plain per-day count, not an average, so a
+      // quiet day isn't "skewed" the same way — it's plotted as-is.
+      var ratioSpark = trend.slice(-14)
+        .filter(function(t){ return (t.events || 0) >= MIN_SYNC_SAMPLE; })
+        .map(function(t){ return t.actionableRatio || 0; });
+      var driversSpark = trend.slice(-14).map(function(t){ return t.distinctOperators || 0; });
 
       setKpi('total', kpis.totalAlerts, p7 ? p7.totalAlerts : null, totalsSpark);
       setKpi('units', kpis.distinctAssets, p7 ? p7.distinctAssets : null, assetsSpark);
@@ -5037,15 +5046,11 @@
       // actionableRatio is already a 0-100 percentage (dds_metrics() computes
       // it as (actionable/total)*100 server-side, confirmed live), not a 0-1
       // fraction — fmtPct(n) appends '%' directly, no extra *100 here.
-      setKpi('ratio', kpis.actionableRatio, p7 ? p7.actionableRatio : null, null, function(v){ return fmtPct(v || 0); });
+      setKpi('ratio', kpis.actionableRatio, p7 ? p7.actionableRatio : null, ratioSpark, function(v){ return fmtPct(v || 0); });
       // Replaces the old "Alert Type Count" card (2 types, Sleep/Drowsy —
       // already fully shown by the Alert Type Distribution donut below, so
-      // this card was redundant) per direct instruction. distinctOperators
-      // has no per-day equivalent in trend[] either (same as
-      // actionableRatio above — only a whole-window total), so this KPI's
-      // sparkline stays flat honestly rather than fabricate a daily shape
-      // that doesn't exist in the data.
-      setKpi('drivers', kpis.distinctOperators, p7 ? p7.distinctOperators : null, null);
+      // this card was redundant) per direct instruction.
+      setKpi('drivers', kpis.distinctOperators, p7 ? p7.distinctOperators : null, driversSpark);
     }
 
     // ==================== Alert Trend: Total Alerts vs. Total Operating Hours ====================
@@ -5355,9 +5360,13 @@
     // just a display one.
     function fetchTopDrivers(from, to){
       return DB.rpc('dds_driver_event_summary', {
-        p_search: filterState.search || null, p_sort: 'total', p_dir: 'desc',
+        p_search: null, p_sort: 'total', p_dir: 'desc',
         p_limit: 200, p_offset: 0,
-        p_from: from || null, p_to: to || null, p_shift: null
+        p_from: from || null, p_to: to || null, p_shift: null,
+        // p_asset_id (0104) — same asset the filter bar/cross-filter
+        // already narrows KPIs/charts to, so this list agrees with them
+        // instead of always showing the fleet-wide ranking regardless.
+        p_asset_id: (activeAssetIds() || [null])[0]
       }).then(function(res){
         if(res.error) throw res.error;
         // emp_no_norm carries the literal string 'UNSPECIFIED' (a real
@@ -5370,9 +5379,10 @@
     }
     function fetchTopAssets(from, to){
       return DB.rpc('dds_asset_event_summary', {
-        p_search: filterState.search || null, p_sort: 'total', p_dir: 'desc',
+        p_search: null, p_sort: 'total', p_dir: 'desc',
         p_limit: 200, p_offset: 0,
-        p_from: from || null, p_to: to || null, p_shift: null
+        p_from: from || null, p_to: to || null, p_shift: null,
+        p_asset_id: (activeAssetIds() || [null])[0]
       }).then(function(res){
         if(res.error) throw res.error;
         return (res.data || {}).rows || [];
@@ -5633,8 +5643,12 @@
       if(donutLegend) donutLegend.textContent = 'Sign in to load real data.';
     }
     function errorState(err){
-      var syncedEl = document.getElementById('an-synced-note');
-      if(syncedEl) syncedEl.textContent = 'Could not load: ' + ((err && err.message) || 'unknown error');
+      // an-synced-note (the removed "Key Insights"/"Data synced" header)
+      // used to be where a total fetch failure surfaced — with it gone,
+      // this now uses the same "replace the primary content with the
+      // error" idiom every other page/panel in this app already uses.
+      var kpiRow = document.getElementById('an-kpi-row');
+      if(kpiRow) kpiRow.innerHTML = '<div class="da-empty" style="padding:30px 0;color:#c0271f">Could not load: ' + esc((err && err.message) || 'unknown error') + '</div>';
     }
 
     function toMDY(d){ return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear(); }
@@ -5679,9 +5693,6 @@
           renderFactorImpact(cur, factors);
           renderKpis(cur, null);
 
-          var syncedEl = document.getElementById('an-synced-note');
-          if(syncedEl) syncedEl.textContent = 'Data synced just now';
-
           // Comparison window: the same span length immediately before the
           // primary window above — a real like-for-like delta, not a
           // mismatched-length comparison. Non-fatal, same degrade-
@@ -5704,16 +5715,6 @@
     }
 
     // ==================== filter bar ====================
-    var debounceTimer = null;
-    function debounceLoad(){
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(load, 300);
-    }
-    var searchInput = document.getElementById('an-search');
-    if(searchInput) searchInput.addEventListener('input', function(e){
-      filterState.search = e.target.value.trim();
-      debounceLoad();
-    });
     var fromInput = document.getElementById('an-from');
     if(fromInput) fromInput.addEventListener('change', function(e){
       filterState.from = e.target.value || null;
@@ -5729,11 +5730,39 @@
       filterState.assetId = e.target.value || null;
       load();
     });
+
+    // Month/Year quick-pick: a friendlier way to fill in From/To than
+    // typing exact dates, kept alongside them (not replacing them) per
+    // direct instruction — either can still be edited directly afterward.
+    // Year alone picks the whole year; Year+Month narrows to that one
+    // month. Neither does anything until a Year is actually chosen — there
+    // is no implied "current year" default, so picking only a Month has no
+    // effect to derive a range from yet.
+    var monthSelect = document.getElementById('an-month');
+    var yearSelect = document.getElementById('an-year');
+    function applyMonthYearQuickPick(){
+      var monthVal = monthSelect ? monthSelect.value : '';
+      var yearVal = yearSelect ? yearSelect.value : '';
+      filterState.month = monthVal || null;
+      filterState.year = yearVal || null;
+      if(!yearVal) return;
+      var year = Number(yearVal);
+      var startMonth = monthVal ? Number(monthVal) - 1 : 0;
+      var endMonth = monthVal ? Number(monthVal) - 1 : 11;
+      filterState.from = toISO(new Date(year, startMonth, 1));
+      filterState.to = toISO(new Date(year, endMonth + 1, 0)); // day 0 of next month = last day of this one
+      if(fromInput) fromInput.value = filterState.from;
+      if(toInput) toInput.value = filterState.to;
+    }
+    if(monthSelect) monthSelect.addEventListener('change', function(){ applyMonthYearQuickPick(); load(); });
+    if(yearSelect) yearSelect.addEventListener('change', function(){ applyMonthYearQuickPick(); load(); });
+
     var clearBtn = document.getElementById('an-clear-filters');
     if(clearBtn) clearBtn.addEventListener('click', function(){
-      filterState.search = ''; filterState.from = null; filterState.to = null; filterState.assetId = null;
+      filterState.month = null; filterState.year = null; filterState.from = null; filterState.to = null; filterState.assetId = null;
       filterState.crossAsset = null; filterState.crossDriver = null;
-      if(searchInput) searchInput.value = '';
+      if(monthSelect) monthSelect.value = '';
+      if(yearSelect) yearSelect.value = '';
       if(fromInput) fromInput.value = '';
       if(toInput) toInput.value = '';
       if(assetSelect) assetSelect.value = '';
@@ -5763,10 +5792,39 @@
         }).catch(function(err){ console.warn('Asset filter list fetch failed', err); });
     }
 
+    // Month is a fixed 12-option list (MONTH_NAMES, already defined above
+    // in this same IIFE). Year is populated from the real earliest/latest
+    // shift_date in events — a lightweight one-off fetch, same pattern as
+    // loadAssetOptions() — rather than a hardcoded range that could silently
+    // stop matching whatever data era this database actually holds.
+    if(monthSelect){
+      var monthOptions = MONTH_NAMES.map(function(name, i){ return '<option value="' + (i + 1) + '">' + name + '</option>'; }).join('');
+      monthSelect.insertAdjacentHTML('beforeend', monthOptions);
+    }
+    var yearOptionsLoaded = false;
+    function loadYearOptions(){
+      if(yearOptionsLoaded || !yearSelect) return;
+      yearOptionsLoaded = true;
+      Promise.all([
+        DB.from('events').select('shift_date').order('shift_date', { ascending: true }).limit(1),
+        DB.from('events').select('shift_date').order('shift_date', { ascending: false }).limit(1)
+      ]).then(function(results){
+        var minRow = ((results[0] || {}).data || [])[0];
+        var maxRow = ((results[1] || {}).data || [])[0];
+        var thisYear = new Date().getFullYear();
+        var minYear = minRow ? new Date(minRow.shift_date).getFullYear() : thisYear;
+        var maxYear = maxRow ? new Date(maxRow.shift_date).getFullYear() : thisYear;
+        var options = '';
+        for(var y = maxYear; y >= minYear; y--){ options += '<option value="' + y + '">' + y + '</option>'; }
+        yearSelect.insertAdjacentHTML('beforeend', options);
+      }).catch(function(err){ console.warn('Year filter list fetch failed', err); });
+    }
+
     // Phase 8: re-fetch on every nav to this page — see window.__ddsPageLoad.
     window.__ddsPageLoad.analytics = load;
     load();
     loadAssetOptions();
+    loadYearOptions();
   })();
 
   // ---------- Summary page: renders live from the Driver & Asset Monitoring state ----------

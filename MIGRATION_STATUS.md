@@ -1569,6 +1569,59 @@ separately-named, self-displaying choice, since "—" is now the one control
 that means it — a second menu button with a different label but the
 identical outcome and end display would only have been confusing.
 
+**Analytics QA pass — sparklines, dead chrome, filter reach.** Live
+report: "inspect actionable ratio sparkline, and drivers involve
+sparkline. its dead. remove also the title key insight, and data sync, no
+use. remove also search bar and replace it with month, year, asset, id.
+inspect also the recent table, not affected by the filters. ensure all in
+this page are affected by the filters and other buttons." Four separate
+fixes:
+- **Sparklines confirmed genuinely dead, not just visually flat.**
+  `actionableRatio`/`distinctOperators` only ever existed as whole-window
+  totals in `dds_metrics()`'s `kpis` — `trend[]` had no per-day breakdown
+  for either, so `renderKpis()` always passed `null` for those two spark
+  series. `0103_dds_metrics_trend_ratio_and_drivers.sql` adds both to
+  `trend[]` (verified against real data: actionableRatio genuinely swings
+  7-45%, distinctOperators 5-117 across real days), and `renderKpis()` now
+  plots them — actionableRatio through the same low-sample-day filter
+  already used for avgSyncSeconds (it's a percentage, prone to the same
+  single-row-outweighs-a-week distortion), distinctOperators plotted as-is
+  since a plain count isn't skewed by a quiet day the same way an average is.
+- **"Key Insights" title and "Data synced just now" removed** — the KPI
+  cards themselves (Total Alerts, Actionable Ratio, etc.) stayed; only the
+  decorative header line above them is gone. The one place that header did
+  real work — showing a total-fetch-failure message — now uses the same
+  "replace the primary content with the error" idiom every other panel in
+  this app already uses (`errorState()` now writes into `#an-kpi-row`
+  instead of the removed note).
+- **Free-text search replaced with Month/Year quick-pick selects,
+  kept alongside From/To** (both preserved, per direct choice — Month/Year
+  fills From/To as a shortcut rather than replacing the precise pickers).
+  The search box only ever reached two of the page's ten-odd panels (Top
+  Assets/Top Employees' own `p_search`) — `dds_metrics()` itself has no
+  text-search parameter at all, so every KPI, chart, the donut, and Recent
+  Alerts silently ignored it. That's very likely what "recent table, not
+  affected by the filters" actually meant: reading `dds_metrics()`'s live
+  definition confirms `recentAlerts` is built from the SAME fully-filtered
+  `filtered` CTE as the KPIs/charts, so it already responds correctly to
+  From/To and the Asset picker — verified live with a Playwright stub that
+  narrows the Asset filter and confirms the rendered Recent Alerts rows
+  change. Year is populated from the real earliest/latest `shift_date` in
+  `events` (a one-off fetch, same pattern as the existing asset-list
+  fetch), not a hardcoded range.
+- **Asset ID filter didn't reach Top Assets by Alerts / Top Employees by
+  Alerts** — a gap this page's own `renderActiveFilterChip()` comment had
+  already documented as structural (`dds_driver_event_summary()`/
+  `dds_asset_event_summary()` had no per-asset parameter at all).
+  `0104_top_lists_asset_id_filter.sql` adds `p_asset_id` to both — first
+  applied as a bare `create or replace`, which silently left the OLD
+  8-argument overload in place alongside the new 9-argument one (`CREATE
+  OR REPLACE` only replaces a function whose argument list matches
+  exactly; adding a parameter makes Postgres treat it as a distinct
+  overload) — caught by checking `pg_proc` after applying, fixed by
+  explicitly dropping the old overload so exactly one version of each
+  function exists, and folded into the same migration file before commit.
+
 **Phase 5 is complete.** The mock's Driver & Asset Monitoring page
 (`#page-driver-asset`) wired end-to-end to real `dds_driver_asset_weekly()`/
 `dds_log_entity_action()`/`dds_entity_action_history()` data — no new SQL
