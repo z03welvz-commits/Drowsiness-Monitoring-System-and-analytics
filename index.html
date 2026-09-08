@@ -156,16 +156,9 @@
   .nav-item:hover{background:rgba(255,255,255,.07)}
   .nav-item:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .nav-item.active{background:#1361d8;color:#fff;font-weight:600}
-  .nav-icon{width:18px;height:18px;flex:0 0 auto;display:grid;place-items:center;opacity:.95;position:relative}
+  .nav-icon{width:18px;height:18px;flex:0 0 auto;display:grid;place-items:center;opacity:.95}
   .nav-icon svg{width:17px;height:17px}
   .nav-label{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  /* Nav-item alert badge: anchored to the icon itself (not the label) so
-     it stays visible even when the sidebar is collapsed to an icon-only
-     rail — the whole point per direct instruction is that something
-     needing attention shows up regardless of which page is open or
-     whether the sidebar is expanded. */
-  .nav-alert-badge{position:absolute;top:-5px;right:-7px;min-width:15px;height:15px;padding:0 4px;border-radius:999px;background:#e53553;color:#fff;font-size:9px;font-weight:800;line-height:15px;text-align:center;box-shadow:0 0 0 2px #012d68}
-  .nav-alert-badge[hidden]{display:none}
   .signout-mobile{display:none}
   .management{margin-top:18px}
   .sidebar-bottom{flex:0 0 auto;padding:14px 12px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:2px}
@@ -425,7 +418,7 @@
   .an-filterbar select.al-filter{-webkit-appearance:none;appearance:none}
   .an-active-filter{display:flex;align-items:center;gap:6px;background:#e6eefe;color:#2954e8;border-radius:999px;padding:6px 8px 6px 12px;font-size:11px;font-weight:650;flex:0 0 auto}
   /* This codebase's own established pattern for every other hidden-toggled
-     badge/chip (.nav-alert-badge[hidden], .al-badge[hidden], .dm-review-
+     badge/chip (.nav-badge[hidden], .al-badge[hidden], .dm-review-
      badge[hidden]) — a class with its own explicit `display` needs a
      matching [hidden] override, or the `hidden` attribute is silently
      defeated by that display value. Confirmed live: the chip stayed
@@ -1563,10 +1556,7 @@
         <span class="nav-label">Driver &amp; Asset Monitoring</span>
       </button>
       <button class="nav-item" type="button" data-page="driver-streaks">
-        <span class="nav-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
-          <span class="nav-alert-badge" id="nav-driver-streaks-badge" hidden>0</span>
-        </span>
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>
         <span class="nav-label">Driver Streaks</span>
         <span class="nav-badge" id="ds-nav-badge" hidden>0</span>
       </button>
@@ -3554,6 +3544,39 @@
         </div>
       </div>
     </div>
+
+    <!-- Driver Streaks: "Logged by" capture for the action dropdown. A
+         real modal instead of window.prompt() — prompt() is silently
+         suppressed by some browsers/embedded webviews after repeated
+         dialogs (or disabled outright by enterprise policy), and a
+         suppressed prompt() returns null exactly like a user hitting
+         Cancel, so logging an action could silently no-op with zero
+         feedback. Reuses the same .da-modal-mask/.da-modal shell as
+         Driver & Asset Monitoring's own action modal (see da-modal-mask
+         above) rather than window.prompt(). -->
+    <div class="da-modal-mask" id="ds-loggedby-mask">
+      <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="ds-loggedby-title">
+        <div class="da-modal-head">
+          <div>
+            <div class="da-modal-title" id="ds-loggedby-title">Log this action</div>
+            <div class="da-modal-sub" id="ds-loggedby-sub">—</div>
+          </div>
+          <button class="da-modal-close" type="button" id="ds-loggedby-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="da-modal-body">
+          <div class="da-field da-modal-field">
+            <label for="ds-loggedby-input">Logged by</label>
+            <input type="text" id="ds-loggedby-input" placeholder="Your name or employee ID">
+          </div>
+        </div>
+        <div class="da-modal-foot">
+          <button class="da-modal-cancel" type="button" id="ds-loggedby-cancel">Cancel</button>
+          <button class="da-modal-save" type="button" id="ds-loggedby-save">Save action</button>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -4086,16 +4109,22 @@
       });
     });
 
-    // ---- Sidebar "something needs attention" badges ----
+    // ---- Sidebar "something needs attention" badge ----
     // Unlike Data Management's dm-review-badge (only ever refreshed when
     // that page's own code happens to run), this is meant to be visible
     // from ANY page — per direct instruction, the point is surfacing an
     // open Driver Streaks case even while looking at Overview or Alert
-    // Logs, not just when that page is already open. Anchored to the
-    // nav-icon itself (not the label) so it survives the sidebar's
-    // collapsed icon-only rail too (see .nav-alert-badge CSS).
+    // Logs, not just when that page is already open. Targets the same
+    // #ds-nav-badge the Driver Streaks page itself updates directly (via
+    // updateOpenBadge(), once it's actually open) — .nav-badge's own CSS
+    // already repositions it onto the icon corner when the sidebar is
+    // collapsed, so one element covers both cases. (This used to be two
+    // separate badges — one here, one on the page — built independently
+    // to solve the same problem; both showed the identical count at once
+    // whenever the sidebar was expanded, which read as a bug because it
+    // was one: dead duplication nobody had reconciled.)
     function refreshDriverStreaksNavBadge(){
-      var badge = document.getElementById('nav-driver-streaks-badge');
+      var badge = document.getElementById('ds-nav-badge');
       if(!badge) return;
       requireSession().then(function(sess){
         if(!sess){ badge.hidden = true; return; }
@@ -4114,11 +4143,6 @@
       });
     }
     refreshDriverStreaksNavBadge();
-    // Re-checked whenever Driver Streaks itself finishes loading (its own
-    // load() already fetches openCount for the in-page badge — see that
-    // page's own IIFE) so logging an action there updates the sidebar
-    // badge immediately instead of waiting for a full app reload.
-    window.__ddsRefreshDriverStreaksNavBadge = refreshDriverStreaksNavBadge;
   })();
 
   // ---------- Overview page: real dds_metrics() data, Phase 4 ----------
@@ -12211,61 +12235,102 @@
       });
     }
 
+    // "Logged by" capture — a modal (see ds-loggedby-mask markup), not
+    // window.prompt(). prompt() is silently suppressed by some browsers
+    // after a page has shown a few dialogs in a row, and disabled outright
+    // in some embedded webviews / by enterprise browser policy; either way
+    // it just returns null, which this code can't tell apart from a real
+    // user Cancel — so a suppressed prompt() made logging an action
+    // silently no-op with no error and no visible cause.
+    var loggedByMask = document.getElementById('ds-loggedby-mask');
+    var loggedBySub = document.getElementById('ds-loggedby-sub');
+    var loggedByInput = document.getElementById('ds-loggedby-input');
+    var loggedBySaveBtn = document.getElementById('ds-loggedby-save');
+    var loggedByCancelBtn = document.getElementById('ds-loggedby-cancel');
+    var loggedByCloseBtn = document.getElementById('ds-loggedby-close');
+    var pendingStreakAction = null; // { r, actionType, isOther, otherText, i }
+
+    function closeLoggedByModal(){
+      if(!loggedByMask) return;
+      loggedByMask.classList.remove('on');
+      if(pendingStreakAction){
+        // Cancelled — nothing was ever sent over the network, so just
+        // redraw this one row back to its last-known state instead of a
+        // full reload. A full reload here previously made a deliberate
+        // Cancel look identical to a failed save: same flicker, same
+        // silence, no way to tell which one happened.
+        var rowEl = tbody.querySelector('tr[data-ds-row="' + pendingStreakAction.i + '"]');
+        if(rowEl) rowEl.outerHTML = rowHtml(pendingStreakAction.r, pendingStreakAction.i);
+      }
+      pendingStreakAction = null;
+    }
+    if(loggedByCancelBtn) loggedByCancelBtn.addEventListener('click', closeLoggedByModal);
+    if(loggedByCloseBtn) loggedByCloseBtn.addEventListener('click', closeLoggedByModal);
+    if(loggedByMask) loggedByMask.addEventListener('click', function(e){ if(e.target === loggedByMask) closeLoggedByModal(); });
+    if(loggedByInput) loggedByInput.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); if(loggedBySaveBtn) loggedBySaveBtn.click(); }
+    });
+    if(loggedBySaveBtn) loggedBySaveBtn.addEventListener('click', function(){
+      var loggedBy = (loggedByInput.value || '').trim();
+      if(!loggedBy){
+        alert('Logging an action requires a "Logged by" name.');
+        loggedByInput.focus();
+        return;
+      }
+      var pending = pendingStreakAction;
+      if(!pending) return;
+      pendingStreakAction = null; // done — closeLoggedByModal() must not revert the row now
+      loggedByMask.classList.remove('on');
+      submitStreakAction(pending.r, pending.actionType, pending.isOther, pending.otherText, pending.i, loggedBy);
+    });
+
     function applyStreakAction(r, actionType, isOther, otherText, i){
       getMyUsername().then(function(defaultName){
-        var loggedBy = window.prompt('Logged by (name of whoever performed this action):', defaultName);
-        if(loggedBy === null){
-          // Cancelled — nothing was ever sent over the network, so just
-          // redraw this one row back to its last-known state instead of a
-          // full reload. A full reload here previously made a deliberate
-          // Cancel look identical to a failed save: same flicker, same
-          // silence, no way to tell which one happened.
-          var rowEl = tbody.querySelector('tr[data-ds-row="' + i + '"]');
-          if(rowEl) rowEl.outerHTML = rowHtml(r, i);
-          return;
+        pendingStreakAction = { r: r, actionType: actionType, isOther: isOther, otherText: otherText, i: i };
+        if(loggedBySub) loggedBySub.textContent = r.name + ' (' + r.empNo + ') · ' + r.runStart + '–' + r.runEnd;
+        loggedByInput.value = defaultName || '';
+        loggedByMask.classList.add('on');
+        loggedByInput.focus();
+        loggedByInput.select();
+      });
+    }
+
+    function submitStreakAction(r, actionType, isOther, otherText, i, loggedBy){
+      setRowSaving(i, true);
+      var finalType = isOther ? 'Other' : actionType;
+      DB.rpc('dds_bulk_log_case_action_by_driver', {
+        p_emp_nos: [r.empNo], p_include_unspecified: false,
+        p_from: mdyToIso(r.runStart),
+        p_to: mdyToIso(r.runEnd),
+        p_shift: null,
+        p_action_type: finalType,
+        p_action_is_other: !!isOther,
+        p_action_date: new Date().toISOString().slice(0,10),
+        p_status_value: 'Logged',
+        p_remarks: isOther ? otherText : null
+      }).then(function(res){
+        if(res.error) throw res.error;
+        var updated = (res.data && res.data.updated) || 0;
+        if(!updated){
+          // A successful call with nothing matched is indistinguishable from
+          // a real save unless we check the row count ourselves — surface it
+          // instead of silently reloading as if it worked.
+          throw new Error('No matching events found for ' + r.empNo + ' between ' + r.runStart + ' and ' + r.runEnd + ' — nothing was saved.');
         }
-        loggedBy = loggedBy.trim();
-        if(!loggedBy){
-          alert('Logging an action requires a "Logged by" name.');
-          load();
-          return;
-        }
-        setRowSaving(i, true);
-        var finalType = isOther ? 'Other' : actionType;
-        DB.rpc('dds_bulk_log_case_action_by_driver', {
-          p_emp_nos: [r.empNo], p_include_unspecified: false,
-          p_from: mdyToIso(r.runStart),
-          p_to: mdyToIso(r.runEnd),
-          p_shift: null,
-          p_action_type: finalType,
-          p_action_is_other: !!isOther,
-          p_action_date: new Date().toISOString().slice(0,10),
-          p_status_value: 'Logged',
-          p_remarks: isOther ? otherText : null
-        }).then(function(res){
-          if(res.error) throw res.error;
-          var updated = (res.data && res.data.updated) || 0;
-          if(!updated){
-            // A successful call with nothing matched is indistinguishable from
-            // a real save unless we check the row count ourselves — surface it
-            // instead of silently reloading as if it worked.
-            throw new Error('No matching events found for ' + r.empNo + ' between ' + r.runStart + ' and ' + r.runEnd + ' — nothing was saved.');
-          }
-          return DB.rpc('dds_log_entity_action', {
-            p_entity_type: 'driver', p_entity_id: r.empNo,
-            p_action_type: isOther ? 'Other' : actionType,
-            p_action_other_text: isOther ? otherText : null,
-            p_note: 'Logged from Driver Streaks (' + r.runStart + '–' + r.runEnd + ')',
-            p_logged_by: loggedBy
-          });
-        }).then(function(res){
-          if(res && res.error) throw res.error;
-          load();
-        }).catch(function(err){
-          console.error('Log streak action failed', err);
-          alert('Could not log action: ' + ((err && err.message) || 'unknown error'));
-          load();
+        return DB.rpc('dds_log_entity_action', {
+          p_entity_type: 'driver', p_entity_id: r.empNo,
+          p_action_type: isOther ? 'Other' : actionType,
+          p_action_other_text: isOther ? otherText : null,
+          p_note: 'Logged from Driver Streaks (' + r.runStart + '–' + r.runEnd + ')',
+          p_logged_by: loggedBy
         });
+      }).then(function(res){
+        if(res && res.error) throw res.error;
+        load();
+      }).catch(function(err){
+        console.error('Log streak action failed', err);
+        alert('Could not log action: ' + ((err && err.message) || 'unknown error'));
+        load();
       });
     }
 
