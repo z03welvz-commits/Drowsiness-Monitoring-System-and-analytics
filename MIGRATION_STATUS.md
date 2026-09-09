@@ -1681,6 +1681,27 @@ case, and the inner scroll wrapper only exceeded 100% for the 14- and
 in both the "few points would otherwise stretch" and "many points would
 otherwise squeeze" directions.
 
+**Addendum — `dds_alert_logs()` overload ambiguity (0105).** Live bug report:
+Data Management's DDS tab failed to load records with "Could not choose the
+best candidate function between: `dds_alert_logs(p_from, p_to, p_shift,
+p_status, p_search, p_limit, p_offset, p_sort, p_dir)` and
+`dds_alert_logs(..., p_severity)`." Same root cause as 0104: an earlier
+migration that added `p_severity` to `dds_alert_logs()` used `CREATE OR
+REPLACE FUNCTION` with a different argument list than the original 9-arg
+signature, so Postgres created a second, distinct overload instead of
+replacing it — leaving a stale 9-arg version and the complete 10-arg version
+(severity filtering, `driverDisplayName`/`needsReview` fields the Alert Logs
+UI reads) coexisting live. Any caller omitting `p_severity` — Data
+Management's DDS tab and the pending-review total (`fetchAlertLogsTotal`) —
+matched both candidates equally, which Postgres refuses to resolve. Fixed
+with `drop function if exists public.dds_alert_logs(date, date, text, text,
+text, integer, integer, text, text)` (0105), leaving the single 10-arg
+version live. Verified via `pg_proc`: exactly one `dds_alert_logs` signature
+remains, and calling it with the exact argument set the DDS tab uses (no
+`p_severity`) no longer raises the ambiguity error — the only error left is
+the function's own `UNAUTHENTICATED` guard, expected when called outside a
+real session. No application code changed — this was a database-only fix.
+
 **Phase 5 is complete.** The mock's Driver & Asset Monitoring page
 (`#page-driver-asset`) wired end-to-end to real `dds_driver_asset_weekly()`/
 `dds_log_entity_action()`/`dds_entity_action_history()` data — no new SQL

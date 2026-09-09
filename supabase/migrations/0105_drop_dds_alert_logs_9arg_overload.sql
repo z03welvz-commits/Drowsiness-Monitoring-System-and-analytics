@@ -1,0 +1,18 @@
+-- Fix: "Could not choose the best candidate function between:
+-- public.dds_alert_logs(p_from, p_to, p_shift, p_status, p_search, p_limit,
+-- p_offset, p_sort, p_dir) and public.dds_alert_logs(..., p_severity)."
+--
+-- Same class of bug as 0104 (dds_asset_event_summary/dds_driver_event_summary):
+-- an earlier CREATE OR REPLACE that added p_severity had a different argument
+-- list than the original 9-arg dds_alert_logs(), so Postgres created a second,
+-- distinct overload instead of replacing it — leaving both a 9-arg and a
+-- 10-arg version live. Any caller that omits p_severity (Data Management's
+-- DDS tab, dds_alert_logs_total's pending-review count) matches both
+-- candidates equally and Postgres refuses to guess, breaking record loads.
+--
+-- The 10-arg version has the complete, current implementation (severity
+-- filtering, driver_display/needs_review fields the Alert Logs UI reads) —
+-- dropping the stale 9-arg one leaves a single unambiguous signature that
+-- every existing call site (with or without p_severity, since it defaults
+-- to null) resolves to correctly.
+drop function if exists public.dds_alert_logs(date, date, text, text, text, integer, integer, text, text);
