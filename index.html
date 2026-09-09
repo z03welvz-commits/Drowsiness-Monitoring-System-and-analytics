@@ -498,28 +498,6 @@
   .an-swatch.dashed{background:none!important;border-top:2px dashed var(--series-2)}
   .an-chart-area{height:238px;padding-top:7px;position:relative}
   .an-chart-area svg{width:100%;height:100%;display:block}
-  /* Alert Trend (Chart.js bar+2 lines) — fixed physical size, independent
-     of how many days the active filter returns, per direct instruction:
-     "the filter scope controls WHAT is displayed, never HOW LARGE the
-     chart is." #anAssetVolumeCard/an-trend-viewport's dimensions come ONLY
-     from this CSS, never from JS/data-length math — renderTrend() never
-     touches them. flex:1 1 0 is a no-op safeguard for if this card is ever
-     moved into a flex row instead of the current CSS Grid one (grid
-     doesn't read flex-basis at all, but a future flex layout would, per
-     the same class of bug .an-row-2col's own comment already covers for
-     flex vs. grid on this page). */
-  #anAssetVolumeCard{max-width:898px;min-height:300px;flex:1 1 0}
-  .an-trend-viewport{
-    max-width:858px;height:320px;min-height:280px;
-    overflow-x:auto;overflow-y:hidden;
-  }
-  /* The one thing renderTrend() IS allowed to size from data-point count —
-     and only outward (never below 100%), so a filter with many days
-     scrolls horizontally inside this fixed viewport instead of shrinking
-     bar width to fit or growing the viewport/card itself. Height is never
-     touched here; it always fills the fixed viewport above. */
-  .an-trend-scroll{height:100%;width:100%}
-  .an-trend-scroll canvas{width:100%;height:100%}
   .an-axis{font-size:8px;fill:var(--muted)}
   .an-panel-label{font-size:9px;font-weight:700;fill:var(--text-dim);letter-spacing:.02em}
   .an-bar{fill:#2954e8}
@@ -1950,29 +1928,49 @@
 
       <section class="an-charts-top an-row-2col">
         <div class="card an-chart-card" id="anAssetVolumeCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend (Last 30 Days)</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch dashed"></i>Operating Hours</span></div></div>
-          <div class="an-chart-area an-trend-viewport" id="an-trend-chart-area">
-            <!-- Chart.js, two lines each on its own y-axis (Alerts solid,
-                 Operating Hours dashed) — replacing the old hand-rolled SVG
-                 shared-axis plot, which removes the "shared scale flattens
-                 the smaller series" tradeoff that plot had to accept.
-                 Operating Hours comes from trend[].operatingHours — MineStat
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch dashed"></i>Operating Hours</span></div></div>
+          <div class="an-chart-area">
+            <!-- Hand-rolled SVG (smoothPathD + wireChartHover), matching this
+                 page's own Hourly Trend/Alert Sync Time cards and Overview's
+                 Total Alerts chart — same rendering technique as both, so
+                 "character" (smooth curve, gradient area fill, hover
+                 crosshair+tooltip) is shared across all three rather than
+                 this one chart alone using Chart.js. Two lines, each on its
+                 own y-axis (Alerts solid+filled, Operating Hours dashed) —
+                 Operating Hours comes from trend[].operatingHours, MineStat
                  data (public.minestat_shifts.operating_hrs), a separate
                  ingest path from the DDS alert events everything else on
                  this page reads (0099_dds_metrics_operating_hours.sql). A
-                 third "Assets Involved" series (and, before that, a bar
-                 series for Alerts) were tried and dropped per direct
-                 instruction — see aggregateTrend()/renderTrend() below for
-                 why lines rather than bars: a line has no minimum physical
-                 width to read as a shape, so any number of aggregated
-                 points (daily/weekly/monthly, see aggregateTrend) always
-                 renders in this one fixed-size, non-scrolling viewport. No
-                 filter control of its own — this chart reads `cur` from the
-                 SAME dds_metrics() call the page's real filter bar
-                 (Month/Year/From/To/Asset) already drives, per direct
-                 instruction. -->
-            <div class="an-trend-scroll" id="an-trend-scroll">
-              <canvas id="an-trend-canvas"></canvas>
+                 third "Assets Involved" series, and a Chart.js bar/scroll
+                 implementation before this, were both tried and dropped per
+                 direct instruction. Since a line has no minimum physical
+                 width the way a bar does, xFor() below just spreads however
+                 many aggregated points there are (daily/weekly/monthly, see
+                 aggregateTrend) evenly across this fixed-size viewport —
+                 no scrolling case exists to handle. No filter control of
+                 its own — this chart reads `cur` from the SAME dds_metrics()
+                 call the page's real filter bar (Month/Year/From/To/Asset)
+                 already drives, per direct instruction. -->
+            <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-trend-svg">
+              <defs>
+                <linearGradient id="anTrendFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" style="stop-color:var(--series-1)" stop-opacity="0.14"/>
+                  <stop offset="100%" style="stop-color:var(--series-1)" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <line class="gridline" x1="40" y1="25" x2="460" y2="25"/><line class="gridline" x1="40" y1="86" x2="460" y2="86"/><line class="gridline" x1="40" y1="147" x2="460" y2="147"/><line class="gridline" x1="40" y1="208" x2="460" y2="208"/>
+              <g id="an-trend-yaxis-alerts"></g>
+              <g id="an-trend-yaxis-hours"></g>
+              <g id="an-trend-lines"></g>
+              <g id="an-trend-axis"></g>
+              <line class="chart-crosshair" id="an-trend-crosshair" x1="0" y1="25" x2="0" y2="208"/>
+              <circle class="chart-hover-dot" id="an-trend-hover-dot" r="4"/>
+              <circle class="chart-hover-dot" id="an-trend-hover-dot2" r="4" style="stroke:var(--series-2)"/>
+              <rect class="chart-hover-rect" id="an-trend-hover-rect" x="40" y="0" width="420" height="238"/>
+            </svg>
+            <div class="chart-tooltip" id="an-trend-tooltip">
+              <div class="chart-tooltip-date" id="an-trend-tooltip-date">—</div>
+              <div class="chart-tooltip-value" id="an-trend-tooltip-value">—</div>
             </div>
           </div>
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Alert counts and MineStat operating hours over the selected period — each on its own scale.</span></div>
@@ -3638,7 +3636,6 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
 <script>
   // ---------- Shared Supabase client (Phase 3+: real backend, not mock data) ----------
   // Same project/key index.html uses (publishable key — safe to ship client-side,
@@ -5075,12 +5072,6 @@
     // page's real filter bar (Month/Year/From/To/Asset) already drives, so
     // it's affected by every one of those exactly like every other panel
     // on this page.
-    function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
-    // Chart.js instance kept module-level so re-renders (every filter
-    // change calls this again) update the existing chart in place —
-    // creating a new Chart() on the same <canvas> without destroying the
-    // old one first leaks instances and layers duplicate canvases.
-    var trendChart = null;
     function trendDateLabel(mdy){
       // trend[].date is "MM/DD/YYYY" (dds_metrics()'s own format) — reformatted
       // to "Mon D" to match the chart's compact x-axis, same idea as
@@ -5154,102 +5145,95 @@
         return { label: b.label, units: b.units, operatingHours: b.operatingHours };
       });
     }
-    // Both series are lines — a line has no minimum physical width to read
-    // as a shape, so it never fights with "fit every point, no scroll" the
-    // way a bar would. Assets Involved was dropped entirely (per direct
-    // instruction) rather than kept in some other form.
+    // Hand-rolled SVG (smoothPathD + wireChartHover) — the same technique
+    // Overview's Total Alerts chart and this page's own Hourly Trend/Alert
+    // Sync Time cards already use, per direct instruction to match that
+    // character rather than Chart.js. Two lines (Alerts, Operating Hours),
+    // each independently scaled, both drawn across a FIXED x-range via
+    // xFor(i) = index/(n-1) — since that's a continuous coordinate mapping
+    // rather than a per-category pixel width, any number of aggregated
+    // points (daily/weekly/monthly, see aggregateTrend above) always
+    // spreads evenly across this one fixed-size viewport with no scrolling
+    // case to handle, unlike a bar chart's discrete per-category slots.
     function renderTrend(cur){
       var trend = cur.trend || [];
-      var canvas = document.getElementById('an-trend-canvas');
-      if(!canvas || typeof Chart === 'undefined') return;
-      if(trendChart){ trendChart.destroy(); trendChart = null; }
-      if(!trend.length) return;
+      var linesEl = document.getElementById('an-trend-lines');
+      if(!linesEl) return;
+      var axisEl = document.getElementById('an-trend-axis');
+      var yAlertsEl = document.getElementById('an-trend-yaxis-alerts');
+      var yHoursEl = document.getElementById('an-trend-yaxis-hours');
+      if(!trend.length){
+        linesEl.innerHTML = '';
+        if(axisEl) axisEl.innerHTML = '';
+        if(yAlertsEl) yAlertsEl.innerHTML = '';
+        if(yHoursEl) yHoursEl.innerHTML = '';
+        return;
+      }
 
       var points = aggregateTrend(trend);
-      var scrollEl = document.getElementById('an-trend-scroll');
-      if(scrollEl) scrollEl.style.width = '100%';
-      var labels = points.map(function(p){ return p.label; });
-      var alertColor = cssVar('--series-1');
-      var hoursColor = cssVar('--series-2');
-      var axisColor = cssVar('--muted');
-      var gridColor = cssVar('--grid') || cssVar('--border');
+      // R=460 (not the 480 this page's other charts use) — the extra 20px
+      // is reserved for the Operating Hours axis label on the right, which
+      // (unlike a single-axis chart) needs its own room to avoid clipping
+      // against the SVG's edge.
+      var L = 40, R = 460, T = 25, B = 208;
+      var xFor = function(i){ return points.length === 1 ? (L+R)/2 : L + (i / (points.length - 1)) * (R - L); };
+      var maxAlerts = Math.max.apply(null, points.map(function(p){ return p.units || 0; }).concat([1]));
+      var maxHours = Math.max.apply(null, points.map(function(p){ return p.operatingHours || 0; }).concat([1]));
+      var topAlerts = Math.max(maxAlerts, 4), topHours = Math.max(maxHours, 4);
+      var yForAlerts = function(v){ return B - (v / topAlerts) * (B - T); };
+      var yForHours = function(v){ return B - (v / topHours) * (B - T); };
 
-      trendChart = new Chart(canvas.getContext('2d'), {
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              type: 'line',
-              label: 'Alerts',
-              data: points.map(function(p){ return p.units; }),
-              borderColor: alertColor,
-              backgroundColor: alertColor,
-              borderWidth: 2.5,
-              pointRadius: 3,
-              pointHoverRadius: 5,
-              pointStyle: 'line', // tooltip swatch reads as a line, matching the other two series
-              tension: 0.2,
-              yAxisID: 'yAlerts',
-              order: 2
-            },
-            {
-              type: 'line',
-              label: 'Operating Hours',
-              data: points.map(function(p){ return Math.round(p.operatingHours || 0); }),
-              borderColor: hoursColor,
-              backgroundColor: hoursColor,
-              borderWidth: 2.5,
-              borderDash: [6, 4], // dashed, per direct instruction — visually distinct from Alerts' solid line
-              pointRadius: 3,
-              pointHoverRadius: 5,
-              pointStyle: 'line', // tooltip swatch reads as a line, not a square, for a line series
-              tension: 0.2,
-              yAxisID: 'yOperating',
-              order: 1
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: { display: false }, // house .an-legend in the card header covers this
-            tooltip: {
-              backgroundColor: '#111827',
-              padding: 10,
-              titleFont: { size: 12 },
-              bodyFont: { size: 11.5 },
-              // Reads each dataset's own pointStyle (set above) for its
-              // tooltip swatch instead of Chart.js's default plain color
-              // box — a line series shows an actual line, matching what
-              // it looks like on the chart itself.
-              usePointStyle: true,
-              callbacks: {
-                label: function(ctx){ return ctx.dataset.label + ': ' + fmtNum(ctx.parsed.y); }
-              }
-            }
-          },
-          scales: {
-            // offset:true insets the first/last category half a bar-width
-            // from the plot edges (Chart.js's own default for an all-bar
-            // chart, but not applied automatically here since this mixes
-            // bar+line datasets on one category scale) — without it the
-            // last bar sits flush against the chart's right edge and its
-            // tick label gets clipped by the canvas instead of fitting
-            // inside the reserved margin.
-            x: { grid: { display: false }, ticks: { color: axisColor, font: { size: 9 } } },
-            yAlerts: {
-              position: 'left', beginAtZero: true,
-              ticks: { color: axisColor, font: { size: 9 } },
-              grid: { color: gridColor }
-            },
-            yOperating: {
-              position: 'right', beginAtZero: true,
-              ticks: { color: axisColor, font: { size: 9 } },
-              grid: { drawOnChartArea: false }
-            }
-          }
+      var ptsAlerts = points.map(function(p, i){ return [xFor(i), yForAlerts(p.units || 0)]; });
+      var ptsHours = points.map(function(p, i){ return [xFor(i), yForHours(p.operatingHours || 0)]; });
+      var alertsLineD = smoothPathD(ptsAlerts);
+      var alertsAreaD = alertsLineD + ' L' + xFor(points.length-1).toFixed(1) + ',' + B + ' L' + xFor(0).toFixed(1) + ',' + B + ' Z';
+      var hoursLineD = smoothPathD(ptsHours);
+      linesEl.innerHTML =
+        '<path d="' + alertsAreaD + '" fill="url(#anTrendFill)" stroke="none"/>' +
+        '<path d="' + hoursLineD + '" fill="none" style="stroke:var(--series-2)" stroke-width="2.5" stroke-dasharray="6 4" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="' + alertsLineD + '" fill="none" style="stroke:var(--series-1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+
+      if(yAlertsEl){
+        yAlertsEl.innerHTML = '<text x="34" y="' + (T+4) + '" class="an-axis" text-anchor="end">' + fmtNum(Math.round(topAlerts)) + '</text>' +
+          '<text x="34" y="' + (B+4) + '" class="an-axis" text-anchor="end">0</text>';
+      }
+      if(yHoursEl){
+        yHoursEl.innerHTML = '<text x="466" y="' + (T+4) + '" class="an-axis" style="fill:var(--series-2)">' + fmtNum(Math.round(topHours)) + '</text>' +
+          '<text x="466" y="' + (B+4) + '" class="an-axis" style="fill:var(--series-2)">0</text>';
+      }
+      if(axisEl){
+        // One label per point reads fine up to ~a dozen; a 30-day daily
+        // view or many weekly buckets would otherwise print an unreadable
+        // pile of overlapping text — always keeps the first/last so the
+        // range's actual bounds stay visible regardless of spacing.
+        var labelStep = Math.max(1, Math.ceil(points.length / 8));
+        var lastIdx = points.length - 1;
+        var showIdx = {};
+        for(var li = 0; li <= lastIdx; li += labelStep) showIdx[li] = true;
+        // The regular step doesn't necessarily land exactly on the last
+        // point — showing both it and the true last point when they're
+        // this close crowds two labels ("Aug 29"/"Aug 30") into the same
+        // few px, so a too-close trailing one is replaced rather than kept.
+        var lastShown = Math.floor(lastIdx / labelStep) * labelStep;
+        if(lastShown !== lastIdx){
+          if(lastIdx - lastShown < labelStep / 2) delete showIdx[lastShown];
+          showIdx[lastIdx] = true;
+        }
+        axisEl.innerHTML = points.map(function(p, i){
+          if(!showIdx[i]) return '';
+          return '<text x="' + xFor(i).toFixed(1) + '" y="228" class="an-axis" text-anchor="middle">' + esc(p.label) + '</text>';
+        }).join('');
+      }
+
+      wireChartHover({
+        rectId: 'an-trend-hover-rect', crosshairId: 'an-trend-crosshair',
+        dotId: 'an-trend-hover-dot', dot2Id: 'an-trend-hover-dot2',
+        tooltipId: 'an-trend-tooltip', dateId: 'an-trend-tooltip-date', valueId: 'an-trend-tooltip-value',
+        getPoints: function(){ return ptsAlerts; },
+        getPoints2: function(){ return ptsHours; },
+        getInfo: function(i){
+          var p = points[i];
+          return { label: p.label, value: fmtNum(p.units) + ' alerts · ' + fmtNum(Math.round(p.operatingHours || 0)) + ' hrs' };
         }
       });
     }
