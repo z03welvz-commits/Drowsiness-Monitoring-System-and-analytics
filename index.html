@@ -494,8 +494,7 @@
   .an-chart-title{font-size:14.5px;font-weight:750;color:var(--text)}
   .an-legend{display:flex;gap:14px;font-size:var(--fs-body);color:var(--muted);font-weight:500}
   .an-legend span{display:flex;align-items:center;gap:5px}
-  .an-swatch{width:16px;height:2px;border-radius:2px;flex:0 0 auto;display:inline-block}
-  .an-swatch.dashed{background:none!important;border-top:2px dashed var(--series-2)}
+  .an-swatch{width:8px;height:8px;border-radius:50%;flex:0 0 auto;display:inline-block}
   .an-chart-area{height:238px;padding-top:7px;position:relative}
   .an-chart-area svg{width:100%;height:100%;display:block}
   .an-axis{font-size:8px;fill:var(--muted)}
@@ -1928,7 +1927,7 @@
 
       <section class="an-charts-top an-row-2col">
         <div class="card an-chart-card" id="anAssetVolumeCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch dashed"></i>Operating Hours</span></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Operating Hours</span></div></div>
           <div class="an-chart-area">
             <!-- Hand-rolled SVG (smoothPathD + wireChartHover), matching this
                  page's own Hourly Trend/Alert Sync Time cards and Overview's
@@ -4970,7 +4969,11 @@
       var h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
       return h + 'h ' + m + 'm';
     }
-    function setKpi(key, curVal, p7Val, sparkVals, formatter){
+    // periodLabel names the comparison window (e.g. "7 days"/"month"/
+    // "quarter") — previously a hardcoded "7 days" regardless of the
+    // actual filter range, which read as nonsense next to a delta computed
+    // from months of data. See comparisonPeriodLabel() below.
+    function setKpi(key, curVal, p7Val, sparkVals, formatter, periodLabel){
       var valueEl = document.getElementById('an-kpi-' + key + '-value');
       var changeEl = document.getElementById('an-kpi-' + key + '-change');
       var sparkEl = document.getElementById('an-kpi-' + key + '-spark');
@@ -4981,7 +4984,7 @@
       if(valueEl) valueEl.textContent = fmt(curVal);
       if(changeEl){
         var d7 = deltaChip(curVal, p7Val);
-        changeEl.innerHTML = '<span class="delta ' + (d7.cls === 'good' ? 'up' : (d7.cls === 'bad' ? 'down' : 'flat')) + '">' + esc(d7.text) + '</span> vs previous 7 days';
+        changeEl.innerHTML = '<span class="delta ' + (d7.cls === 'good' ? 'up' : (d7.cls === 'bad' ? 'down' : 'flat')) + '">' + esc(d7.text) + '</span> vs previous ' + esc(periodLabel || '7 days');
       }
       if(sparkEl){
         // Viewbox is 100x56 (widened from the old 100x32 so the sparkline
@@ -5016,12 +5019,16 @@
         }
       }
     }
-    function renderKpis(cur, prev7d){
+    function renderKpis(cur, prev7d, spanDays){
       var kpis = cur.kpis || {};
       var p7 = prev7d ? prev7d.kpis : null;
       var trend = cur.trend || [];
-      var totalsSpark = trend.slice(-14).map(function(t){ return t.units; });
-      var assetsSpark = trend.slice(-14).map(function(t){ return t.assets; });
+      var periodLabel = comparisonPeriodLabel(spanDays || 7);
+      // units summed per bucket (a bucket's total alerts), everything else
+      // averaged per bucket (a "typical day" figure for that week/month) —
+      // same sum-vs-average split aggregateTrend uses for the main chart.
+      var totalsSpark = bucketSparkline(trend, function(t){ return t.units; }, 'sum');
+      var assetsSpark = bucketSparkline(trend, function(t){ return t.assets; }, 'avg');
       // dds_metrics()'s trend[] already carries a per-day avgSyncSeconds
       // (confirmed in its own CTE) — previously unused here, so this card
       // fell back to the "no data" flat baseline every time even though a
@@ -5033,11 +5040,11 @@
       // week-over-week average (the headline "+31%") was rising, which read
       // as the chart flatly contradicting the number beside it. Per direct
       // instruction: drop those near-empty trailing days from the sparkline
-      // rather than let a 1-row average outweigh a 300-row one visually.
+      // rather than let a 1-row average outweigh a 300-row one visually —
+      // now applied per-bucket via bucketSparkline's minSample, so a wide
+      // range's weekly/monthly buckets get the same treatment.
       var MIN_SYNC_SAMPLE = 5;
-      var syncSpark = trend.slice(-14)
-        .filter(function(t){ return (t.events || 0) >= MIN_SYNC_SAMPLE; })
-        .map(function(t){ return t.avgSyncSeconds || 0; });
+      var syncSpark = bucketSparkline(trend, function(t){ return t.avgSyncSeconds; }, 'avg', MIN_SYNC_SAMPLE);
       // actionableRatio and distinctOperators were only ever whole-window
       // totals until 0103 added a per-day breakdown to trend[] — both
       // sparklines rendered as a permanently flat "no data" line before
@@ -5045,22 +5052,20 @@
       // like avgSyncSeconds, so it gets the same low-sample-day filter;
       // distinctOperators is a plain per-day count, not an average, so a
       // quiet day isn't "skewed" the same way — it's plotted as-is.
-      var ratioSpark = trend.slice(-14)
-        .filter(function(t){ return (t.events || 0) >= MIN_SYNC_SAMPLE; })
-        .map(function(t){ return t.actionableRatio || 0; });
-      var driversSpark = trend.slice(-14).map(function(t){ return t.distinctOperators || 0; });
+      var ratioSpark = bucketSparkline(trend, function(t){ return t.actionableRatio; }, 'avg', MIN_SYNC_SAMPLE);
+      var driversSpark = bucketSparkline(trend, function(t){ return t.distinctOperators; }, 'avg');
 
-      setKpi('total', kpis.totalAlerts, p7 ? p7.totalAlerts : null, totalsSpark);
-      setKpi('units', kpis.distinctAssets, p7 ? p7.distinctAssets : null, assetsSpark);
-      setKpi('sync', kpis.avgSyncSeconds, p7 ? p7.avgSyncSeconds : null, syncSpark, fmtSyncSeconds);
+      setKpi('total', kpis.totalAlerts, p7 ? p7.totalAlerts : null, totalsSpark, null, periodLabel);
+      setKpi('units', kpis.distinctAssets, p7 ? p7.distinctAssets : null, assetsSpark, null, periodLabel);
+      setKpi('sync', kpis.avgSyncSeconds, p7 ? p7.avgSyncSeconds : null, syncSpark, fmtSyncSeconds, periodLabel);
       // actionableRatio is already a 0-100 percentage (dds_metrics() computes
       // it as (actionable/total)*100 server-side, confirmed live), not a 0-1
       // fraction — fmtPct(n) appends '%' directly, no extra *100 here.
-      setKpi('ratio', kpis.actionableRatio, p7 ? p7.actionableRatio : null, ratioSpark, function(v){ return fmtPct(v || 0); });
+      setKpi('ratio', kpis.actionableRatio, p7 ? p7.actionableRatio : null, ratioSpark, function(v){ return fmtPct(v || 0); }, periodLabel);
       // Replaces the old "Alert Type Count" card (2 types, Sleep/Drowsy —
       // already fully shown by the Alert Type Distribution donut below, so
       // this card was redundant) per direct instruction.
-      setKpi('drivers', kpis.distinctOperators, p7 ? p7.distinctOperators : null, driversSpark);
+      setKpi('drivers', kpis.distinctOperators, p7 ? p7.distinctOperators : null, driversSpark, null, periodLabel);
     }
 
     // ==================== Alert Trend: Alerts / Operating Hours ====================
@@ -5103,22 +5108,22 @@
       var yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
       return Math.ceil((((t - yearStart) / 86400000) + 1) / 7);
     }
-    // A daily bar per point stays legible up to ~a month; past that the
-    // category count (and the scroll distance needed to see all of it)
+    // A daily point stays legible up to ~a month; past that the category
+    // count (and, for a bar, the scroll distance needed to see all of it)
     // grows faster than the extra day-by-day detail is worth — a
     // multi-month filter would otherwise need hundreds of hairline-thin
-    // bars or thousands of px of scrolling to view. Wider ranges roll the
-    // daily trend[] up into calendar weeks, and very wide ranges (4+
-    // months) into calendar months, same idea as most trend dashboards
-    // switching granularity as you zoom out. Bar geometry itself (below)
-    // never changes with granularity — only how many bars there are to draw.
+    // bars/points or an unreadable sparkline. Wider ranges roll the daily
+    // trend[] up into calendar weeks, and very wide ranges (4+ months)
+    // into calendar months, same idea as most trend dashboards switching
+    // granularity as you zoom out. Shared by the Alert Trend chart
+    // (aggregateTrend) and the KPI sparklines (bucketSparkline) below, so
+    // both reflect the same selected range at the same granularity rather
+    // than the sparklines showing a fixed, unrelated trailing window.
     var TREND_DAILY_MAX_POINTS = 31;
     var TREND_WEEKLY_MAX_POINTS = 120;
-    function aggregateTrend(trend){
+    function trendBuckets(trend){
       if(trend.length <= TREND_DAILY_MAX_POINTS){
-        return trend.map(function(t){
-          return { label: trendDateLabel(t.date), units: t.units, operatingHours: t.operatingHours };
-        });
+        return trend.map(function(t){ return { label: trendDateLabel(t.date), items: [t] }; });
       }
       var byMonth = trend.length > TREND_WEEKLY_MAX_POINTS;
       var buckets = [];
@@ -5136,14 +5141,47 @@
           label = 'W' + trendIsoWeekNumber(sortDate); // "W#" (ISO week number) — no year, per direct instruction
         }
         var bucket = byKey[key];
-        if(!bucket){ bucket = byKey[key] = { sortDate: sortDate, label: label, units: 0, operatingHours: 0 }; buckets.push(bucket); }
-        bucket.units += t.units || 0;
-        bucket.operatingHours += t.operatingHours || 0;
+        if(!bucket){ bucket = byKey[key] = { sortDate: sortDate, label: label, items: [] }; buckets.push(bucket); }
+        bucket.items.push(t);
       });
       buckets.sort(function(a, b){ return a.sortDate - b.sortDate; });
-      return buckets.map(function(b){
-        return { label: b.label, units: b.units, operatingHours: b.operatingHours };
+      return buckets;
+    }
+    function aggregateTrend(trend){
+      return trendBuckets(trend).map(function(b){
+        var units = 0, operatingHours = 0;
+        b.items.forEach(function(t){ units += t.units || 0; operatingHours += t.operatingHours || 0; });
+        return { label: b.label, units: units, operatingHours: operatingHours };
       });
+    }
+    // KPI sparklines used to always plot the last 14 raw days regardless of
+    // the selected filter range — for a multi-month range that showed a
+    // small, unrelated recent slice rather than the actual period the KPI
+    // number covers. Reuses the same daily/weekly/monthly tiers as the
+    // Alert Trend chart so a sparkline always represents the WHOLE selected
+    // range, just at coarser grain for wider ones. minSample (when given)
+    // drops a day from its bucket if events are too few for its average to
+    // be meaningful (same idea the old fixed-window filter applied) —
+    // averaged, not summed, fields only.
+    function bucketSparkline(trend, valueFn, mode, minSample){
+      var out = [];
+      trendBuckets(trend).forEach(function(b){
+        var items = minSample ? b.items.filter(function(t){ return (t.events || 0) >= minSample; }) : b.items;
+        if(!items.length) return;
+        var sum = items.reduce(function(s, t){ return s + (valueFn(t) || 0); }, 0);
+        out.push(mode === 'sum' ? sum : sum / items.length);
+      });
+      return out;
+    }
+    // Mirrors the granularity language aggregateTrend/bucketSparkline use
+    // (day/week/month) so the KPI row's "vs previous X" always names the
+    // actual comparison window instead of a hardcoded "7 days" that read as
+    // nonsense next to a delta computed from months of data.
+    function comparisonPeriodLabel(spanDays){
+      if(spanDays <= 13) return spanDays + ' day' + (spanDays === 1 ? '' : 's');
+      if(spanDays <= 44) return 'month';
+      if(spanDays <= 120) return 'quarter';
+      return Math.round(spanDays / 30) + ' months';
     }
     // Hand-rolled SVG (smoothPathD + wireChartHover) — the same technique
     // Overview's Total Alerts chart and this page's own Hourly Trend/Alert
@@ -5801,7 +5839,7 @@
           renderAlertTypeDonut(cur);
           renderRecentAlerts(cur);
           renderFactorImpact(cur, factors);
-          renderKpis(cur, null);
+          renderKpis(cur, null, spanDays);
 
           // Comparison window: the same span length immediately before the
           // primary window above — a real like-for-like delta, not a
@@ -5811,7 +5849,7 @@
           // of the page already rendered from `cur` above.
           fetchMetrics(toMDY(prevPeriodStart), toMDY(prevPeriodEnd)).then(function(p7){
             if(!guard.isCurrent(token)) return;
-            renderKpis(cur, p7);
+            renderKpis(cur, p7, spanDays);
           }).catch(function(err){
             if(!guard.isCurrent(token)) return;
             console.warn('Analytics comparison fetch failed — showing KPIs without deltas', err);
