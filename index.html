@@ -3058,39 +3058,8 @@
                 <div class="su-section-sub">Notable shifts from Analytics, this 7-day window</div>
               </div>
             </div>
-            <div class="su-insight-list">
-              <div class="su-insight-row">
-                <span class="su-insight-icon" style="background:#fee8e8;color:#ef4444" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>
-                <div class="su-insight-body">
-                  <div class="su-insight-main">Assets reporting ticked up</div>
-                  <div class="su-insight-sub">42 assets reporting this week, slightly above the 7-day baseline.</div>
-                </div>
-                <span class="su-insight-tag up">↑ 4%</span>
-              </div>
-              <div class="su-insight-row">
-                <span class="su-insight-icon" style="background:#fdf0dc;color:#e8952e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
-                <div class="su-insight-body">
-                  <div class="su-insight-main">Brownout &amp; long sync intervals remain the strongest factors</div>
-                  <div class="su-insight-sub">54% of events this week fall in the 10h+ sync bucket; brownout conditions show the tightest association with alerts.</div>
-                </div>
-                <span class="su-insight-tag flat">Ongoing</span>
-              </div>
-              <div class="su-insight-row">
-                <span class="su-insight-icon" style="background:#e3edfd;color:#3b7cf6" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>
-                <div class="su-insight-body">
-                  <div class="su-insight-main">M. Rabe leads driver alert volume</div>
-                  <div class="su-insight-sub">Top 3 drivers (M. Rabe, R. Jade, Medalla) account for the largest share of alerts this week — see flagged table below.</div>
-                </div>
-                <span class="su-insight-tag flat">Watch</span>
-              </div>
-              <div class="su-insight-row">
-                <span class="su-insight-icon" style="background:#dff5ea;color:#18a05e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>
-                <div class="su-insight-body">
-                  <div class="su-insight-main">Total &amp; sleep alerts trending down</div>
-                  <div class="su-insight-sub">Total alerts down 18% and sleep alerts down 21% vs the prior 7-day window.</div>
-                </div>
-                <span class="su-insight-tag down">↓ 18%</span>
-              </div>
+            <div class="su-insight-list" id="su-insight-list">
+              <div class="su-empty">Loading…</div>
             </div>
           </div>
 
@@ -4479,10 +4448,15 @@
       var trend = cur.trend || [];
       var totalsSpark = trend.slice(-7).map(function(t){ return t.units; });
       var assetsSpark = trend.slice(-7).map(function(t){ return t.assets; });
+      // Per-day severity split (0115_dds_metrics_severity_trend.sql) — each
+      // KPI card's own shape, not a copy of the Total Alerts line these two
+      // previously fell back to for lack of a real per-day series.
+      var sleepSpark = trend.slice(-7).map(function(t){ return t.criticalUnits || 0; });
+      var drowsySpark = trend.slice(-7).map(function(t){ return t.highUnits || 0; });
 
       renderKpi('total', kpis.totalAlerts, prevKpis ? prevKpis.totalAlerts : null, totalsSpark);
-      renderKpi('sleep', curSleep, prevSleep, totalsSpark);
-      renderKpi('drowsy', curDrowsy, prevDrowsy, totalsSpark);
+      renderKpi('sleep', curSleep, prevSleep, sleepSpark);
+      renderKpi('drowsy', curDrowsy, prevDrowsy, drowsySpark);
       renderKpi('drivers', kpis.distinctOperators, prevKpis ? prevKpis.distinctOperators : null, assetsSpark);
       renderKpi('assets', kpis.distinctAssets, prevKpis ? prevKpis.distinctAssets : null, assetsSpark);
     }
@@ -6219,6 +6193,108 @@
       }
     }
 
+    // ==================== Quick Insights (D-3) ====================
+    // Replaces 4 rows of fabricated placeholder copy ("42 assets…",
+    // "M. Rabe leads…", fixed 18%/21% deltas) that were baked into this
+    // page's markup and never touched by JS — every real user saw the same
+    // made-up numbers forever. Rule-based, not generated: four fixed
+    // comparisons over the same week/prevWeek dds_metrics() payload
+    // loadSummaryMetrics() already fetches, no extra RPC round trip.
+    var SU_INSIGHT_ICONS = {
+      truck: '<rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/>',
+      clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+      user: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/>',
+      trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>'
+    };
+    function suPctDelta(cur, prev){
+      if(cur == null || prev == null) return null;
+      if(prev === 0) return cur === 0 ? 0 : null;
+      return Math.round((cur - prev) / prev * 100);
+    }
+    function computeQuickInsights(week, prevWeek, curSleep, prevSleep){
+      var insights = [];
+      var kpis = week.kpis || {}, prevKpis = prevWeek.kpis || {};
+
+      var assetsDelta = suPctDelta(kpis.distinctAssets, prevKpis.distinctAssets);
+      if(kpis.distinctAssets != null && assetsDelta !== null){
+        insights.push({
+          icon: 'truck', color: '#ef4444', bg: '#fee8e8',
+          main: assetsDelta === 0 ? 'Assets reporting held steady' : (assetsDelta > 0 ? 'Assets reporting ticked up' : 'Assets reporting dropped'),
+          sub: fmtNum(kpis.distinctAssets) + ' asset' + (kpis.distinctAssets === 1 ? '' : 's') + ' reporting this week' +
+            (assetsDelta === 0 ? ', matching the prior 7-day window.' : (', ' + Math.abs(assetsDelta) + '% ' + (assetsDelta > 0 ? 'above' : 'below') + ' the prior 7-day window.')),
+          tag: assetsDelta === 0 ? { cls: 'flat', text: '—' } : { cls: assetsDelta > 0 ? 'up' : 'down', text: (assetsDelta > 0 ? '↑ ' : '↓ ') + Math.abs(assetsDelta) + '%' }
+        });
+      }
+
+      var buckets = week.syncBuckets;
+      if(buckets && buckets.labels && buckets.actionable && buckets.nonActionable){
+        var totals = buckets.labels.map(function(_, i){ return (buckets.actionable[i] || 0) + (buckets.nonActionable[i] || 0); });
+        var grand = totals.reduce(function(a, b){ return a + b; }, 0);
+        if(grand > 0){
+          var maxIdx = 0;
+          totals.forEach(function(v, i){ if(v > totals[maxIdx]) maxIdx = i; });
+          var pct = Math.round(totals[maxIdx] / grand * 100);
+          insights.push({
+            icon: 'clock', color: '#e8952e', bg: '#fdf0dc',
+            main: buckets.labels[maxIdx] + ' sync interval most common this week',
+            sub: pct + '% of this week’s events synced within ' + buckets.labels[maxIdx] + ' of the event happening.',
+            tag: { cls: 'flat', text: maxIdx >= 3 ? 'Watch' : 'Typical' }
+          });
+        }
+      }
+
+      var topOps = (week.topOperators || []).filter(function(o){ return o.id !== 'Unspecified'; });
+      if(topOps.length){
+        var top3 = topOps.slice(0, 3);
+        var top3Total = top3.reduce(function(s, o){ return s + (o.total || 0); }, 0);
+        var weekTotal = kpis.totalAlerts || 0;
+        var sharePct = weekTotal > 0 ? Math.round(top3Total / weekTotal * 100) : null;
+        insights.push({
+          icon: 'user', color: '#3b7cf6', bg: '#e3edfd',
+          main: top3[0].id + ' leads driver alert volume',
+          sub: 'Top ' + top3.length + ' driver' + (top3.length === 1 ? '' : 's') + ' (' + top3.map(function(o){ return o.id; }).join(', ') + ')' +
+            (sharePct != null ? (' account for ' + sharePct + '% of alerts this week') : ' lead alert volume this week') + ' — see flagged table below.',
+          tag: { cls: 'flat', text: 'Watch' }
+        });
+      }
+
+      var totalDelta = suPctDelta(kpis.totalAlerts, prevKpis.totalAlerts);
+      var sleepDelta = suPctDelta(curSleep, prevSleep);
+      if(totalDelta !== null || sleepDelta !== null){
+        var parts = [];
+        if(totalDelta !== null) parts.push('Total alerts ' + (totalDelta >= 0 ? 'up' : 'down') + ' ' + Math.abs(totalDelta) + '%');
+        if(sleepDelta !== null) parts.push('sleep alerts ' + (sleepDelta >= 0 ? 'up' : 'down') + ' ' + Math.abs(sleepDelta) + '%');
+        var mainDir = totalDelta !== null ? totalDelta : sleepDelta;
+        insights.push({
+          icon: 'trend', color: mainDir < 0 ? '#18a05e' : (mainDir > 0 ? '#e53553' : '#5b6472'), bg: mainDir < 0 ? '#dff5ea' : (mainDir > 0 ? '#fee8e8' : '#eef0f4'),
+          main: 'Total & sleep alerts trending ' + (mainDir < 0 ? 'down' : (mainDir > 0 ? 'up' : 'flat')),
+          sub: (parts.length ? parts.join(' and ') : 'No comparable data') + ' vs the prior 7-day window.',
+          tag: mainDir === 0 ? { cls: 'flat', text: '—' } : { cls: mainDir < 0 ? 'down' : 'up', text: (mainDir < 0 ? '↓ ' : '↑ ') + Math.abs(mainDir) + '%' }
+        });
+      }
+
+      return insights;
+    }
+    function renderQuickInsights(week, prevWeek, curSleep, prevSleep){
+      var list = document.getElementById('su-insight-list');
+      if(!list) return;
+      var insights = computeQuickInsights(week, prevWeek, curSleep, prevSleep);
+      if(!insights.length){
+        list.innerHTML = '<div class="su-empty">Not enough data yet for a weekly comparison.</div>';
+        return;
+      }
+      list.innerHTML = insights.map(function(ins){
+        return '<div class="su-insight-row">' +
+          '<span class="su-insight-icon" style="background:' + ins.bg + ';color:' + ins.color + '" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + SU_INSIGHT_ICONS[ins.icon] + '</svg></span>' +
+          '<div class="su-insight-body">' +
+            '<div class="su-insight-main">' + esc(ins.main) + '</div>' +
+            '<div class="su-insight-sub">' + esc(ins.sub) + '</div>' +
+          '</div>' +
+          '<span class="su-insight-tag ' + ins.tag.cls + '">' + esc(ins.tag.text) + '</span>' +
+        '</div>';
+      }).join('');
+    }
+
     function renderSummaryTrend(week){
       var trend = (week.trend || []).slice(-7);
       var svg = document.getElementById('su-trend-svg');
@@ -6353,6 +6429,7 @@
           var avgEl = document.getElementById('su-kpi-total-avg');
           if(avgEl) avgEl.textContent = fmtNum(Math.round((kpis.totalAlerts || 0) / 7));
           renderSummaryTrend(week);
+          renderQuickInsights(week, prevWeek, curSleep, prevSleep);
 
           var totalEl = document.getElementById('su-open-total'), critEl = document.getElementById('su-open-critical');
           if(totalEl) totalEl.textContent = fmtNum((week.meta || {}).rowCount != null ? week.meta.rowCount : kpis.totalAlerts);
