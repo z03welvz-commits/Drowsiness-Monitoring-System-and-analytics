@@ -110,7 +110,7 @@
      .sidebar-pin (persisted per-browser in localStorage). Width transitions
      on the flex-basis/width pair so the rail push/overlay stays smooth;
      labels and text fade instead of reflowing mid-transition. */
-  .sidebar{width:280px;flex:0 0 280px;background:#012d68;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;transition:width .18s ease,flex-basis .18s ease;z-index:20}
+  .sidebar{width:280px;flex:0 0 280px;background:#0b0f1a;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;transition:width .18s ease,flex-basis .18s ease;z-index:20}
   .sidebar.collapsed{width:72px;flex-basis:72px}
   .sidebar.collapsed:hover,.sidebar.collapsed.pinned-open{width:280px;flex-basis:280px}
   /* Mobile nav toggle + backdrop: hidden entirely above the 820px breakpoint
@@ -134,7 +134,7 @@
   .sidebar.collapsed .mode-toggle span{width:0;overflow:hidden}
   .sidebar.collapsed:hover .mode-toggle,.sidebar.collapsed.pinned-open .mode-toggle{gap:10px}
   .sidebar.collapsed:hover .mode-toggle span,.sidebar.collapsed.pinned-open .mode-toggle span{width:auto;overflow:visible}
-  .sidebar-pin{all:unset;box-sizing:border-box;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#b9d7fb;flex:0 0 auto;margin-left:auto;cursor:pointer;transition:background-color .15s,color .15s;opacity:0;pointer-events:none}
+  .sidebar-pin{all:unset;box-sizing:border-box;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#9aa1b4;flex:0 0 auto;margin-left:auto;cursor:pointer;transition:background-color .15s,color .15s;opacity:0;pointer-events:none}
   .sidebar-pin:hover{background:rgba(255,255,255,.1);color:#fff}
   .sidebar-pin:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .sidebar-pin svg{width:15px;height:15px}
@@ -144,25 +144,26 @@
 
   .brand{height:84px;padding:20px 22px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.1);flex:0 0 auto}
   .sidebar.collapsed .brand{padding-left:16px;padding-right:16px}
-  .brand-icon{width:40px;height:40px;border-radius:10px;background:#1972d2;display:grid;place-items:center;box-shadow:0 4px 12px rgba(0,0,0,.12);flex:0 0 auto}
+  .brand-icon{width:40px;height:40px;border-radius:10px;background:#f0902e;display:grid;place-items:center;box-shadow:0 4px 12px rgba(0,0,0,.12);flex:0 0 auto}
   .brand-icon svg{width:20px;height:20px}
   .brand-text{white-space:nowrap}
   .brand-name{font-size:19px;font-weight:750;line-height:1}
-  .brand-sub{font-size:10px;color:#b9d7fb;margin-top:5px}
+  .brand-sub{font-size:10px;color:#9aa1b4;margin-top:5px}
 
   .nav{padding:22px 14px;overflow-y:auto;overflow-x:hidden;flex:1 1 auto}
-  .section-label{font-size:var(--fs-badge);letter-spacing:.08em;color:#7fa3d6;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase;white-space:nowrap}
-  .nav-item{all:unset;position:relative;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:14px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
-  .nav-item:hover{background:rgba(255,255,255,.07)}
+  .section-label{font-size:var(--fs-badge);letter-spacing:.08em;color:#5b6274;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase;white-space:nowrap}
+  .nav-item{all:unset;position:relative;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:14px;padding:0 12px 0 9px;border-radius:8px;border-left:3px solid transparent;color:#9aa1b4;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s,border-color .15s;cursor:pointer}
+  .nav-item:hover{background:rgba(255,255,255,.06)}
   .nav-item:focus-visible{outline:2px solid #fff;outline-offset:-2px}
-  .nav-item.active{background:#1361d8;color:#fff;font-weight:600}
+  .nav-item.active{background:rgba(240,144,46,.14);color:#fff;font-weight:600;border-left-color:#f0902e}
+  .nav-item.active .nav-icon{color:#f0902e}
   .nav-icon{width:18px;height:18px;flex:0 0 auto;display:grid;place-items:center;opacity:.95}
   .nav-icon svg{width:17px;height:17px}
   .nav-label{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .signout-mobile{display:none}
   .management{margin-top:18px}
   .sidebar-bottom{flex:0 0 auto;padding:14px 12px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:2px}
-  .mode-toggle{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;font-size:12px;color:#c3d7f2;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background-color .15s,color .15s}
+  .mode-toggle{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;font-size:12px;color:#9aa1b4;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background-color .15s,color .15s}
   .mode-toggle:hover{background:rgba(255,255,255,.07)}
   .mode-toggle:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .mode-toggle svg{width:14px;height:14px;flex:0 0 auto}
@@ -1575,38 +1576,30 @@
       <div class="section-label">Monitoring</div>
       <button class="nav-item active" type="button" aria-current="page" data-page="overview">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg></span>
-        <span class="nav-label">Overview</span>
+        <span class="nav-label">Command Center</span>
       </button>
       <button class="nav-item" type="button" data-page="analytics">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span>
-        <span class="nav-label">Analytics</span>
-      </button>
-      <button class="nav-item" type="button" data-page="alerts">
-        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
-        <span class="nav-label">Alert Logs</span>
+        <span class="nav-label">Trends &amp; Analytics</span>
       </button>
       <button class="nav-item" type="button" data-page="driver-asset">
-        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-        <span class="nav-label">Driver &amp; Asset Monitoring</span>
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
+        <span class="nav-label">Investigate</span>
       </button>
-      <button class="nav-item" type="button" data-page="driver-streaks">
-        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>
-        <span class="nav-label">Driver Streaks</span>
-        <span class="nav-badge" id="ds-nav-badge" hidden>0</span>
-      </button>
+      <div class="section-label" style="margin-top:18px">Action</div>
       <button class="nav-item" type="button" data-page="corrective-actions">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="m9 13 2.5 2.5L15 11"/></svg></span>
         <span class="nav-label">Corrective Actions</span>
         <span class="nav-badge" id="ca-nav-badge" hidden>0</span>
       </button>
-      <button class="nav-item" type="button" data-page="summary">
-        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h6"/></svg></span>
-        <span class="nav-label">Summary</span>
-      </button>
+      <!-- Alert Logs, Driver Streaks, and Summary are folded into Command
+           Center / Investigate in this nav per the redesign; their pages
+           and real data/JS are left intact (unreachable via nav for now)
+           rather than deleted, so nothing already working is lost. -->
       <div class="management section-label">Management</div>
       <button class="nav-item" type="button" data-page="data">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
-        <span class="nav-label">Data Management</span>
+        <span class="nav-label">Data &amp; Admin</span>
       </button>
       <button class="nav-item" type="button" data-page="settings">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V19a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H4a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H10a1.7 1.7 0 0 0 1-1.6V4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9V10c.2.6.8 1 1.6 1H20a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1z"/></svg></span>
@@ -1633,8 +1626,8 @@
     <div id="page-overview" class="page active">
     <header class="topbar">
       <div class="title">
-        <h1>Overview</h1>
-        <p>Real-time overview of your drowsiness detection system</p>
+        <h1>Command Center</h1>
+        <p>Everything that needs a decision today.</p>
       </div>
       <div class="controls">
         <div class="card clock-chip">
@@ -1647,9 +1640,9 @@
       </div>
     </header>
 
-    <section class="card hero">
+    <section class="card hero" style="background:linear-gradient(100deg,#0b0f1a 0%,#3a2a12 55%,#c96f1e 100%);border:none">
       <div class="hero-left">
-        <div class="hero-avatar" aria-hidden="true">
+        <div class="hero-avatar" aria-hidden="true" style="background:rgba(255,255,255,.16)">
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6 13.5 15.5l-5-5L1 18"/><path d="M17 6h6v6"/></svg>
         </div>
         <div class="hero-text">
@@ -1659,7 +1652,7 @@
       </div>
       <div class="hero-status">
         <div class="hero-status-label">System Status</div>
-        <div class="status-pill" id="ov-status-pill"><span class="livedot" aria-hidden="true"></span><span id="ov-status-text">All Systems Operational</span></div>
+        <div class="status-pill" id="ov-status-pill" style="background:rgba(255,255,255,.14);color:#fff"><span class="livedot" aria-hidden="true"></span><span id="ov-status-text">All Systems Operational</span></div>
       </div>
     </section>
 
@@ -1677,34 +1670,28 @@
 
     <section class="kpis" aria-label="Key metrics" id="ov-kpi-row">
       <div class="card kpi">
-        <div class="kpi-head"><span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
+        <div class="kpi-head"><span class="kpi-icon" style="background:#2f7ef0" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>TOTAL ALERTS</div>
         <div class="kpi-value" id="ov-kpi-total-value">—</div>
         <div class="kpi-sub"><span id="ov-kpi-total-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-total-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-total-spark" d="M0,16 L100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-total-spark" d="M0,16 L100,16" fill="none" stroke="#2f7ef0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
-        <div class="kpi-head"><span class="kpi-icon pink" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>SLEEP ALERTS</div>
+        <div class="kpi-head"><span class="kpi-icon" style="background:#ef4444" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>HIGH ALERTS</div>
         <div class="kpi-value" id="ov-kpi-sleep-value">—</div>
         <div class="kpi-sub"><span id="ov-kpi-sleep-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-sleep-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-sleep-spark" d="M0,16 L100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-sleep-spark" d="M0,16 L100,16" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
-        <div class="kpi-head"><span class="kpi-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>DROWSINESS ALERTS</div>
+        <div class="kpi-head"><span class="kpi-icon" style="background:#f0902e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>DRIVERS FLAGGED</div>
         <div class="kpi-value" id="ov-kpi-drowsy-value">—</div>
         <div class="kpi-sub"><span id="ov-kpi-drowsy-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-drowsy-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-drowsy-spark" d="M0,16 L100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-drowsy-spark" d="M0,16 L100,16" fill="none" stroke="#f0902e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
-        <div class="kpi-head"><span class="kpi-icon bluebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>DRIVERS INVOLVED</div>
+        <div class="kpi-head"><span class="kpi-icon" style="background:#7c5cf0" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="m9 13 2.5 2.5L15 11"/></svg></span>ACTION REQUIRED</div>
         <div class="kpi-value" id="ov-kpi-drivers-value">—</div>
         <div class="kpi-sub"><span id="ov-kpi-drivers-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-drivers-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-drivers-spark" d="M0,16 L100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-head"><span class="kpi-icon greenbg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>ASSETS REPORTING</div>
-        <div class="kpi-value" id="ov-kpi-assets-value">—</div>
-        <div class="kpi-sub"><span id="ov-kpi-assets-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-assets-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-assets-spark" d="M0,16 L100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-drivers-spark" d="M0,16 L100,16" fill="none" stroke="#7c5cf0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
     </section>
 
@@ -1722,8 +1709,8 @@
             <svg viewBox="0 0 720 200" role="img" aria-label="Line chart of total alerts over the last 7 days" id="ov-trend-svg">
               <defs>
                 <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" style="stop-color:var(--series-1)" stop-opacity="0.16"/>
-                  <stop offset="100%" style="stop-color:var(--series-1)" stop-opacity="0"/>
+                  <stop offset="0%" style="stop-color:#f0902e" stop-opacity="0.22"/>
+                  <stop offset="100%" style="stop-color:#f0902e" stop-opacity="0"/>
                 </linearGradient>
               </defs>
               <line class="gridline" x1="40" y1="15" x2="700" y2="15"/><line class="gridline" x1="40" y1="52.5" x2="700" y2="52.5"/><line class="gridline" x1="40" y1="90" x2="700" y2="90"/><line class="gridline" x1="40" y1="127.5" x2="700" y2="127.5"/><line class="gridline" x1="40" y1="160" x2="700" y2="160"/>
@@ -1731,7 +1718,7 @@
               <line class="trend-mean" id="ov-trend-mean-line" x1="40" y1="87.5" x2="700" y2="87.5"/>
               <text x="695" y="83.5" class="trend-mean-label" text-anchor="end" id="ov-trend-mean-label">7d avg: —</text>
               <path class="trend-area" id="ov-trend-area" d=""/>
-              <path class="trend-line" id="ov-trend-line" fill="none" d=""/>
+              <path class="trend-line" id="ov-trend-line" fill="none" d="" style="stroke:#f0902e"/>
               <g id="ov-trend-dots"></g>
               <g id="ov-trend-xaxis"></g>
               <line class="chart-crosshair" id="ov-trend-crosshair" x1="0" y1="15" x2="0" y2="160"/>
@@ -1838,6 +1825,18 @@
             </button>
           </div>
         </div>
+
+        <div class="card">
+          <div class="feed-head">
+            <div class="feed-title-group">
+              <span class="feed-icon" style="background:#f0902e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg></span>
+              <span class="feed-title">Quick Insights</span>
+            </div>
+          </div>
+          <div class="su-insight-list" id="ov-insight-list" style="padding:8px 17px 14px">
+            <div class="su-empty">Loading…</div>
+          </div>
+        </div>
       </div>
     </section>
     </div>
@@ -1845,7 +1844,7 @@
     <div id="page-analytics" class="page">
       <header class="topbar">
         <div class="title">
-          <h1>Analytics</h1>
+          <h1>Trends &amp; Analytics</h1>
           <p>Analyze drowsiness patterns, contributing factors, and operational performance.</p>
         </div>
         <div class="controls">
@@ -2255,7 +2254,7 @@
     <div id="page-data" class="page">
       <header class="topbar">
         <div class="title">
-          <h1>Data Management</h1>
+          <h1>Data &amp; Admin</h1>
           <p>Manage DDS data, monitor data quality, and maintain the analysis dataset.</p>
         </div>
         <div class="controls">
@@ -2687,7 +2686,7 @@
     <div id="page-driver-asset" class="page">
       <header class="topbar">
         <div class="title">
-          <h1>Driver &amp; Asset Monitoring</h1>
+          <h1>Investigate</h1>
           <p>Weekly alert consistency for drivers and assets, prioritized for action</p>
         </div>
         <div class="da-sync-status" id="da-sync-status" role="status" aria-live="polite">
@@ -4440,27 +4439,111 @@
         .reduce(function(sum, c){ return sum + (c.units || 0); }, 0);
     }
 
-    function renderKpis(cur, prev){
+    function renderKpis(cur, prev, caQueue){
       var kpis = cur.kpis || {};
       var prevKpis = (prev && prev.kpis) || null;
-      var curSleep = countByTier(cur.eventCodeDistribution, 'critical');
-      var curDrowsy = countByTier(cur.eventCodeDistribution, 'high');
-      var prevSleep = prevKpis ? countByTier(prev.eventCodeDistribution, 'critical') : null;
-      var prevDrowsy = prevKpis ? countByTier(prev.eventCodeDistribution, 'high') : null;
+      // "High Alerts" = critical + high severity tier (D-2's resolved
+      // definition), not sleep alone — matches the Command Center KPI's
+      // real meaning, not the old per-tier Sleep/Drowsy split this card
+      // used to show.
+      var curHigh = countByTier(cur.eventCodeDistribution, 'critical') + countByTier(cur.eventCodeDistribution, 'high');
+      var prevHigh = prevKpis ? countByTier(prev.eventCodeDistribution, 'critical') + countByTier(prev.eventCodeDistribution, 'high') : null;
       var trend = cur.trend || [];
       var totalsSpark = trend.slice(-7).map(function(t){ return t.units; });
-      var assetsSpark = trend.slice(-7).map(function(t){ return t.assets; });
-      // Per-day severity split (0115_dds_metrics_severity_trend.sql) — each
-      // KPI card's own shape, not a copy of the Total Alerts line these two
-      // previously fell back to for lack of a real per-day series.
-      var sleepSpark = trend.slice(-7).map(function(t){ return t.criticalUnits || 0; });
-      var drowsySpark = trend.slice(-7).map(function(t){ return t.highUnits || 0; });
+      // Per-day severity split (0115_dds_metrics_severity_trend.sql).
+      var highSpark = trend.slice(-7).map(function(t){ return (t.criticalUnits || 0) + (t.highUnits || 0); });
+
+      // Drivers Flagged / Action Required: real counts from the same
+      // compound-threshold queue Corrective Actions itself is built on
+      // (dds_corrective_actions_queue()) — not a distinct-operator count,
+      // which was never a "flagged" measure to begin with. No day-over-day
+      // comparison exists for this queue (it's current-state, not a time
+      // series — see D-4 in the Rebuild Scope), so these two cards show no
+      // delta rather than a fabricated one.
+      var openCases = (caQueue && caQueue.open) || [];
+      var driversFlagged = openCases.filter(function(c){ return c.entityType === 'driver'; }).length;
+      var actionRequired = openCases.length;
 
       renderKpi('total', kpis.totalAlerts, prevKpis ? prevKpis.totalAlerts : null, totalsSpark);
-      renderKpi('sleep', curSleep, prevSleep, sleepSpark);
-      renderKpi('drowsy', curDrowsy, prevDrowsy, drowsySpark);
-      renderKpi('drivers', kpis.distinctOperators, prevKpis ? prevKpis.distinctOperators : null, assetsSpark);
-      renderKpi('assets', kpis.distinctAssets, prevKpis ? prevKpis.distinctAssets : null, assetsSpark);
+      renderKpi('sleep', curHigh, prevHigh, highSpark);
+      renderKpi('drowsy', driversFlagged, null, null);
+      renderKpi('drivers', actionRequired, null, null);
+    }
+
+    // ==================== Quick Insights (Command Center) ====================
+    // Real, computed from the same week/prevWeek/caQueue payloads load()
+    // already fetches — no extra RPC round trip. Same rule-based approach
+    // as Summary's own Quick Insights (D-3): real numbers only, an honest
+    // empty state when a window has nothing comparable, never fabricated.
+    function ovPctDelta(cur, prev){
+      if(cur == null || prev == null) return null;
+      if(prev === 0) return cur === 0 ? 0 : null;
+      return Math.round((cur - prev) / prev * 100);
+    }
+    function renderOvInsights(cur, prev, caQueue){
+      var list = document.getElementById('ov-insight-list');
+      if(!list) return;
+      var kpis = cur.kpis || {}, prevKpis = (prev && prev.kpis) || {};
+      var insights = [];
+
+      var assetsDelta = ovPctDelta(kpis.distinctAssets, prevKpis.distinctAssets);
+      if(kpis.distinctAssets != null && assetsDelta !== null){
+        insights.push({
+          color:'#f0902e', bg:'#fdf0dc',
+          main: assetsDelta === 0 ? 'Assets reporting held steady' : (assetsDelta > 0 ? 'Assets reporting ticked up' : 'Assets reporting dropped'),
+          sub: fmtNum(kpis.distinctAssets) + ' asset' + (kpis.distinctAssets === 1 ? '' : 's') + ' reporting' + (assetsDelta === 0 ? ', matching the prior period.' : (', ' + Math.abs(assetsDelta) + '% ' + (assetsDelta > 0 ? 'above' : 'below') + ' the prior period.')),
+          tag: assetsDelta === 0 ? { cls:'flat', text:'—' } : { cls: assetsDelta > 0 ? 'up' : 'down', text: (assetsDelta > 0 ? '↑ ' : '↓ ') + Math.abs(assetsDelta) + '%' }
+        });
+      }
+
+      var openCases = (caQueue && caQueue.open) || [];
+      if(openCases.length){
+        var oldest = openCases.slice().sort(function(a,b){ return b.daysOpen - a.daysOpen; })[0];
+        insights.push({
+          color:'#7c5cf0', bg:'#efe9fe',
+          main: openCases.length + ' case' + (openCases.length === 1 ? '' : 's') + ' currently open in Corrective Actions',
+          sub: 'Longest-open: ' + oldest.name + ', ' + oldest.daysOpen + ' day' + (oldest.daysOpen === 1 ? '' : 's') + ' since ' + oldest.flaggedSince + '.',
+          tag: { cls:'flat', text:'Watch' }
+        });
+      } else if(caQueue){
+        insights.push({ color:'#18a05e', bg:'#dff5ea', main:'No open cases', sub:'Every flagged driver or asset has a logged action right now.', tag:{ cls:'flat', text:'—' } });
+      }
+
+      var topOps = (cur.topOperators || []).filter(function(o){ return o.id !== 'Unspecified'; });
+      if(topOps.length){
+        var top = topOps[0];
+        insights.push({
+          color:'#2f7ef0', bg:'#e6eefe',
+          main: top.id + ' leads driver alert volume',
+          sub: fmtNum(top.total) + ' alert' + (top.total === 1 ? '' : 's') + ' this period — see Investigate for detail.',
+          tag: { cls:'flat', text:'Watch' }
+        });
+      }
+
+      var totalDelta = ovPctDelta(kpis.totalAlerts, prevKpis.totalAlerts);
+      if(totalDelta !== null){
+        insights.push({
+          color: totalDelta < 0 ? '#18a05e' : (totalDelta > 0 ? '#ef4444' : '#5b6274'), bg: totalDelta < 0 ? '#dff5ea' : (totalDelta > 0 ? '#fdecea' : '#f0eee6'),
+          main: 'Total alerts trending ' + (totalDelta < 0 ? 'down' : (totalDelta > 0 ? 'up' : 'flat')),
+          sub: Math.abs(totalDelta) + '% ' + (totalDelta < 0 ? 'below' : (totalDelta > 0 ? 'above' : 'even with')) + ' the prior period.',
+          tag: totalDelta === 0 ? { cls:'flat', text:'—' } : { cls: totalDelta < 0 ? 'down' : 'up', text: (totalDelta < 0 ? '↓ ' : '↑ ') + Math.abs(totalDelta) + '%' }
+        });
+      }
+
+      if(!insights.length){
+        list.innerHTML = '<div class="su-empty">Not enough data yet for a comparison.</div>';
+        return;
+      }
+      list.innerHTML = insights.map(function(ins){
+        return '<div class="su-insight-row">' +
+          '<span class="su-insight-icon" style="background:' + ins.bg + ';color:' + ins.color + '" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg></span>' +
+          '<div class="su-insight-body">' +
+            '<div class="su-insight-main">' + esc(ins.main) + '</div>' +
+            '<div class="su-insight-sub">' + esc(ins.sub) + '</div>' +
+          '</div>' +
+          '<span class="su-insight-tag ' + ins.tag.cls + '">' + esc(ins.tag.text) + '</span>' +
+        '</div>';
+      }).join('');
     }
 
     // ==================== 7-day trend chart ====================
@@ -4801,6 +4884,8 @@
             var el = document.getElementById(id);
             if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Sign in to load real data — this page reads live data, not a mock.</div></div></div>';
           });
+          var insightList = document.getElementById('ov-insight-list');
+          if(insightList) insightList.innerHTML = '<div class="su-empty">Sign in to load real data.</div>';
           return;
         }
         setUsername((sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there');
@@ -4838,19 +4923,35 @@
           // regardless of what range length is selected.
           Promise.all([
             fetchMetrics(state.from, state.to),
-            fetchMetrics(toMDY(prevFrom), toMDY(prevTo))
+            fetchMetrics(toMDY(prevFrom), toMDY(prevTo)),
+            DB.rpc('dds_corrective_actions_queue', {}).then(function(res){
+              if(res.error) throw res.error;
+              return res.data;
+            }).catch(function(err){
+              console.error('Corrective Actions queue fetch failed (Command Center KPIs)', err);
+              return null;
+            })
           ]).then(function(results){
             if(!guard.isCurrent(token)) return;
-            var week = results[0], prevWeek = results[1];
+            var week = results[0], prevWeek = results[1], caQueue = results[2];
             setStatus(true);
             renderTrend(week);
             renderFeed(week);
             renderDriverStreaks();
-            renderKpis(week, prevWeek);
+            renderKpis(week, prevWeek, caQueue);
+            renderOvInsights(week, prevWeek, caQueue);
             var periodLabel = 'vs prior ' + rangeDays + 'd';
-            ['total','sleep','drowsy','drivers','assets'].forEach(function(key){
+            // Only Total Alerts / High Alerts have a real period-over-period
+            // comparison — Drivers Flagged / Action Required read from the
+            // Corrective Actions queue's current state, which has no
+            // historical series to compare against (see D-4).
+            ['total','sleep'].forEach(function(key){
               var el = document.getElementById('ov-kpi-' + key + '-period');
               if(el) el.textContent = periodLabel;
+            });
+            ['drowsy','drivers'].forEach(function(key){
+              var el = document.getElementById('ov-kpi-' + key + '-period');
+              if(el) el.textContent = 'current';
             });
 
             // Hourly Trend: dds_metrics()'s own `hourly` field already
@@ -4878,6 +4979,8 @@
               var el = document.getElementById(id);
               if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
             });
+            var insightListErr = document.getElementById('ov-insight-list');
+            if(insightListErr) insightListErr.innerHTML = '<div class="su-empty">Could not load: ' + esc(err.message || 'unknown error') + '</div>';
           });
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
