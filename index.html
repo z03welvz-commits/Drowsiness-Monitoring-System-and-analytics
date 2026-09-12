@@ -1165,6 +1165,34 @@
   .da-bulk-apply:disabled{opacity:.5;cursor:default}
   .da-bulk-clear{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:650;color:var(--muted);padding:0 4px;white-space:nowrap}
   .da-bulk-clear:hover{color:var(--text-dim)}
+
+  /* Corrective Actions: view-filter pills, entity avatars, inline log-action panel */
+  .ca-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .ca-toolbar-right{display:flex;align-items:center;gap:10px}
+  .ca-tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .ca-tab{all:unset;box-sizing:border-box;cursor:pointer;height:36px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:var(--fs-body);font-weight:650;display:flex;align-items:center;gap:6px}
+  .ca-tab:hover{background:var(--surface2)}
+  .ca-tab.active{background:#0b0f1a;border-color:#0b0f1a;color:#fff}
+  .ca-avatar{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:750;letter-spacing:.02em}
+
+  .ca-inline-row td{padding:0!important}
+  .ca-inline-panel{background:#f3f8ff;border:1px solid #d9e9fc;border-radius:10px;margin:10px 14px;padding:16px 18px}
+  .ca-inline-head{display:flex;align-items:center;gap:9px;font-size:var(--fs-body);color:var(--text-dim);margin-bottom:14px}
+  .ca-inline-head svg:first-child{width:16px;height:16px;color:var(--blue);flex:0 0 auto}
+  .ca-inline-close{all:unset;box-sizing:border-box;cursor:pointer;margin-left:auto;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;color:var(--muted);flex:0 0 auto}
+  .ca-inline-close:hover{background:rgba(15,23,42,.06)}
+  .ca-inline-close svg{width:13px;height:13px}
+  .ca-inline-body{display:flex;flex-direction:column;gap:14px}
+  .ca-inline-meta{display:flex;gap:28px;flex-wrap:wrap}
+  .ca-inline-meta-item{display:flex;flex-direction:column;gap:4px}
+  .ca-inline-meta-label{font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.02em}
+  .ca-inline-meta-value{font-size:var(--fs-body);color:var(--muted);font-style:italic}
+  .ca-inline-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
+  button.ca-inline-cancel{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:var(--fs-body);font-weight:650}
+  button.ca-inline-cancel:hover{background:var(--surface2)}
+  button.ca-inline-save{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 18px;border-radius:8px;background:var(--blue);color:#fff;font-size:var(--fs-body);font-weight:650}
+  button.ca-inline-save:hover{background:#1d4fd1}
+  button.ca-inline-save:disabled{opacity:.5;cursor:default}
   .da-th-check{width:34px;padding:0 0 0 17px!important}
   /* #al-table's checkbox th carries both da-th-check (always-visible
      driver/asset tables' own 17px-padded look) and al-check-cell (Alert
@@ -2927,11 +2955,22 @@
         </div>
       </header>
 
+      <div class="ca-toolbar">
+        <div class="ca-tabs" role="tablist" aria-label="Corrective Actions view">
+          <button class="ca-tab active" type="button" id="ca-tab-open" role="tab" aria-selected="true">Open <span id="ca-tab-open-count">· 0</span></button>
+          <button class="ca-tab" type="button" id="ca-tab-closed" role="tab" aria-selected="false">Closed</button>
+          <button class="ca-tab" type="button" id="ca-tab-drivers" role="tab" aria-selected="false">Drivers</button>
+          <button class="ca-tab" type="button" id="ca-tab-assets" role="tab" aria-selected="false">Assets</button>
+        </div>
+        <div class="ca-toolbar-right">
+          <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search entity name or ID..." id="ca-search"></div>
+          <button class="al-filter" type="button" id="ca-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
+        </div>
+      </div>
+
       <section class="card da-table-card da-table-card-flex">
         <div class="da-table-head da-table-head-oneline">
           <h3 class="da-table-title">Open Cases <small id="ca-open-shown">Showing 0</small></h3>
-          <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search entity name or ID..." id="ca-search"></div>
-          <button class="al-filter" type="button" id="ca-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
         </div>
         <div class="da-bulk-bar" id="ca-bulk-bar">
           <span class="da-bulk-count" id="ca-bulk-count">0 selected</span>
@@ -2957,7 +2996,7 @@
         </div>
       </section>
 
-      <section class="card da-table-card">
+      <section class="card da-table-card" id="ca-closed-section">
         <div class="da-table-head da-table-head-oneline">
           <h3 class="da-table-title">Recently Closed <small>audit trail — a later breach opens a new case</small></h3>
         </div>
@@ -3523,22 +3562,24 @@
       </div>
     </div>
 
-    <!-- Corrective Actions: log-action modal (single row or bulk-selected rows) -->
-    <div class="da-modal-mask" id="ca-modal-mask">
-      <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="ca-modal-title">
-        <div class="da-modal-head">
-          <div>
-            <div class="da-modal-title" id="ca-modal-title">Log an action</div>
-            <div class="da-modal-sub"><span id="ca-modal-ctx-name">—</span></div>
-          </div>
-          <button class="da-modal-close" type="button" id="ca-modal-close" aria-label="Close">
+    <!-- Corrective Actions: inline log-action panel. Matches the approved
+         mock's inline-expand pattern (a panel that opens directly below the
+         row being actioned) rather than a modal overlay. JS wraps this div
+         in a <tr><td colspan> and inserts it right after the clicked row;
+         a bulk selection (no single anchor row) inserts it at the top of
+         the table instead. Kept the richer real field set (action-type
+         grid, note, logged-by) rather than trimming to the mock's simpler
+         sketch, since those fields are already wired to real RPCs. -->
+    <div id="ca-inline-form" hidden>
+      <div class="ca-inline-panel">
+        <div class="ca-inline-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span>Log Action — <strong id="ca-modal-ctx-name">—</strong> <span class="ca-inline-sub" id="ca-modal-ctx-note"></span></span>
+          <button class="ca-inline-close" type="button" id="ca-modal-close" aria-label="Close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>
-        <div class="da-modal-body">
-          <div class="da-modal-context">
-            <div class="da-modal-context-row"><span id="ca-modal-ctx-note">This logs the action and closes every open day for this case at once.</span></div>
-          </div>
+        <div class="ca-inline-body">
           <div class="da-field">
             <label>Action type</label>
             <div class="da-type-grid" id="ca-type-grid">
@@ -3561,10 +3602,14 @@
             <label>Logged by</label>
             <input type="text" id="ca-loggedby-input" placeholder="Your name or employee ID">
           </div>
+          <div class="ca-inline-meta">
+            <div class="ca-inline-meta-item"><span class="ca-inline-meta-label">Date</span><span class="ca-inline-meta-value">Auto-filled on save</span></div>
+            <div class="ca-inline-meta-item"><span class="ca-inline-meta-label">Status</span><span class="ca-inline-meta-value">Open → Closed on save</span></div>
+          </div>
         </div>
-        <div class="da-modal-foot">
-          <button class="da-modal-cancel" type="button" id="ca-modal-cancel">Cancel</button>
-          <button class="da-modal-save" type="button" id="ca-modal-save" disabled>Save action</button>
+        <div class="ca-inline-foot">
+          <button class="ca-inline-cancel" type="button" id="ca-modal-cancel">Cancel</button>
+          <button class="ca-inline-save" type="button" id="ca-modal-save" disabled>Save action</button>
         </div>
       </div>
     </div>
@@ -13256,6 +13301,13 @@
 
     var allOpenRows = [];
     var selected = {}; // key "type|id" -> row object
+    var activeFilter = 'open'; // 'open' | 'driver' | 'asset' — Closed is a jump-link, not a filter (see ca-tab-closed below)
+
+    var tabOpen = document.getElementById('ca-tab-open');
+    var tabClosed = document.getElementById('ca-tab-closed');
+    var tabDrivers = document.getElementById('ca-tab-drivers');
+    var tabAssets = document.getElementById('ca-tab-assets');
+    var tabOpenCount = document.getElementById('ca-tab-open-count');
 
     function rowKey(r){ return r.entityType + '|' + r.entityId; }
 
@@ -13274,6 +13326,29 @@
       return d.toISOString().slice(0, 10);
     }
 
+    // Deterministic per-entity avatar: initials + a stable color picked by
+    // hashing the entity key, so the same driver/asset always gets the same
+    // color across refreshes without needing a stored color column.
+    var AVATAR_PALETTE = ['#2f7ef0', '#f0902e', '#ef4444', '#7c5cf0', '#eda100', '#18a05e', '#94a3b8'];
+    function hashStr(s){
+      var h = 0;
+      for(var i = 0; i < s.length; i++){ h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+      return Math.abs(h);
+    }
+    function entityInitials(r){
+      if(r.entityType !== 'driver') return (r.entityId || '??').slice(0, 2).toUpperCase();
+      var parts = (r.name || '').split(',');
+      var last = (parts[0] || '').trim();
+      var given = (parts[1] || '').trim();
+      var a = given ? given.charAt(0) : last.charAt(0);
+      var b = last ? last.charAt(0) : given.charAt(1);
+      return ((a || '?') + (b || '?')).toUpperCase();
+    }
+    function entityAvatar(r){
+      var color = AVATAR_PALETTE[hashStr(rowKey(r)) % AVATAR_PALETTE.length];
+      return '<span class="ca-avatar" style="background:' + color + '" aria-hidden="true">' + esc(entityInitials(r)) + '</span>';
+    }
+
     function updateBulkBar(){
       var count = Object.keys(selected).length;
       bulkCountEl.textContent = fmtNum(count) + (count === 1 ? ' selected' : ' selected');
@@ -13282,15 +13357,34 @@
       selectAllBox.checked = all;
     }
 
+    function setActiveFilter(filter){
+      activeFilter = filter;
+      [tabOpen, tabDrivers, tabAssets].forEach(function(b){ b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+      var map = { open: tabOpen, driver: tabDrivers, asset: tabAssets };
+      if(map[filter]){ map[filter].classList.add('active'); map[filter].setAttribute('aria-selected', 'true'); }
+      renderOpen();
+    }
+    tabOpen.addEventListener('click', function(){ setActiveFilter('open'); });
+    tabDrivers.addEventListener('click', function(){ setActiveFilter('driver'); });
+    tabAssets.addEventListener('click', function(){ setActiveFilter('asset'); });
+    tabClosed.addEventListener('click', function(){
+      var sec = document.getElementById('ca-closed-section');
+      if(sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
     function renderOpen(){
       var q = (searchInput.value || '').trim().toLowerCase();
-      var rows = q ? allOpenRows.filter(function(r){
+      var base = activeFilter === 'driver' ? allOpenRows.filter(function(r){ return r.entityType === 'driver'; })
+        : activeFilter === 'asset' ? allOpenRows.filter(function(r){ return r.entityType === 'asset'; })
+        : allOpenRows;
+      var rows = q ? base.filter(function(r){
         return r.name.toLowerCase().indexOf(q) !== -1 || r.entityId.toLowerCase().indexOf(q) !== -1;
-      }) : allOpenRows;
+      }) : base;
 
       document.getElementById('ca-open-shown').textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(allOpenRows.length);
       document.getElementById('ca-open-rowsrange').textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(allOpenRows.length);
 
+      closeCaModal();
       if(!rows.length){
         openTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">No open cases' + (q ? ' matching "' + esc(q) + '"' : '') + '.</td></tr>';
         return;
@@ -13299,7 +13393,7 @@
         var key = rowKey(r);
         return '<tr>' +
           '<td class="al-check-cell"><input type="checkbox" class="ca-row-check" data-key="' + esc(key) + '"' + (selected[key] ? ' checked' : '') + '></td>' +
-          '<td><div style="font-weight:650">' + esc(r.name) + '</div><div style="font-size:var(--fs-label);color:var(--muted)">' + esc(r.entityType === 'driver' ? 'Emp #' + r.entityId : r.entityId) + '</div></td>' +
+          '<td><div style="display:flex;align-items:center;gap:10px">' + entityAvatar(r) + '<div><div style="font-weight:650">' + esc(r.name) + '</div><div style="font-size:var(--fs-label);color:var(--muted)">' + esc(r.entityType === 'driver' ? 'Emp #' + r.entityId : r.entityId) + '</div></div></div></td>' +
           '<td>' + esc(r.flaggedSince) + '</td>' +
           '<td>' + fmtNum(r.daysOpen) + (r.daysOpen === 1 ? ' day' : ' days') + '</td>' +
           '<td>' + fmtNum(r.eventCount) + '</td>' +
@@ -13319,7 +13413,7 @@
       openTbody.querySelectorAll('[data-ca-log]').forEach(function(btn){
         btn.addEventListener('click', function(){
           var r = allOpenRows.find(function(x){ return rowKey(x) === btn.getAttribute('data-ca-log'); });
-          if(r) openCaModal([r]);
+          if(r) openCaModal([r], btn.closest('tr'));
         });
       });
     }
@@ -13331,7 +13425,7 @@
       }
       closedTbody.innerHTML = rows.map(function(r){
         return '<tr>' +
-          '<td><div style="font-weight:650">' + esc(r.name) + '</div><div style="font-size:var(--fs-label);color:var(--muted)">' + esc(r.entityType === 'driver' ? 'Emp #' + r.entityId : r.entityId) + '</div></td>' +
+          '<td><div style="display:flex;align-items:center;gap:10px">' + entityAvatar(r) + '<div><div style="font-weight:650">' + esc(r.name) + '</div><div style="font-size:var(--fs-label);color:var(--muted)">' + esc(r.entityType === 'driver' ? 'Emp #' + r.entityId : r.entityId) + '</div></div></div></td>' +
           '<td>' + esc(r.actionPerformed || '—') + '</td>' +
           '<td>' + esc(r.actionDate || '—') + '</td>' +
           '<td>' + esc(r.actionBy || '—') + '</td>' +
@@ -13341,6 +13435,7 @@
     }
 
     function load(){
+      closeCaModal();
       openTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
       requireSession().then(function(sess){
         if(!sess){
@@ -13356,6 +13451,7 @@
           updateBulkBar();
           renderOpen();
           renderClosed(data.recentlyClosed || []);
+          tabOpenCount.textContent = '· ' + fmtNum(allOpenRows.length);
           var navBadge = document.getElementById('ca-nav-badge');
           if(navBadge){
             if(allOpenRows.length){ navBadge.hidden = false; navBadge.textContent = fmtNum(allOpenRows.length); }
@@ -13394,8 +13490,13 @@
     // range across all of them. Mirror-then-resolve ordering (not the
     // reverse) matches Driver Streaks' choice: don't mark a case resolved
     // if the mirror can't find the events to reflect it in Alert Logs. ----
-    var modalMask = document.getElementById('ca-modal-mask');
+    // ---- inline log-action panel: a <div> that JS wraps in <tr><td> and
+    // inserts directly after the row being actioned (or at the top of the
+    // table for a bulk selection), matching the approved mock's
+    // inline-expand pattern instead of a modal overlay. ----
+    var inlineForm = document.getElementById('ca-inline-form');
     var ctxName = document.getElementById('ca-modal-ctx-name');
+    var ctxNote = document.getElementById('ca-modal-ctx-note');
     var typeGrid = document.getElementById('ca-type-grid');
     var otherInput = document.getElementById('ca-other-input');
     var noteInput = document.getElementById('ca-note-input');
@@ -13404,21 +13505,50 @@
     var pendingTargets = [];
     var selectedType = null;
 
-    function openCaModal(targets){
+    function openCaModal(targets, anchorRow){
       pendingTargets = targets;
       selectedType = null;
-      ctxName.textContent = targets.length === 1
-        ? targets[0].name + ' (' + targets[0].entityId + ')'
-        : targets.length + ' selected: ' + targets.map(function(t){ return t.name; }).join(', ');
+      if(targets.length === 1){
+        var t = targets[0];
+        var lastDay = addDays(t.flaggedSince, t.daysOpen - 1);
+        ctxName.textContent = t.name + ' (' + t.entityId + ')';
+        ctxNote.textContent = t.daysOpen === 1
+          ? '(closes the open day: ' + t.flaggedSince + ')'
+          : '(closes ' + t.daysOpen + ' open days: ' + t.flaggedSince + ' – ' + lastDay + ')';
+      } else {
+        ctxName.textContent = targets.length + ' selected';
+        ctxNote.textContent = '(' + targets.map(function(t){ return t.name; }).join(', ') + ')';
+      }
       typeGrid.querySelectorAll('.da-type-opt').forEach(function(b){ b.classList.remove('sel'); });
       otherInput.classList.remove('on');
       otherInput.value = '';
       noteInput.value = '';
       loggedByInput.value = '';
       saveBtn.disabled = true;
-      modalMask.classList.add('on');
+      saveBtn.textContent = 'Save action';
+
+      var tr = document.createElement('tr');
+      tr.className = 'ca-inline-row';
+      var td = document.createElement('td');
+      td.colSpan = 7;
+      td.appendChild(inlineForm);
+      tr.appendChild(td);
+      inlineForm.hidden = false;
+      if(anchorRow && anchorRow.parentNode){
+        anchorRow.parentNode.insertBefore(tr, anchorRow.nextSibling);
+      } else {
+        openTbody.insertBefore(tr, openTbody.firstChild);
+      }
+      tr.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
-    function closeCaModal(){ modalMask.classList.remove('on'); pendingTargets = []; }
+    function closeCaModal(){
+      var tr = inlineForm.parentNode && inlineForm.parentNode.parentNode;
+      if(tr && tr.classList && tr.classList.contains('ca-inline-row') && tr.parentNode){
+        tr.parentNode.removeChild(tr);
+      }
+      inlineForm.hidden = true;
+      pendingTargets = [];
+    }
 
     typeGrid.querySelectorAll('.da-type-opt').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -13437,7 +13567,6 @@
     }
     document.getElementById('ca-modal-close').addEventListener('click', closeCaModal);
     document.getElementById('ca-modal-cancel').addEventListener('click', closeCaModal);
-    modalMask.addEventListener('click', function(e){ if(e.target === modalMask) closeCaModal(); });
 
     saveBtn.addEventListener('click', function(){
       if(!pendingTargets.length || saveBtn.disabled) return;
