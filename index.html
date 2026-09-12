@@ -753,12 +753,19 @@
   button.control.dm-refresh{display:inline-flex;align-items:center;gap:7px}
   button.control.dm-refresh svg{width:13px;height:13px;color:var(--muted)}
 
-  /* source tabs (DDS Data / Minestat Data / Masterlist / Contributing Factors) */
-  .dm-tabs{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto}
-  .dm-tab{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:11px 14px 12px;font-size:12px;font-weight:650;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;flex:0 0 auto}
-  .dm-tab svg{width:14px;height:14px}
-  .dm-tab:hover{color:var(--text-dim)}
-  .dm-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+  /* source sub-nav (DDS Upload / MineStat Upload / Employee Records /
+     Contributing Factors / Name Review Queue) — a vertical list beside the
+     content, matching the mock's Data & Admin layout, rather than the
+     original horizontal tab row. Purely a container/visual change: the
+     click-handling JS (goToSource()) only toggles the same .on classes,
+     so it needed no changes for this. */
+  .dm-layout{display:flex;align-items:flex-start;gap:20px}
+  .dm-tabs{display:flex;flex-direction:column;gap:2px;flex:0 0 230px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px;box-shadow:var(--shadow)}
+  .dm-tab{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:8px;font-size:12.5px;font-weight:650;color:var(--muted);border-left:3px solid transparent;white-space:nowrap}
+  .dm-tab svg{width:14px;height:14px;flex:0 0 auto}
+  .dm-tab:hover{color:var(--text-dim);background:var(--surface2)}
+  .dm-tab.on{color:var(--blue);background:#eef5ff;border-left-color:var(--blue)}
+  .dm-content{flex:1;min-width:0}
   .dm-source{display:none}
   .dm-source.on{display:block}
   .dm-review-badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:#e8952e;color:#fff;font-size:10px;font-weight:700;line-height:1}
@@ -1579,7 +1586,10 @@
     .al-filter{flex:1 1 auto}
     .da-table-head-oneline{flex-wrap:wrap}
     .da-table-head-oneline .da-search{flex:1 1 100%}
-    .dm-tabs{gap:0}
+    .dm-layout{flex-direction:column}
+    .dm-tabs{flex-direction:row;flex:0 0 auto;width:100%;overflow-x:auto;gap:0}
+    .dm-tab{border-left:none;border-bottom:2px solid transparent;border-radius:0}
+    .dm-tab.on{border-left-color:transparent;border-bottom-color:var(--blue)}
     .dm-search{width:100%;max-width:100%}
     .dm-records-head{flex-direction:column;align-items:stretch}
     .su-kpis{grid-template-columns:1fr}
@@ -2355,14 +2365,16 @@
         </div>
       </header>
 
+      <div class="dm-layout">
       <nav class="dm-tabs" aria-label="Data sources" id="dm-source-tabs">
-        <button class="dm-tab on" type="button" data-source="dds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>DDS Data</button>
-        <button class="dm-tab" type="button" data-source="minestat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg>Minestat Data</button>
-        <button class="dm-tab" type="button" data-source="masterlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15 14.2c2.9.4 5 2.5 5 5.8"/></svg>Masterlist</button>
+        <button class="dm-tab on" type="button" data-source="dds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>DDS Upload</button>
+        <button class="dm-tab" type="button" data-source="minestat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg>MineStat Upload</button>
+        <button class="dm-tab" type="button" data-source="masterlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15 14.2c2.9.4 5 2.5 5 5.8"/></svg>Employee Records</button>
         <button class="dm-tab" type="button" data-source="factors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Contributing Factors</button>
-        <button class="dm-tab" type="button" data-source="review" id="dm-tab-review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v3l2 2"/></svg>Name Review<span class="dm-review-badge" id="dm-review-badge" hidden></span></button>
+        <button class="dm-tab" type="button" data-source="review" id="dm-tab-review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v3l2 2"/></svg>Name Review Queue<span class="dm-review-badge" id="dm-review-badge" hidden></span></button>
       </nav>
 
+      <div class="dm-content">
       <!-- ============ DDS DATA ============ -->
       <div class="dm-source on" id="dm-source-dds">
         <section class="dm-toprow">
@@ -2657,6 +2669,8 @@
           </div>
           <div class="dm-table-foot"><span id="dm-review-minestat-foot"></span></div>
         </section>
+      </div>
+      </div>
       </div>
 
       <!-- ============ CONFIRM MATCH MODAL ============ -->
