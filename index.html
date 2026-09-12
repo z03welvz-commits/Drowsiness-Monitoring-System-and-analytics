@@ -256,6 +256,20 @@
   .left-col > .chart-card .chart-area svg{height:100%}
   .right-col > .feed-card .feed-list,.right-col > .feed-card .action-body{flex:1;min-height:0;overflow-y:auto}
 
+  /* Command Center: Alerts by Event Type / Alerts by Shift row, and the
+     Drivers Requiring Attention table — placed below .overview-grid as
+     their own full-width sections rather than inside it, since that grid's
+     two columns are fixed-height (--overview-col-h) by deliberate design
+     and were not built to absorb an extra row. */
+  .ov-charts-row{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px}
+  .ov-shift-body{display:flex;flex-direction:column;justify-content:center;gap:22px;padding:24px 10px;flex:1}
+  .ov-shift-row{display:grid;grid-template-columns:64px 1fr 90px;align-items:center;gap:12px}
+  .ov-shift-label{display:flex;align-items:center;gap:8px;font-size:var(--fs-body);font-weight:650;color:var(--text-dim)}
+  .ov-shift-dot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+  .ov-shift-bar-track{height:14px;border-radius:7px;background:var(--surface2);overflow:hidden}
+  .ov-shift-bar-fill{height:100%;border-radius:7px;transition:width .3s}
+  .ov-shift-value{text-align:right;font-size:var(--fs-body);font-weight:700;color:var(--text-dim);white-space:nowrap}
+
   /* chart card */
   .chart-card{padding:0 16px 14px}
   .chart-head{min-height:48px;padding:14px 0 11px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
@@ -1865,6 +1879,52 @@
             <div class="su-empty">Loading…</div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="ov-charts-row">
+      <div class="card an-chart-card" id="ovAlertTypeDonutCard" style="display:flex;flex-direction:column">
+        <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><h3 class="chart-title an-chart-title">Alerts by Event Type</h3></div></div>
+        <div class="an-donut-card">
+          <div class="an-donut-wrap">
+            <svg viewBox="0 0 190 190">
+              <g id="ov-donut-arcs"></g>
+            </svg>
+            <div class="an-donut-center"><b id="ov-donut-total">&mdash;</b><span>Total Alerts</span></div>
+          </div>
+          <div class="an-donut-legend" id="ov-donut-legend">&mdash;</div>
+        </div>
+      </div>
+
+      <div class="card an-chart-card" id="ovShiftCard" style="display:flex;flex-direction:column">
+        <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><h3 class="chart-title an-chart-title">Alerts by Shift</h3></div></div>
+        <div class="ov-shift-body" id="ov-shift-body">
+          <div class="ov-shift-row">
+            <div class="ov-shift-label"><span class="ov-shift-dot" style="background:var(--series-1)"></span>Day</div>
+            <div class="ov-shift-bar-track"><div class="ov-shift-bar-fill" id="ov-shift-day-fill" style="background:var(--series-1);width:0%"></div></div>
+            <div class="ov-shift-value" id="ov-shift-day-value">&mdash;</div>
+          </div>
+          <div class="ov-shift-row">
+            <div class="ov-shift-label"><span class="ov-shift-dot" style="background:var(--series-2)"></span>Night</div>
+            <div class="ov-shift-bar-track"><div class="ov-shift-bar-fill" id="ov-shift-night-fill" style="background:var(--series-2);width:0%"></div></div>
+            <div class="ov-shift-value" id="ov-shift-night-value">&mdash;</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card da-table-card" style="margin-top:14px">
+      <div class="da-table-head da-table-head-oneline">
+        <h3 class="da-table-title">Drivers Requiring Attention <small id="ov-attn-shown">Showing 0</small></h3>
+      </div>
+      <div class="da-table-wrap">
+        <table class="da-table" id="ov-attn-table">
+          <colgroup><col><col style="width:130px"><col style="width:110px"><col style="width:110px"><col style="width:110px"><col style="width:120px"><col style="width:140px"></colgroup>
+          <thead>
+            <tr><th>Driver</th><th>Employee ID</th><th>Unit</th><th>Total Alerts</th><th>High Alerts</th><th>Current Streak</th><th>Status</th></tr>
+          </thead>
+          <tbody id="ov-attn-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+        </table>
       </div>
     </section>
     </div>
@@ -4875,33 +4935,130 @@
     // bounded call takes ~28ms, safely under any timeout concern.
     function renderDriverStreaks(){
       var body = document.getElementById('ov-streak-body');
-      if(!body) return;
+      var attnBody = document.getElementById('ov-attn-tbody');
+      var attnShown = document.getElementById('ov-attn-shown');
+      if(!body && !attnBody) return;
+      // Fetches 8 rows once and feeds both the narrow sidebar list (first 5,
+      // matching its prior p_limit) and the wide Drivers Requiring
+      // Attention table below — one real fetch, two views of the same data,
+      // rather than two RPC round-trips for the same window.
       DB.rpc('dds_driver_streaks', {
         p_search: null, p_min_streak: 1, p_sort: 'streak_days', p_dir: 'desc',
-        p_limit: 5, p_offset: 0, p_window_days: 7
+        p_limit: 8, p_offset: 0, p_window_days: 7
       }).then(function(res){
         if(res.error) throw res.error;
         var drivers = (res.data || {}).rows || [];
-        if(!drivers.length){
-          body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">No drivers currently on an alert streak.</div></div></div>';
-          return;
+        if(body){
+          if(!drivers.length){
+            body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">No drivers currently on an alert streak.</div></div></div>';
+          } else {
+            body.innerHTML = drivers.slice(0, 5).map(function(d){
+              var required = d.status === 'required';
+              var days = d.streakDays || 0;
+              return '<div class="action-row">' +
+                '<span class="action-dot ' + (required ? 'active' : 'resolved') + '" aria-hidden="true"></span>' +
+                '<div class="action-body-text">' +
+                  '<div class="action-main"><strong>' + esc(d.name || d.empNo) + '</strong></div>' +
+                  '<div class="action-sub">' + days + ' consecutive day' + (days === 1 ? '' : 's') + ' over the daily alert threshold</div>' +
+                '</div>' +
+                '<span class="action-badge ' + (required ? 'active' : 'resolved') + '">' + (required ? 'Action Required' : 'Monitoring') + '</span>' +
+              '</div>';
+            }).join('');
+          }
         }
-        body.innerHTML = drivers.map(function(d){
-          var required = d.status === 'required';
-          var days = d.streakDays || 0;
-          return '<div class="action-row">' +
-            '<span class="action-dot ' + (required ? 'active' : 'resolved') + '" aria-hidden="true"></span>' +
-            '<div class="action-body-text">' +
-              '<div class="action-main"><strong>' + esc(d.name || d.empNo) + '</strong></div>' +
-              '<div class="action-sub">' + days + ' consecutive day' + (days === 1 ? '' : 's') + ' over the daily alert threshold</div>' +
-            '</div>' +
-            '<span class="action-badge ' + (required ? 'active' : 'resolved') + '">' + (required ? 'Action Required' : 'Monitoring') + '</span>' +
-          '</div>';
-        }).join('');
+        if(attnBody){
+          var total = (res.data || {}).total;
+          if(attnShown) attnShown.textContent = 'Showing ' + fmtNum(drivers.length) + ' of ' + fmtNum(total != null ? total : drivers.length);
+          if(!drivers.length){
+            attnBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently flagged.</td></tr>';
+          } else {
+            var STATUS_LABEL = { required: 'Action Required', monitoring: 'Monitoring', actioned: 'Actioned', resolved: 'Resolved', ok: 'OK' };
+            attnBody.innerHTML = drivers.map(function(d){
+              var cls = d.status || 'ok';
+              var days = d.streakDays || 0;
+              return '<tr>' +
+                '<td style="font-weight:650">' + esc(d.name || d.empNo) + '</td>' +
+                '<td>' + esc(d.empNo || '—') + '</td>' +
+                '<td>' + esc(d.unit || '—') + '</td>' +
+                '<td>' + fmtNum(d.totalCount || 0) + '</td>' +
+                '<td>' + fmtNum(d.highAlerts || 0) + '</td>' +
+                '<td>' + fmtNum(days) + (days === 1 ? ' day' : ' days') + '</td>' +
+                '<td><span class="da-status ' + cls + '">' + esc(STATUS_LABEL[cls] || 'OK') + '</span></td>' +
+              '</tr>';
+            }).join('');
+          }
+        }
       }).catch(function(err){
         console.error('Driver streak fetch failed', err);
-        body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
+        if(body) body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
+        if(attnBody) attnBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc(err.message || 'unknown error') + '</td></tr>';
       });
+    }
+
+    // ==================== Alerts by Event Type (donut) ====================
+    // Page-scoped duplicate of Analytics' renderAlertTypeDonut (same
+    // eventCodeDistribution field, same severityBadge() color convention) —
+    // matches this codebase's established one-IIFE-per-page pattern rather
+    // than extracting a shared helper.
+    var OV_DONUT_OTHER_COLOR = '#c7ccd9';
+    function renderOvDonut(cur){
+      var all = (cur.eventCodeDistribution || []).slice().sort(function(a,b){ return b.units - a.units; });
+      var arcsEl = document.getElementById('ov-donut-arcs');
+      var totalEl = document.getElementById('ov-donut-total');
+      var legendEl = document.getElementById('ov-donut-legend');
+      if(!arcsEl) return;
+      var top = all.slice(0, 5);
+      var rest = all.slice(5).reduce(function(s,c){ return s + c.units; }, 0);
+      var slices = top.map(function(c){ return { name: c.code || 'Other', value: c.units, color: severityBadge(c.code).color }; });
+      if(rest > 0) slices.push({ name: 'Other', value: rest, color: OV_DONUT_OTHER_COLOR });
+      var total = slices.reduce(function(s,c){ return s + c.value; }, 0);
+      if(totalEl) totalEl.textContent = fmtNum(cur.kpis ? cur.kpis.totalAlerts : total);
+      if(!total){ arcsEl.innerHTML = ''; if(legendEl) legendEl.textContent = 'No event data.'; return; }
+      var cx = 95, cy = 95, r = 62, innerR = 42;
+      var startAngle = -90;
+      var paths = slices.filter(function(s){ return s.value > 0; }).map(function(s){
+        var frac = s.value / total;
+        var sweep = Math.min(frac * 360, 359.99);
+        var endAngle = startAngle + sweep;
+        var large = (endAngle - startAngle) > 180 ? 1 : 0;
+        var toXY = function(angle, rad){
+          var t = angle * Math.PI / 180;
+          return [cx + rad * Math.cos(t), cy + rad * Math.sin(t)];
+        };
+        var o1 = toXY(startAngle, r), o2 = toXY(endAngle, r);
+        var i1 = toXY(endAngle, innerR), i2 = toXY(startAngle, innerR);
+        var d = 'M' + o1[0].toFixed(1) + ' ' + o1[1].toFixed(1) +
+          ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + o2[0].toFixed(1) + ' ' + o2[1].toFixed(1) +
+          ' L' + i1[0].toFixed(1) + ' ' + i1[1].toFixed(1) +
+          ' A' + innerR + ' ' + innerR + ' 0 ' + large + ' 0 ' + i2[0].toFixed(1) + ' ' + i2[1].toFixed(1) + ' Z';
+        startAngle = endAngle;
+        return '<path d="' + d + '" fill="' + s.color + '"/>';
+      });
+      arcsEl.innerHTML = paths.join('');
+      if(legendEl){
+        legendEl.innerHTML = slices.map(function(s){
+          var pct = total ? Math.round(s.value/total*100) : 0;
+          return '<div class="an-donut-legend-row"><span class="an-donut-legend-name"><i style="background:' + s.color + '"></i>' + esc(s.name) + '</span>' +
+            '<span class="an-donut-legend-val">' + fmtNum(s.value) + ' <b>(' + pct + '%)</b></span></div>';
+        }).join('');
+      }
+    }
+
+    // ==================== Alerts by Shift (2-bar comparison) ====================
+    function renderOvShift(cur){
+      var dist = cur.shiftDistribution || {};
+      var day = dist.DAY || { units: 0, pct: 0 };
+      var night = dist.NIGHT || { units: 0, pct: 0 };
+      var dayFill = document.getElementById('ov-shift-day-fill');
+      var nightFill = document.getElementById('ov-shift-night-fill');
+      var dayValue = document.getElementById('ov-shift-day-value');
+      var nightValue = document.getElementById('ov-shift-night-value');
+      if(!dayFill) return;
+      var maxPct = Math.max(day.pct || 0, night.pct || 0, 1);
+      dayFill.style.width = ((day.pct || 0) / maxPct * 100) + '%';
+      nightFill.style.width = ((night.pct || 0) / maxPct * 100) + '%';
+      if(dayValue) dayValue.textContent = fmtNum(day.units || 0) + ' (' + Math.round(day.pct || 0) + '%)';
+      if(nightValue) nightValue.textContent = fmtNum(night.units || 0) + ' (' + Math.round(night.pct || 0) + '%)';
     }
 
     // ==================== orchestration: mirrors index.html's App.loadFromServer() ====================
@@ -4931,6 +5088,8 @@
           });
           var insightList = document.getElementById('ov-insight-list');
           if(insightList) insightList.innerHTML = '<div class="su-empty">Sign in to load real data.</div>';
+          var attnBodySignedOut = document.getElementById('ov-attn-tbody');
+          if(attnBodySignedOut) attnBodySignedOut.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           return;
         }
         setUsername((sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there');
@@ -4985,6 +5144,8 @@
             renderDriverStreaks();
             renderKpis(week, prevWeek, caQueue);
             renderOvInsights(week, prevWeek, caQueue);
+            renderOvDonut(week);
+            renderOvShift(week);
             var periodLabel = 'vs prior ' + rangeDays + 'd';
             // Only Total Alerts / High Alerts have a real period-over-period
             // comparison — Drivers Flagged / Action Required read from the
@@ -5026,6 +5187,8 @@
             });
             var insightListErr = document.getElementById('ov-insight-list');
             if(insightListErr) insightListErr.innerHTML = '<div class="su-empty">Could not load: ' + esc(err.message || 'unknown error') + '</div>';
+            var attnBodyErr = document.getElementById('ov-attn-tbody');
+            if(attnBodyErr) attnBodyErr.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc(err.message || 'unknown error') + '</td></tr>';
           });
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
