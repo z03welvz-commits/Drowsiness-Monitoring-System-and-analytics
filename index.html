@@ -7227,9 +7227,13 @@
   // Wires DDS/Minestat/Masterlist/Contributing Factors to the same tables and
   // RPCs index.html's own Cloud.* helpers already use — see MIGRATION_STATUS.md
   // Phase 3 for the reconciliation. Real list/count/search/manual-add and
-  // file-upload/drag-drop are wired for all 4 sources below; row-level Edit
-  // is still NOT wired (flagged in MIGRATION_STATUS.md, not silently
-  // skipped) — the Edit buttons stay visually in place but inert.
+  // file-upload/drag-drop are wired for all 4 sources below. Row-level Edit
+  // is also real and wired (confirmed live, corrects this comment's own
+  // earlier claim that it wasn't): DDS via dds_update_event() (0050),
+  // Masterlist via dds_upsert_drivers()'s emp_no upsert, and Contributing
+  // Factors via a direct table update — see openDdsEdit()/openMasterlistEdit()/
+  // openFactorEdit() below. Minestat's "Edit" icon is intentionally a
+  // Download button instead (no edit affordance for that source by design).
   (function(){
     // ==================================================================
     // CLIENT-SIDE NORMALIZATION + EMPLOYEE-LINKING ENGINE
