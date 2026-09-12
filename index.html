@@ -1592,6 +1592,11 @@
         <span class="nav-label">Driver Streaks</span>
         <span class="nav-badge" id="ds-nav-badge" hidden>0</span>
       </button>
+      <button class="nav-item" type="button" data-page="corrective-actions">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="m9 13 2.5 2.5L15 11"/></svg></span>
+        <span class="nav-label">Corrective Actions</span>
+        <span class="nav-badge" id="ca-nav-badge" hidden>0</span>
+      </button>
       <button class="nav-item" type="button" data-page="summary">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h6"/></svg></span>
         <span class="nav-label">Summary</span>
@@ -2902,6 +2907,69 @@
       </section>
     </div>
 
+    <!-- ===================== CORRECTIVE ACTIONS (Phase 2) =====================
+         Consolidates "who needs a logged action right now" into one queue,
+         backed by dds_corrective_actions_queue() (0111-0114) — the same
+         status computation as Driver & Asset Monitoring / Driver Streaks
+         (dds_current_streak() >= 20/day for 3 consecutive days, OR the
+         latest day alone > 10), so a driver/asset never disagrees with
+         itself across pages. Saving an action here uses the exact same
+         two-RPC sequence already established by Driver & Asset Monitoring's
+         modal and Driver Streaks' bulk action (dds_bulk_log_case_action_by_driver
+         to mirror into alert_cases for Alert Logs, then dds_log_entity_action
+         to actually resolve the flag) — not a fourth, competing mechanism. -->
+    <div id="page-corrective-actions" class="page">
+      <header class="topbar">
+        <div class="title">
+          <h1>Corrective Actions</h1>
+          <p>Every currently open flag, oldest first. A row opens the day an entity's event count exceeds 10, or its day-total holds at 20+ for 3 consecutive days, and keeps accumulating until an action is logged, which closes every open day at once.</p>
+        </div>
+      </header>
+
+      <section class="card da-table-card da-table-card-flex">
+        <div class="da-table-head da-table-head-oneline">
+          <h3 class="da-table-title">Open Cases <small id="ca-open-shown">Showing 0</small></h3>
+          <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search entity name or ID..." id="ca-search"></div>
+          <button class="al-filter" type="button" id="ca-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
+        </div>
+        <div class="da-bulk-bar" id="ca-bulk-bar">
+          <span class="da-bulk-count" id="ca-bulk-count">0 selected</span>
+          <button class="da-bulk-apply" type="button" id="ca-bulk-apply">Log Action for Selected</button>
+          <button class="da-bulk-clear" type="button" id="ca-bulk-clear">Clear selection</button>
+        </div>
+        <div class="da-table-wrap da-table-wrap-flex">
+          <table class="da-table al-table selecting" id="ca-open-table">
+            <colgroup>
+              <col class="al-check-col"><col><col style="width:130px"><col style="width:100px"><col style="width:110px"><col style="width:100px"><col style="width:120px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="da-th-check al-check-cell"><input type="checkbox" id="ca-selectall" aria-label="Select all open cases"></th>
+                <th>Entity</th><th>Flagged Since</th><th>Days Open</th><th>Event Count</th><th>Status</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="ca-open-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="da-table-foot">
+          <span id="ca-open-rowsrange">—</span>
+        </div>
+      </section>
+
+      <section class="card da-table-card">
+        <div class="da-table-head da-table-head-oneline">
+          <h3 class="da-table-title">Recently Closed <small>audit trail — a later breach opens a new case</small></h3>
+        </div>
+        <div class="da-table-wrap">
+          <table class="da-table" id="ca-closed-table">
+            <colgroup><col><col style="width:180px"><col style="width:110px"><col style="width:130px"><col style="width:110px"></colgroup>
+            <thead><tr><th>Entity</th><th>Action Performed</th><th>Date</th><th>Action By</th><th>Status</th></tr></thead>
+            <tbody id="ca-closed-tbody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
     <div id="page-summary" class="page">
       <header class="topbar">
         <div class="title">
@@ -3481,6 +3549,52 @@
         <div class="da-modal-foot">
           <button class="da-modal-cancel" type="button" id="da-modal-cancel">Cancel</button>
           <button class="da-modal-save" type="button" id="da-modal-save" disabled>Save action</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Corrective Actions: log-action modal (single row or bulk-selected rows) -->
+    <div class="da-modal-mask" id="ca-modal-mask">
+      <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="ca-modal-title">
+        <div class="da-modal-head">
+          <div>
+            <div class="da-modal-title" id="ca-modal-title">Log an action</div>
+            <div class="da-modal-sub"><span id="ca-modal-ctx-name">—</span></div>
+          </div>
+          <button class="da-modal-close" type="button" id="ca-modal-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="da-modal-body">
+          <div class="da-modal-context">
+            <div class="da-modal-context-row"><span id="ca-modal-ctx-note">This logs the action and closes every open day for this case at once.</span></div>
+          </div>
+          <div class="da-field">
+            <label>Action type</label>
+            <div class="da-type-grid" id="ca-type-grid">
+              <button class="da-type-opt" type="button" data-type="Counseled">Counseled</button>
+              <button class="da-type-opt" type="button" data-type="Suspended">Suspended</button>
+              <button class="da-type-opt" type="button" data-type="Reassigned">Reassigned</button>
+              <button class="da-type-opt" type="button" data-type="Cleared">Cleared</button>
+              <button class="da-type-opt" type="button" data-type="Spare 3 Days">Spare 3 Days</button>
+              <button class="da-type-opt" type="button" data-type="Monitor">Monitor</button>
+              <button class="da-type-opt" type="button" data-type="Continue">Continue</button>
+              <button class="da-type-opt" type="button" data-type="Other">Other…</button>
+            </div>
+            <input class="da-other-input" type="text" id="ca-other-input" placeholder="Describe the action taken...">
+          </div>
+          <div class="da-field da-modal-field">
+            <label>Note / remarks</label>
+            <textarea id="ca-note-input" placeholder="Optional context for the audit trail (e.g. what was discussed, reason for the decision)..."></textarea>
+          </div>
+          <div class="da-field da-modal-field">
+            <label>Logged by</label>
+            <input type="text" id="ca-loggedby-input" placeholder="Your name or employee ID">
+          </div>
+        </div>
+        <div class="da-modal-foot">
+          <button class="da-modal-cancel" type="button" id="ca-modal-cancel">Cancel</button>
+          <button class="da-modal-save" type="button" id="ca-modal-save" disabled>Save action</button>
         </div>
       </div>
     </div>
@@ -12817,6 +12931,256 @@
 
     window.__ddsPageLoad['driver-streaks'] = load;
     load();
+  })();
+
+  // ---------- Corrective Actions: real queue via dds_corrective_actions_queue() ----------
+  (function(){
+    var openTbody = document.getElementById('ca-open-tbody');
+    var closedTbody = document.getElementById('ca-closed-tbody');
+    var searchInput = document.getElementById('ca-search');
+    var selectAllBox = document.getElementById('ca-selectall');
+    var bulkBar = document.getElementById('ca-bulk-bar');
+    var bulkCountEl = document.getElementById('ca-bulk-count');
+    var bulkApplyBtn = document.getElementById('ca-bulk-apply');
+    var bulkClearBtn = document.getElementById('ca-bulk-clear');
+
+    var allOpenRows = [];
+    var selected = {}; // key "type|id" -> row object
+
+    function rowKey(r){ return r.entityType + '|' + r.entityId; }
+
+    // Same status-pill convention as Driver & Asset Monitoring / Driver
+    // Streaks (.da-status.required/.actioned/.monitoring) — reused here so
+    // "Open"/"Closed"/"Monitoring" reads consistently with those pages'
+    // own status vocabulary rather than inventing a second color scheme.
+    function statusPill(label){
+      var cls = label === 'Open' ? 'required' : label === 'Monitoring' ? 'monitoring' : 'actioned';
+      return '<span class="da-status ' + cls + '">' + esc(label) + '</span>';
+    }
+
+    function addDays(ymd, days){
+      var d = new Date(ymd + 'T00:00:00Z');
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function updateBulkBar(){
+      var count = Object.keys(selected).length;
+      bulkCountEl.textContent = fmtNum(count) + (count === 1 ? ' selected' : ' selected');
+      bulkBar.classList.toggle('on', count > 0);
+      var all = allOpenRows.length > 0 && allOpenRows.every(function(r){ return selected[rowKey(r)]; });
+      selectAllBox.checked = all;
+    }
+
+    function renderOpen(){
+      var q = (searchInput.value || '').trim().toLowerCase();
+      var rows = q ? allOpenRows.filter(function(r){
+        return r.name.toLowerCase().indexOf(q) !== -1 || r.entityId.toLowerCase().indexOf(q) !== -1;
+      }) : allOpenRows;
+
+      document.getElementById('ca-open-shown').textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(allOpenRows.length);
+      document.getElementById('ca-open-rowsrange').textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(allOpenRows.length);
+
+      if(!rows.length){
+        openTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">No open cases' + (q ? ' matching "' + esc(q) + '"' : '') + '.</td></tr>';
+        return;
+      }
+      openTbody.innerHTML = rows.map(function(r){
+        var key = rowKey(r);
+        return '<tr>' +
+          '<td class="al-check-cell"><input type="checkbox" class="ca-row-check" data-key="' + esc(key) + '"' + (selected[key] ? ' checked' : '') + '></td>' +
+          '<td><div style="font-weight:650">' + esc(r.name) + '</div><div style="font-size:var(--fs-label);color:var(--muted)">' + esc(r.entityType === 'driver' ? 'Emp #' + r.entityId : r.entityId) + '</div></td>' +
+          '<td>' + esc(r.flaggedSince) + '</td>' +
+          '<td>' + fmtNum(r.daysOpen) + (r.daysOpen === 1 ? ' day' : ' days') + '</td>' +
+          '<td>' + fmtNum(r.eventCount) + '</td>' +
+          '<td>' + statusPill('Open') + '</td>' +
+          '<td><button class="da-bulk-apply" type="button" data-ca-log="' + esc(key) + '" style="height:30px">Log Action</button></td>' +
+          '</tr>';
+      }).join('');
+
+      openTbody.querySelectorAll('.ca-row-check').forEach(function(cb){
+        cb.addEventListener('change', function(){
+          var r = allOpenRows.find(function(x){ return rowKey(x) === cb.getAttribute('data-key'); });
+          if(!r) return;
+          if(cb.checked) selected[rowKey(r)] = r; else delete selected[rowKey(r)];
+          updateBulkBar();
+        });
+      });
+      openTbody.querySelectorAll('[data-ca-log]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var r = allOpenRows.find(function(x){ return rowKey(x) === btn.getAttribute('data-ca-log'); });
+          if(r) openCaModal([r]);
+        });
+      });
+    }
+
+    function renderClosed(rows){
+      if(!rows.length){
+        closedTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px 0">No recently closed cases.</td></tr>';
+        return;
+      }
+      closedTbody.innerHTML = rows.map(function(r){
+        return '<tr>' +
+          '<td><div style="font-weight:650">' + esc(r.name) + '</div><div style="font-size:var(--fs-label);color:var(--muted)">' + esc(r.entityType === 'driver' ? 'Emp #' + r.entityId : r.entityId) + '</div></td>' +
+          '<td>' + esc(r.actionPerformed || '—') + '</td>' +
+          '<td>' + esc(r.actionDate || '—') + '</td>' +
+          '<td>' + esc(r.actionBy || '—') + '</td>' +
+          '<td>' + statusPill(r.status) + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function load(){
+      openTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+      requireSession().then(function(sess){
+        if(!sess){
+          openTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          closedTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data.</td></tr>';
+          return;
+        }
+        return DB.rpc('dds_corrective_actions_queue', {}).then(function(res){
+          if(res.error) throw res.error;
+          var data = res.data || {};
+          allOpenRows = data.open || [];
+          selected = {};
+          updateBulkBar();
+          renderOpen();
+          renderClosed(data.recentlyClosed || []);
+          var navBadge = document.getElementById('ca-nav-badge');
+          if(navBadge){
+            if(allOpenRows.length){ navBadge.hidden = false; navBadge.textContent = fmtNum(allOpenRows.length); }
+            else { navBadge.hidden = true; }
+          }
+        });
+      }).catch(function(err){
+        console.error('Corrective Actions fetch failed', err);
+        var msg = 'Could not load: ' + esc((err && err.message) || 'unknown error');
+        openTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#c0271f;padding:30px 0">' + msg + '</td></tr>';
+        closedTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#c0271f;padding:30px 0">' + msg + '</td></tr>';
+      });
+    }
+
+    if(searchInput) searchInput.addEventListener('input', renderOpen);
+    document.getElementById('ca-refresh').addEventListener('click', load);
+    selectAllBox.addEventListener('change', function(){
+      if(selectAllBox.checked){ allOpenRows.forEach(function(r){ selected[rowKey(r)] = r; }); }
+      else { selected = {}; }
+      renderOpen();
+      updateBulkBar();
+    });
+    bulkClearBtn.addEventListener('click', function(){ selected = {}; renderOpen(); updateBulkBar(); });
+    bulkApplyBtn.addEventListener('click', function(){
+      var targets = Object.keys(selected).map(function(k){ return selected[k]; });
+      if(targets.length) openCaModal(targets);
+    });
+
+    // ---- log-action modal: reuses the exact same two-RPC save sequence
+    // Driver & Asset Monitoring's modal and Driver Streaks' bulk action
+    // both already use (dds_bulk_log_case_action_by_driver to mirror into
+    // alert_cases so Alert Logs reflects it, then dds_log_entity_action to
+    // actually resolve entity_status) — run once per target here so a
+    // bulk selection with different flagged-since dates per row still
+    // mirrors each one against its own correct date range, not one shared
+    // range across all of them. Mirror-then-resolve ordering (not the
+    // reverse) matches Driver Streaks' choice: don't mark a case resolved
+    // if the mirror can't find the events to reflect it in Alert Logs. ----
+    var modalMask = document.getElementById('ca-modal-mask');
+    var ctxName = document.getElementById('ca-modal-ctx-name');
+    var typeGrid = document.getElementById('ca-type-grid');
+    var otherInput = document.getElementById('ca-other-input');
+    var noteInput = document.getElementById('ca-note-input');
+    var loggedByInput = document.getElementById('ca-loggedby-input');
+    var saveBtn = document.getElementById('ca-modal-save');
+    var pendingTargets = [];
+    var selectedType = null;
+
+    function openCaModal(targets){
+      pendingTargets = targets;
+      selectedType = null;
+      ctxName.textContent = targets.length === 1
+        ? targets[0].name + ' (' + targets[0].entityId + ')'
+        : targets.length + ' selected: ' + targets.map(function(t){ return t.name; }).join(', ');
+      typeGrid.querySelectorAll('.da-type-opt').forEach(function(b){ b.classList.remove('sel'); });
+      otherInput.classList.remove('on');
+      otherInput.value = '';
+      noteInput.value = '';
+      loggedByInput.value = '';
+      saveBtn.disabled = true;
+      modalMask.classList.add('on');
+    }
+    function closeCaModal(){ modalMask.classList.remove('on'); pendingTargets = []; }
+
+    typeGrid.querySelectorAll('.da-type-opt').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        typeGrid.querySelectorAll('.da-type-opt').forEach(function(b){ b.classList.remove('sel'); });
+        btn.classList.add('sel');
+        selectedType = btn.getAttribute('data-type');
+        otherInput.classList.toggle('on', selectedType === 'Other');
+        validateCaModal();
+      });
+    });
+    otherInput.addEventListener('input', validateCaModal);
+    loggedByInput.addEventListener('input', validateCaModal);
+    function validateCaModal(){
+      var typeOk = selectedType && (selectedType !== 'Other' || otherInput.value.trim());
+      saveBtn.disabled = !(typeOk && loggedByInput.value.trim());
+    }
+    document.getElementById('ca-modal-close').addEventListener('click', closeCaModal);
+    document.getElementById('ca-modal-cancel').addEventListener('click', closeCaModal);
+    modalMask.addEventListener('click', function(e){ if(e.target === modalMask) closeCaModal(); });
+
+    saveBtn.addEventListener('click', function(){
+      if(!pendingTargets.length || saveBtn.disabled) return;
+      var otherText = selectedType === 'Other' ? otherInput.value.trim() : null;
+      var note = noteInput.value.trim();
+      var loggedBy = loggedByInput.value.trim();
+      var today = new Date().toISOString().slice(0, 10);
+      var warnings = [];
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+
+      function saveOne(target){
+        var lastDay = addDays(target.flaggedSince, target.daysOpen - 1);
+        var canMirror = target.entityType === 'driver' && selectedType !== 'Cleared' && target.entityId !== 'UNSPECIFIED';
+        var mirror = canMirror ? DB.rpc('dds_bulk_log_case_action_by_driver', {
+          p_emp_nos: [target.entityId], p_include_unspecified: false,
+          p_from: target.flaggedSince, p_to: lastDay, p_shift: null,
+          p_action_type: selectedType === 'Other' ? otherText : selectedType,
+          p_action_is_other: selectedType === 'Other',
+          p_action_date: today, p_status_value: 'Logged',
+          p_remarks: selectedType === 'Other' ? otherText : (note || null)
+        }).then(function(res){
+          if(res.error) throw res.error;
+          if(!((res.data && res.data.updated) || 0)){
+            throw new Error('no matching events found ' + target.flaggedSince + '–' + lastDay);
+          }
+        }) : Promise.resolve();
+
+        return mirror.then(function(){
+          return DB.rpc('dds_log_entity_action', {
+            p_entity_type: target.entityType, p_entity_id: target.entityId,
+            p_action_type: selectedType === 'Other' ? 'Other' : selectedType,
+            p_action_other_text: otherText, p_note: note || null, p_logged_by: loggedBy
+          });
+        }).then(function(res){
+          if(res && res.error) throw res.error;
+        }).catch(function(err){
+          warnings.push(target.name + ': ' + ((err && err.message) || 'save failed'));
+        });
+      }
+
+      Promise.all(pendingTargets.map(saveOne)).then(function(){
+        closeCaModal();
+        saveBtn.textContent = 'Save action';
+        load();
+        if(warnings.length){
+          alert('Logged, but with issues:\n' + warnings.join('\n'));
+        }
+      });
+    });
+
+    window.__ddsPageLoad['corrective-actions'] = load;
   })();
 
 </script>
