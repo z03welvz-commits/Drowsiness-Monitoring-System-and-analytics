@@ -955,21 +955,12 @@
   .da-table-card-flex{display:flex;flex-direction:column;min-height:0}
   .da-table-wrap-flex{flex:1;min-height:0;overflow-y:auto}
 
-  /* Driver & Asset Monitoring page-level fit-to-viewport: only this page
-     (not the app shell/other pages) is capped to the viewport height —
-     .main's own 20px/30px top/bottom padding is subtracted so the page
-     never grows a page-level scrollbar. Every direct child above the
-     active tab view is a fixed-height row; the active .da-view is the
-     one flexible row, and its own table-card/table-wrap chain (see
-     .da-table-card-flex/.da-table-wrap-flex above) passes that remaining
-     height down to the actual scrollable row area. */
-  #page-driver-asset.active{display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden}
-  #page-driver-asset.active .topbar{flex:0 0 auto}
-  #page-driver-asset.active .da-summary{flex:0 0 auto}
-  #page-driver-asset.active .da-tabs{flex:0 0 auto}
-  #page-driver-asset.active .da-view{min-height:0}
-  #page-driver-asset.active .da-view.on{flex:1;min-height:0;display:flex;flex-direction:column}
-  #page-driver-asset.active .da-view.on > .da-table-card{flex:1;min-height:0}
+  /* Driver & Asset Monitoring / Investigate used to fit-to-viewport with an
+     internally-scrolling table (see the removed #page-driver-asset.active
+     rules this comment replaces). Now flows normally like every other
+     page, matching the approved mock's Investigate layout — a table with
+     a real drill-down detail panel below it needs normal page scroll,
+     not a fixed-height single-viewport table. */
 
   /* Driver Streaks reuses the same .da-table-card-flex/.da-table-wrap-flex
      fit-to-viewport pattern as Driver & Asset Monitoring above, but this
@@ -1134,19 +1125,26 @@
   button.da-modal-save:disabled{opacity:.5;cursor:default}
 
   /* detail/timeline drawer */
-  .da-drawer-mask{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;z-index:59}
-  .da-drawer-mask.on{display:block}
-  .da-drawer{position:fixed;top:0;right:0;bottom:0;width:400px;max-width:92vw;background:var(--card);box-shadow:-8px 0 30px rgba(15,23,42,.15);z-index:60;transform:translateX(100%);transition:transform .2s ease;display:flex;flex-direction:column}
-  .da-drawer.on{transform:translateX(0)}
-  .da-drawer-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex:0 0 auto}
-  .da-drawer-title{font-size:14.5px;font-weight:750;color:var(--text-dim)}
-  .da-drawer-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:4px}
-  .da-drawer-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:18px}
   .da-drawer-section-title{font-size:var(--fs-caption);font-weight:750;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:10px}
-  .da-drawer-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .da-drawer-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .da-drawer-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
   .da-drawer-kpi-label{font-size:var(--fs-label);color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
   .da-drawer-kpi-value{font-size:17px;font-weight:800;margin-top:5px}
+
+  /* Investigate: inline drill-down detail panel, shown below the Flagged
+     Drivers/Assets table when a row is clicked — replaces the old
+     slide-out drawer, matching the approved mock's per-record layout. */
+  .da-detail-panel{margin-top:14px;padding:20px}
+  .da-detail-head{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+  .da-detail-avatar{flex:0 0 auto;width:44px;height:44px;border-radius:50%;background:#2f7ef0;color:#fff;display:grid;place-items:center;font-size:15px;font-weight:750}
+  .da-detail-head-text{flex:1;min-width:0}
+  .da-detail-title{font-size:16px;font-weight:750;color:var(--text-dim)}
+  .da-detail-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:2px}
+  .da-detail-body{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start}
+  .da-detail-col-left{display:flex;flex-direction:column;gap:16px}
+  .da-detail-col-right{display:flex;flex-direction:column;gap:22px;min-width:0}
+  .da-detail-why{font-size:var(--fs-body);color:var(--muted);line-height:1.5;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 14px}
+  @media(max-width:900px){ .da-detail-body{grid-template-columns:1fr} }
 
   .da-daybar-row{display:flex;align-items:center;gap:8px;height:24px;font-size:10px;color:var(--text-dim)}
   .da-daybar-label{width:34px;flex:0 0 auto;font-weight:650}
@@ -1557,7 +1555,6 @@
     .sidebar.mobile-open{transform:translateX(0)}
     .sidebar-backdrop.on{display:block}
     .main{padding-top:64px}
-    #page-driver-asset.active{height:calc(100vh - 36px)}
     #page-alerts.active{height:calc(100vh - 36px)}
     #page-driver-streaks.active{height:calc(100vh - 36px)}
   }
@@ -1566,9 +1563,6 @@
        (.topbar stacks, etc.) — fall back to normal page scroll rather
        than fighting exact pixel math against every other breakpoint's
        .main padding. */
-    #page-driver-asset.active{height:auto;overflow:visible;display:block}
-    #page-driver-asset.active .da-view.on{display:block}
-    #page-driver-asset.active .da-view.on > .da-table-card{flex:none}
     .da-table-wrap-flex{overflow-y:visible;flex:none}
     #page-alerts.active{height:auto;overflow:visible;display:block}
     #page-alerts.active .al-table-card{flex:none;display:block}
@@ -2948,6 +2942,53 @@
           </div>
         </section>
       </div>
+
+      <!-- Investigate: inline drill-down detail panel — replaces the old
+           slide-out drawer. Shared by both the Drivers and Assets tabs;
+           JS populates it by kind+id (see openDetailPanel()). -->
+      <section class="card da-detail-panel" id="da-detail-panel" hidden>
+        <div class="da-detail-head">
+          <span class="da-detail-avatar" id="da-detail-avatar" aria-hidden="true">—</span>
+          <div class="da-detail-head-text">
+            <div class="da-detail-title" id="da-detail-title">—</div>
+            <div class="da-detail-sub" id="da-detail-sub">—</div>
+          </div>
+          <button class="ca-inline-close" type="button" id="da-detail-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="da-detail-body">
+          <div class="da-detail-col-left">
+            <div class="da-drawer-kpis">
+              <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Risk this week</div><div class="da-drawer-kpi-value" id="da-detail-risk-val">—</div></div>
+              <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Total counts</div><div class="da-drawer-kpi-value" id="da-detail-total">—</div></div>
+              <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Days over threshold</div><div class="da-drawer-kpi-value" id="da-detail-daysover">—</div></div>
+            </div>
+            <div class="da-detail-why" id="da-detail-why">—</div>
+            <button class="dm-btn-primary" type="button" id="da-detail-logaction" style="width:100%;justify-content:center">Log Action</button>
+          </div>
+          <div class="da-detail-col-right">
+            <div>
+              <div class="da-drawer-section-title">Alert Counts by Day</div>
+              <div id="da-detail-daybars"></div>
+            </div>
+            <div>
+              <div class="da-drawer-section-title">Action History</div>
+              <div class="da-timeline" id="da-detail-history"></div>
+            </div>
+            <div>
+              <div class="da-drawer-section-title">Alert History <span id="da-detail-alerts-count" style="font-weight:500;text-transform:none;letter-spacing:0"></span></div>
+              <div class="da-table-wrap">
+                <table class="da-table" id="da-detail-alerts-table">
+                  <colgroup><col style="width:110px"><col style="width:90px"><col style="width:80px"><col><col style="width:110px"><col style="width:100px"></colgroup>
+                  <thead><tr><th>Date</th><th>Time</th><th>Shift</th><th>Event</th><th>Severity</th><th>Unit</th></tr></thead>
+                  <tbody id="da-detail-alerts-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px 0">Loading…</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- ===================== DRIVER STREAKS ===================== -->
@@ -3687,38 +3728,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Driver & Asset Monitoring: detail drawer -->
-    <div class="da-drawer-mask" id="da-drawer-mask"></div>
-    <aside class="da-drawer" id="da-drawer" aria-label="Record detail">
-      <div class="da-drawer-head">
-        <div>
-          <div class="da-drawer-title" id="da-drawer-title">—</div>
-          <div class="da-drawer-sub" id="da-drawer-sub">—</div>
-        </div>
-        <button class="da-modal-close" type="button" id="da-drawer-close" aria-label="Close">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <div class="da-drawer-body">
-        <div>
-          <div class="da-drawer-kpis">
-            <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Risk this week</div><div class="da-drawer-kpi-value" id="da-drawer-risk-val">—</div></div>
-            <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Total counts</div><div class="da-drawer-kpi-value" id="da-drawer-total">—</div></div>
-            <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Recommended</div><div class="da-drawer-kpi-value" id="da-drawer-rec-val">—</div></div>
-            <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Status</div><div class="da-drawer-kpi-value" id="da-drawer-status-val">—</div></div>
-          </div>
-        </div>
-        <div>
-          <div class="da-drawer-section-title">Alert counts by day</div>
-          <div id="da-drawer-daybars"></div>
-        </div>
-        <div>
-          <div class="da-drawer-section-title">Timeline</div>
-          <div class="da-timeline" id="da-drawer-timeline"></div>
-        </div>
-      </div>
-    </aside>
 
     <!-- Driver & Asset Monitoring: resolved / history modal -->
     <div class="da-modal-mask" id="da-history-mask">
@@ -11853,6 +11862,8 @@
 
     function buildDriverRow(r){
       var tr = document.createElement('tr');
+      tr.setAttribute('data-da-row', 'drivers|' + r.empNo);
+      tr.style.cursor = 'pointer';
       // "Reviewed"/"Needs Review" reflects whether every individual alert
       // instance for this driver has been resolved (dds_driver_event_summary()'s
       // `done`, derived from dds_case_records.is_unresolved_high_severity) — a
@@ -11881,6 +11892,8 @@
     }
     function buildAssetRow(r){
       var tr = document.createElement('tr');
+      tr.setAttribute('data-da-row', 'assets|' + r.assetId);
+      tr.style.cursor = 'pointer';
       tr.innerHTML =
         '<td>' + esc(r.assetId) + '</td>' +
         '<td>' + fmtEventCodes(r.eventCodes) + '</td>' +
@@ -12187,6 +12200,9 @@
         if(actionBtn){ openActionModal(actionBtn.getAttribute('data-da-openaction')); return; }
         var detailBtn = e.target.closest('[data-da-detail]');
         if(detailBtn){ openInstancePopup(detailBtn.getAttribute('data-da-detail')); return; }
+        if(e.target.closest('input')) return;
+        var row = e.target.closest('[data-da-row]');
+        if(row) openDetailPanel(row.getAttribute('data-da-row'));
       });
     });
 
@@ -12358,49 +12374,87 @@
       });
     }
 
-    // ---- detail drawer ----
-    var drawerMask = document.getElementById('da-drawer-mask');
-    var drawer = document.getElementById('da-drawer');
-    // Separate guard from the page-level `load()` guard above — opening a
-    // detail drawer is an independent, user-driven action that shouldn't
-    // be cancelled by (or cancel) the page's own data re-fetch. Fixes a
-    // real race found in audit: clicking "Details" on one entity, then
-    // quickly another before the first's dds_entity_action_history() call
-    // resolves, could show one entity's header with a different entity's
-    // action-history timeline underneath.
-    var drawerGuard = makeGuard();
-    function openDetailDrawer(key){
-      var token = drawerGuard.start();
+    // ---- inline drill-down detail panel (replaces the old slide-out
+    // drawer, matching the approved mock's per-record layout) ----
+    var detailPanel = document.getElementById('da-detail-panel');
+    // Separate guards from the page-level `load()` guard above — opening
+    // the detail panel is an independent, user-driven action that
+    // shouldn't be cancelled by (or cancel) the page's own data re-fetch.
+    // Two guards (history vs. real alert instances) since they're two
+    // independent fetches that can resolve in either order.
+    var detailGuard = makeGuard();
+    var detailAlertsGuard = makeGuard();
+    // The background risk model (state[kind], from dds_driver_asset_weekly())
+    // and the visible table (summaryState[kind].rows, from
+    // dds_driver_event_summary()) are two independent RPCs that don't
+    // always agree on which rows currently qualify — a row visible in the
+    // table isn't guaranteed to exist in the risk model. When it doesn't,
+    // this builds an honest fallback from the row the user actually
+    // clicked (real name/total, no fabricated day-of-week breakdown)
+    // rather than silently doing nothing on the click.
+    function findSummaryRow(kind, id){
+      var rows = (summaryState[kind] && summaryState[kind].rows) || [];
+      return rows.find(function(r){ return (kind === 'drivers' ? r.empNo : r.assetId) === id; });
+    }
+
+    function openDetailPanel(key){
+      var token = detailGuard.start();
       var parts = key.split('|'); var kind = parts[0], id = parts[1];
       var rec = findRecord(kind, id);
-      if(!rec) return;
+      var hasRiskData = !!rec;
+      if(!rec){
+        var row = findSummaryRow(kind, id);
+        if(!row) return;
+        rec = {
+          id: id, name: kind === 'drivers' ? row.empName : row.assetId,
+          sub: kind === 'drivers' ? 'Driver' : 'Asset',
+          days: {}, status: (kind === 'drivers' && row.done) ? 'actioned' : 'required'
+        };
+      }
       var scored = computeRisk(rec.days);
-      var rec_ = recommendation(scored.risk);
 
-      document.getElementById('da-drawer-title').textContent = rec.name + ' (' + rec.id + ')';
-      document.getElementById('da-drawer-sub').textContent = rec.sub;
-      document.getElementById('da-drawer-total').textContent = scored.total;
-      document.getElementById('da-drawer-risk-val').innerHTML = '<span class="da-risk ' + (scored.risk === 'high' ? 'high' : scored.risk === 'medium' ? 'med' : 'low') + '">' + scored.risk + '</span>';
-      document.getElementById('da-drawer-rec-val').innerHTML = '<span class="da-rec ' + rec_.key + '"><span class="da-rec-dot"></span>' + rec_.label + '</span>';
-      document.getElementById('da-drawer-status-val').innerHTML = rec.status === 'actioned' ? '<span class="da-status actioned">Actioned</span>' : '<span class="da-status required">Action required</span>';
+      document.getElementById('da-detail-avatar').textContent = (rec.name || id).slice(0, 2).toUpperCase();
+      document.getElementById('da-detail-title').textContent = rec.name + ' (' + rec.id + ')';
+      document.getElementById('da-detail-sub').textContent = rec.sub + ' · ' + (rec.status === 'actioned' ? 'Actioned' : 'Action required');
+      document.getElementById('da-detail-logaction').onclick = function(){ openActionModal(kind + '|' + id); };
 
-      var maxCount = 20;
-      DAY_ORDER.forEach(function(d){ (rec.days[d]||[]).forEach(function(c){ if(c > maxCount) maxCount = c; }); });
-      var barsHtml = DAY_ORDER.map(function(d){
-        var events = rec.days[d] || [];
-        var dayTotal = events.reduce(function(a,b){return a+b;}, 0);
-        var pct = Math.round((dayTotal / maxCount) * 100);
-        var over = events.some(function(c){ return c > 10; });
-        return '<div class="da-daybar-row"><span class="da-daybar-label">' + d + '</span>' +
-          '<div class="da-daybar-track"><div class="da-daybar-fill' + (over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
-          '<span class="da-daybar-value">' + (dayTotal || '—') + '</span></div>';
-      }).join('');
-      document.getElementById('da-drawer-daybars').innerHTML = barsHtml;
+      if(hasRiskData){
+        document.getElementById('da-detail-total').textContent = scored.total;
+        document.getElementById('da-detail-risk-val').innerHTML = '<span class="da-risk ' + (scored.risk === 'high' ? 'high' : scored.risk === 'medium' ? 'med' : 'low') + '">' + scored.risk + '</span>';
+        document.getElementById('da-detail-daysover').textContent = scored.daysOver10.length + ' of 7';
+        document.getElementById('da-detail-why').textContent = scored.daysOver10.length
+          ? scored.daysOver10.length + ' of the last 7 days had 10+ alerts (' + scored.daysOver10.join(', ') + '), contributing to this week’s "' + scored.risk + '" risk rating.'
+          : 'No day this week crossed the 10-alert threshold — the "' + scored.risk + '" rating reflects total volume alone.';
 
-      var tlEl = document.getElementById('da-drawer-timeline');
+        var maxCount = 20;
+        DAY_ORDER.forEach(function(d){ (rec.days[d]||[]).forEach(function(c){ if(c > maxCount) maxCount = c; }); });
+        var barsHtml = DAY_ORDER.map(function(d){
+          var events = rec.days[d] || [];
+          var dayTotal = events.reduce(function(a,b){return a+b;}, 0);
+          var pct = Math.round((dayTotal / maxCount) * 100);
+          var over = events.some(function(c){ return c > 10; });
+          return '<div class="da-daybar-row"><span class="da-daybar-label">' + d + '</span>' +
+            '<div class="da-daybar-track"><div class="da-daybar-fill' + (over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
+            '<span class="da-daybar-value">' + (dayTotal || '—') + '</span></div>';
+        }).join('');
+        document.getElementById('da-detail-daybars').innerHTML = barsHtml;
+      } else {
+        document.getElementById('da-detail-total').textContent = '—';
+        document.getElementById('da-detail-risk-val').textContent = '—';
+        document.getElementById('da-detail-daysover').textContent = '—';
+        document.getElementById('da-detail-why').textContent = 'This record isn’t in the current weekly risk model (it may fall outside its window), so a risk score isn’t available — see Alert History below for what’s actually on record.';
+        document.getElementById('da-detail-daybars').innerHTML = '<div class="da-tl-empty">No day-by-day breakdown available for this record.</div>';
+      }
+
+      var tlEl = document.getElementById('da-detail-history');
       tlEl.innerHTML = '<div class="da-tl-empty">Loading history…</div>';
-      drawerMask.classList.add('on');
-      drawer.classList.add('on');
+      var alertsTbody = document.getElementById('da-detail-alerts-tbody');
+      var alertsCountEl = document.getElementById('da-detail-alerts-count');
+      alertsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px 0">Loading…</td></tr>';
+      alertsCountEl.textContent = '';
+
+      detailPanel.hidden = false;
+      detailPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
       // Per-day alert entries carry only a day label (Mon/Tue/...), not a
       // real timestamp, so they can't be interleaved by exact time with
@@ -12411,7 +12465,7 @@
       // order (which carried an unused `sort` field that never actually
       // sorted anything).
       fetchHistory(kind, id).then(function(history){
-        if(!drawerGuard.isCurrent(token)) return;
+        if(!detailGuard.isCurrent(token)) return;
         var byDay = {};
         DAY_ORDER.forEach(function(d){ byDay[d] = []; });
         var undated = [];
@@ -12433,9 +12487,52 @@
 
         tlEl.innerHTML = tlItems.length ? tlItems.join('') : '<div class="da-tl-empty">No alerts or actions recorded yet this week.</div>';
       }).catch(function(err){
-        if(!drawerGuard.isCurrent(token)) return;
+        if(!detailGuard.isCurrent(token)) return;
         console.error('Action history fetch failed', err);
         tlEl.innerHTML = '<div class="da-tl-empty">Could not load action history: ' + esc((err && err.message) || 'unknown error') + '</div>';
+      });
+
+      // Real per-event alert history — the same RPC the bulk-edit "See
+      // details" popup already calls (dds_driver_alert_instances /
+      // dds_asset_alert_instances), rendered here as a plain read-only
+      // list capped at 20 rows. No bulk-edit checkboxes here — that stays
+      // the dedicated purpose of the "See details" popup; this panel is
+      // for a quick read of what's been happening, not mass-editing.
+      var atoken = detailAlertsGuard.start();
+      var fn = kind === 'drivers' ? 'dds_driver_alert_instances' : 'dds_asset_alert_instances';
+      var params = kind === 'drivers'
+        ? { p_emp_no: id, p_from: null, p_to: null }
+        : { p_asset_id: id, p_from: null, p_to: null };
+      DB.rpc(fn, params).then(function(res){
+        if(!detailAlertsGuard.isCurrent(atoken)) return;
+        if(res.error) throw res.error;
+        var rows = (res.data || {}).rows || [];
+        alertsCountEl.textContent = fmtNum(rows.length) + ' alert instance(s)';
+        if(!rows.length){
+          alertsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px 0">No alert instances found.</td></tr>';
+          return;
+        }
+        var shown = rows.slice(0, 20);
+        alertsTbody.innerHTML = shown.map(function(r){
+          var sev = severityBadge(r.eventCode);
+          var startParts = (r.startTime || '').split(' ');
+          var dateStr = startParts[0] || '—';
+          var timeStr = startParts[1] ? startParts[1].split(':').slice(0, 2).join(':') : '—';
+          return '<tr>' +
+            '<td>' + esc(dateStr) + '</td>' +
+            '<td>' + esc(timeStr) + '</td>' +
+            '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : r.shift === 'DAY' ? 'Day' : '—') + '</td>' +
+            '<td>' + esc(r.eventCode || '—') + '</td>' +
+            '<td><span style="color:' + sev.color + ';font-weight:650">' + esc(sev.label) + '</span></td>' +
+            '<td>' + esc(kind === 'drivers' ? (r.unit || '—') : id) + '</td>' +
+          '</tr>';
+        }).join('') + (rows.length > shown.length
+          ? '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:10px 0">Showing 20 of ' + fmtNum(rows.length) + ' — use "See details" above for the full, editable list.</td></tr>'
+          : '');
+      }).catch(function(err){
+        if(!detailAlertsGuard.isCurrent(atoken)) return;
+        console.error('Alert instance fetch failed (detail panel)', err);
+        alertsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:20px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
       });
     }
     function actionEntryHtml(h){
@@ -12445,9 +12542,8 @@
         '<div class="da-tl-main">' + esc(typeLabel) + ' — logged by ' + esc(h.loggedBy) + '</div>' +
         '<div class="da-tl-sub">' + (h.note ? esc(h.note) + ' · ' : '') + when.toLocaleString() + '</div></div></div>';
     }
-    function closeDetailDrawer(){ drawerMask.classList.remove('on'); drawer.classList.remove('on'); }
-    document.getElementById('da-drawer-close').addEventListener('click', closeDetailDrawer);
-    drawerMask.addEventListener('click', closeDetailDrawer);
+    function closeDetailPanel(){ detailPanel.hidden = true; }
+    document.getElementById('da-detail-close').addEventListener('click', closeDetailPanel);
 
     // ---- resolved / history modal (list of resolved records, last action per row) ----
     var histMask = document.getElementById('da-history-mask');
@@ -12487,7 +12583,7 @@
       var row = e.target.closest('[data-da-detail]');
       if(!row) return;
       histMask.classList.remove('on');
-      openDetailDrawer(row.getAttribute('data-da-detail'));
+      openDetailPanel(row.getAttribute('data-da-detail'));
     });
     document.getElementById('da-history-close').addEventListener('click', function(){ histMask.classList.remove('on'); });
     histMask.addEventListener('click', function(e){ if(e.target === histMask) histMask.classList.remove('on'); });
