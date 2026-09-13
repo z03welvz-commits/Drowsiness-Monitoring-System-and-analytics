@@ -110,7 +110,7 @@
      .sidebar-pin (persisted per-browser in localStorage). Width transitions
      on the flex-basis/width pair so the rail push/overlay stays smooth;
      labels and text fade instead of reflowing mid-transition. */
-  .sidebar{width:280px;flex:0 0 280px;background:#0b0f1a;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;transition:width .18s ease,flex-basis .18s ease;z-index:20}
+  .sidebar{width:280px;flex:0 0 280px;background:#012d68;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;transition:width .18s ease,flex-basis .18s ease;z-index:20}
   .sidebar.collapsed{width:72px;flex-basis:72px}
   .sidebar.collapsed:hover,.sidebar.collapsed.pinned-open{width:280px;flex-basis:280px}
   /* Mobile nav toggle + backdrop: hidden entirely above the 820px breakpoint
@@ -134,7 +134,7 @@
   .sidebar.collapsed .mode-toggle span{width:0;overflow:hidden}
   .sidebar.collapsed:hover .mode-toggle,.sidebar.collapsed.pinned-open .mode-toggle{gap:10px}
   .sidebar.collapsed:hover .mode-toggle span,.sidebar.collapsed.pinned-open .mode-toggle span{width:auto;overflow:visible}
-  .sidebar-pin{all:unset;box-sizing:border-box;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#9aa1b4;flex:0 0 auto;margin-left:auto;cursor:pointer;transition:background-color .15s,color .15s;opacity:0;pointer-events:none}
+  .sidebar-pin{all:unset;box-sizing:border-box;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#b9d7fb;flex:0 0 auto;margin-left:auto;cursor:pointer;transition:background-color .15s,color .15s;opacity:0;pointer-events:none}
   .sidebar-pin:hover{background:rgba(255,255,255,.1);color:#fff}
   .sidebar-pin:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .sidebar-pin svg{width:15px;height:15px}
@@ -144,26 +144,25 @@
 
   .brand{height:84px;padding:20px 22px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.1);flex:0 0 auto}
   .sidebar.collapsed .brand{padding-left:16px;padding-right:16px}
-  .brand-icon{width:40px;height:40px;border-radius:10px;background:#f0902e;display:grid;place-items:center;box-shadow:0 4px 12px rgba(0,0,0,.12);flex:0 0 auto}
+  .brand-icon{width:40px;height:40px;border-radius:10px;background:#1972d2;display:grid;place-items:center;box-shadow:0 4px 12px rgba(0,0,0,.12);flex:0 0 auto}
   .brand-icon svg{width:20px;height:20px}
   .brand-text{white-space:nowrap}
   .brand-name{font-size:19px;font-weight:750;line-height:1}
-  .brand-sub{font-size:10px;color:#9aa1b4;margin-top:5px}
+  .brand-sub{font-size:10px;color:#b9d7fb;margin-top:5px}
 
   .nav{padding:22px 14px;overflow-y:auto;overflow-x:hidden;flex:1 1 auto}
-  .section-label{font-size:var(--fs-badge);letter-spacing:.08em;color:#5b6274;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase;white-space:nowrap}
-  .nav-item{all:unset;position:relative;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:14px;padding:0 12px 0 9px;border-radius:8px;border-left:3px solid transparent;color:#9aa1b4;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s,border-color .15s;cursor:pointer}
-  .nav-item:hover{background:rgba(255,255,255,.06)}
+  .section-label{font-size:var(--fs-badge);letter-spacing:.08em;color:#7fa3d6;font-weight:700;margin:0 0 10px 10px;text-transform:uppercase;white-space:nowrap}
+  .nav-item{all:unset;position:relative;box-sizing:border-box;width:100%;height:42px;display:flex;align-items:center;gap:14px;padding:0 12px;border-radius:10px;color:#c3d7f2;font-size:var(--fs-subhead);margin-bottom:3px;transition:background-color .15s,color .15s;cursor:pointer}
+  .nav-item:hover{background:rgba(255,255,255,.07)}
   .nav-item:focus-visible{outline:2px solid #fff;outline-offset:-2px}
-  .nav-item.active{background:rgba(240,144,46,.14);color:#fff;font-weight:600;border-left-color:#f0902e}
-  .nav-item.active .nav-icon{color:#f0902e}
+  .nav-item.active{background:#1361d8;color:#fff;font-weight:600}
   .nav-icon{width:18px;height:18px;flex:0 0 auto;display:grid;place-items:center;opacity:.95}
   .nav-icon svg{width:17px;height:17px}
   .nav-label{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .signout-mobile{display:none}
   .management{margin-top:18px}
   .sidebar-bottom{flex:0 0 auto;padding:14px 12px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:2px}
-  .mode-toggle{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;font-size:12px;color:#9aa1b4;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background-color .15s,color .15s}
+  .mode-toggle{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;font-size:12px;color:#c3d7f2;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background-color .15s,color .15s}
   .mode-toggle:hover{background:rgba(255,255,255,.07)}
   .mode-toggle:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .mode-toggle svg{width:14px;height:14px;flex:0 0 auto}
@@ -255,20 +254,6 @@
   .left-col > .chart-card .chart-area{flex:1;min-height:0;overflow:hidden}
   .left-col > .chart-card .chart-area svg{height:100%}
   .right-col > .feed-card .feed-list,.right-col > .feed-card .action-body{flex:1;min-height:0;overflow-y:auto}
-
-  /* Command Center: Alerts by Event Type / Alerts by Shift row, and the
-     Drivers Requiring Attention table — placed below .overview-grid as
-     their own full-width sections rather than inside it, since that grid's
-     two columns are fixed-height (--overview-col-h) by deliberate design
-     and were not built to absorb an extra row. */
-  .ov-charts-row{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px}
-  .ov-shift-body{display:flex;flex-direction:column;justify-content:center;gap:22px;padding:24px 10px;flex:1}
-  .ov-shift-row{display:grid;grid-template-columns:64px 1fr 90px;align-items:center;gap:12px}
-  .ov-shift-label{display:flex;align-items:center;gap:8px;font-size:var(--fs-body);font-weight:650;color:var(--text-dim)}
-  .ov-shift-dot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
-  .ov-shift-bar-track{height:14px;border-radius:7px;background:var(--surface2);overflow:hidden}
-  .ov-shift-bar-fill{height:100%;border-radius:7px;transition:width .3s}
-  .ov-shift-value{text-align:right;font-size:var(--fs-body);font-weight:700;color:var(--text-dim);white-space:nowrap}
 
   /* chart card */
   .chart-card{padding:0 16px 14px}
@@ -753,19 +738,12 @@
   button.control.dm-refresh{display:inline-flex;align-items:center;gap:7px}
   button.control.dm-refresh svg{width:13px;height:13px;color:var(--muted)}
 
-  /* source sub-nav (DDS Upload / MineStat Upload / Employee Records /
-     Contributing Factors / Name Review Queue) — a vertical list beside the
-     content, matching the mock's Data & Admin layout, rather than the
-     original horizontal tab row. Purely a container/visual change: the
-     click-handling JS (goToSource()) only toggles the same .on classes,
-     so it needed no changes for this. */
-  .dm-layout{display:flex;align-items:flex-start;gap:20px}
-  .dm-tabs{display:flex;flex-direction:column;gap:2px;flex:0 0 230px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px;box-shadow:var(--shadow)}
-  .dm-tab{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:8px;font-size:12.5px;font-weight:650;color:var(--muted);border-left:3px solid transparent;white-space:nowrap}
-  .dm-tab svg{width:14px;height:14px;flex:0 0 auto}
-  .dm-tab:hover{color:var(--text-dim);background:var(--surface2)}
-  .dm-tab.on{color:var(--blue);background:#eef5ff;border-left-color:var(--blue)}
-  .dm-content{flex:1;min-width:0}
+  /* source tabs (DDS Data / Minestat Data / Masterlist / Contributing Factors) */
+  .dm-tabs{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto}
+  .dm-tab{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:11px 14px 12px;font-size:12px;font-weight:650;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;flex:0 0 auto}
+  .dm-tab svg{width:14px;height:14px}
+  .dm-tab:hover{color:var(--text-dim)}
+  .dm-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
   .dm-source{display:none}
   .dm-source.on{display:block}
   .dm-review-badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:#e8952e;color:#fff;font-size:10px;font-weight:700;line-height:1}
@@ -955,12 +933,21 @@
   .da-table-card-flex{display:flex;flex-direction:column;min-height:0}
   .da-table-wrap-flex{flex:1;min-height:0;overflow-y:auto}
 
-  /* Driver & Asset Monitoring / Investigate used to fit-to-viewport with an
-     internally-scrolling table (see the removed #page-driver-asset.active
-     rules this comment replaces). Now flows normally like every other
-     page, matching the approved mock's Investigate layout — a table with
-     a real drill-down detail panel below it needs normal page scroll,
-     not a fixed-height single-viewport table. */
+  /* Driver & Asset Monitoring page-level fit-to-viewport: only this page
+     (not the app shell/other pages) is capped to the viewport height —
+     .main's own 20px/30px top/bottom padding is subtracted so the page
+     never grows a page-level scrollbar. Every direct child above the
+     active tab view is a fixed-height row; the active .da-view is the
+     one flexible row, and its own table-card/table-wrap chain (see
+     .da-table-card-flex/.da-table-wrap-flex above) passes that remaining
+     height down to the actual scrollable row area. */
+  #page-driver-asset.active{display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden}
+  #page-driver-asset.active .topbar{flex:0 0 auto}
+  #page-driver-asset.active .da-summary{flex:0 0 auto}
+  #page-driver-asset.active .da-tabs{flex:0 0 auto}
+  #page-driver-asset.active .da-view{min-height:0}
+  #page-driver-asset.active .da-view.on{flex:1;min-height:0;display:flex;flex-direction:column}
+  #page-driver-asset.active .da-view.on > .da-table-card{flex:1;min-height:0}
 
   /* Driver Streaks reuses the same .da-table-card-flex/.da-table-wrap-flex
      fit-to-viewport pattern as Driver & Asset Monitoring above, but this
@@ -1125,26 +1112,19 @@
   button.da-modal-save:disabled{opacity:.5;cursor:default}
 
   /* detail/timeline drawer */
+  .da-drawer-mask{position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;z-index:59}
+  .da-drawer-mask.on{display:block}
+  .da-drawer{position:fixed;top:0;right:0;bottom:0;width:400px;max-width:92vw;background:var(--card);box-shadow:-8px 0 30px rgba(15,23,42,.15);z-index:60;transform:translateX(100%);transition:transform .2s ease;display:flex;flex-direction:column}
+  .da-drawer.on{transform:translateX(0)}
+  .da-drawer-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex:0 0 auto}
+  .da-drawer-title{font-size:14.5px;font-weight:750;color:var(--text-dim)}
+  .da-drawer-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:4px}
+  .da-drawer-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:18px}
   .da-drawer-section-title{font-size:var(--fs-caption);font-weight:750;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:10px}
-  .da-drawer-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .da-drawer-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .da-drawer-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
   .da-drawer-kpi-label{font-size:var(--fs-label);color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
   .da-drawer-kpi-value{font-size:17px;font-weight:800;margin-top:5px}
-
-  /* Investigate: inline drill-down detail panel, shown below the Flagged
-     Drivers/Assets table when a row is clicked — replaces the old
-     slide-out drawer, matching the approved mock's per-record layout. */
-  .da-detail-panel{margin-top:14px;padding:20px}
-  .da-detail-head{display:flex;align-items:center;gap:14px;margin-bottom:20px}
-  .da-detail-avatar{flex:0 0 auto;width:44px;height:44px;border-radius:50%;background:#2f7ef0;color:#fff;display:grid;place-items:center;font-size:15px;font-weight:750}
-  .da-detail-head-text{flex:1;min-width:0}
-  .da-detail-title{font-size:16px;font-weight:750;color:var(--text-dim)}
-  .da-detail-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:2px}
-  .da-detail-body{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start}
-  .da-detail-col-left{display:flex;flex-direction:column;gap:16px}
-  .da-detail-col-right{display:flex;flex-direction:column;gap:22px;min-width:0}
-  .da-detail-why{font-size:var(--fs-body);color:var(--muted);line-height:1.5;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 14px}
-  @media(max-width:900px){ .da-detail-body{grid-template-columns:1fr} }
 
   .da-daybar-row{display:flex;align-items:center;gap:8px;height:24px;font-size:10px;color:var(--text-dim)}
   .da-daybar-label{width:34px;flex:0 0 auto;font-weight:650}
@@ -1184,34 +1164,6 @@
   .da-bulk-apply:disabled{opacity:.5;cursor:default}
   .da-bulk-clear{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:650;color:var(--muted);padding:0 4px;white-space:nowrap}
   .da-bulk-clear:hover{color:var(--text-dim)}
-
-  /* Corrective Actions: view-filter pills, entity avatars, inline log-action panel */
-  .ca-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
-  .ca-toolbar-right{display:flex;align-items:center;gap:10px}
-  .ca-tabs{display:flex;gap:8px;flex-wrap:wrap}
-  .ca-tab{all:unset;box-sizing:border-box;cursor:pointer;height:36px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:var(--fs-body);font-weight:650;display:flex;align-items:center;gap:6px}
-  .ca-tab:hover{background:var(--surface2)}
-  .ca-tab.active{background:#0b0f1a;border-color:#0b0f1a;color:#fff}
-  .ca-avatar{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:750;letter-spacing:.02em}
-
-  .ca-inline-row td{padding:0!important}
-  .ca-inline-panel{background:#f3f8ff;border:1px solid #d9e9fc;border-radius:10px;margin:10px 14px;padding:16px 18px}
-  .ca-inline-head{display:flex;align-items:center;gap:9px;font-size:var(--fs-body);color:var(--text-dim);margin-bottom:14px}
-  .ca-inline-head svg:first-child{width:16px;height:16px;color:var(--blue);flex:0 0 auto}
-  .ca-inline-close{all:unset;box-sizing:border-box;cursor:pointer;margin-left:auto;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;color:var(--muted);flex:0 0 auto}
-  .ca-inline-close:hover{background:rgba(15,23,42,.06)}
-  .ca-inline-close svg{width:13px;height:13px}
-  .ca-inline-body{display:flex;flex-direction:column;gap:14px}
-  .ca-inline-meta{display:flex;gap:28px;flex-wrap:wrap}
-  .ca-inline-meta-item{display:flex;flex-direction:column;gap:4px}
-  .ca-inline-meta-label{font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.02em}
-  .ca-inline-meta-value{font-size:var(--fs-body);color:var(--muted);font-style:italic}
-  .ca-inline-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
-  button.ca-inline-cancel{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-dim);font-size:var(--fs-body);font-weight:650}
-  button.ca-inline-cancel:hover{background:var(--surface2)}
-  button.ca-inline-save{all:unset;box-sizing:border-box;cursor:pointer;height:38px;padding:0 18px;border-radius:8px;background:var(--blue);color:#fff;font-size:var(--fs-body);font-weight:650}
-  button.ca-inline-save:hover{background:#1d4fd1}
-  button.ca-inline-save:disabled{opacity:.5;cursor:default}
   .da-th-check{width:34px;padding:0 0 0 17px!important}
   /* #al-table's checkbox th carries both da-th-check (always-visible
      driver/asset tables' own 17px-padded look) and al-check-cell (Alert
@@ -1555,6 +1507,7 @@
     .sidebar.mobile-open{transform:translateX(0)}
     .sidebar-backdrop.on{display:block}
     .main{padding-top:64px}
+    #page-driver-asset.active{height:calc(100vh - 36px)}
     #page-alerts.active{height:calc(100vh - 36px)}
     #page-driver-streaks.active{height:calc(100vh - 36px)}
   }
@@ -1563,6 +1516,9 @@
        (.topbar stacks, etc.) — fall back to normal page scroll rather
        than fighting exact pixel math against every other breakpoint's
        .main padding. */
+    #page-driver-asset.active{height:auto;overflow:visible;display:block}
+    #page-driver-asset.active .da-view.on{display:block}
+    #page-driver-asset.active .da-view.on > .da-table-card{flex:none}
     .da-table-wrap-flex{overflow-y:visible;flex:none}
     #page-alerts.active{height:auto;overflow:visible;display:block}
     #page-alerts.active .al-table-card{flex:none;display:block}
@@ -1580,10 +1536,7 @@
     .al-filter{flex:1 1 auto}
     .da-table-head-oneline{flex-wrap:wrap}
     .da-table-head-oneline .da-search{flex:1 1 100%}
-    .dm-layout{flex-direction:column}
-    .dm-tabs{flex-direction:row;flex:0 0 auto;width:100%;overflow-x:auto;gap:0}
-    .dm-tab{border-left:none;border-bottom:2px solid transparent;border-radius:0}
-    .dm-tab.on{border-left-color:transparent;border-bottom-color:var(--blue)}
+    .dm-tabs{gap:0}
     .dm-search{width:100%;max-width:100%}
     .dm-records-head{flex-direction:column;align-items:stretch}
     .su-kpis{grid-template-columns:1fr}
@@ -1622,30 +1575,38 @@
       <div class="section-label">Monitoring</div>
       <button class="nav-item active" type="button" aria-current="page" data-page="overview">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg></span>
-        <span class="nav-label">Command Center</span>
+        <span class="nav-label">Overview</span>
       </button>
       <button class="nav-item" type="button" data-page="analytics">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span>
-        <span class="nav-label">Trends &amp; Analytics</span>
+        <span class="nav-label">Analytics</span>
+      </button>
+      <button class="nav-item" type="button" data-page="alerts">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+        <span class="nav-label">Alert Logs</span>
       </button>
       <button class="nav-item" type="button" data-page="driver-asset">
-        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
-        <span class="nav-label">Investigate</span>
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        <span class="nav-label">Driver &amp; Asset Monitoring</span>
       </button>
-      <div class="section-label" style="margin-top:18px">Action</div>
+      <button class="nav-item" type="button" data-page="driver-streaks">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span>
+        <span class="nav-label">Driver Streaks</span>
+        <span class="nav-badge" id="ds-nav-badge" hidden>0</span>
+      </button>
       <button class="nav-item" type="button" data-page="corrective-actions">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="m9 13 2.5 2.5L15 11"/></svg></span>
         <span class="nav-label">Corrective Actions</span>
         <span class="nav-badge" id="ca-nav-badge" hidden>0</span>
       </button>
-      <!-- Alert Logs, Driver Streaks, and Summary are folded into Command
-           Center / Investigate in this nav per the redesign; their pages
-           and real data/JS are left intact (unreachable via nav for now)
-           rather than deleted, so nothing already working is lost. -->
+      <button class="nav-item" type="button" data-page="summary">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6M9 17h6"/></svg></span>
+        <span class="nav-label">Summary</span>
+      </button>
       <div class="management section-label">Management</div>
       <button class="nav-item" type="button" data-page="data">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
-        <span class="nav-label">Data &amp; Admin</span>
+        <span class="nav-label">Data Management</span>
       </button>
       <button class="nav-item" type="button" data-page="settings">
         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V19a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H4a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H10a1.7 1.7 0 0 0 1-1.6V4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9V10c.2.6.8 1 1.6 1H20a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1z"/></svg></span>
@@ -1672,8 +1633,8 @@
     <div id="page-overview" class="page active">
     <header class="topbar">
       <div class="title">
-        <h1>Command Center</h1>
-        <p>Everything that needs a decision today.</p>
+        <h1>Overview</h1>
+        <p>Real-time overview of your drowsiness detection system</p>
       </div>
       <div class="controls">
         <div class="card clock-chip">
@@ -1686,9 +1647,9 @@
       </div>
     </header>
 
-    <section class="card hero" style="background:linear-gradient(100deg,#0b0f1a 0%,#3a2a12 55%,#c96f1e 100%);border:none">
+    <section class="card hero">
       <div class="hero-left">
-        <div class="hero-avatar" aria-hidden="true" style="background:rgba(255,255,255,.16)">
+        <div class="hero-avatar" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6 13.5 15.5l-5-5L1 18"/><path d="M17 6h6v6"/></svg>
         </div>
         <div class="hero-text">
@@ -1698,7 +1659,7 @@
       </div>
       <div class="hero-status">
         <div class="hero-status-label">System Status</div>
-        <div class="status-pill" id="ov-status-pill" style="background:rgba(255,255,255,.14);color:#fff"><span class="livedot" aria-hidden="true"></span><span id="ov-status-text">All Systems Operational</span></div>
+        <div class="status-pill" id="ov-status-pill"><span class="livedot" aria-hidden="true"></span><span id="ov-status-text">All Systems Operational</span></div>
       </div>
     </section>
 
@@ -1716,28 +1677,34 @@
 
     <section class="kpis" aria-label="Key metrics" id="ov-kpi-row">
       <div class="card kpi">
-        <div class="kpi-head"><span class="kpi-icon" style="background:#2f7ef0" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>TOTAL ALERTS</div>
+        <div class="kpi-head"><span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
         <div class="kpi-value" id="ov-kpi-total-value">—</div>
         <div class="kpi-sub"><span id="ov-kpi-total-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-total-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-total-spark" d="M0,16 L100,16" fill="none" stroke="#2f7ef0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-total-spark" d="M0,16 L100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
-        <div class="kpi-head"><span class="kpi-icon" style="background:#ef4444" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>HIGH ALERTS</div>
+        <div class="kpi-head"><span class="kpi-icon pink" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>SLEEP ALERTS</div>
         <div class="kpi-value" id="ov-kpi-sleep-value">—</div>
         <div class="kpi-sub"><span id="ov-kpi-sleep-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-sleep-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-sleep-spark" d="M0,16 L100,16" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-sleep-spark" d="M0,16 L100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
-        <div class="kpi-head"><span class="kpi-icon" style="background:#f0902e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>DRIVERS FLAGGED</div>
+        <div class="kpi-head"><span class="kpi-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>DROWSINESS ALERTS</div>
         <div class="kpi-value" id="ov-kpi-drowsy-value">—</div>
         <div class="kpi-sub"><span id="ov-kpi-drowsy-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-drowsy-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-drowsy-spark" d="M0,16 L100,16" fill="none" stroke="#f0902e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-drowsy-spark" d="M0,16 L100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="card kpi">
-        <div class="kpi-head"><span class="kpi-icon" style="background:#7c5cf0" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="m9 13 2.5 2.5L15 11"/></svg></span>ACTION REQUIRED</div>
+        <div class="kpi-head"><span class="kpi-icon bluebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>DRIVERS INVOLVED</div>
         <div class="kpi-value" id="ov-kpi-drivers-value">—</div>
         <div class="kpi-sub"><span id="ov-kpi-drivers-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-drivers-delta">—</span></div>
-        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-drivers-spark" d="M0,16 L100,16" fill="none" stroke="#7c5cf0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-drivers-spark" d="M0,16 L100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-head"><span class="kpi-icon greenbg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>ASSETS REPORTING</div>
+        <div class="kpi-value" id="ov-kpi-assets-value">—</div>
+        <div class="kpi-sub"><span id="ov-kpi-assets-period">vs prior 7d</span> <span class="delta flat" id="ov-kpi-assets-delta">—</span></div>
+        <div class="kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 32"><path id="ov-kpi-assets-spark" d="M0,16 L100,16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
     </section>
 
@@ -1755,8 +1722,8 @@
             <svg viewBox="0 0 720 200" role="img" aria-label="Line chart of total alerts over the last 7 days" id="ov-trend-svg">
               <defs>
                 <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" style="stop-color:#f0902e" stop-opacity="0.22"/>
-                  <stop offset="100%" style="stop-color:#f0902e" stop-opacity="0"/>
+                  <stop offset="0%" style="stop-color:var(--series-1)" stop-opacity="0.16"/>
+                  <stop offset="100%" style="stop-color:var(--series-1)" stop-opacity="0"/>
                 </linearGradient>
               </defs>
               <line class="gridline" x1="40" y1="15" x2="700" y2="15"/><line class="gridline" x1="40" y1="52.5" x2="700" y2="52.5"/><line class="gridline" x1="40" y1="90" x2="700" y2="90"/><line class="gridline" x1="40" y1="127.5" x2="700" y2="127.5"/><line class="gridline" x1="40" y1="160" x2="700" y2="160"/>
@@ -1764,7 +1731,7 @@
               <line class="trend-mean" id="ov-trend-mean-line" x1="40" y1="87.5" x2="700" y2="87.5"/>
               <text x="695" y="83.5" class="trend-mean-label" text-anchor="end" id="ov-trend-mean-label">7d avg: —</text>
               <path class="trend-area" id="ov-trend-area" d=""/>
-              <path class="trend-line" id="ov-trend-line" fill="none" d="" style="stroke:#f0902e"/>
+              <path class="trend-line" id="ov-trend-line" fill="none" d=""/>
               <g id="ov-trend-dots"></g>
               <g id="ov-trend-xaxis"></g>
               <line class="chart-crosshair" id="ov-trend-crosshair" x1="0" y1="15" x2="0" y2="160"/>
@@ -1871,64 +1838,6 @@
             </button>
           </div>
         </div>
-
-        <div class="card">
-          <div class="feed-head">
-            <div class="feed-title-group">
-              <span class="feed-icon" style="background:#f0902e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg></span>
-              <span class="feed-title">Quick Insights</span>
-            </div>
-          </div>
-          <div class="su-insight-list" id="ov-insight-list" style="padding:8px 17px 14px">
-            <div class="su-empty">Loading…</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="ov-charts-row">
-      <div class="card an-chart-card" id="ovAlertTypeDonutCard" style="display:flex;flex-direction:column">
-        <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><h3 class="chart-title an-chart-title">Alerts by Event Type</h3></div></div>
-        <div class="an-donut-card">
-          <div class="an-donut-wrap">
-            <svg viewBox="0 0 190 190">
-              <g id="ov-donut-arcs"></g>
-            </svg>
-            <div class="an-donut-center"><b id="ov-donut-total">&mdash;</b><span>Total Alerts</span></div>
-          </div>
-          <div class="an-donut-legend" id="ov-donut-legend">&mdash;</div>
-        </div>
-      </div>
-
-      <div class="card an-chart-card" id="ovShiftCard" style="display:flex;flex-direction:column">
-        <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><h3 class="chart-title an-chart-title">Alerts by Shift</h3></div></div>
-        <div class="ov-shift-body" id="ov-shift-body">
-          <div class="ov-shift-row">
-            <div class="ov-shift-label"><span class="ov-shift-dot" style="background:var(--series-1)"></span>Day</div>
-            <div class="ov-shift-bar-track"><div class="ov-shift-bar-fill" id="ov-shift-day-fill" style="background:var(--series-1);width:0%"></div></div>
-            <div class="ov-shift-value" id="ov-shift-day-value">&mdash;</div>
-          </div>
-          <div class="ov-shift-row">
-            <div class="ov-shift-label"><span class="ov-shift-dot" style="background:var(--series-2)"></span>Night</div>
-            <div class="ov-shift-bar-track"><div class="ov-shift-bar-fill" id="ov-shift-night-fill" style="background:var(--series-2);width:0%"></div></div>
-            <div class="ov-shift-value" id="ov-shift-night-value">&mdash;</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card da-table-card" style="margin-top:14px">
-      <div class="da-table-head da-table-head-oneline">
-        <h3 class="da-table-title">Drivers Requiring Attention <small id="ov-attn-shown">Showing 0</small></h3>
-      </div>
-      <div class="da-table-wrap">
-        <table class="da-table" id="ov-attn-table">
-          <colgroup><col><col style="width:130px"><col style="width:110px"><col style="width:110px"><col style="width:110px"><col style="width:120px"><col style="width:140px"></colgroup>
-          <thead>
-            <tr><th>Driver</th><th>Employee ID</th><th>Unit</th><th>Total Alerts</th><th>High Alerts</th><th>Current Streak</th><th>Status</th></tr>
-          </thead>
-          <tbody id="ov-attn-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
-        </table>
       </div>
     </section>
     </div>
@@ -1936,7 +1845,7 @@
     <div id="page-analytics" class="page">
       <header class="topbar">
         <div class="title">
-          <h1>Trends &amp; Analytics</h1>
+          <h1>Analytics</h1>
           <p>Analyze drowsiness patterns, contributing factors, and operational performance.</p>
         </div>
         <div class="controls">
@@ -2346,7 +2255,7 @@
     <div id="page-data" class="page">
       <header class="topbar">
         <div class="title">
-          <h1>Data &amp; Admin</h1>
+          <h1>Data Management</h1>
           <p>Manage DDS data, monitor data quality, and maintain the analysis dataset.</p>
         </div>
         <div class="controls">
@@ -2359,16 +2268,14 @@
         </div>
       </header>
 
-      <div class="dm-layout">
       <nav class="dm-tabs" aria-label="Data sources" id="dm-source-tabs">
-        <button class="dm-tab on" type="button" data-source="dds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>DDS Upload</button>
-        <button class="dm-tab" type="button" data-source="minestat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg>MineStat Upload</button>
-        <button class="dm-tab" type="button" data-source="masterlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15 14.2c2.9.4 5 2.5 5 5.8"/></svg>Employee Records</button>
+        <button class="dm-tab on" type="button" data-source="dds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>DDS Data</button>
+        <button class="dm-tab" type="button" data-source="minestat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg>Minestat Data</button>
+        <button class="dm-tab" type="button" data-source="masterlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15 14.2c2.9.4 5 2.5 5 5.8"/></svg>Masterlist</button>
         <button class="dm-tab" type="button" data-source="factors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Contributing Factors</button>
-        <button class="dm-tab" type="button" data-source="review" id="dm-tab-review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v3l2 2"/></svg>Name Review Queue<span class="dm-review-badge" id="dm-review-badge" hidden></span></button>
+        <button class="dm-tab" type="button" data-source="review" id="dm-tab-review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v3l2 2"/></svg>Name Review<span class="dm-review-badge" id="dm-review-badge" hidden></span></button>
       </nav>
 
-      <div class="dm-content">
       <!-- ============ DDS DATA ============ -->
       <div class="dm-source on" id="dm-source-dds">
         <section class="dm-toprow">
@@ -2664,8 +2571,6 @@
           <div class="dm-table-foot"><span id="dm-review-minestat-foot"></span></div>
         </section>
       </div>
-      </div>
-      </div>
 
       <!-- ============ CONFIRM MATCH MODAL ============ -->
       <div class="dm-modal-mask" id="dm-review-modal-mask">
@@ -2782,7 +2687,7 @@
     <div id="page-driver-asset" class="page">
       <header class="topbar">
         <div class="title">
-          <h1>Investigate</h1>
+          <h1>Driver &amp; Asset Monitoring</h1>
           <p>Weekly alert consistency for drivers and assets, prioritized for action</p>
         </div>
         <div class="da-sync-status" id="da-sync-status" role="status" aria-live="polite">
@@ -2942,53 +2847,6 @@
           </div>
         </section>
       </div>
-
-      <!-- Investigate: inline drill-down detail panel — replaces the old
-           slide-out drawer. Shared by both the Drivers and Assets tabs;
-           JS populates it by kind+id (see openDetailPanel()). -->
-      <section class="card da-detail-panel" id="da-detail-panel" hidden>
-        <div class="da-detail-head">
-          <span class="da-detail-avatar" id="da-detail-avatar" aria-hidden="true">—</span>
-          <div class="da-detail-head-text">
-            <div class="da-detail-title" id="da-detail-title">—</div>
-            <div class="da-detail-sub" id="da-detail-sub">—</div>
-          </div>
-          <button class="ca-inline-close" type="button" id="da-detail-close" aria-label="Close">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-        </div>
-        <div class="da-detail-body">
-          <div class="da-detail-col-left">
-            <div class="da-drawer-kpis">
-              <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Risk this week</div><div class="da-drawer-kpi-value" id="da-detail-risk-val">—</div></div>
-              <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Total counts</div><div class="da-drawer-kpi-value" id="da-detail-total">—</div></div>
-              <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Days over threshold</div><div class="da-drawer-kpi-value" id="da-detail-daysover">—</div></div>
-            </div>
-            <div class="da-detail-why" id="da-detail-why">—</div>
-            <button class="dm-btn-primary" type="button" id="da-detail-logaction" style="width:100%;justify-content:center">Log Action</button>
-          </div>
-          <div class="da-detail-col-right">
-            <div>
-              <div class="da-drawer-section-title">Alert Counts by Day</div>
-              <div id="da-detail-daybars"></div>
-            </div>
-            <div>
-              <div class="da-drawer-section-title">Action History</div>
-              <div class="da-timeline" id="da-detail-history"></div>
-            </div>
-            <div>
-              <div class="da-drawer-section-title">Alert History <span id="da-detail-alerts-count" style="font-weight:500;text-transform:none;letter-spacing:0"></span></div>
-              <div class="da-table-wrap">
-                <table class="da-table" id="da-detail-alerts-table">
-                  <colgroup><col style="width:110px"><col style="width:90px"><col style="width:80px"><col><col style="width:110px"><col style="width:100px"></colgroup>
-                  <thead><tr><th>Date</th><th>Time</th><th>Shift</th><th>Event</th><th>Severity</th><th>Unit</th></tr></thead>
-                  <tbody id="da-detail-alerts-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px 0">Loading…</td></tr></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
 
     <!-- ===================== DRIVER STREAKS ===================== -->
@@ -3070,22 +2928,11 @@
         </div>
       </header>
 
-      <div class="ca-toolbar">
-        <div class="ca-tabs" role="tablist" aria-label="Corrective Actions view">
-          <button class="ca-tab active" type="button" id="ca-tab-open" role="tab" aria-selected="true">Open <span id="ca-tab-open-count">· 0</span></button>
-          <button class="ca-tab" type="button" id="ca-tab-closed" role="tab" aria-selected="false">Closed</button>
-          <button class="ca-tab" type="button" id="ca-tab-drivers" role="tab" aria-selected="false">Drivers</button>
-          <button class="ca-tab" type="button" id="ca-tab-assets" role="tab" aria-selected="false">Assets</button>
-        </div>
-        <div class="ca-toolbar-right">
-          <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search entity name or ID..." id="ca-search"></div>
-          <button class="al-filter" type="button" id="ca-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
-        </div>
-      </div>
-
       <section class="card da-table-card da-table-card-flex">
         <div class="da-table-head da-table-head-oneline">
           <h3 class="da-table-title">Open Cases <small id="ca-open-shown">Showing 0</small></h3>
+          <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search entity name or ID..." id="ca-search"></div>
+          <button class="al-filter" type="button" id="ca-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
         </div>
         <div class="da-bulk-bar" id="ca-bulk-bar">
           <span class="da-bulk-count" id="ca-bulk-count">0 selected</span>
@@ -3111,7 +2958,7 @@
         </div>
       </section>
 
-      <section class="card da-table-card" id="ca-closed-section">
+      <section class="card da-table-card">
         <div class="da-table-head da-table-head-oneline">
           <h3 class="da-table-title">Recently Closed <small>audit trail — a later breach opens a new case</small></h3>
         </div>
@@ -3677,24 +3524,22 @@
       </div>
     </div>
 
-    <!-- Corrective Actions: inline log-action panel. Matches the approved
-         mock's inline-expand pattern (a panel that opens directly below the
-         row being actioned) rather than a modal overlay. JS wraps this div
-         in a <tr><td colspan> and inserts it right after the clicked row;
-         a bulk selection (no single anchor row) inserts it at the top of
-         the table instead. Kept the richer real field set (action-type
-         grid, note, logged-by) rather than trimming to the mock's simpler
-         sketch, since those fields are already wired to real RPCs. -->
-    <div id="ca-inline-form" hidden>
-      <div class="ca-inline-panel">
-        <div class="ca-inline-head">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <span>Log Action — <strong id="ca-modal-ctx-name">—</strong> <span class="ca-inline-sub" id="ca-modal-ctx-note"></span></span>
-          <button class="ca-inline-close" type="button" id="ca-modal-close" aria-label="Close">
+    <!-- Corrective Actions: log-action modal (single row or bulk-selected rows) -->
+    <div class="da-modal-mask" id="ca-modal-mask">
+      <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="ca-modal-title">
+        <div class="da-modal-head">
+          <div>
+            <div class="da-modal-title" id="ca-modal-title">Log an action</div>
+            <div class="da-modal-sub"><span id="ca-modal-ctx-name">—</span></div>
+          </div>
+          <button class="da-modal-close" type="button" id="ca-modal-close" aria-label="Close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>
-        <div class="ca-inline-body">
+        <div class="da-modal-body">
+          <div class="da-modal-context">
+            <div class="da-modal-context-row"><span id="ca-modal-ctx-note">This logs the action and closes every open day for this case at once.</span></div>
+          </div>
           <div class="da-field">
             <label>Action type</label>
             <div class="da-type-grid" id="ca-type-grid">
@@ -3717,17 +3562,45 @@
             <label>Logged by</label>
             <input type="text" id="ca-loggedby-input" placeholder="Your name or employee ID">
           </div>
-          <div class="ca-inline-meta">
-            <div class="ca-inline-meta-item"><span class="ca-inline-meta-label">Date</span><span class="ca-inline-meta-value">Auto-filled on save</span></div>
-            <div class="ca-inline-meta-item"><span class="ca-inline-meta-label">Status</span><span class="ca-inline-meta-value">Open → Closed on save</span></div>
-          </div>
         </div>
-        <div class="ca-inline-foot">
-          <button class="ca-inline-cancel" type="button" id="ca-modal-cancel">Cancel</button>
-          <button class="ca-inline-save" type="button" id="ca-modal-save" disabled>Save action</button>
+        <div class="da-modal-foot">
+          <button class="da-modal-cancel" type="button" id="ca-modal-cancel">Cancel</button>
+          <button class="da-modal-save" type="button" id="ca-modal-save" disabled>Save action</button>
         </div>
       </div>
     </div>
+
+    <!-- Driver & Asset Monitoring: detail drawer -->
+    <div class="da-drawer-mask" id="da-drawer-mask"></div>
+    <aside class="da-drawer" id="da-drawer" aria-label="Record detail">
+      <div class="da-drawer-head">
+        <div>
+          <div class="da-drawer-title" id="da-drawer-title">—</div>
+          <div class="da-drawer-sub" id="da-drawer-sub">—</div>
+        </div>
+        <button class="da-modal-close" type="button" id="da-drawer-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="da-drawer-body">
+        <div>
+          <div class="da-drawer-kpis">
+            <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Risk this week</div><div class="da-drawer-kpi-value" id="da-drawer-risk-val">—</div></div>
+            <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Total counts</div><div class="da-drawer-kpi-value" id="da-drawer-total">—</div></div>
+            <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Recommended</div><div class="da-drawer-kpi-value" id="da-drawer-rec-val">—</div></div>
+            <div class="da-drawer-kpi"><div class="da-drawer-kpi-label">Status</div><div class="da-drawer-kpi-value" id="da-drawer-status-val">—</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="da-drawer-section-title">Alert counts by day</div>
+          <div id="da-drawer-daybars"></div>
+        </div>
+        <div>
+          <div class="da-drawer-section-title">Timeline</div>
+          <div class="da-timeline" id="da-drawer-timeline"></div>
+        </div>
+      </div>
+    </aside>
 
     <!-- Driver & Asset Monitoring: resolved / history modal -->
     <div class="da-modal-mask" id="da-history-mask">
@@ -4567,111 +4440,27 @@
         .reduce(function(sum, c){ return sum + (c.units || 0); }, 0);
     }
 
-    function renderKpis(cur, prev, caQueue){
+    function renderKpis(cur, prev){
       var kpis = cur.kpis || {};
       var prevKpis = (prev && prev.kpis) || null;
-      // "High Alerts" = critical + high severity tier (D-2's resolved
-      // definition), not sleep alone — matches the Command Center KPI's
-      // real meaning, not the old per-tier Sleep/Drowsy split this card
-      // used to show.
-      var curHigh = countByTier(cur.eventCodeDistribution, 'critical') + countByTier(cur.eventCodeDistribution, 'high');
-      var prevHigh = prevKpis ? countByTier(prev.eventCodeDistribution, 'critical') + countByTier(prev.eventCodeDistribution, 'high') : null;
+      var curSleep = countByTier(cur.eventCodeDistribution, 'critical');
+      var curDrowsy = countByTier(cur.eventCodeDistribution, 'high');
+      var prevSleep = prevKpis ? countByTier(prev.eventCodeDistribution, 'critical') : null;
+      var prevDrowsy = prevKpis ? countByTier(prev.eventCodeDistribution, 'high') : null;
       var trend = cur.trend || [];
       var totalsSpark = trend.slice(-7).map(function(t){ return t.units; });
-      // Per-day severity split (0115_dds_metrics_severity_trend.sql).
-      var highSpark = trend.slice(-7).map(function(t){ return (t.criticalUnits || 0) + (t.highUnits || 0); });
-
-      // Drivers Flagged / Action Required: real counts from the same
-      // compound-threshold queue Corrective Actions itself is built on
-      // (dds_corrective_actions_queue()) — not a distinct-operator count,
-      // which was never a "flagged" measure to begin with. No day-over-day
-      // comparison exists for this queue (it's current-state, not a time
-      // series — see D-4 in the Rebuild Scope), so these two cards show no
-      // delta rather than a fabricated one.
-      var openCases = (caQueue && caQueue.open) || [];
-      var driversFlagged = openCases.filter(function(c){ return c.entityType === 'driver'; }).length;
-      var actionRequired = openCases.length;
+      var assetsSpark = trend.slice(-7).map(function(t){ return t.assets; });
+      // Per-day severity split (0115_dds_metrics_severity_trend.sql) — each
+      // KPI card's own shape, not a copy of the Total Alerts line these two
+      // previously fell back to for lack of a real per-day series.
+      var sleepSpark = trend.slice(-7).map(function(t){ return t.criticalUnits || 0; });
+      var drowsySpark = trend.slice(-7).map(function(t){ return t.highUnits || 0; });
 
       renderKpi('total', kpis.totalAlerts, prevKpis ? prevKpis.totalAlerts : null, totalsSpark);
-      renderKpi('sleep', curHigh, prevHigh, highSpark);
-      renderKpi('drowsy', driversFlagged, null, null);
-      renderKpi('drivers', actionRequired, null, null);
-    }
-
-    // ==================== Quick Insights (Command Center) ====================
-    // Real, computed from the same week/prevWeek/caQueue payloads load()
-    // already fetches — no extra RPC round trip. Same rule-based approach
-    // as Summary's own Quick Insights (D-3): real numbers only, an honest
-    // empty state when a window has nothing comparable, never fabricated.
-    function ovPctDelta(cur, prev){
-      if(cur == null || prev == null) return null;
-      if(prev === 0) return cur === 0 ? 0 : null;
-      return Math.round((cur - prev) / prev * 100);
-    }
-    function renderOvInsights(cur, prev, caQueue){
-      var list = document.getElementById('ov-insight-list');
-      if(!list) return;
-      var kpis = cur.kpis || {}, prevKpis = (prev && prev.kpis) || {};
-      var insights = [];
-
-      var assetsDelta = ovPctDelta(kpis.distinctAssets, prevKpis.distinctAssets);
-      if(kpis.distinctAssets != null && assetsDelta !== null){
-        insights.push({
-          color:'#f0902e', bg:'#fdf0dc',
-          main: assetsDelta === 0 ? 'Assets reporting held steady' : (assetsDelta > 0 ? 'Assets reporting ticked up' : 'Assets reporting dropped'),
-          sub: fmtNum(kpis.distinctAssets) + ' asset' + (kpis.distinctAssets === 1 ? '' : 's') + ' reporting' + (assetsDelta === 0 ? ', matching the prior period.' : (', ' + Math.abs(assetsDelta) + '% ' + (assetsDelta > 0 ? 'above' : 'below') + ' the prior period.')),
-          tag: assetsDelta === 0 ? { cls:'flat', text:'—' } : { cls: assetsDelta > 0 ? 'up' : 'down', text: (assetsDelta > 0 ? '↑ ' : '↓ ') + Math.abs(assetsDelta) + '%' }
-        });
-      }
-
-      var openCases = (caQueue && caQueue.open) || [];
-      if(openCases.length){
-        var oldest = openCases.slice().sort(function(a,b){ return b.daysOpen - a.daysOpen; })[0];
-        insights.push({
-          color:'#7c5cf0', bg:'#efe9fe',
-          main: openCases.length + ' case' + (openCases.length === 1 ? '' : 's') + ' currently open in Corrective Actions',
-          sub: 'Longest-open: ' + oldest.name + ', ' + oldest.daysOpen + ' day' + (oldest.daysOpen === 1 ? '' : 's') + ' since ' + oldest.flaggedSince + '.',
-          tag: { cls:'flat', text:'Watch' }
-        });
-      } else if(caQueue){
-        insights.push({ color:'#18a05e', bg:'#dff5ea', main:'No open cases', sub:'Every flagged driver or asset has a logged action right now.', tag:{ cls:'flat', text:'—' } });
-      }
-
-      var topOps = (cur.topOperators || []).filter(function(o){ return o.id !== 'Unspecified'; });
-      if(topOps.length){
-        var top = topOps[0];
-        insights.push({
-          color:'#2f7ef0', bg:'#e6eefe',
-          main: top.id + ' leads driver alert volume',
-          sub: fmtNum(top.total) + ' alert' + (top.total === 1 ? '' : 's') + ' this period — see Investigate for detail.',
-          tag: { cls:'flat', text:'Watch' }
-        });
-      }
-
-      var totalDelta = ovPctDelta(kpis.totalAlerts, prevKpis.totalAlerts);
-      if(totalDelta !== null){
-        insights.push({
-          color: totalDelta < 0 ? '#18a05e' : (totalDelta > 0 ? '#ef4444' : '#5b6274'), bg: totalDelta < 0 ? '#dff5ea' : (totalDelta > 0 ? '#fdecea' : '#f0eee6'),
-          main: 'Total alerts trending ' + (totalDelta < 0 ? 'down' : (totalDelta > 0 ? 'up' : 'flat')),
-          sub: Math.abs(totalDelta) + '% ' + (totalDelta < 0 ? 'below' : (totalDelta > 0 ? 'above' : 'even with')) + ' the prior period.',
-          tag: totalDelta === 0 ? { cls:'flat', text:'—' } : { cls: totalDelta < 0 ? 'down' : 'up', text: (totalDelta < 0 ? '↓ ' : '↑ ') + Math.abs(totalDelta) + '%' }
-        });
-      }
-
-      if(!insights.length){
-        list.innerHTML = '<div class="su-empty">Not enough data yet for a comparison.</div>';
-        return;
-      }
-      list.innerHTML = insights.map(function(ins){
-        return '<div class="su-insight-row">' +
-          '<span class="su-insight-icon" style="background:' + ins.bg + ';color:' + ins.color + '" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg></span>' +
-          '<div class="su-insight-body">' +
-            '<div class="su-insight-main">' + esc(ins.main) + '</div>' +
-            '<div class="su-insight-sub">' + esc(ins.sub) + '</div>' +
-          '</div>' +
-          '<span class="su-insight-tag ' + ins.tag.cls + '">' + esc(ins.tag.text) + '</span>' +
-        '</div>';
-      }).join('');
+      renderKpi('sleep', curSleep, prevSleep, sleepSpark);
+      renderKpi('drowsy', curDrowsy, prevDrowsy, drowsySpark);
+      renderKpi('drivers', kpis.distinctOperators, prevKpis ? prevKpis.distinctOperators : null, assetsSpark);
+      renderKpi('assets', kpis.distinctAssets, prevKpis ? prevKpis.distinctAssets : null, assetsSpark);
     }
 
     // ==================== 7-day trend chart ====================
@@ -4958,130 +4747,33 @@
     // bounded call takes ~28ms, safely under any timeout concern.
     function renderDriverStreaks(){
       var body = document.getElementById('ov-streak-body');
-      var attnBody = document.getElementById('ov-attn-tbody');
-      var attnShown = document.getElementById('ov-attn-shown');
-      if(!body && !attnBody) return;
-      // Fetches 8 rows once and feeds both the narrow sidebar list (first 5,
-      // matching its prior p_limit) and the wide Drivers Requiring
-      // Attention table below — one real fetch, two views of the same data,
-      // rather than two RPC round-trips for the same window.
+      if(!body) return;
       DB.rpc('dds_driver_streaks', {
         p_search: null, p_min_streak: 1, p_sort: 'streak_days', p_dir: 'desc',
-        p_limit: 8, p_offset: 0, p_window_days: 7
+        p_limit: 5, p_offset: 0, p_window_days: 7
       }).then(function(res){
         if(res.error) throw res.error;
         var drivers = (res.data || {}).rows || [];
-        if(body){
-          if(!drivers.length){
-            body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">No drivers currently on an alert streak.</div></div></div>';
-          } else {
-            body.innerHTML = drivers.slice(0, 5).map(function(d){
-              var required = d.status === 'required';
-              var days = d.streakDays || 0;
-              return '<div class="action-row">' +
-                '<span class="action-dot ' + (required ? 'active' : 'resolved') + '" aria-hidden="true"></span>' +
-                '<div class="action-body-text">' +
-                  '<div class="action-main"><strong>' + esc(d.name || d.empNo) + '</strong></div>' +
-                  '<div class="action-sub">' + days + ' consecutive day' + (days === 1 ? '' : 's') + ' over the daily alert threshold</div>' +
-                '</div>' +
-                '<span class="action-badge ' + (required ? 'active' : 'resolved') + '">' + (required ? 'Action Required' : 'Monitoring') + '</span>' +
-              '</div>';
-            }).join('');
-          }
+        if(!drivers.length){
+          body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">No drivers currently on an alert streak.</div></div></div>';
+          return;
         }
-        if(attnBody){
-          var total = (res.data || {}).total;
-          if(attnShown) attnShown.textContent = 'Showing ' + fmtNum(drivers.length) + ' of ' + fmtNum(total != null ? total : drivers.length);
-          if(!drivers.length){
-            attnBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently flagged.</td></tr>';
-          } else {
-            var STATUS_LABEL = { required: 'Action Required', monitoring: 'Monitoring', actioned: 'Actioned', resolved: 'Resolved', ok: 'OK' };
-            attnBody.innerHTML = drivers.map(function(d){
-              var cls = d.status || 'ok';
-              var days = d.streakDays || 0;
-              return '<tr>' +
-                '<td style="font-weight:650">' + esc(d.name || d.empNo) + '</td>' +
-                '<td>' + esc(d.empNo || '—') + '</td>' +
-                '<td>' + esc(d.unit || '—') + '</td>' +
-                '<td>' + fmtNum(d.totalCount || 0) + '</td>' +
-                '<td>' + fmtNum(d.highAlerts || 0) + '</td>' +
-                '<td>' + fmtNum(days) + (days === 1 ? ' day' : ' days') + '</td>' +
-                '<td><span class="da-status ' + cls + '">' + esc(STATUS_LABEL[cls] || 'OK') + '</span></td>' +
-              '</tr>';
-            }).join('');
-          }
-        }
+        body.innerHTML = drivers.map(function(d){
+          var required = d.status === 'required';
+          var days = d.streakDays || 0;
+          return '<div class="action-row">' +
+            '<span class="action-dot ' + (required ? 'active' : 'resolved') + '" aria-hidden="true"></span>' +
+            '<div class="action-body-text">' +
+              '<div class="action-main"><strong>' + esc(d.name || d.empNo) + '</strong></div>' +
+              '<div class="action-sub">' + days + ' consecutive day' + (days === 1 ? '' : 's') + ' over the daily alert threshold</div>' +
+            '</div>' +
+            '<span class="action-badge ' + (required ? 'active' : 'resolved') + '">' + (required ? 'Action Required' : 'Monitoring') + '</span>' +
+          '</div>';
+        }).join('');
       }).catch(function(err){
         console.error('Driver streak fetch failed', err);
-        if(body) body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
-        if(attnBody) attnBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc(err.message || 'unknown error') + '</td></tr>';
+        body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
       });
-    }
-
-    // ==================== Alerts by Event Type (donut) ====================
-    // Page-scoped duplicate of Analytics' renderAlertTypeDonut (same
-    // eventCodeDistribution field, same severityBadge() color convention) —
-    // matches this codebase's established one-IIFE-per-page pattern rather
-    // than extracting a shared helper.
-    var OV_DONUT_OTHER_COLOR = '#c7ccd9';
-    function renderOvDonut(cur){
-      var all = (cur.eventCodeDistribution || []).slice().sort(function(a,b){ return b.units - a.units; });
-      var arcsEl = document.getElementById('ov-donut-arcs');
-      var totalEl = document.getElementById('ov-donut-total');
-      var legendEl = document.getElementById('ov-donut-legend');
-      if(!arcsEl) return;
-      var top = all.slice(0, 5);
-      var rest = all.slice(5).reduce(function(s,c){ return s + c.units; }, 0);
-      var slices = top.map(function(c){ return { name: c.code || 'Other', value: c.units, color: severityBadge(c.code).color }; });
-      if(rest > 0) slices.push({ name: 'Other', value: rest, color: OV_DONUT_OTHER_COLOR });
-      var total = slices.reduce(function(s,c){ return s + c.value; }, 0);
-      if(totalEl) totalEl.textContent = fmtNum(cur.kpis ? cur.kpis.totalAlerts : total);
-      if(!total){ arcsEl.innerHTML = ''; if(legendEl) legendEl.textContent = 'No event data.'; return; }
-      var cx = 95, cy = 95, r = 62, innerR = 42;
-      var startAngle = -90;
-      var paths = slices.filter(function(s){ return s.value > 0; }).map(function(s){
-        var frac = s.value / total;
-        var sweep = Math.min(frac * 360, 359.99);
-        var endAngle = startAngle + sweep;
-        var large = (endAngle - startAngle) > 180 ? 1 : 0;
-        var toXY = function(angle, rad){
-          var t = angle * Math.PI / 180;
-          return [cx + rad * Math.cos(t), cy + rad * Math.sin(t)];
-        };
-        var o1 = toXY(startAngle, r), o2 = toXY(endAngle, r);
-        var i1 = toXY(endAngle, innerR), i2 = toXY(startAngle, innerR);
-        var d = 'M' + o1[0].toFixed(1) + ' ' + o1[1].toFixed(1) +
-          ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + o2[0].toFixed(1) + ' ' + o2[1].toFixed(1) +
-          ' L' + i1[0].toFixed(1) + ' ' + i1[1].toFixed(1) +
-          ' A' + innerR + ' ' + innerR + ' 0 ' + large + ' 0 ' + i2[0].toFixed(1) + ' ' + i2[1].toFixed(1) + ' Z';
-        startAngle = endAngle;
-        return '<path d="' + d + '" fill="' + s.color + '"/>';
-      });
-      arcsEl.innerHTML = paths.join('');
-      if(legendEl){
-        legendEl.innerHTML = slices.map(function(s){
-          var pct = total ? Math.round(s.value/total*100) : 0;
-          return '<div class="an-donut-legend-row"><span class="an-donut-legend-name"><i style="background:' + s.color + '"></i>' + esc(s.name) + '</span>' +
-            '<span class="an-donut-legend-val">' + fmtNum(s.value) + ' <b>(' + pct + '%)</b></span></div>';
-        }).join('');
-      }
-    }
-
-    // ==================== Alerts by Shift (2-bar comparison) ====================
-    function renderOvShift(cur){
-      var dist = cur.shiftDistribution || {};
-      var day = dist.DAY || { units: 0, pct: 0 };
-      var night = dist.NIGHT || { units: 0, pct: 0 };
-      var dayFill = document.getElementById('ov-shift-day-fill');
-      var nightFill = document.getElementById('ov-shift-night-fill');
-      var dayValue = document.getElementById('ov-shift-day-value');
-      var nightValue = document.getElementById('ov-shift-night-value');
-      if(!dayFill) return;
-      var maxPct = Math.max(day.pct || 0, night.pct || 0, 1);
-      dayFill.style.width = ((day.pct || 0) / maxPct * 100) + '%';
-      nightFill.style.width = ((night.pct || 0) / maxPct * 100) + '%';
-      if(dayValue) dayValue.textContent = fmtNum(day.units || 0) + ' (' + Math.round(day.pct || 0) + '%)';
-      if(nightValue) nightValue.textContent = fmtNum(night.units || 0) + ' (' + Math.round(night.pct || 0) + '%)';
     }
 
     // ==================== orchestration: mirrors index.html's App.loadFromServer() ====================
@@ -5109,10 +4801,6 @@
             var el = document.getElementById(id);
             if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Sign in to load real data — this page reads live data, not a mock.</div></div></div>';
           });
-          var insightList = document.getElementById('ov-insight-list');
-          if(insightList) insightList.innerHTML = '<div class="su-empty">Sign in to load real data.</div>';
-          var attnBodySignedOut = document.getElementById('ov-attn-tbody');
-          if(attnBodySignedOut) attnBodySignedOut.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           return;
         }
         setUsername((sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there');
@@ -5150,37 +4838,19 @@
           // regardless of what range length is selected.
           Promise.all([
             fetchMetrics(state.from, state.to),
-            fetchMetrics(toMDY(prevFrom), toMDY(prevTo)),
-            DB.rpc('dds_corrective_actions_queue', {}).then(function(res){
-              if(res.error) throw res.error;
-              return res.data;
-            }).catch(function(err){
-              console.error('Corrective Actions queue fetch failed (Command Center KPIs)', err);
-              return null;
-            })
+            fetchMetrics(toMDY(prevFrom), toMDY(prevTo))
           ]).then(function(results){
             if(!guard.isCurrent(token)) return;
-            var week = results[0], prevWeek = results[1], caQueue = results[2];
+            var week = results[0], prevWeek = results[1];
             setStatus(true);
             renderTrend(week);
             renderFeed(week);
             renderDriverStreaks();
-            renderKpis(week, prevWeek, caQueue);
-            renderOvInsights(week, prevWeek, caQueue);
-            renderOvDonut(week);
-            renderOvShift(week);
+            renderKpis(week, prevWeek);
             var periodLabel = 'vs prior ' + rangeDays + 'd';
-            // Only Total Alerts / High Alerts have a real period-over-period
-            // comparison — Drivers Flagged / Action Required read from the
-            // Corrective Actions queue's current state, which has no
-            // historical series to compare against (see D-4).
-            ['total','sleep'].forEach(function(key){
+            ['total','sleep','drowsy','drivers','assets'].forEach(function(key){
               var el = document.getElementById('ov-kpi-' + key + '-period');
               if(el) el.textContent = periodLabel;
-            });
-            ['drowsy','drivers'].forEach(function(key){
-              var el = document.getElementById('ov-kpi-' + key + '-period');
-              if(el) el.textContent = 'current';
             });
 
             // Hourly Trend: dds_metrics()'s own `hourly` field already
@@ -5208,10 +4878,6 @@
               var el = document.getElementById(id);
               if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
             });
-            var insightListErr = document.getElementById('ov-insight-list');
-            if(insightListErr) insightListErr.innerHTML = '<div class="su-empty">Could not load: ' + esc(err.message || 'unknown error') + '</div>';
-            var attnBodyErr = document.getElementById('ov-attn-tbody');
-            if(attnBodyErr) attnBodyErr.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc(err.message || 'unknown error') + '</td></tr>';
           });
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
@@ -11862,8 +11528,6 @@
 
     function buildDriverRow(r){
       var tr = document.createElement('tr');
-      tr.setAttribute('data-da-row', 'drivers|' + r.empNo);
-      tr.style.cursor = 'pointer';
       // "Reviewed"/"Needs Review" reflects whether every individual alert
       // instance for this driver has been resolved (dds_driver_event_summary()'s
       // `done`, derived from dds_case_records.is_unresolved_high_severity) — a
@@ -11892,8 +11556,6 @@
     }
     function buildAssetRow(r){
       var tr = document.createElement('tr');
-      tr.setAttribute('data-da-row', 'assets|' + r.assetId);
-      tr.style.cursor = 'pointer';
       tr.innerHTML =
         '<td>' + esc(r.assetId) + '</td>' +
         '<td>' + fmtEventCodes(r.eventCodes) + '</td>' +
@@ -12200,9 +11862,6 @@
         if(actionBtn){ openActionModal(actionBtn.getAttribute('data-da-openaction')); return; }
         var detailBtn = e.target.closest('[data-da-detail]');
         if(detailBtn){ openInstancePopup(detailBtn.getAttribute('data-da-detail')); return; }
-        if(e.target.closest('input')) return;
-        var row = e.target.closest('[data-da-row]');
-        if(row) openDetailPanel(row.getAttribute('data-da-row'));
       });
     });
 
@@ -12374,87 +12033,49 @@
       });
     }
 
-    // ---- inline drill-down detail panel (replaces the old slide-out
-    // drawer, matching the approved mock's per-record layout) ----
-    var detailPanel = document.getElementById('da-detail-panel');
-    // Separate guards from the page-level `load()` guard above — opening
-    // the detail panel is an independent, user-driven action that
-    // shouldn't be cancelled by (or cancel) the page's own data re-fetch.
-    // Two guards (history vs. real alert instances) since they're two
-    // independent fetches that can resolve in either order.
-    var detailGuard = makeGuard();
-    var detailAlertsGuard = makeGuard();
-    // The background risk model (state[kind], from dds_driver_asset_weekly())
-    // and the visible table (summaryState[kind].rows, from
-    // dds_driver_event_summary()) are two independent RPCs that don't
-    // always agree on which rows currently qualify — a row visible in the
-    // table isn't guaranteed to exist in the risk model. When it doesn't,
-    // this builds an honest fallback from the row the user actually
-    // clicked (real name/total, no fabricated day-of-week breakdown)
-    // rather than silently doing nothing on the click.
-    function findSummaryRow(kind, id){
-      var rows = (summaryState[kind] && summaryState[kind].rows) || [];
-      return rows.find(function(r){ return (kind === 'drivers' ? r.empNo : r.assetId) === id; });
-    }
-
-    function openDetailPanel(key){
-      var token = detailGuard.start();
+    // ---- detail drawer ----
+    var drawerMask = document.getElementById('da-drawer-mask');
+    var drawer = document.getElementById('da-drawer');
+    // Separate guard from the page-level `load()` guard above — opening a
+    // detail drawer is an independent, user-driven action that shouldn't
+    // be cancelled by (or cancel) the page's own data re-fetch. Fixes a
+    // real race found in audit: clicking "Details" on one entity, then
+    // quickly another before the first's dds_entity_action_history() call
+    // resolves, could show one entity's header with a different entity's
+    // action-history timeline underneath.
+    var drawerGuard = makeGuard();
+    function openDetailDrawer(key){
+      var token = drawerGuard.start();
       var parts = key.split('|'); var kind = parts[0], id = parts[1];
       var rec = findRecord(kind, id);
-      var hasRiskData = !!rec;
-      if(!rec){
-        var row = findSummaryRow(kind, id);
-        if(!row) return;
-        rec = {
-          id: id, name: kind === 'drivers' ? row.empName : row.assetId,
-          sub: kind === 'drivers' ? 'Driver' : 'Asset',
-          days: {}, status: (kind === 'drivers' && row.done) ? 'actioned' : 'required'
-        };
-      }
+      if(!rec) return;
       var scored = computeRisk(rec.days);
+      var rec_ = recommendation(scored.risk);
 
-      document.getElementById('da-detail-avatar').textContent = (rec.name || id).slice(0, 2).toUpperCase();
-      document.getElementById('da-detail-title').textContent = rec.name + ' (' + rec.id + ')';
-      document.getElementById('da-detail-sub').textContent = rec.sub + ' · ' + (rec.status === 'actioned' ? 'Actioned' : 'Action required');
-      document.getElementById('da-detail-logaction').onclick = function(){ openActionModal(kind + '|' + id); };
+      document.getElementById('da-drawer-title').textContent = rec.name + ' (' + rec.id + ')';
+      document.getElementById('da-drawer-sub').textContent = rec.sub;
+      document.getElementById('da-drawer-total').textContent = scored.total;
+      document.getElementById('da-drawer-risk-val').innerHTML = '<span class="da-risk ' + (scored.risk === 'high' ? 'high' : scored.risk === 'medium' ? 'med' : 'low') + '">' + scored.risk + '</span>';
+      document.getElementById('da-drawer-rec-val').innerHTML = '<span class="da-rec ' + rec_.key + '"><span class="da-rec-dot"></span>' + rec_.label + '</span>';
+      document.getElementById('da-drawer-status-val').innerHTML = rec.status === 'actioned' ? '<span class="da-status actioned">Actioned</span>' : '<span class="da-status required">Action required</span>';
 
-      if(hasRiskData){
-        document.getElementById('da-detail-total').textContent = scored.total;
-        document.getElementById('da-detail-risk-val').innerHTML = '<span class="da-risk ' + (scored.risk === 'high' ? 'high' : scored.risk === 'medium' ? 'med' : 'low') + '">' + scored.risk + '</span>';
-        document.getElementById('da-detail-daysover').textContent = scored.daysOver10.length + ' of 7';
-        document.getElementById('da-detail-why').textContent = scored.daysOver10.length
-          ? scored.daysOver10.length + ' of the last 7 days had 10+ alerts (' + scored.daysOver10.join(', ') + '), contributing to this week’s "' + scored.risk + '" risk rating.'
-          : 'No day this week crossed the 10-alert threshold — the "' + scored.risk + '" rating reflects total volume alone.';
+      var maxCount = 20;
+      DAY_ORDER.forEach(function(d){ (rec.days[d]||[]).forEach(function(c){ if(c > maxCount) maxCount = c; }); });
+      var barsHtml = DAY_ORDER.map(function(d){
+        var events = rec.days[d] || [];
+        var dayTotal = events.reduce(function(a,b){return a+b;}, 0);
+        var pct = Math.round((dayTotal / maxCount) * 100);
+        var over = events.some(function(c){ return c > 10; });
+        return '<div class="da-daybar-row"><span class="da-daybar-label">' + d + '</span>' +
+          '<div class="da-daybar-track"><div class="da-daybar-fill' + (over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
+          '<span class="da-daybar-value">' + (dayTotal || '—') + '</span></div>';
+      }).join('');
+      document.getElementById('da-drawer-daybars').innerHTML = barsHtml;
 
-        var maxCount = 20;
-        DAY_ORDER.forEach(function(d){ (rec.days[d]||[]).forEach(function(c){ if(c > maxCount) maxCount = c; }); });
-        var barsHtml = DAY_ORDER.map(function(d){
-          var events = rec.days[d] || [];
-          var dayTotal = events.reduce(function(a,b){return a+b;}, 0);
-          var pct = Math.round((dayTotal / maxCount) * 100);
-          var over = events.some(function(c){ return c > 10; });
-          return '<div class="da-daybar-row"><span class="da-daybar-label">' + d + '</span>' +
-            '<div class="da-daybar-track"><div class="da-daybar-fill' + (over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
-            '<span class="da-daybar-value">' + (dayTotal || '—') + '</span></div>';
-        }).join('');
-        document.getElementById('da-detail-daybars').innerHTML = barsHtml;
-      } else {
-        document.getElementById('da-detail-total').textContent = '—';
-        document.getElementById('da-detail-risk-val').textContent = '—';
-        document.getElementById('da-detail-daysover').textContent = '—';
-        document.getElementById('da-detail-why').textContent = 'This record isn’t in the current weekly risk model (it may fall outside its window), so a risk score isn’t available — see Alert History below for what’s actually on record.';
-        document.getElementById('da-detail-daybars').innerHTML = '<div class="da-tl-empty">No day-by-day breakdown available for this record.</div>';
-      }
-
-      var tlEl = document.getElementById('da-detail-history');
+      var tlEl = document.getElementById('da-drawer-timeline');
       tlEl.innerHTML = '<div class="da-tl-empty">Loading history…</div>';
-      var alertsTbody = document.getElementById('da-detail-alerts-tbody');
-      var alertsCountEl = document.getElementById('da-detail-alerts-count');
-      alertsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px 0">Loading…</td></tr>';
-      alertsCountEl.textContent = '';
-
-      detailPanel.hidden = false;
-      detailPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      drawerMask.classList.add('on');
+      drawer.classList.add('on');
 
       // Per-day alert entries carry only a day label (Mon/Tue/...), not a
       // real timestamp, so they can't be interleaved by exact time with
@@ -12465,7 +12086,7 @@
       // order (which carried an unused `sort` field that never actually
       // sorted anything).
       fetchHistory(kind, id).then(function(history){
-        if(!detailGuard.isCurrent(token)) return;
+        if(!drawerGuard.isCurrent(token)) return;
         var byDay = {};
         DAY_ORDER.forEach(function(d){ byDay[d] = []; });
         var undated = [];
@@ -12487,52 +12108,9 @@
 
         tlEl.innerHTML = tlItems.length ? tlItems.join('') : '<div class="da-tl-empty">No alerts or actions recorded yet this week.</div>';
       }).catch(function(err){
-        if(!detailGuard.isCurrent(token)) return;
+        if(!drawerGuard.isCurrent(token)) return;
         console.error('Action history fetch failed', err);
         tlEl.innerHTML = '<div class="da-tl-empty">Could not load action history: ' + esc((err && err.message) || 'unknown error') + '</div>';
-      });
-
-      // Real per-event alert history — the same RPC the bulk-edit "See
-      // details" popup already calls (dds_driver_alert_instances /
-      // dds_asset_alert_instances), rendered here as a plain read-only
-      // list capped at 20 rows. No bulk-edit checkboxes here — that stays
-      // the dedicated purpose of the "See details" popup; this panel is
-      // for a quick read of what's been happening, not mass-editing.
-      var atoken = detailAlertsGuard.start();
-      var fn = kind === 'drivers' ? 'dds_driver_alert_instances' : 'dds_asset_alert_instances';
-      var params = kind === 'drivers'
-        ? { p_emp_no: id, p_from: null, p_to: null }
-        : { p_asset_id: id, p_from: null, p_to: null };
-      DB.rpc(fn, params).then(function(res){
-        if(!detailAlertsGuard.isCurrent(atoken)) return;
-        if(res.error) throw res.error;
-        var rows = (res.data || {}).rows || [];
-        alertsCountEl.textContent = fmtNum(rows.length) + ' alert instance(s)';
-        if(!rows.length){
-          alertsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px 0">No alert instances found.</td></tr>';
-          return;
-        }
-        var shown = rows.slice(0, 20);
-        alertsTbody.innerHTML = shown.map(function(r){
-          var sev = severityBadge(r.eventCode);
-          var startParts = (r.startTime || '').split(' ');
-          var dateStr = startParts[0] || '—';
-          var timeStr = startParts[1] ? startParts[1].split(':').slice(0, 2).join(':') : '—';
-          return '<tr>' +
-            '<td>' + esc(dateStr) + '</td>' +
-            '<td>' + esc(timeStr) + '</td>' +
-            '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : r.shift === 'DAY' ? 'Day' : '—') + '</td>' +
-            '<td>' + esc(r.eventCode || '—') + '</td>' +
-            '<td><span style="color:' + sev.color + ';font-weight:650">' + esc(sev.label) + '</span></td>' +
-            '<td>' + esc(kind === 'drivers' ? (r.unit || '—') : id) + '</td>' +
-          '</tr>';
-        }).join('') + (rows.length > shown.length
-          ? '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:10px 0">Showing 20 of ' + fmtNum(rows.length) + ' — use "See details" above for the full, editable list.</td></tr>'
-          : '');
-      }).catch(function(err){
-        if(!detailAlertsGuard.isCurrent(atoken)) return;
-        console.error('Alert instance fetch failed (detail panel)', err);
-        alertsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:20px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
       });
     }
     function actionEntryHtml(h){
@@ -12542,8 +12120,9 @@
         '<div class="da-tl-main">' + esc(typeLabel) + ' — logged by ' + esc(h.loggedBy) + '</div>' +
         '<div class="da-tl-sub">' + (h.note ? esc(h.note) + ' · ' : '') + when.toLocaleString() + '</div></div></div>';
     }
-    function closeDetailPanel(){ detailPanel.hidden = true; }
-    document.getElementById('da-detail-close').addEventListener('click', closeDetailPanel);
+    function closeDetailDrawer(){ drawerMask.classList.remove('on'); drawer.classList.remove('on'); }
+    document.getElementById('da-drawer-close').addEventListener('click', closeDetailDrawer);
+    drawerMask.addEventListener('click', closeDetailDrawer);
 
     // ---- resolved / history modal (list of resolved records, last action per row) ----
     var histMask = document.getElementById('da-history-mask');
@@ -12583,7 +12162,7 @@
       var row = e.target.closest('[data-da-detail]');
       if(!row) return;
       histMask.classList.remove('on');
-      openDetailPanel(row.getAttribute('data-da-detail'));
+      openDetailDrawer(row.getAttribute('data-da-detail'));
     });
     document.getElementById('da-history-close').addEventListener('click', function(){ histMask.classList.remove('on'); });
     histMask.addEventListener('click', function(e){ if(e.target === histMask) histMask.classList.remove('on'); });
@@ -13574,13 +13153,6 @@
 
     var allOpenRows = [];
     var selected = {}; // key "type|id" -> row object
-    var activeFilter = 'open'; // 'open' | 'driver' | 'asset' — Closed is a jump-link, not a filter (see ca-tab-closed below)
-
-    var tabOpen = document.getElementById('ca-tab-open');
-    var tabClosed = document.getElementById('ca-tab-closed');
-    var tabDrivers = document.getElementById('ca-tab-drivers');
-    var tabAssets = document.getElementById('ca-tab-assets');
-    var tabOpenCount = document.getElementById('ca-tab-open-count');
 
     function rowKey(r){ return r.entityType + '|' + r.entityId; }
 
@@ -13599,29 +13171,6 @@
       return d.toISOString().slice(0, 10);
     }
 
-    // Deterministic per-entity avatar: initials + a stable color picked by
-    // hashing the entity key, so the same driver/asset always gets the same
-    // color across refreshes without needing a stored color column.
-    var AVATAR_PALETTE = ['#2f7ef0', '#f0902e', '#ef4444', '#7c5cf0', '#eda100', '#18a05e', '#94a3b8'];
-    function hashStr(s){
-      var h = 0;
-      for(var i = 0; i < s.length; i++){ h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
-      return Math.abs(h);
-    }
-    function entityInitials(r){
-      if(r.entityType !== 'driver') return (r.entityId || '??').slice(0, 2).toUpperCase();
-      var parts = (r.name || '').split(',');
-      var last = (parts[0] || '').trim();
-      var given = (parts[1] || '').trim();
-      var a = given ? given.charAt(0) : last.charAt(0);
-      var b = last ? last.charAt(0) : given.charAt(1);
-      return ((a || '?') + (b || '?')).toUpperCase();
-    }
-    function entityAvatar(r){
-      var color = AVATAR_PALETTE[hashStr(rowKey(r)) % AVATAR_PALETTE.length];
-      return '<span class="ca-avatar" style="background:' + color + '" aria-hidden="true">' + esc(entityInitials(r)) + '</span>';
-    }
-
     function updateBulkBar(){
       var count = Object.keys(selected).length;
       bulkCountEl.textContent = fmtNum(count) + (count === 1 ? ' selected' : ' selected');
@@ -13630,34 +13179,15 @@
       selectAllBox.checked = all;
     }
 
-    function setActiveFilter(filter){
-      activeFilter = filter;
-      [tabOpen, tabDrivers, tabAssets].forEach(function(b){ b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
-      var map = { open: tabOpen, driver: tabDrivers, asset: tabAssets };
-      if(map[filter]){ map[filter].classList.add('active'); map[filter].setAttribute('aria-selected', 'true'); }
-      renderOpen();
-    }
-    tabOpen.addEventListener('click', function(){ setActiveFilter('open'); });
-    tabDrivers.addEventListener('click', function(){ setActiveFilter('driver'); });
-    tabAssets.addEventListener('click', function(){ setActiveFilter('asset'); });
-    tabClosed.addEventListener('click', function(){
-      var sec = document.getElementById('ca-closed-section');
-      if(sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-
     function renderOpen(){
       var q = (searchInput.value || '').trim().toLowerCase();
-      var base = activeFilter === 'driver' ? allOpenRows.filter(function(r){ return r.entityType === 'driver'; })
-        : activeFilter === 'asset' ? allOpenRows.filter(function(r){ return r.entityType === 'asset'; })
-        : allOpenRows;
-      var rows = q ? base.filter(function(r){
+      var rows = q ? allOpenRows.filter(function(r){
         return r.name.toLowerCase().indexOf(q) !== -1 || r.entityId.toLowerCase().indexOf(q) !== -1;
-      }) : base;
+      }) : allOpenRows;
 
       document.getElementById('ca-open-shown').textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(allOpenRows.length);
       document.getElementById('ca-open-rowsrange').textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(allOpenRows.length);
 
-      closeCaModal();
       if(!rows.length){
         openTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">No open cases' + (q ? ' matching "' + esc(q) + '"' : '') + '.</td></tr>';
         return;
@@ -13666,7 +13196,7 @@
         var key = rowKey(r);
         return '<tr>' +
           '<td class="al-check-cell"><input type="checkbox" class="ca-row-check" data-key="' + esc(key) + '"' + (selected[key] ? ' checked' : '') + '></td>' +
-          '<td><div style="display:flex;align-items:center;gap:10px">' + entityAvatar(r) + '<div><div style="font-weight:650">' + esc(r.name) + '</div><div style="font-size:var(--fs-label);color:var(--muted)">' + esc(r.entityType === 'driver' ? 'Emp #' + r.entityId : r.entityId) + '</div></div></div></td>' +
+          '<td><div style="font-weight:650">' + esc(r.name) + '</div><div style="font-size:var(--fs-label);color:var(--muted)">' + esc(r.entityType === 'driver' ? 'Emp #' + r.entityId : r.entityId) + '</div></td>' +
           '<td>' + esc(r.flaggedSince) + '</td>' +
           '<td>' + fmtNum(r.daysOpen) + (r.daysOpen === 1 ? ' day' : ' days') + '</td>' +
           '<td>' + fmtNum(r.eventCount) + '</td>' +
@@ -13686,7 +13216,7 @@
       openTbody.querySelectorAll('[data-ca-log]').forEach(function(btn){
         btn.addEventListener('click', function(){
           var r = allOpenRows.find(function(x){ return rowKey(x) === btn.getAttribute('data-ca-log'); });
-          if(r) openCaModal([r], btn.closest('tr'));
+          if(r) openCaModal([r]);
         });
       });
     }
@@ -13698,7 +13228,7 @@
       }
       closedTbody.innerHTML = rows.map(function(r){
         return '<tr>' +
-          '<td><div style="display:flex;align-items:center;gap:10px">' + entityAvatar(r) + '<div><div style="font-weight:650">' + esc(r.name) + '</div><div style="font-size:var(--fs-label);color:var(--muted)">' + esc(r.entityType === 'driver' ? 'Emp #' + r.entityId : r.entityId) + '</div></div></div></td>' +
+          '<td><div style="font-weight:650">' + esc(r.name) + '</div><div style="font-size:var(--fs-label);color:var(--muted)">' + esc(r.entityType === 'driver' ? 'Emp #' + r.entityId : r.entityId) + '</div></td>' +
           '<td>' + esc(r.actionPerformed || '—') + '</td>' +
           '<td>' + esc(r.actionDate || '—') + '</td>' +
           '<td>' + esc(r.actionBy || '—') + '</td>' +
@@ -13708,7 +13238,6 @@
     }
 
     function load(){
-      closeCaModal();
       openTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
       requireSession().then(function(sess){
         if(!sess){
@@ -13724,7 +13253,6 @@
           updateBulkBar();
           renderOpen();
           renderClosed(data.recentlyClosed || []);
-          tabOpenCount.textContent = '· ' + fmtNum(allOpenRows.length);
           var navBadge = document.getElementById('ca-nav-badge');
           if(navBadge){
             if(allOpenRows.length){ navBadge.hidden = false; navBadge.textContent = fmtNum(allOpenRows.length); }
@@ -13763,13 +13291,8 @@
     // range across all of them. Mirror-then-resolve ordering (not the
     // reverse) matches Driver Streaks' choice: don't mark a case resolved
     // if the mirror can't find the events to reflect it in Alert Logs. ----
-    // ---- inline log-action panel: a <div> that JS wraps in <tr><td> and
-    // inserts directly after the row being actioned (or at the top of the
-    // table for a bulk selection), matching the approved mock's
-    // inline-expand pattern instead of a modal overlay. ----
-    var inlineForm = document.getElementById('ca-inline-form');
+    var modalMask = document.getElementById('ca-modal-mask');
     var ctxName = document.getElementById('ca-modal-ctx-name');
-    var ctxNote = document.getElementById('ca-modal-ctx-note');
     var typeGrid = document.getElementById('ca-type-grid');
     var otherInput = document.getElementById('ca-other-input');
     var noteInput = document.getElementById('ca-note-input');
@@ -13778,50 +13301,21 @@
     var pendingTargets = [];
     var selectedType = null;
 
-    function openCaModal(targets, anchorRow){
+    function openCaModal(targets){
       pendingTargets = targets;
       selectedType = null;
-      if(targets.length === 1){
-        var t = targets[0];
-        var lastDay = addDays(t.flaggedSince, t.daysOpen - 1);
-        ctxName.textContent = t.name + ' (' + t.entityId + ')';
-        ctxNote.textContent = t.daysOpen === 1
-          ? '(closes the open day: ' + t.flaggedSince + ')'
-          : '(closes ' + t.daysOpen + ' open days: ' + t.flaggedSince + ' – ' + lastDay + ')';
-      } else {
-        ctxName.textContent = targets.length + ' selected';
-        ctxNote.textContent = '(' + targets.map(function(t){ return t.name; }).join(', ') + ')';
-      }
+      ctxName.textContent = targets.length === 1
+        ? targets[0].name + ' (' + targets[0].entityId + ')'
+        : targets.length + ' selected: ' + targets.map(function(t){ return t.name; }).join(', ');
       typeGrid.querySelectorAll('.da-type-opt').forEach(function(b){ b.classList.remove('sel'); });
       otherInput.classList.remove('on');
       otherInput.value = '';
       noteInput.value = '';
       loggedByInput.value = '';
       saveBtn.disabled = true;
-      saveBtn.textContent = 'Save action';
-
-      var tr = document.createElement('tr');
-      tr.className = 'ca-inline-row';
-      var td = document.createElement('td');
-      td.colSpan = 7;
-      td.appendChild(inlineForm);
-      tr.appendChild(td);
-      inlineForm.hidden = false;
-      if(anchorRow && anchorRow.parentNode){
-        anchorRow.parentNode.insertBefore(tr, anchorRow.nextSibling);
-      } else {
-        openTbody.insertBefore(tr, openTbody.firstChild);
-      }
-      tr.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      modalMask.classList.add('on');
     }
-    function closeCaModal(){
-      var tr = inlineForm.parentNode && inlineForm.parentNode.parentNode;
-      if(tr && tr.classList && tr.classList.contains('ca-inline-row') && tr.parentNode){
-        tr.parentNode.removeChild(tr);
-      }
-      inlineForm.hidden = true;
-      pendingTargets = [];
-    }
+    function closeCaModal(){ modalMask.classList.remove('on'); pendingTargets = []; }
 
     typeGrid.querySelectorAll('.da-type-opt').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -13840,6 +13334,7 @@
     }
     document.getElementById('ca-modal-close').addEventListener('click', closeCaModal);
     document.getElementById('ca-modal-cancel').addEventListener('click', closeCaModal);
+    modalMask.addEventListener('click', function(e){ if(e.target === modalMask) closeCaModal(); });
 
     saveBtn.addEventListener('click', function(){
       if(!pendingTargets.length || saveBtn.disabled) return;
