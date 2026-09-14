@@ -231,29 +231,11 @@
   .kpi-spark{grid-area:spark;margin-top:8px;height:32px}
   .kpi-spark svg{width:100%;height:100%}
 
-  /* ---------- 2-col layout: wide left, narrower right ---------- */
-  /* Both columns are locked to ONE shared, fixed total height
-     (--overview-col-h) — neither column's height is derived from its own
-     content anymore, so nothing can grow, shrink, or drift out of step
-     with the other as real data changes or the page zooms. Left column's
-     3 rows (2 charts + stat tiles) and right column's 2 rows (Recent
-     Activity, Drivers on Alert Streak — reduced from 4 rows when Actions &
-     Updates/Key Insight/Latest Updates were replaced by the single streak
-     card) each get an explicit, equal-share grid track within that same
-     fixed height, so the two remaining cards fill the column height
-     instead of each being capped at a quarter of it with empty space
-     below. Any card whose content overflows its fixed track scrolls
-     internally (see .feed-list/.action-body/.chart-area rules) rather
-     than pushing the layout taller. */
-  :root{ --overview-col-h: 800px; }
-  .overview-grid{display:grid;grid-template-columns:1.75fr 1fr;gap:14px;align-items:stretch}
-  .left-col,.right-col{display:grid;gap:14px;min-width:0;height:var(--overview-col-h)}
-  .left-col{grid-template-rows:1fr 1fr auto}
-  .right-col{grid-template-rows:repeat(2,1fr)}
-  .left-col > .chart-card,.right-col > .feed-card{min-height:0;display:flex;flex-direction:column;overflow:hidden}
-  .left-col > .chart-card .chart-area{flex:1;min-height:0;overflow:hidden}
-  .left-col > .chart-card .chart-area svg{height:100%}
-  .right-col > .feed-card .feed-list,.right-col > .feed-card .action-body{flex:1;min-height:0;overflow-y:auto}
+  /* ---------- Trend + Hourly charts, side by side ---------- */
+  .overview-grid{display:flex;flex-direction:column;gap:14px}
+  .ov-charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch}
+  .ov-charts-row > .chart-card{min-width:0;display:flex;flex-direction:column}
+  .ov-charts-row > .chart-card .chart-area{flex:1;min-height:0}
 
   /* chart card */
   .chart-card{padding:0 16px 14px}
@@ -1030,6 +1012,13 @@
      frame screen-recording review). Ordinary buttons inside the page get
      the exact same click handling that already reliably opens this menu,
      so they don't have that failure mode. */
+  /* Click-to-filter cells (Date Flag/Emp No/Emp Name/Status) — a scoped,
+     single-table stand-in for full associative filtering: clicking one
+     narrows the table to that value via the exact same state the top-right
+     dropdowns use. */
+  td.ds-clickfilter{cursor:pointer}
+  td.ds-clickfilter:hover{background:var(--surface2);text-decoration:underline}
+  th.ds-clickfilter{cursor:pointer}
   .ds-action-dd{position:relative;display:inline-block;vertical-align:middle}
   .ds-action-dd-btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:space-between;gap:8px;min-width:110px;height:28px;padding:0 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text-dim);font-size:11px;cursor:pointer}
   .ds-action-dd-btn:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
@@ -1468,15 +1457,12 @@
     .su-kpis{grid-template-columns:repeat(3,1fr)}
   }
   @media(max-width:1080px){
-    .overview-grid{grid-template-columns:1fr}
-    /* Columns stack vertically below this width — they're no longer
-       competing for the same shared visual row, so the fixed equal-height
-       lock (meant to keep two SIDE-BY-SIDE columns flush) is released;
-       each stacked column goes back to sizing to its own real content. */
-    .left-col,.right-col{height:auto;display:flex;flex-direction:column}
-    .left-col > .chart-card .chart-area{flex:none;height:auto}
-    .left-col > .chart-card .chart-area svg{height:auto}
-    .right-col > .feed-card .feed-list,.right-col > .feed-card .action-body{flex:none;max-height:392px}
+    /* Trend and Hourly stack vertically below this width — no longer
+       competing for the same shared row, so each chart goes back to
+       sizing to its own real content instead of a stretched flex track. */
+    .ov-charts-row{grid-template-columns:1fr}
+    .ov-charts-row > .chart-card .chart-area{flex:none;height:auto}
+    .ov-charts-row > .chart-card .chart-area svg{height:auto}
     .stat-tiles{grid-template-columns:1fr 1fr 1fr}
     .an-charts-top,.an-charts-bottom{grid-template-columns:1fr}
     .dm-toprow > .card{flex-basis:100%}
@@ -1709,7 +1695,7 @@
     </section>
 
     <section class="overview-grid">
-      <div class="left-col">
+      <div class="ov-charts-row">
         <div class="card chart-card">
           <div class="chart-head">
             <div class="chart-title-group">
@@ -1773,72 +1759,64 @@
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="stat-tiles">
-          <div class="card stat-tile">
-            <span class="stat-tile-icon gray" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
-            <div class="stat-tile-body">
-              <div class="stat-tile-label">Peak Time</div>
-              <div class="stat-tile-value" id="ov-stat-peaktime">—</div>
-              <div class="stat-tile-caption">Most alerts recorded</div>
-            </div>
+      <div class="stat-tiles">
+        <div class="card stat-tile">
+          <span class="stat-tile-icon gray" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
+          <div class="stat-tile-body">
+            <div class="stat-tile-label">Peak Time</div>
+            <div class="stat-tile-value" id="ov-stat-peaktime">—</div>
+            <div class="stat-tile-caption">Most alerts recorded</div>
           </div>
-          <div class="card stat-tile">
-            <span class="stat-tile-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>
-            <div class="stat-tile-body">
-              <div class="stat-tile-label">Peak Count</div>
-              <div class="stat-tile-value" id="ov-stat-peakcount">—</div>
-              <div class="stat-tile-caption" id="ov-stat-peakcaption">—</div>
-            </div>
+        </div>
+        <div class="card stat-tile">
+          <span class="stat-tile-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>
+          <div class="stat-tile-body">
+            <div class="stat-tile-label">Peak Count</div>
+            <div class="stat-tile-value" id="ov-stat-peakcount">—</div>
+            <div class="stat-tile-caption" id="ov-stat-peakcaption">—</div>
           </div>
-          <div class="card stat-tile">
-            <span class="stat-tile-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
-            <div class="stat-tile-body">
-              <div class="stat-tile-label">Active Hours</div>
-              <div class="stat-tile-value" id="ov-stat-activehours">—</div>
-              <div class="stat-tile-caption">With alerts today</div>
-            </div>
+        </div>
+        <div class="card stat-tile">
+          <span class="stat-tile-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+          <div class="stat-tile-body">
+            <div class="stat-tile-label">Active Hours</div>
+            <div class="stat-tile-value" id="ov-stat-activehours">—</div>
+            <div class="stat-tile-caption">With alerts today</div>
           </div>
         </div>
       </div>
 
-      <div class="right-col">
-        <div class="card feed-card">
-          <div class="feed-head">
-            <div class="feed-title-group">
-              <span class="feed-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span>
-              <span class="feed-title">Recent Activity — Last 7 Days</span>
-            </div>
-            <button class="view-all" type="button" data-goto="alerts">View all</button>
-          </div>
-          <div class="feed-list" id="ov-feed-list">
-            <div class="feed-row"><div class="feed-body"><div class="feed-main">Loading…</div></div></div>
-          </div>
-          <div class="feed-footer">
-            <button type="button" data-goto="alerts">View all Alert Logs
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            </button>
-          </div>
+      <!-- Required Attention: drivers flagged within the current date filter
+           (dds_required_attention()) — High when the most recent active day's
+           sum(event_count) > 10, Critical when that day is the tail of a run
+           of 2+ consecutive days each >= 20. Excludes actioned/resolved
+           drivers. Supersedes the old Recent Activity / Drivers on Alert
+           Streak cards. -->
+      <section class="card da-table-card" id="ov-required-attention">
+        <div class="da-table-head da-table-head-oneline">
+          <h3 class="da-table-title">Required Attention <small id="ov-ra-shown">Showing 0</small></h3>
         </div>
-
-        <div class="card feed-card" id="ov-streak-card">
-          <div class="feed-head">
-            <div class="feed-title-group">
-              <span class="feed-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>
-              <span class="feed-title">Drivers on Alert Streak</span>
-            </div>
-            <button class="view-all" type="button" data-goto="driver-asset">See full list</button>
-          </div>
-          <div class="action-body" id="ov-streak-body">
-            <div class="action-row"><div class="action-body-text"><div class="action-main">Loading…</div></div></div>
-          </div>
-          <div class="feed-footer">
-            <button type="button" data-goto="driver-asset">See full list
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            </button>
-          </div>
+        <div class="da-table-wrap">
+          <table class="da-table" id="ov-ra-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Unit</th>
+                <th>Emp No</th>
+                <th>Emp Name</th>
+                <th>Severity</th>
+                <th>Streak Day</th>
+                <th>Avg Count</th>
+                <th>Total Count</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ov-ra-tbody"><tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+          </table>
         </div>
-      </div>
+      </section>
     </section>
     </div>
 
@@ -2864,12 +2842,65 @@
         </div>
       </header>
 
+      <!-- Flags-by-day chart, above the table: one bar per day a streak
+           started, colored by severity (High = 1 qualifying day, Critical =
+           2+ consecutive days), evenly-spaced daily ticks regardless of how
+           many streaks landed on any given day. Fed by the same full,
+           filter-matching (capped-at-500) fetch the export button already
+           uses, so the chart always reflects everything the filters match,
+           not just what has scrolled into view. -->
+      <div class="card chart-card" id="ds-chart-card">
+        <div class="chart-head">
+          <div class="chart-title-group">
+            <span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span>
+            <h3 class="chart-title">Flags by Day</h3>
+          </div>
+        </div>
+        <div class="chart-area">
+          <svg viewBox="0 0 720 180" role="img" aria-label="Bar chart of newly flagged streaks per day, by severity" id="ds-chart-svg">
+            <g id="ds-chart-gridlines"></g>
+            <g id="ds-chart-yaxis"></g>
+            <g id="ds-chart-bars"></g>
+            <g id="ds-chart-xaxis"></g>
+          </svg>
+          <div class="chart-tooltip" id="ds-chart-tooltip">
+            <div class="chart-tooltip-date" id="ds-chart-tooltip-date">—</div>
+            <div class="chart-tooltip-value" id="ds-chart-tooltip-value">—</div>
+          </div>
+          <div class="hour-legend">
+            <span><i style="background:#e8952e"></i>High</span>
+            <span><i style="background:#e53553"></i>Critical</span>
+          </div>
+        </div>
+      </div>
+
       <section class="card da-table-card da-table-card-flex">
-        <div class="da-table-head da-table-head-oneline">
+        <div class="da-table-head">
           <h3 class="da-table-title">Drivers on Alert Streak <small id="ds-shown">Showing 0</small></h3>
           <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." id="ds-search"></div>
           <input type="date" class="al-filter" id="ds-from" aria-label="Streak start on/after date" title="Only show streaks starting on/after this date">
           <input type="date" class="al-filter" id="ds-to" aria-label="Streak end on/before date" title="Only show streaks ending on/before this date">
+          <select class="al-filter" id="ds-shift" aria-label="Shift filter">
+            <option value="">All shifts</option>
+            <option value="DAY">Day</option>
+            <option value="NIGHT">Night</option>
+          </select>
+          <select class="al-filter" id="ds-asset" aria-label="Unit/asset filter">
+            <option value="">All units</option>
+          </select>
+          <select class="al-filter" id="ds-streak" aria-label="Streak length filter">
+            <option value="1">Any streak</option>
+            <option value="2">2+ days (Critical)</option>
+            <option value="3">3+ days</option>
+          </select>
+          <select class="al-filter" id="ds-status" aria-label="Status filter">
+            <option value="">All statuses</option>
+            <option value="required">Action required</option>
+            <option value="monitoring">Monitoring</option>
+            <option value="actioned">Actioned</option>
+            <option value="resolved">Resolved</option>
+            <option value="ok">OK</option>
+          </select>
           <button class="al-filter" type="button" id="ds-clear" style="cursor:pointer">Clear filters</button>
           <button class="al-filter" type="button" id="ds-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
           <button class="export-btn" type="button" id="ds-export-btn" title="Export every streak matching the current filters, not just what's scrolled into view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
@@ -2878,28 +2909,33 @@
           <table class="da-table" id="ds-table">
             <!-- Autofit with a floor — see #al-table's own colgroup
                  comment (table-layout:fixed, set on #ds-table itself).
-                 Driver Name (genuinely variable-length) gets the leftover
-                 width; Emp No (the reported case — plenty of blank space
-                 around a 7-digit value) and the rest get an explicit
-                 width sized to their content. -->
+                 Description (genuinely variable-length prose) gets the
+                 leftover width; everything else gets an explicit width
+                 sized to its content. -->
             <colgroup>
-              <col style="width:200px"><col style="width:90px"><col>
-              <col style="width:100px"><col style="width:150px"><col style="width:240px">
-              <col style="width:170px"><col style="width:56px">
+              <col style="width:85px"><col style="width:80px"><col style="width:140px">
+              <col style="width:80px"><col style="width:90px"><col>
+              <col style="width:80px"><col style="width:85px"><col style="width:170px">
+              <col style="width:100px"><col style="width:120px"><col style="width:90px"><col style="width:44px">
             </colgroup>
             <thead>
               <tr>
-                <th data-ds-sort="streak_days">Streak (days)</th>
-                <th data-ds-sort="emp_no">Emp No</th>
-                <th data-ds-sort="name">Driver Name</th>
-                <th data-ds-sort="total_count">Total Counts</th>
-                <th>Status</th>
-                <th>Action Performed</th>
-                <th>Date Actioned</th>
+                <th class="ds-clickfilter" data-ds-sort="run_end" title="Click a row's date to filter by it">Date Flag</th>
+                <th class="ds-clickfilter" data-ds-sort="emp_no" title="Click a row's Emp No to filter by it">Emp No</th>
+                <th class="ds-clickfilter" data-ds-sort="name" title="Click a row's name to filter by it">Emp Name</th>
+                <th>Streak Count</th>
+                <th data-ds-sort="streak_days">Streak Days</th>
+                <th>Description</th>
+                <th>Avg Count</th>
+                <th data-ds-sort="run_total_count">Total Count</th>
+                <th>Action</th>
+                <th>Action By</th>
+                <th class="ds-clickfilter" title="Click a row's status to filter by it">Status</th>
+                <th>Timestamp</th>
                 <th></th>
               </tr>
             </thead>
-            <tbody id="ds-tbody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+            <tbody id="ds-tbody"><tr><td colspan="13" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
           </table>
         </div>
         <div class="da-table-foot">
@@ -4687,92 +4723,52 @@
       });
       return counts;
     }
-    function renderFeed(cur){
-      var list = document.getElementById('ov-feed-list');
-      if(!list) return;
-      var rows = cur.recentAlerts || [];
-      if(!rows.length){
-        list.innerHTML = '<div class="feed-row"><div class="feed-body"><div class="feed-main">No alerts recorded.</div></div></div>';
-        return;
-      }
-      var counts = sameDayCounts(rows);
-      var seen = {};
-      list.innerHTML = rows.map(function(r){
-        var sev = severityBadge(r.eventCode);
-        var t = r.time ? new Date(r.time) : null;
-        // Feed now spans the trailing 7 days, not just today — a bare
-        // HH:MM would be ambiguous about which day it's from, so any row
-        // not from today gets a stacked date+time (wider column, .with-date).
-        var timeStr = '—', timeIsToday = true;
-        if(t){
-          timeIsToday = t.toDateString() === new Date().toDateString();
-          var hm = t.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false });
-          timeStr = timeIsToday ? hm : (t.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + '<br>' + hm);
-        }
-        var day = (r.time || '').slice(0,10);
-        var key = day + '|' + (r.asset || '') + '|' + (r.eventCode || '');
-        seen[key] = (seen[key] || 0) + 1;
-        var repeatTag = counts[key] > 1 && seen[key] > 1
-          ? ' <span class="repeat-tag">· ' + seen[key] + (seen[key]===2?'nd':(seen[key]===3?'rd':'th')) + ' that day</span>' : '';
-        return '<div class="feed-row">' +
-          '<span class="feed-time' + (timeIsToday ? '' : ' with-date') + '">' + timeStr + '</span>' +
-          '<span class="feed-dot ' + sev.tier + '" aria-hidden="true"></span>' +
-          '<div class="feed-body">' +
-            '<div class="feed-main">' + esc(r.eventCode || EVENT_LABEL_FALLBACK) + ' — <span class="unit-tag">' + esc(r.asset || '—') + '</span>' + repeatTag + '</div>' +
-            '<div class="feed-sub">Driver: ' + esc(r.operator || 'Unspecified') + ' · ' + esc(r.shift === 'NIGHT' ? 'Night' : 'Day') + ' shift</div>' +
-          '</div>' +
-          '<span class="feed-sev ' + sev.tier + '">' + esc(sev.label) + '</span>' +
-        '</div>';
-      }).join('');
-    }
-
-    // ---- Latest Updates: a second slice of the same recentAlerts[] feed, per the plan (no second data source) ----
-    // ==================== Drivers on Alert Streak ====================
-    // Replaces Actions & Updates / Key Insight / Latest Updates per direct
-    // instruction.
-    //
-    // Previously called dds_driver_asset_weekly() under a comment claiming
-    // p_from/p_to null meant "trailing 7 days" for the streak shown here —
-    // that was wrong. That function's streakDays is hardcoded to an 89-day
-    // lookback from each entity's own last activity date, completely
-    // independent of any date parameter passed to it (confirmed directly
-    // from its SQL body), so this card was actually showing up-to-90-day
-    // streaks while every other Overview widget (KPIs, trend, feed) used a
-    // real trailing-7-day window — a real inconsistency on the same page.
-    //
-    // Now uses dds_driver_streaks(p_window_days: 7) — the same RPC the
-    // dedicated Driver Streaks page uses for its all-time view, just
-    // bounded to 7 days here so this card's streak actually means "the
-    // last 7 days" like the rest of Overview. Measured live: a 7-day-
-    // bounded call takes ~28ms, safely under any timeout concern.
-    function renderDriverStreaks(){
-      var body = document.getElementById('ov-streak-body');
-      if(!body) return;
-      DB.rpc('dds_driver_streaks', {
-        p_search: null, p_min_streak: 1, p_sort: 'streak_days', p_dir: 'desc',
-        p_limit: 5, p_offset: 0, p_window_days: 7
-      }).then(function(res){
+    // ==================== Required Attention ====================
+    // Replaces Recent Activity and Drivers on Alert Streak per direct
+    // instruction. Backed by dds_required_attention() (0117) — a driver is
+    // flagged when their most recent active day's sum(event_count) > 10,
+    // tagged 'critical' when that day is the tail of a run of 2+
+    // consecutive days each >= 20/day, 'high' otherwise. Excludes
+    // actioned/resolved drivers. Scoped to the page's own date filter, same
+    // as the KPIs/trend/hourly chart above it.
+    function renderRequiredAttention(from, to){
+      var tbody = document.getElementById('ov-ra-tbody');
+      var shownEl = document.getElementById('ov-ra-shown');
+      if(!tbody) return;
+      DB.rpc('dds_required_attention', { p_from: from, p_to: to }).then(function(res){
         if(res.error) throw res.error;
-        var drivers = (res.data || {}).rows || [];
-        if(!drivers.length){
-          body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">No drivers currently on an alert streak.</div></div></div>';
+        var rows = (res.data || {}).rows || [];
+        if(shownEl) shownEl.textContent = 'Showing ' + fmtNum(rows.length);
+        if(!rows.length){
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently need attention.</td></tr>';
           return;
         }
-        body.innerHTML = drivers.map(function(d){
-          var required = d.status === 'required';
-          var days = d.streakDays || 0;
-          return '<div class="action-row">' +
-            '<span class="action-dot ' + (required ? 'active' : 'resolved') + '" aria-hidden="true"></span>' +
-            '<div class="action-body-text">' +
-              '<div class="action-main"><strong>' + esc(d.name || d.empNo) + '</strong></div>' +
-              '<div class="action-sub">' + days + ' consecutive day' + (days === 1 ? '' : 's') + ' over the daily alert threshold</div>' +
-            '</div>' +
-            '<span class="action-badge ' + (required ? 'active' : 'resolved') + '">' + (required ? 'Action Required' : 'Monitoring') + '</span>' +
-          '</div>';
+        tbody.innerHTML = rows.map(function(r){
+          return '<tr>' +
+            '<td class="num">' + esc(r.flaggedSince || '—') + '</td>' +
+            '<td class="num">' + esc(r.unit || '—') + '</td>' +
+            '<td class="num">' + esc(r.empNo || '—') + '</td>' +
+            '<td>' + esc(r.name || r.empNo || '—') + '</td>' +
+            '<td><span class="al-badge ' + (r.severity === 'critical' ? 'critical' : 'high') + '">' + (r.severity === 'critical' ? 'Critical' : 'High') + '</span></td>' +
+            '<td class="num">' + fmtNum(r.streakDays || 0) + '</td>' +
+            '<td class="num">' + fmtNum(r.avgCount || 0) + '</td>' +
+            '<td class="num">' + fmtNum(r.totalCount || 0) + '</td>' +
+            '<td><button type="button" class="view-all ov-ra-detail" data-empno="' + esc(r.empNo || '') + '">See details</button></td>' +
+          '</tr>';
         }).join('');
+        tbody.querySelectorAll('.ov-ra-detail').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            // goToPage() lives in the sidebar-nav IIFE, not this one — reuse
+            // the real nav button's own click (already wired to it) instead
+            // of reaching across IIFE scopes for a function reference.
+            var navBtn = document.querySelector('[data-page="driver-streaks"]');
+            if(navBtn) navBtn.click();
+            if(window.__ddsOpenDriverStreaks) window.__ddsOpenDriverStreaks(btn.getAttribute('data-empno'));
+          });
+        });
       }).catch(function(err){
-        console.error('Driver streak fetch failed', err);
-        body.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
+        console.error('Required attention fetch failed', err);
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc(err.message || 'unknown error') + '</td></tr>';
       });
     }
 
@@ -4797,10 +4793,8 @@
           setStatus(false);
           var text = document.getElementById('ov-status-text');
           if(text) text.textContent = 'Sign in to load live data';
-          ['ov-feed-list','ov-streak-body'].forEach(function(id){
-            var el = document.getElementById(id);
-            if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Sign in to load real data — this page reads live data, not a mock.</div></div></div>';
-          });
+          var raBody = document.getElementById('ov-ra-tbody');
+          if(raBody) raBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           return;
         }
         setUsername((sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there');
@@ -4844,8 +4838,7 @@
             var week = results[0], prevWeek = results[1];
             setStatus(true);
             renderTrend(week);
-            renderFeed(week);
-            renderDriverStreaks();
+            renderRequiredAttention(state.from, state.to);
             renderKpis(week, prevWeek);
             var periodLabel = 'vs prior ' + rangeDays + 'd';
             ['total','sleep','drowsy','drivers','assets'].forEach(function(key){
@@ -4874,10 +4867,8 @@
             console.error('Overview metrics fetch failed', err);
             var text = document.getElementById('ov-status-text');
             if(text) text.textContent = 'Unable to load fleet data';
-            ['ov-feed-list','ov-streak-body'].forEach(function(id){
-              var el = document.getElementById(id);
-              if(el) el.innerHTML = '<div class="action-row"><div class="action-body-text"><div class="action-main">Could not load: ' + esc(err.message || 'unknown error') + '</div></div></div>';
-            });
+            var raBody = document.getElementById('ov-ra-tbody');
+            if(raBody) raBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc(err.message || 'unknown error') + '</td></tr>';
           });
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
@@ -12429,7 +12420,7 @@
     // CSS), and scrolling near the bottom fetches and appends the next
     // batch — per direct instruction, replacing the numbered-page pattern
     // used elsewhere in this app for this page specifically.
-    var state = { search:'', from:null, to:null, sort:'streak_days', dir:'desc', limit:50, offset:0, total:0 };
+    var state = { search:'', from:null, to:null, shift:null, asset:null, status:null, minStreak:1, sort:'streak_days', dir:'desc', limit:50, offset:0, total:0 };
     var tbody = document.getElementById('ds-tbody');
     var scrollWrap = document.querySelector('#page-driver-streaks .da-table-wrap-flex');
     var rows = [];
@@ -12545,18 +12536,32 @@
       return mm + '/' + dd + '/' + d.getFullYear();
     }
 
+    // Severity mirrors Overview's Required Attention rule: a lone qualifying
+    // day is 'high', 2+ consecutive qualifying days is 'critical'. Description
+    // explains THIS flag using the streak-scoped fields 0118 added
+    // (runTotalCount/avgCount/peakCount/peakDate), not the driver's all-time
+    // totals — the same span the flag itself is about.
+    function streakSeverity(r){ return (r.streakDays || 0) >= 2 ? 'critical' : 'high'; }
+    function streakDescription(r){
+      if(streakSeverity(r) === 'critical'){
+        return 'Daily alert count has held at 20+ for ' + fmtNum(r.streakDays) + ' consecutive days (' + esc(r.runStart) + '–' + esc(r.runEnd) + ').';
+      }
+      return 'Observed ' + fmtNum(r.peakCount || r.runTotalCount || 0) + ' alerts in one day on ' + esc(r.peakDate || r.runStart) + ' — exceeds the daily threshold of 20.';
+    }
+
     function rowHtml(r, i){
       var currentType = r.lastAction ? r.lastAction.type : null;
       var isOtherCurrent = currentType && currentType !== 'Cleared' && ACTION_OPTIONS.indexOf(currentType) === -1;
-      var dateActionedHtml = r.lastAction
-        ? esc(fmtActionAt(r.lastAction.at)) + (r.lastAction.by ? ' <span style="color:var(--muted);font-size:10px">by ' + esc(r.lastAction.by) + '</span>' : '')
-        : '—';
+      var sev = streakSeverity(r);
       return '<tr data-ds-row="' + i + '">' +
-        '<td>' + fmtNum(r.streakDays) + ' <span style="color:var(--muted);font-size:10px">(' + esc(r.runStart) + '–' + esc(r.runEnd) + ')</span></td>' +
-        '<td>' + esc(r.empNo) + '</td>' +
-        '<td>' + esc(r.name) + '</td>' +
-        '<td>' + fmtNum(r.totalCount) + '</td>' +
-        '<td>' + statusBadgeHtml(r) + '</td>' +
+        '<td class="num ds-clickfilter" data-ds-filter="date" data-ds-value="' + esc(mdyToIso(r.runStart) || '') + '" title="Filter by this date">' + esc(r.runStart) + '</td>' +
+        '<td class="num ds-clickfilter" data-ds-filter="search" data-ds-value="' + esc(r.empNo) + '" title="Filter by this Emp No">' + esc(r.empNo) + '</td>' +
+        '<td class="ds-clickfilter" data-ds-filter="search" data-ds-value="' + esc(r.name) + '" title="Filter by this driver">' + esc(r.name) + '</td>' +
+        '<td class="num">' + fmtNum(r.streakCount) + '</td>' +
+        '<td class="num"><span class="al-badge ' + (sev === 'critical' ? 'critical' : 'high') + '">' + (sev === 'critical' ? 'Critical' : 'High') + '</span>&nbsp;' + fmtNum(r.streakDays) + '</td>' +
+        '<td style="white-space:normal">' + esc(streakDescription(r)) + '</td>' +
+        '<td class="num">' + fmtNum(r.avgCount) + '</td>' +
+        '<td class="num">' + fmtNum(r.runTotalCount) + '</td>' +
         '<td class="da-td-action">' +
           '<div class="ds-action-dd" data-ds-action="' + i + '">' +
             '<button type="button" class="ds-action-dd-btn" data-ds-dd-btn="' + i + '" aria-haspopup="true" aria-expanded="false">' + esc(actionButtonLabel(currentType, r.lastAction && r.lastAction.note)) + '</button>' +
@@ -12564,7 +12569,9 @@
           '</div>' +
           '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;display:none" value="' + esc(isOtherCurrent ? (r.lastAction.note || '') : '') + '">' +
         '</td>' +
-        '<td>' + dateActionedHtml + '</td>' +
+        '<td>' + (r.lastAction && r.lastAction.by ? esc(r.lastAction.by) : '—') + '</td>' +
+        '<td class="ds-clickfilter" data-ds-filter="status" data-ds-value="' + esc(r.status || '') + '" title="Filter by this status">' + statusBadgeHtml(r) + '</td>' +
+        '<td>' + esc(fmtActionAt(r.lastAction && r.lastAction.at)) + '</td>' +
         '<td><button class="dm-icon-btn" type="button" data-ds-detail="' + i + '" title="See details" aria-label="See details">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>' +
         '</button></td>' +
@@ -12576,7 +12583,7 @@
     // just fully replaced.
     function renderRows(){
       if(!rows.length){
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map(rowHtml).join('');
@@ -12602,7 +12609,7 @@
         state.offset = 0;
         reachedEnd = false;
         rows = [];
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
         // Fill the available row area on this first batch instead of
         // always fetching a fixed 50 — see fitRowLimit's own comment
         // (shared with Alert Logs / Driver & Asset Monitoring). Infinite
@@ -12617,14 +12624,15 @@
       }
       requireSession().then(function(sess){
         if(!sess){
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           loadingMore = false;
           return;
         }
         return DB.rpc('dds_driver_streaks', {
-          p_search: state.search || null, p_min_streak: 1,
+          p_search: state.search || null, p_min_streak: state.minStreak || 1,
           p_sort: state.sort, p_dir: state.dir,
-          p_limit: state.limit, p_offset: state.offset
+          p_limit: state.limit, p_offset: state.offset,
+          p_shift: state.shift || null, p_asset: state.asset || null, p_status: state.status || null
         }).then(function(res){
           if(res.error) throw res.error;
           var data = res.data || {};
@@ -12662,6 +12670,7 @@
           } else {
             rows = fetched;
             renderRows();
+            refreshChart();
           }
           loadingMore = false;
           updateFooter();
@@ -12672,7 +12681,7 @@
         if(isLoadMore){
           updateFooter();
         } else {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
         }
       });
     }
@@ -12700,16 +12709,79 @@
     if(fromInput) fromInput.addEventListener('change', function(){ state.from = fromInput.value || null; load(); });
     var toInput = document.getElementById('ds-to');
     if(toInput) toInput.addEventListener('change', function(){ state.to = toInput.value || null; load(); });
+    var shiftSelect = document.getElementById('ds-shift');
+    if(shiftSelect) shiftSelect.addEventListener('change', function(){ state.shift = shiftSelect.value || null; state.offset = 0; load(); });
+    var assetSelect = document.getElementById('ds-asset');
+    if(assetSelect) assetSelect.addEventListener('change', function(){ state.asset = assetSelect.value || null; state.offset = 0; load(); });
+    var streakSelect = document.getElementById('ds-streak');
+    if(streakSelect) streakSelect.addEventListener('change', function(){ state.minStreak = Number(streakSelect.value) || 1; state.offset = 0; load(); });
+    var statusSelect = document.getElementById('ds-status');
+    if(statusSelect) statusSelect.addEventListener('change', function(){ state.status = statusSelect.value || null; state.offset = 0; load(); });
     var clearBtn = document.getElementById('ds-clear');
     if(clearBtn) clearBtn.addEventListener('click', function(){
-      state.search = ''; state.from = null; state.to = null; state.offset = 0;
+      state.search = ''; state.from = null; state.to = null;
+      state.shift = null; state.asset = null; state.status = null; state.minStreak = 1;
+      state.offset = 0;
       if(searchInput) searchInput.value = '';
       if(fromInput) fromInput.value = '';
       if(toInput) toInput.value = '';
+      if(shiftSelect) shiftSelect.value = '';
+      if(assetSelect) assetSelect.value = '';
+      if(streakSelect) streakSelect.value = '1';
+      if(statusSelect) statusSelect.value = '';
       load();
     });
     var refreshBtn = document.getElementById('ds-refresh');
     if(refreshBtn) refreshBtn.addEventListener('click', load);
+
+    // Populate the Unit filter from the same distinct-asset list Analytics'
+    // own asset picker already fetches — a lightweight one-off, not tied to
+    // the filter/reload cycle.
+    if(assetSelect){
+      DB.rpc('dds_asset_event_summary', { p_search: null, p_sort: 'asset_id', p_dir: 'asc', p_limit: 200, p_offset: 0, p_from: null, p_to: null, p_shift: null })
+        .then(function(res){
+          if(res.error) throw res.error;
+          var rows = (res.data || {}).rows || [];
+          var options = rows.map(function(r){ return '<option value="' + esc(r.assetId) + '">' + esc(r.assetId) + '</option>'; }).join('');
+          assetSelect.insertAdjacentHTML('beforeend', options);
+        }).catch(function(err){ console.warn('Unit filter list fetch failed', err); });
+    }
+
+    // ==================== Click-to-filter (scoped Qlik-sense-style linking) ====================
+    // Clicking a driver name/Emp No/date/status cell applies it as an active
+    // filter, feeding the exact same `state` the dropdowns above use — not
+    // a separate mechanism, so the two ways of filtering never disagree.
+    tbody.addEventListener('click', function(e){
+      var cell = e.target.closest('.ds-clickfilter');
+      if(!cell) return;
+      var kind = cell.getAttribute('data-ds-filter');
+      var value = cell.getAttribute('data-ds-value');
+      if(!value) return;
+      if(kind === 'search'){
+        state.search = value;
+        if(searchInput) searchInput.value = value;
+      } else if(kind === 'date'){
+        state.from = value; state.to = value;
+        if(fromInput) fromInput.value = value;
+        if(toInput) toInput.value = value;
+      } else if(kind === 'status'){
+        state.status = value;
+        if(statusSelect) statusSelect.value = value;
+      }
+      state.offset = 0;
+      load();
+    });
+
+    // Cross-page bridge: Overview's Required Attention "See details" button
+    // calls this after navigating here, so the row it linked from is
+    // immediately visible instead of the driver having to search manually.
+    window.__ddsOpenDriverStreaks = function(empNo){
+      if(!empNo) return;
+      state.search = empNo;
+      if(searchInput) searchInput.value = empNo;
+      state.offset = 0;
+      load();
+    };
 
     // ---- Export: every streak matching the current filters, not just what
     // has been scrolled into view so far — dds_driver_streaks() clamps
@@ -12719,24 +12791,29 @@
     var DS_EXPORT_PAGE_SIZE = 500;
     var DS_EXPORT_MAX_ROWS = 20000;
     var DS_EXPORT_COLUMNS = [
-      { key:'streakDays', label:'Streak (days)' }, { key:'runStart', label:'Run Start' }, { key:'runEnd', label:'Run End' },
-      { key:'empNo', label:'Emp No' }, { key:'name', label:'Driver Name' }, { key:'totalCount', label:'Total Counts' },
-      { key:'status', label:'Status' }, { key:'lastActionType', label:'Last Action' }, { key:'lastActionNote', label:'Last Action Note' }
+      { key:'runStart', label:'Date Flag' }, { key:'empNo', label:'Emp No' }, { key:'name', label:'Emp Name' },
+      { key:'streakCount', label:'Streak Count' }, { key:'streakDays', label:'Streak Days' }, { key:'description', label:'Description' },
+      { key:'avgCount', label:'Avg Count' }, { key:'runTotalCount', label:'Total Count' },
+      { key:'lastActionType', label:'Action' }, { key:'lastActionBy', label:'Action By' },
+      { key:'status', label:'Status' }, { key:'timestamp', label:'Timestamp' }
     ];
     function dsExportRow(r){
       return {
-        streakDays: r.streakDays || 0, runStart: r.runStart || '', runEnd: r.runEnd || '',
-        empNo: r.empNo || '', name: r.name || '', totalCount: r.totalCount || 0, status: r.status || '',
-        lastActionType: r.lastAction ? (r.lastAction.type || '') : '', lastActionNote: r.lastAction ? (r.lastAction.note || '') : ''
+        runStart: r.runStart || '', empNo: r.empNo || '', name: r.name || '',
+        streakCount: r.streakCount || 0, streakDays: r.streakDays || 0, description: streakDescription(r),
+        avgCount: r.avgCount || 0, runTotalCount: r.runTotalCount || 0,
+        lastActionType: r.lastAction ? (r.lastAction.type || '') : '', lastActionBy: r.lastAction ? (r.lastAction.by || '') : '',
+        status: r.status || '', timestamp: fmtActionAt(r.lastAction && r.lastAction.at)
       };
     }
     function fetchAllStreaksForExport(){
       var collected = [];
       function loop(offset){
         return DB.rpc('dds_driver_streaks', {
-          p_search: state.search || null, p_min_streak: 1,
+          p_search: state.search || null, p_min_streak: state.minStreak || 1,
           p_sort: state.sort, p_dir: state.dir,
-          p_limit: DS_EXPORT_PAGE_SIZE, p_offset: offset
+          p_limit: DS_EXPORT_PAGE_SIZE, p_offset: offset,
+          p_shift: state.shift || null, p_asset: state.asset || null, p_status: state.status || null
         }).then(function(res){
           if(res.error) throw res.error;
           var data = res.data || {};
@@ -12765,6 +12842,132 @@
       return loop(0);
     }
     wireExportButton('ds-export-btn', 'driver_streaks', DS_EXPORT_COLUMNS, fetchAllStreaksForExport);
+
+    // ==================== Flags by Day chart ====================
+    // Reuses the same page-through-to-cap fetch the export button already
+    // does (state's current filters, up to dds_driver_streaks()'s own
+    // 500-row server cap) so the chart reflects everything the filters
+    // match, not just what has scrolled into view. Bucketed onto a FIXED
+    // 30-day calendar ending on the latest flagged date in the result —
+    // every day gets an equal-width slot whether or not anything landed on
+    // it, so the axis interval never stretches or squeezes with the data.
+    function fetchAllStreaksForChart(){
+      var collected = [];
+      function loop(offset){
+        return DB.rpc('dds_driver_streaks', {
+          p_search: state.search || null, p_min_streak: state.minStreak || 1,
+          p_sort: 'streak_days', p_dir: 'desc',
+          p_limit: DS_EXPORT_PAGE_SIZE, p_offset: offset,
+          p_shift: state.shift || null, p_asset: state.asset || null, p_status: state.status || null
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var data = res.data || {};
+          var fetched = data.rows || [];
+          var total = data.total || 0;
+          collected = collected.concat(fetched);
+          if(fetched.length < DS_EXPORT_PAGE_SIZE || collected.length >= total || collected.length >= DS_EXPORT_MAX_ROWS){
+            var filtered = collected;
+            if(state.from || state.to){
+              filtered = filtered.filter(function(r){
+                var start = new Date(r.runStart), end = new Date(r.runEnd);
+                if(state.from && end < new Date(state.from)) return false;
+                if(state.to && start > new Date(state.to)) return false;
+                return true;
+              });
+            }
+            return filtered;
+          }
+          return loop(offset + DS_EXPORT_PAGE_SIZE);
+        });
+      }
+      return loop(0);
+    }
+
+    function bucketFlagsByDay(chartRows){
+      var buckets = {};
+      chartRows.forEach(function(r){
+        var iso = mdyToIso(r.runStart);
+        if(!iso) return;
+        if(!buckets[iso]) buckets[iso] = { high: 0, critical: 0 };
+        buckets[iso][streakSeverity(r)]++;
+      });
+      return buckets;
+    }
+
+    function renderFlagsByDayChart(chartRows){
+      var barsEl = document.getElementById('ds-chart-bars');
+      var gridEl = document.getElementById('ds-chart-gridlines');
+      var yaxisEl = document.getElementById('ds-chart-yaxis');
+      var xaxisEl = document.getElementById('ds-chart-xaxis');
+      if(!barsEl || !gridEl || !yaxisEl || !xaxisEl) return;
+
+      var buckets = bucketFlagsByDay(chartRows);
+      var bucketKeys = Object.keys(buckets);
+      var latestIso = bucketKeys.length
+        ? bucketKeys.reduce(function(a, b){ return a > b ? a : b; })
+        : new Date().toISOString().slice(0, 10);
+      var latest = new Date(latestIso + 'T00:00:00');
+      var WINDOW_DAYS = 30;
+      var series = [];
+      for(var i = WINDOW_DAYS - 1; i >= 0; i--){
+        var d = new Date(latest.getTime() - i * 86400000);
+        var iso = d.toISOString().slice(0, 10);
+        var b = buckets[iso] || { high: 0, critical: 0 };
+        series.push({ date: d, iso: iso, high: b.high, critical: b.critical, total: b.high + b.critical });
+      }
+
+      var W = 720, H = 180, padL = 30, padR = 10, padT = 10, padB = 24;
+      var plotW = W - padL - padR, plotH = H - padT - padB;
+      var maxVal = Math.max.apply(null, series.map(function(s){ return s.total; }));
+      var niceMax = maxVal <= 4 ? 4 : Math.ceil(maxVal / 5) * 5;
+      var barSlot = plotW / series.length;
+      var barW = Math.max(3, barSlot * 0.55);
+
+      var gridHtml = '';
+      var yaxisHtml = '';
+      for(var g = 0; g <= 4; g++){
+        var y = padT + plotH - (g / 4) * plotH;
+        gridHtml += '<line class="gridline" x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '"/>';
+        yaxisHtml += '<text x="' + (padL - 6) + '" y="' + (y + 3) + '" class="axis" text-anchor="end">' + Math.round((g / 4) * niceMax) + '</text>';
+      }
+      gridEl.innerHTML = gridHtml;
+      yaxisEl.innerHTML = yaxisHtml;
+
+      var barsHtml = '', xaxisHtml = '';
+      series.forEach(function(s, idx){
+        var x = padL + idx * barSlot + (barSlot - barW) / 2;
+        var highH = (s.high / niceMax) * plotH;
+        var critH = (s.critical / niceMax) * plotH;
+        var yHighTop = padT + plotH - highH;
+        var yCritTop = yHighTop - critH;
+        var label = (s.date.getMonth() + 1) + '/' + s.date.getDate();
+        var tip = s.total
+          ? (s.high ? (s.high + ' high') : '') + (s.high && s.critical ? ', ' : '') + (s.critical ? (s.critical + ' critical') : '')
+          : 'No flags';
+        if(s.high > 0){
+          barsHtml += '<rect class="hbar" tabindex="0" x="' + x + '" y="' + yHighTop + '" width="' + barW + '" height="' + Math.max(highH, 1) + '" fill="#e8952e" data-tip-label="' + label + '" data-tip-value="' + esc(tip) + '"></rect>';
+        }
+        if(s.critical > 0){
+          barsHtml += '<rect class="hbar" tabindex="0" x="' + x + '" y="' + yCritTop + '" width="' + barW + '" height="' + Math.max(critH, 1) + '" fill="#e53553" data-tip-label="' + label + '" data-tip-value="' + esc(tip) + '"></rect>';
+        }
+        if(!s.total){
+          barsHtml += '<rect x="' + x + '" y="' + (padT + plotH - 2) + '" width="' + barW + '" height="2" fill="var(--grid)" data-tip-label="' + label + '" data-tip-value="No flags"></rect>';
+        }
+        if(idx % 5 === 0 || idx === series.length - 1){
+          xaxisHtml += '<text x="' + (x + barW / 2) + '" y="' + (H - 6) + '" class="axis" text-anchor="middle">' + esc(label) + '</text>';
+        }
+      });
+      barsEl.innerHTML = barsHtml;
+      xaxisEl.innerHTML = xaxisHtml;
+      wireBarHover({ containerId: 'ds-chart-bars', tooltipId: 'ds-chart-tooltip', dateId: 'ds-chart-tooltip-date', valueId: 'ds-chart-tooltip-value' });
+    }
+
+    function refreshChart(){
+      fetchAllStreaksForChart().then(renderFlagsByDayChart).catch(function(err){
+        console.error('Flags-by-day chart fetch failed', err);
+      });
+    }
+
     document.querySelectorAll('#ds-table th[data-ds-sort]').forEach(function(th){
       th.addEventListener('click', function(){
         var col = th.getAttribute('data-ds-sort');
