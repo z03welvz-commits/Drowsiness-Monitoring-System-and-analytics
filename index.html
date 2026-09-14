@@ -647,10 +647,10 @@
   .al-badge.critical{background:#fdeaea;color:#e53553}
   .al-badge.high{background:#fdf0dc;color:#e8952e}
   .al-badge.moderate{background:#e3edfd;color:#3b7cf6}
-  /* Sidebar nav count badge — same "open cases" number as the page's own
-     title badge (#ds-open-badge), mirrored here so it's visible without
-     opening the page. Solid fill (not the light-card .al-badge treatment)
-     since this sits on the sidebar's dark navy background. */
+  /* Sidebar nav count badge — mirrors Driver Streaks' open-case count so
+     it's visible without opening the page. Solid fill (not the light-card
+     .al-badge treatment) since this sits on the sidebar's dark navy
+     background. */
   .nav-badge{display:inline-flex;height:18px;min-width:18px;align-items:center;justify-content:center;border-radius:999px;padding:0 6px;font-size:var(--fs-badge);font-weight:750;background:#e53553;color:#fff;flex:0 0 auto;font-variant-numeric:tabular-nums}
   .nav-badge[hidden]{display:none}
   /* Collapsed rail: float the badge as a small dot on the icon's corner —
@@ -959,6 +959,21 @@
   #ds-filterbar .da-search{flex:0 1 240px;min-width:150px}
   #ds-filterbar .al-filter{flex:0 0 auto}
 
+  /* Corrective Actions' Open Cases table reuses da-table-card-flex/
+     da-table-wrap-flex (the "fixed height, internal scroll" pair) but the
+     page itself had no rule at all giving that flex chain a height budget
+     — flex:1;min-height:0 with no bounded ancestor is inert, so the table
+     just grew unbounded with content instead of behaving like every page
+     that actually uses this pattern. Rather than adding yet another
+     viewport-fit budget (the exact pattern that took three rounds to get
+     right on Driver Streaks before it was replaced), this applies Driver
+     Streaks' simpler fixed-height-scroller pattern directly: the page
+     flows normally, and the table's own row area is a fixed 420px with
+     its own scroll. Recently Closed below intentionally keeps plain
+     da-table-wrap (no -flex) — it's a short audit list, not meant to
+     scroll internally. */
+  #page-corrective-actions .da-table-wrap-flex{flex:none;height:420px;overflow-y:auto}
+
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
   /* table-layout:fixed only for the 3 real data tables that ship a
@@ -1184,7 +1199,7 @@
 
   /* Sync status pill: shown while an optimistic write (single or bulk
      action) is in flight to the database, hidden once it settles. See
-     the Driver & Asset Monitoring IIFE's syncTracker for state. */
+     the Driver & Asset Monitoring IIFE's syncEl/syncTextEl for state. */
   .da-sync-status{display:none;align-items:center;gap:7px;height:30px;padding:0 13px;border-radius:999px;font-size:11px;font-weight:650;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);white-space:nowrap;flex:0 0 auto}
   .da-sync-status.on{display:inline-flex}
   .da-sync-status.done{color:#18a05e;border-color:#bfe8d3;background:#dff5ea}
@@ -2148,7 +2163,7 @@
         <div id="al-dupes-panel" style="display:none;padding:11px 17px;border-bottom:1px solid var(--border);background:var(--surface2);font-size:11px;color:var(--text-dim)"></div>
         <div class="da-bulk-bar" id="al-bulk-bar">
           <span class="da-bulk-count" id="al-bulk-count">0 selected</span>
-          <input type="text" id="al-bulk-empno" aria-label="Emp ID" placeholder="Emp ID (optional)" style="all:unset;box-sizing:border-box;height:34px;width:110px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:var(--fs-body);color:var(--text-dim)">
+          <input type="text" id="al-bulk-empno" aria-label="Emp No" placeholder="Emp No (optional)" style="all:unset;box-sizing:border-box;height:34px;width:110px;border:1px solid var(--border);border-radius:7px;background:var(--card);padding:0 10px;font-size:var(--fs-body);color:var(--text-dim)">
           <select id="al-bulk-action" aria-label="Action performed">
             <option value="">Action performed…</option>
             <option value="Reviewed">Reviewed</option>
@@ -2207,7 +2222,7 @@
                 <th data-sort="start_time">Start Time</th>
                 <th data-sort="end_time">End Time</th>
                 <th data-sort="update_time">Update Time</th>
-                <th data-sort="emp_no">Emp ID</th>
+                <th data-sort="emp_no">Emp No</th>
                 <th data-sort="driver">Emp Name</th>
                 <th data-sort="action">Action Performed</th>
                 <th data-sort="action_by">Action By</th>
@@ -2775,7 +2790,7 @@
               </colgroup>
               <thead>
                 <tr>
-                  <th class="da-th-check"><input type="checkbox" id="da-drivers-selectall" aria-label="Select all drivers"></th><th data-da-sort="emp_no">Emp ID</th><th data-da-sort="emp_name">Emp Name</th><th>Event Code</th><th data-da-sort="total">Counts</th><th title="Whether every individual alert instance below has been reviewed — separate from any corrective action logged for this driver">Review Status</th><th></th>
+                  <th class="da-th-check"><input type="checkbox" id="da-drivers-selectall" aria-label="Select all drivers"></th><th data-da-sort="emp_no">Emp No</th><th data-da-sort="emp_name">Emp Name</th><th>Event Code</th><th data-da-sort="total">Counts</th><th title="Whether every individual alert instance below has been reviewed — separate from any corrective action logged for this driver">Review Status</th><th></th>
                 </tr>
               </thead>
               <tbody data-da-tbody="drivers"><!-- rows injected by script --></tbody>
@@ -2941,8 +2956,16 @@
               <tr>
                 <th class="ds-clickfilter" data-ds-sort="run_end" title="Click a row's date to filter by it">Date Flag</th>
                 <th class="ds-clickfilter" data-ds-sort="emp_no" title="Click a row's Emp No to filter by it">Emp No</th>
-                <th>Streak Count</th>
-                <th data-ds-sort="streak_days">Streak Days</th>
+                <!-- Streak Count and Streak Days answer different questions and
+                     can coincidentally show the same number (e.g. a driver
+                     with exactly one qualifying streak ever, and that streak
+                     is 1 day long): Streak Count is how many separate
+                     qualifying streaks this driver has had across their
+                     entire history (dds_driver_streaks()'s run_counts CTE);
+                     Streak Days is the length, in consecutive days, of just
+                     their latest streak (the one this row describes). -->
+                <th title="How many separate qualifying streaks this driver has had, across their entire history">Streak Count</th>
+                <th data-ds-sort="streak_days" title="Length, in consecutive days, of this driver's latest streak">Streak Days</th>
                 <th data-ds-sort="run_total_count">Total Count</th>
                 <th>Action</th>
                 <th class="ds-clickfilter" title="Click a row's status to filter by it">Status</th>
@@ -3853,6 +3876,19 @@
   }
   function fmtNum(n){ return (n == null ? 0 : n).toLocaleString('en-US'); }
 
+  // PostgREST's filter grammar (used by supabase-js .or()/.filter()) treats
+  // `,` as the condition separator and `.()` as operator/value delimiters —
+  // building a `.or('col.ilike.' + userText + ...)` string with an
+  // unescaped search term lets a user type e.g. "x,other_col.eq.1" to add
+  // an extra filter clause PostgREST wasn't meant to receive. PostgREST's
+  // own escaping rule is a backslash before any of `,.():` or a literal
+  // backslash; apply it to every raw search term before it goes into a
+  // hand-built .or()/.filter() string (RPC p_search params are unaffected —
+  // those are real bound parameters, not string-built filter grammar).
+  function escOrFilterValue(v){
+    return String(v == null ? '' : v).replace(/[\\,.()]/g, '\\$&');
+  }
+
   // ==================== Shared "fill the viewport" page size ====================
   // Alert Logs, Driver & Asset Monitoring, and Driver Streaks all fetch a
   // fixed number of rows per page (20/100/50) regardless of screen size.
@@ -4202,6 +4238,23 @@
     });
   }
 
+  // The "Logged by" field on every action-logging modal used to be a free
+  // free-typed name — anyone signed in could type a colleague's or
+  // supervisor's name into it, so the human-visible audit trail (who
+  // "logged" a corrective action) didn't actually match who was signed in
+  // and performed it (the real actor is separately, correctly recorded via
+  // auth.uid()/actor_user_id — this is only about the DISPLAYED name).
+  // Every "Logged by" input is now pre-filled from the signed-in session
+  // and made read-only instead, so the field always matches who's really
+  // acting. __session is already populated by the time any of these modals
+  // can be opened (the app's own auth gate blocks all content, this
+  // included, until requireSession() has resolved once).
+  function currentUserDisplayName(){
+    var u = __session && __session.user;
+    if(!u) return '';
+    return (u.user_metadata && u.user_metadata.full_name) || u.email || '';
+  }
+
   // ---- Auth gate: no signed-out viewing of index.html, plus an
   // inactivity timeout that forces re-sign-in ----
   //
@@ -4458,9 +4511,7 @@
     }
 
     function setUsername(name){
-      var u = document.getElementById('ov-username');
       var g = document.getElementById('ov-greeting');
-      if(u) u.textContent = name;
       if(g){
         var h = new Date().getHours();
         var part = h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening');
@@ -4751,15 +4802,6 @@
 
     // ==================== "What Changed Today" feed ====================
     var EVENT_LABEL_FALLBACK = 'Alert';
-    function sameDayCounts(rows){
-      var counts = {};
-      rows.forEach(function(r){
-        var day = (r.time || '').slice(0,10);
-        var key = day + '|' + (r.asset || '') + '|' + (r.eventCode || '');
-        counts[key] = (counts[key] || 0) + 1;
-      });
-      return counts;
-    }
     // ==================== Required Attention ====================
     // Replaces Recent Activity and Drivers on Alert Streak per direct
     // instruction. Backed by dds_required_attention() (0117) — a driver is
@@ -7836,7 +7878,7 @@
         var q = DB.from('drivers').select('emp_no, full_name, status, details', { count: 'exact' })
           .order(masterlistState.sort || 'full_name', { ascending: masterlistState.dir !== 'desc' }).limit(8);
         if(masterlistState.search){
-          var like = '%' + masterlistState.search + '%';
+          var like = '%' + escOrFilterValue(masterlistState.search) + '%';
           q = q.or('full_name.ilike.' + like + ',emp_no.ilike.' + like);
         }
         return q.then(function(res){
@@ -7889,7 +7931,7 @@
           // Server-side, same as Minestat/Masterlist — searching must see
           // the whole table, not just the 8 most-recent rows already
           // fetched (which silently hid real matches on older factors).
-          var like = '%' + factorsState.search + '%';
+          var like = '%' + escOrFilterValue(factorsState.search) + '%';
           q = q.or('factor_type.ilike.' + like + ',detail.ilike.' + like);
         }
         return q.then(function(res){
@@ -10313,16 +10355,6 @@
     var loadingMore = false;
     var reachedEnd = false;
 
-    var clockTimeEl = document.getElementById('al-clock-time');
-    var clockDateEl = document.getElementById('al-clock-date');
-    function tickClock(){
-      var now = new Date();
-      if(clockTimeEl) clockTimeEl.textContent = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false });
-      if(clockDateEl) clockDateEl.textContent = now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
-    }
-    tickClock();
-    setInterval(tickClock, 30000);
-
     function fmtDateShort(iso){
       if(!iso) return '—';
       var d = new Date(iso);
@@ -11062,7 +11094,7 @@
       { key:'shiftDate', label:'Date' }, { key:'assetId', label:'Asset ID' },
       { key:'eventCode', label:'Event Code' }, { key:'eventCount', label:'Event Count' },
       { key:'startTime', label:'Start Time' }, { key:'endTime', label:'End Time' },
-      { key:'updateTime', label:'Update Time' }, { key:'empNo', label:'Emp ID' },
+      { key:'updateTime', label:'Update Time' }, { key:'empNo', label:'Emp No' },
       { key:'driverName', label:'Emp Name' }, { key:'action', label:'Action Performed' },
       { key:'actionBy', label:'Action By' }, { key:'status', label:'Status' }, { key:'remarks', label:'Remarks' }
     ];
@@ -11645,7 +11677,7 @@
     var DA_EXPORT_MAX_ROWS = 20000;
     var DA_EXPORT_COLUMNS = {
       drivers: [
-        { key:'empNo', label:'Emp ID' }, { key:'empName', label:'Emp Name' },
+        { key:'empNo', label:'Emp No' }, { key:'empName', label:'Emp Name' },
         { key:'eventCodes', label:'Event Codes (count)' }, { key:'total', label:'Counts' },
         { key:'status', label:'Status' }
       ],
@@ -11974,7 +12006,13 @@
       otherInput.classList.remove('on');
       otherInput.value = '';
       noteInput.value = '';
-      loggedByInput.value = '';
+      // Pre-filled (not locked read-only) from the signed-in session — the
+      // common case is now accurate by default instead of blank, but this
+      // stays editable because logging on behalf of someone else (e.g. a
+      // dispatcher relaying a call-in) is a real, deliberate use of this
+      // field elsewhere in the app (see Driver Streaks' own getMyUsername()
+      // default-but-editable pattern, which this now matches).
+      loggedByInput.value = currentUserDisplayName();
       saveBtn.disabled = true;
 
       modalMask.classList.add('on');
@@ -12522,12 +12560,7 @@
     // this session's migration yet just shows no badge instead of a
     // number that would look real but always read zero.
     function updateOpenBadge(openCount){
-      var badge = document.getElementById('ds-open-badge');
-      if(badge){
-        if(openCount == null){ badge.hidden = true; }
-        else { badge.hidden = false; badge.textContent = fmtNum(openCount) + (openCount === 1 ? ' open case' : ' open cases'); }
-      }
-      // Same count, mirrored onto the sidebar nav item so it's visible
+      // Mirrored onto the sidebar nav item so it's visible
       // without opening the page — sidebar space is tight, so just the
       // number rather than the "N open cases" wording above.
       var navBadge = document.getElementById('ds-nav-badge');
@@ -13659,7 +13692,10 @@
       otherInput.classList.remove('on');
       otherInput.value = '';
       noteInput.value = '';
-      loggedByInput.value = '';
+      // Pre-filled (not locked read-only), matching Driver Streaks' own
+      // getMyUsername() default-but-editable "Logged by" pattern — see
+      // that page's comment for why this stays editable rather than fixed.
+      loggedByInput.value = currentUserDisplayName();
       saveBtn.disabled = true;
       modalMask.classList.add('on');
     }
