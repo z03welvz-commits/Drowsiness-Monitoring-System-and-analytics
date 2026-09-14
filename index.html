@@ -957,6 +957,38 @@
   #page-driver-streaks.active #ds-chart-card{flex:0 0 auto}
   #page-driver-streaks.active .da-table-card{flex:1;min-height:0}
   #page-driver-streaks.active .da-table-wrap-flex{min-height:220px}
+  /* Driver Streaks' own toolbar, unlike .da-table-head-oneline's shared
+     default (used by Driver & Asset Monitoring, Corrective Actions, etc,
+     which deliberately wrap to a second row rather than squeeze past each
+     control's min-width — see that class's own comment), must per direct
+     instruction never drop to a second row: controls may still shrink down
+     to their existing min-width floor, but flex-wrap is forced off here,
+     scoped to this page only so the other pages keep their own wrap
+     behavior. overflow-x is the fallback for the (now rarer, with Shift
+     and Refresh removed) case where even shrunk-to-floor controls still
+     don't fit — the row scrolls horizontally instead of wrapping or
+     clipping. */
+  #page-driver-streaks .da-table-head-oneline{flex-wrap:nowrap;overflow-x:auto}
+  /* Removing Shift + Refresh bought back some width, but the remaining 7
+     controls plus title still don't fit in the ~950px this card actually
+     gets at a typical 1440px-wide window (sidebar + page padding eat the
+     rest) — so shrink the pieces that can afford it before falling back to
+     the scroll above: the title's own label text (the "Showing X of Y"
+     count is the part worth keeping legible, not the noun phrase before
+     it), the search box's floor, and every non-date control's floor.
+     ds-from/ds-to keep the shared class's 100px floor untouched — that
+     number is specifically what a native mm/dd/yyyy input needs to avoid
+     clipping its own placeholder (see .da-table-head-oneline's comment).
+     A native <select>'s own rendered value can wrap onto a second line
+     inside this flex-display control (rather than truncate) once its box
+     gets this narrow, spilling text outside the fixed 36px-tall box since
+     nothing clips it — white-space/overflow/ellipsis below is what makes
+     it truncate cleanly instead. */
+  #page-driver-streaks .da-table-head-oneline .da-search{min-width:110px}
+  #page-driver-streaks .da-table-head-oneline select.al-filter,
+  #page-driver-streaks .da-table-head-oneline button.al-filter{min-width:80px}
+  #page-driver-streaks .da-table-head-oneline select.al-filter{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;line-height:34px}
+  #page-driver-streaks .da-table-head-oneline .da-table-title{flex:0 1 140px;min-width:70px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
@@ -2893,15 +2925,10 @@
 
       <section class="card da-table-card da-table-card-flex">
         <div class="da-table-head da-table-head-oneline">
-          <h3 class="da-table-title">Drivers on Alert Streak <small id="ds-shown">Showing 0</small></h3>
+          <h3 class="da-table-title">Alert Streak <small id="ds-shown">Showing 0</small></h3>
           <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." id="ds-search"></div>
           <input type="date" class="al-filter" id="ds-from" aria-label="Streak start on/after date" title="Only show streaks starting on/after this date">
           <input type="date" class="al-filter" id="ds-to" aria-label="Streak end on/before date" title="Only show streaks ending on/before this date">
-          <select class="al-filter" id="ds-shift" aria-label="Shift filter">
-            <option value="">All shifts</option>
-            <option value="DAY">Day</option>
-            <option value="NIGHT">Night</option>
-          </select>
           <select class="al-filter" id="ds-asset" aria-label="Unit/asset filter">
             <option value="">All units</option>
           </select>
@@ -2919,7 +2946,6 @@
             <option value="ok">OK</option>
           </select>
           <button class="al-filter" type="button" id="ds-clear" style="cursor:pointer">Clear filters</button>
-          <button class="al-filter" type="button" id="ds-refresh" style="cursor:pointer">↻&nbsp; Refresh</button>
           <button class="export-btn" type="button" id="ds-export-btn" title="Export every streak matching the current filters, not just what's scrolled into view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
         </div>
         <div class="da-table-wrap da-table-wrap-flex">
@@ -12438,7 +12464,7 @@
     // CSS), and scrolling near the bottom fetches and appends the next
     // batch — per direct instruction, replacing the numbered-page pattern
     // used elsewhere in this app for this page specifically.
-    var state = { search:'', from:null, to:null, shift:null, asset:null, status:null, minStreak:1, sort:'streak_days', dir:'desc', limit:50, offset:0, total:0 };
+    var state = { search:'', from:null, to:null, asset:null, status:null, minStreak:1, sort:'streak_days', dir:'desc', limit:50, offset:0, total:0 };
     var tbody = document.getElementById('ds-tbody');
     var scrollWrap = document.querySelector('#page-driver-streaks .da-table-wrap-flex');
     var rows = [];
@@ -12662,7 +12688,7 @@
           p_search: state.search || null, p_min_streak: state.minStreak || 1,
           p_sort: state.sort, p_dir: state.dir,
           p_limit: state.limit, p_offset: state.offset,
-          p_shift: state.shift || null, p_asset: state.asset || null, p_status: state.status || null
+          p_asset: state.asset || null, p_status: state.status || null
         }).then(function(res){
           if(res.error) throw res.error;
           var data = res.data || {};
@@ -12732,8 +12758,6 @@
     if(fromInput) fromInput.addEventListener('change', function(){ state.from = fromInput.value || null; load(); });
     var toInput = document.getElementById('ds-to');
     if(toInput) toInput.addEventListener('change', function(){ state.to = toInput.value || null; load(); });
-    var shiftSelect = document.getElementById('ds-shift');
-    if(shiftSelect) shiftSelect.addEventListener('change', function(){ state.shift = shiftSelect.value || null; state.offset = 0; load(); });
     var assetSelect = document.getElementById('ds-asset');
     if(assetSelect) assetSelect.addEventListener('change', function(){ state.asset = assetSelect.value || null; state.offset = 0; load(); });
     var streakSelect = document.getElementById('ds-streak');
@@ -12743,19 +12767,16 @@
     var clearBtn = document.getElementById('ds-clear');
     if(clearBtn) clearBtn.addEventListener('click', function(){
       state.search = ''; state.from = null; state.to = null;
-      state.shift = null; state.asset = null; state.status = null; state.minStreak = 1;
+      state.asset = null; state.status = null; state.minStreak = 1;
       state.offset = 0;
       if(searchInput) searchInput.value = '';
       if(fromInput) fromInput.value = '';
       if(toInput) toInput.value = '';
-      if(shiftSelect) shiftSelect.value = '';
       if(assetSelect) assetSelect.value = '';
       if(streakSelect) streakSelect.value = '1';
       if(statusSelect) statusSelect.value = '';
       load();
     });
-    var refreshBtn = document.getElementById('ds-refresh');
-    if(refreshBtn) refreshBtn.addEventListener('click', load);
 
     // Populate the Unit filter from the same distinct-asset list Analytics'
     // own asset picker already fetches — a lightweight one-off, not tied to
@@ -12836,7 +12857,7 @@
           p_search: state.search || null, p_min_streak: state.minStreak || 1,
           p_sort: state.sort, p_dir: state.dir,
           p_limit: DS_EXPORT_PAGE_SIZE, p_offset: offset,
-          p_shift: state.shift || null, p_asset: state.asset || null, p_status: state.status || null
+          p_asset: state.asset || null, p_status: state.status || null
         }).then(function(res){
           if(res.error) throw res.error;
           var data = res.data || {};
@@ -12873,7 +12894,7 @@
           p_search: state.search || null, p_min_streak: state.minStreak || 1,
           p_sort: 'streak_days', p_dir: 'desc',
           p_limit: DS_EXPORT_PAGE_SIZE, p_offset: offset,
-          p_shift: state.shift || null, p_asset: state.asset || null, p_status: state.status || null
+          p_asset: state.asset || null, p_status: state.status || null
         }).then(function(res){
           if(res.error) throw res.error;
           var data = res.data || {};
