@@ -3855,6 +3855,7 @@
         </div>
         <div class="da-inst-summary" id="ds-detail-summary"></div>
         <div id="ds-detail-description" style="padding:0 20px 14px;font-size:12.5px;color:var(--text-dim);line-height:1.5"></div>
+        <div id="ds-detail-filternote" style="padding:0 20px 10px;font-size:11.5px;color:var(--muted);font-style:italic"></div>
         <div style="padding:0 20px 6px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px">Action History</div>
           <div id="ds-detail-history" style="display:flex;flex-direction:column;gap:8px;margin-bottom:6px"></div>
@@ -3862,7 +3863,7 @@
         <div class="da-table-wrap">
           <table class="da-inst-table" id="ds-detail-table">
             <thead>
-              <tr><th>Date</th><th>Shift(s)</th><th># of Alerts</th><th>Day Total</th><th>Qualifies (&ge;20/day)</th></tr>
+              <tr><th>Date</th><th>Shift(s)</th><th>Unit(s)</th><th># of Alerts</th><th>Day Total</th><th>Qualifies (&gt;20/shift or &gt;10/alert)</th></tr>
             </thead>
             <tbody id="ds-detail-tbody"></tbody>
           </table>
@@ -13571,11 +13572,22 @@
 
     function openDriverStreakDetail(r){
       detailTitle.textContent = r.name + ' (' + r.empNo + ')';
-      detailSub.textContent = 'Streak: ' + r.runStart + ' – ' + r.runEnd + ' (' + fmtNum(r.streakDays) + ' day(s))';
-      detailSummary.innerHTML = '<div class="da-inst-stat"><span class="da-inst-stat-label">Avg count</span><span class="da-inst-stat-value">' + fmtNum(r.avgCount) + '</span></div>';
+      detailSub.textContent = 'Streak: ' + r.runStart + ' – ' + r.runEnd + ' (' + fmtNum(r.streakDays) + ' day(s)) · Unit: ' + (r.unit || '—');
+      detailSummary.innerHTML =
+        '<div class="da-inst-stat"><span class="da-inst-stat-label">Avg count</span><span class="da-inst-stat-value">' + fmtNum(r.avgCount) + '</span></div>' +
+        '<div class="da-inst-stat"><span class="da-inst-stat-label">Unit</span><span class="da-inst-stat-value">' + esc(r.unit || '—') + '</span></div>';
       detailDescription.textContent = streakDescription(r);
+      // Detail data is scoped to whatever date-range/unit filters are active
+      // on the Driver Streaks page itself (state.from/to/asset), not the
+      // driver's complete history — so what's shown here always matches
+      // what's currently on screen for the rest of the page.
+      var filterNote = document.getElementById('ds-detail-filternote');
+      var activeFilters = [];
+      if(state.from || state.to) activeFilters.push('Date range: ' + (state.from || '…') + ' – ' + (state.to || '…'));
+      if(state.asset) activeFilters.push('Unit: ' + state.asset);
+      if(filterNote) filterNote.textContent = activeFilters.length ? 'Filtered by ' + activeFilters.join(', ') + ' (matches the page filters above)' : '';
       detailHistory.innerHTML = '<div style="color:var(--muted);font-size:12px">Loading…</div>';
-      detailTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px 0">Loading…</td></tr>';
+      detailTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px 0">Loading…</td></tr>';
       detailMask.classList.add('on');
 
       DB.rpc('dds_entity_action_history', { p_entity_type: 'driver', p_entity_id: r.empNo, p_limit: 20 }).then(function(res){
@@ -13589,34 +13601,42 @@
         detailHistory.innerHTML = '<div style="color:#c0271f;font-size:12px">Could not load action history: ' + esc(err.message || 'unknown error') + '</div>';
       });
       // One row per day instead of one row per alert — the qualifying rule
-      // (dds_driver_streaks(), 0088) is sum(event_count) per day >= 20, not
-      // any single alert reaching 20, so a flat event list buried that sum
-      // under a dozen individually-small rows and made a genuinely
-      // qualifying day look unexplained. Aggregated server-side (0097) so
-      // this stays correct however much history a driver has, rather than
-      // summing whatever page of individual events happened to be fetched.
-      // Complete history, not scoped to just the current streak window —
-      // same "full record" scope the old per-event view used.
-      DB.rpc('dds_driver_daily_summary', { p_emp_no: r.empNo, p_from: null, p_to: null, p_limit: 500, p_offset: 0 }).then(function(res){
+      // (dds_driver_streaks(), 0127) is a per-shift sum >20 or a single
+      // event_count>10, not any single alert reaching 20 on its own, so a
+      // flat event list buried that under a dozen individually-small rows
+      // and made a genuinely qualifying day look unexplained. Aggregated
+      // server-side (0097/0128) so this stays correct however much history
+      // a driver has, rather than summing whatever page of individual
+      // events happened to be fetched.
+      // Scoped to the Driver Streaks page's own active date-range/unit
+      // filters (0128), not the driver's complete history — so this modal
+      // always shows the same slice of data as the rest of the page.
+      DB.rpc('dds_driver_daily_summary', {
+        p_emp_no: r.empNo, p_from: state.from || null, p_to: state.to || null,
+        p_asset_id: state.asset || null, p_limit: 500, p_offset: 0
+      }).then(function(res){
         if(res.error) throw res.error;
         var data = res.data || {};
         var dayRows = data.rows || [];
         detailSummary.innerHTML =
           '<div class="da-inst-stat"><span class="da-inst-stat-label">Avg count</span><span class="da-inst-stat-value">' + fmtNum(r.avgCount) + '</span></div>' +
+          '<div class="da-inst-stat"><span class="da-inst-stat-label">Unit</span><span class="da-inst-stat-value">' + esc(r.unit || '—') + '</span></div>' +
           '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.grandTotal || 0) + '</span></div>' +
           '<div class="da-inst-stat"><span class="da-inst-stat-label">Days</span><span class="da-inst-stat-value">' + fmtNum(data.totalDays || 0) + '</span></div>';
         if(!dayRows.length){
-          detailTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px 0">No event history found.</td></tr>';
+          detailTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px 0">No event history found for the current filters.</td></tr>';
           return;
         }
         detailTbody.innerHTML = dayRows.map(function(dr){
           var shiftsLabel = (dr.shifts || []).map(function(s){ return s === 'NIGHT' ? 'Night' : 'Day'; }).join(' + ') || '—';
+          var unitsLabel = (dr.units || []).join(' + ') || '—';
           var qualifiesTag = dr.qualifies
             ? '<span class="dm-tag red">Qualifies</span>'
             : '<span class="dm-tag greenbg">Below threshold</span>';
           return '<tr>' +
             '<td>' + esc(dr.shiftDate || '—') + '</td>' +
             '<td>' + esc(shiftsLabel) + '</td>' +
+            '<td>' + esc(unitsLabel) + '</td>' +
             '<td>' + fmtNum(dr.numEvents || 0) + '</td>' +
             '<td>' + fmtNum(dr.dayTotal || 0) + '</td>' +
             '<td>' + qualifiesTag + '</td>' +
@@ -13624,7 +13644,7 @@
         }).join('');
       }).catch(function(err){
         console.error('Driver daily summary fetch failed', err);
-        detailTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+        detailTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
       });
     }
 
