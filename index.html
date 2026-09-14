@@ -939,16 +939,21 @@
      against, so the browser fell back to sizing it by content and the
      footer/pagination controls floated rather than sitting in a normal
      bottom row. */
-  #page-driver-streaks.active{display:flex;flex-direction:column;height:calc(100vh - 50px);overflow-y:auto}
+  #page-driver-streaks.active{display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden}
   #page-driver-streaks.active .topbar{flex:0 0 auto}
   /* #ds-chart-card sits between .topbar and .da-table-card now (it didn't
      exist when this fixed-height budget was first written) — flex:0 0 auto
      keeps it at its own natural height instead of silently eating into the
      table's flex:1 share. .da-table-wrap-flex's own min-height (below) is
      the floor that keeps rows visible even if the chart + the now-taller,
-     wrapped filter toolbar leave little of the fixed budget left; overflow
-     is auto (not hidden) above so a genuinely tight window scrolls the
-     whole page rather than clipping content with no way to reach it. */
+     wrapped filter toolbar leave little of the fixed budget left. This was
+     briefly overflow:auto instead of hidden as a tight-viewport safety net,
+     but that let the page itself scroll AND .da-table-wrap-flex scroll at
+     the same time whenever the page's natural height ran even slightly
+     past the viewport — two nested, simultaneously-active scrollbars
+     (reported as a stray floating bar next to the real one). Matching
+     Driver & Asset Monitoring's overflow:hidden makes .da-table-wrap-flex
+     the one scroller again, flush to the table card's own right edge. */
   #page-driver-streaks.active #ds-chart-card{flex:0 0 auto}
   #page-driver-streaks.active .da-table-card{flex:1;min-height:0}
   #page-driver-streaks.active .da-table-wrap-flex{min-height:220px}
@@ -12606,6 +12611,23 @@
       tbody.insertAdjacentHTML('beforeend', html);
     }
 
+    // Comparing `new Date(r.runStart)` (an MM/DD/YYYY string — parsed as
+    // LOCAL midnight) against `new Date(state.from)` (a bare YYYY-MM-DD
+    // string, from a date input or the chart's click-filter — parsed as
+    // UTC midnight, per spec) silently excludes same-day matches in any
+    // timezone ahead of UTC: a single-day streak's local midnight can fall
+    // hours before the UTC midnight of the "same" nominal date. Comparing
+    // the two as plain YYYY-MM-DD strings (via mdyToIso, defined below —
+    // function declarations hoist) sidesteps Date parsing entirely and
+    // sorts identically to chronological order.
+    function streakOverlapsRange(r){
+      if(!state.from && !state.to) return true;
+      var start = mdyToIso(r.runStart), end = mdyToIso(r.runEnd);
+      if(state.from && end && end < state.from) return false;
+      if(state.to && start && start > state.to) return false;
+      return true;
+    }
+
     function load(opts){
       opts = opts || {};
       var isLoadMore = !!opts.loadMore;
@@ -12662,14 +12684,7 @@
           // the user's own answer means: show only streaks whose window
           // overlaps the chosen range, applied to what the server already
           // fetched.
-          if(state.from || state.to){
-            fetched = fetched.filter(function(r){
-              var start = new Date(r.runStart), end = new Date(r.runEnd);
-              if(state.from && end < new Date(state.from)) return false;
-              if(state.to && start > new Date(state.to)) return false;
-              return true;
-            });
-          }
+          fetched = fetched.filter(streakOverlapsRange);
           if(fetched.length < state.limit) reachedEnd = true;
           state.offset += (data.rows || []).length;
           if(isLoadMore){
@@ -12830,15 +12845,7 @@
           collected = collected.concat(fetched);
           var hitCap = collected.length >= DS_EXPORT_MAX_ROWS;
           if(fetched.length < DS_EXPORT_PAGE_SIZE || collected.length >= total || hitCap){
-            var filtered = collected;
-            if(state.from || state.to){
-              filtered = filtered.filter(function(r){
-                var start = new Date(r.runStart), end = new Date(r.runEnd);
-                if(state.from && end < new Date(state.from)) return false;
-                if(state.to && start > new Date(state.to)) return false;
-                return true;
-              });
-            }
+            var filtered = collected.filter(streakOverlapsRange);
             if(total > collected.length){
               alert('Exported the first ' + fmtNum(collected.length) + ' of ' + fmtNum(total) + ' matching streaks — narrow the search above for a complete export.');
             }
@@ -12874,15 +12881,7 @@
           var total = data.total || 0;
           collected = collected.concat(fetched);
           if(fetched.length < DS_EXPORT_PAGE_SIZE || collected.length >= total || collected.length >= DS_EXPORT_MAX_ROWS){
-            var filtered = collected;
-            if(state.from || state.to){
-              filtered = filtered.filter(function(r){
-                var start = new Date(r.runStart), end = new Date(r.runEnd);
-                if(state.from && end < new Date(state.from)) return false;
-                if(state.to && start > new Date(state.to)) return false;
-                return true;
-              });
-            }
+            var filtered = collected.filter(streakOverlapsRange);
             return filtered;
           }
           return loop(offset + DS_EXPORT_PAGE_SIZE);
@@ -12921,8 +12920,14 @@
       var todayIso = new Date().toISOString().slice(0, 10);
       var earliestIso = bucketKeys.length ? bucketKeys[0] : todayIso;
       var latestIso = bucketKeys.length ? bucketKeys[bucketKeys.length - 1] : todayIso;
-      var earliest = new Date(earliestIso + 'T00:00:00');
-      var latest = new Date(latestIso + 'T00:00:00');
+      // Parsed and re-serialized entirely in UTC (both the 'Z' suffix below
+      // and the UTC getters used for the label/iso further down) — mixing
+      // a local-midnight parse with a UTC toISOString() reformat (as this
+      // used to do) silently rolls the date back a day in any timezone
+      // ahead of UTC, which is exactly the bug mdyToIso()'s own comment
+      // already documents for the MM/DD/YYYY side of this same file.
+      var earliest = new Date(earliestIso + 'T00:00:00Z');
+      var latest = new Date(latestIso + 'T00:00:00Z');
       var totalDays = Math.max(1, Math.round((latest - earliest) / 86400000) + 1);
       var series = [];
       for(var i = 0; i < totalDays; i++){
@@ -12960,7 +12965,7 @@
         var critH = (s.critical / niceMax) * plotH;
         var yHighTop = padT + plotH - highH;
         var yCritTop = yHighTop - critH;
-        var label = (s.date.getMonth() + 1) + '/' + s.date.getDate();
+        var label = (s.date.getUTCMonth() + 1) + '/' + s.date.getUTCDate();
         var tip = s.total
           ? (s.high ? (s.high + ' high') : '') + (s.high && s.critical ? ', ' : '') + (s.critical ? (s.critical + ' critical') : '') + ' — click to filter'
           : 'No flags';
