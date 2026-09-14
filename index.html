@@ -3863,7 +3863,7 @@
         <div class="da-table-wrap">
           <table class="da-inst-table" id="ds-detail-table">
             <thead>
-              <tr><th>Date</th><th>Shift(s)</th><th>Unit(s)</th><th># of Alerts</th><th>Day Total</th><th>Qualifies (&gt;20/shift or &gt;10/alert)</th></tr>
+              <tr><th>Date</th><th>Shift</th><th>Unit</th><th># of Alerts</th><th>Total</th><th>Qualifies (&gt;20/shift or &gt;10/alert)</th></tr>
             </thead>
             <tbody id="ds-detail-tbody"></tbody>
           </table>
@@ -13628,17 +13628,18 @@
           return;
         }
         detailTbody.innerHTML = dayRows.map(function(dr){
-          var shiftsLabel = (dr.shifts || []).map(function(s){ return s === 'NIGHT' ? 'Night' : 'Day'; }).join(' + ') || '—';
-          var unitsLabel = (dr.units || []).join(' + ') || '—';
+          // One row per (date, shift, unit) — a new shift or a new unit on
+          // the same date is a separate row, not merged into one.
+          var shiftLabel = dr.shift === 'NIGHT' ? 'Night' : (dr.shift === 'DAY' ? 'Day' : (dr.shift || '—'));
           var qualifiesTag = dr.qualifies
             ? '<span class="dm-tag red">Qualifies</span>'
             : '<span class="dm-tag greenbg">Below threshold</span>';
           return '<tr>' +
             '<td>' + esc(dr.shiftDate || '—') + '</td>' +
-            '<td>' + esc(shiftsLabel) + '</td>' +
-            '<td>' + esc(unitsLabel) + '</td>' +
+            '<td>' + esc(shiftLabel) + '</td>' +
+            '<td>' + esc(dr.unit || '—') + '</td>' +
             '<td>' + fmtNum(dr.numEvents || 0) + '</td>' +
-            '<td>' + fmtNum(dr.dayTotal || 0) + '</td>' +
+            '<td>' + fmtNum(dr.rowTotal || 0) + '</td>' +
             '<td>' + qualifiesTag + '</td>' +
           '</tr>';
         }).join('');
