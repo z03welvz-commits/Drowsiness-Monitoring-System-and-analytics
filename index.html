@@ -1030,10 +1030,7 @@
   td.ds-clickfilter:hover{background:var(--surface2);text-decoration:underline}
   th.ds-clickfilter{cursor:pointer}
   #ds-table th{overflow:hidden;text-overflow:ellipsis}
-  /* 13 explicit-width columns (see #ds-table's own colgroup comment) sum
-     past the shared .da-table{min-width:920px} floor — scoped override,
-     doesn't affect Alert Logs/Driver & Asset Monitoring's own tables. */
-  #ds-table{min-width:1390px}
+  .ds-chart-bar{cursor:pointer}
   .ds-action-dd{position:relative;display:inline-block;vertical-align:middle}
   .ds-action-dd-btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:space-between;gap:8px;min-width:110px;height:28px;padding:0 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text-dim);font-size:11px;cursor:pointer}
   .ds-action-dd-btn:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
@@ -2872,7 +2869,7 @@
           </div>
         </div>
         <div class="chart-area">
-          <svg viewBox="0 0 720 110" role="img" aria-label="Bar chart of newly flagged streaks per day, by severity" id="ds-chart-svg">
+          <svg viewBox="0 0 720 130" role="img" aria-label="Bar chart of newly flagged streaks per day, by severity — click a bar to filter the table" id="ds-chart-svg">
             <g id="ds-chart-gridlines"></g>
             <g id="ds-chart-yaxis"></g>
             <g id="ds-chart-bars"></g>
@@ -2922,41 +2919,31 @@
         </div>
         <div class="da-table-wrap da-table-wrap-flex">
           <table class="da-table" id="ds-table">
-            <!-- 13 columns, including a prose Description and an Action
-                 column wide enough for the dropdown button (min-width:110px,
-                 see .ds-action-dd-btn) — the explicit widths below sum past
-                 what fits alongside the sidebar on most windows, so this
-                 table gets its own wider min-width (below) and scrolls
-                 horizontally via the existing .da-table-wrap{overflow-x:auto}
-                 rule, same mechanism this table already relied on. Every
-                 column gets an explicit width sized to its real content;
-                 none are left to a flexible remainder, which previously
-                 got squeezed to ~0 and pushed Description/the detail button
-                 off-screen entirely. -->
+            <!-- Deliberately lean: Emp Name, Description, Avg Count, Action
+                 By and Timestamp all moved into the "..." detail panel
+                 (openDriverStreakDetail) per direct instruction, both to
+                 stop the row from squeezing and because those fields are
+                 read-once context, not something you scan a column of. The
+                 remaining 8 columns comfortably fit without the wide
+                 horizontal-scroll table the 13-column version needed. -->
             <colgroup>
-              <col style="width:80px"><col style="width:75px"><col style="width:140px">
-              <col style="width:75px"><col style="width:100px"><col style="width:260px">
-              <col style="width:75px"><col style="width:80px"><col style="width:160px">
-              <col style="width:85px"><col style="width:130px"><col style="width:80px"><col style="width:44px">
+              <col style="width:110px"><col style="width:100px"><col style="width:110px">
+              <col style="width:130px"><col style="width:110px"><col style="width:180px">
+              <col style="width:150px"><col style="width:50px">
             </colgroup>
             <thead>
               <tr>
                 <th class="ds-clickfilter" data-ds-sort="run_end" title="Click a row's date to filter by it">Date Flag</th>
                 <th class="ds-clickfilter" data-ds-sort="emp_no" title="Click a row's Emp No to filter by it">Emp No</th>
-                <th class="ds-clickfilter" data-ds-sort="name" title="Click a row's name to filter by it">Emp Name</th>
                 <th>Streak Count</th>
                 <th data-ds-sort="streak_days">Streak Days</th>
-                <th>Description</th>
-                <th>Avg Count</th>
                 <th data-ds-sort="run_total_count">Total Count</th>
                 <th>Action</th>
-                <th>Action By</th>
                 <th class="ds-clickfilter" title="Click a row's status to filter by it">Status</th>
-                <th>Timestamp</th>
                 <th></th>
               </tr>
             </thead>
-            <tbody id="ds-tbody"><tr><td colspan="13" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+            <tbody id="ds-tbody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
           </table>
         </div>
         <div class="da-table-foot">
@@ -3730,6 +3717,11 @@
           </button>
         </div>
         <div class="da-inst-summary" id="ds-detail-summary"></div>
+        <div id="ds-detail-description" style="padding:0 20px 14px;font-size:12.5px;color:var(--text-dim);line-height:1.5"></div>
+        <div style="padding:0 20px 6px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px">Action History</div>
+          <div id="ds-detail-history" style="display:flex;flex-direction:column;gap:8px;margin-bottom:6px"></div>
+        </div>
         <div class="da-table-wrap">
           <table class="da-inst-table" id="ds-detail-table">
             <thead>
@@ -12576,12 +12568,9 @@
       var sev = streakSeverity(r);
       return '<tr data-ds-row="' + i + '">' +
         '<td class="num ds-clickfilter" data-ds-filter="date" data-ds-value="' + esc(mdyToIso(r.runStart) || '') + '" title="Filter by this date">' + esc(r.runStart) + '</td>' +
-        '<td class="num ds-clickfilter" data-ds-filter="search" data-ds-value="' + esc(r.empNo) + '" title="Filter by this Emp No">' + esc(r.empNo) + '</td>' +
-        '<td class="ds-clickfilter" data-ds-filter="search" data-ds-value="' + esc(r.name) + '" title="Filter by this driver">' + esc(r.name) + '</td>' +
+        '<td class="num ds-clickfilter" data-ds-filter="search" data-ds-value="' + esc(r.empNo) + '" title="' + esc(r.name || '') + ' — filter by this Emp No">' + esc(r.empNo) + '</td>' +
         '<td class="num">' + fmtNum(r.streakCount) + '</td>' +
         '<td class="num"><span class="al-badge ' + (sev === 'critical' ? 'critical' : 'high') + '">' + (sev === 'critical' ? 'Critical' : 'High') + '</span>&nbsp;' + fmtNum(r.streakDays) + '</td>' +
-        '<td title="' + esc(streakDescription(r)) + '">' + esc(streakDescription(r)) + '</td>' +
-        '<td class="num">' + fmtNum(r.avgCount) + '</td>' +
         '<td class="num">' + fmtNum(r.runTotalCount) + '</td>' +
         '<td class="da-td-action">' +
           '<div class="ds-action-dd" data-ds-action="' + i + '">' +
@@ -12590,10 +12579,8 @@
           '</div>' +
           '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;display:none" value="' + esc(isOtherCurrent ? (r.lastAction.note || '') : '') + '">' +
         '</td>' +
-        '<td>' + (r.lastAction && r.lastAction.by ? esc(r.lastAction.by) : '—') + '</td>' +
         '<td class="ds-clickfilter" data-ds-filter="status" data-ds-value="' + esc(r.status || '') + '" title="Filter by this status">' + statusBadgeHtml(r) + '</td>' +
-        '<td>' + esc(fmtActionAt(r.lastAction && r.lastAction.at)) + '</td>' +
-        '<td><button class="dm-icon-btn" type="button" data-ds-detail="' + i + '" title="See details" aria-label="See details">' +
+        '<td><button class="dm-icon-btn" type="button" data-ds-detail="' + i + '" title="See details: driver name, avg count, description, action history" aria-label="See details">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>' +
         '</button></td>' +
       '</tr>';
@@ -12604,7 +12591,7 @@
     // just fully replaced.
     function renderRows(){
       if(!rows.length){
-        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map(rowHtml).join('');
@@ -12630,7 +12617,7 @@
         state.offset = 0;
         reachedEnd = false;
         rows = [];
-        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
         // Fill the available row area on this first batch instead of
         // always fetching a fixed 50 — see fitRowLimit's own comment
         // (shared with Alert Logs / Driver & Asset Monitoring). Infinite
@@ -12645,7 +12632,7 @@
       }
       requireSession().then(function(sess){
         if(!sess){
-          tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           loadingMore = false;
           return;
         }
@@ -12702,7 +12689,7 @@
         if(isLoadMore){
           updateFooter();
         } else {
-          tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
         }
       });
     }
@@ -12915,6 +12902,13 @@
       return buckets;
     }
 
+    // Qlik-sense-style: the chart shows the FULL date range of every
+    // currently-filtered streak in one visual (not a rolling window) —
+    // every calendar day between the earliest and latest flagged date gets
+    // an equal-width slot, so the axis interval stays consistent whether
+    // that span is 2 weeks or 2 years; clicking a bar applies that date as
+    // an active filter on the table below, the same associative click-
+    // through the table's own cells already support.
     function renderFlagsByDayChart(chartRows){
       var barsEl = document.getElementById('ds-chart-bars');
       var gridEl = document.getElementById('ds-chart-gridlines');
@@ -12923,26 +12917,31 @@
       if(!barsEl || !gridEl || !yaxisEl || !xaxisEl) return;
 
       var buckets = bucketFlagsByDay(chartRows);
-      var bucketKeys = Object.keys(buckets);
-      var latestIso = bucketKeys.length
-        ? bucketKeys.reduce(function(a, b){ return a > b ? a : b; })
-        : new Date().toISOString().slice(0, 10);
+      var bucketKeys = Object.keys(buckets).sort();
+      var todayIso = new Date().toISOString().slice(0, 10);
+      var earliestIso = bucketKeys.length ? bucketKeys[0] : todayIso;
+      var latestIso = bucketKeys.length ? bucketKeys[bucketKeys.length - 1] : todayIso;
+      var earliest = new Date(earliestIso + 'T00:00:00');
       var latest = new Date(latestIso + 'T00:00:00');
-      var WINDOW_DAYS = 30;
+      var totalDays = Math.max(1, Math.round((latest - earliest) / 86400000) + 1);
       var series = [];
-      for(var i = WINDOW_DAYS - 1; i >= 0; i--){
-        var d = new Date(latest.getTime() - i * 86400000);
+      for(var i = 0; i < totalDays; i++){
+        var d = new Date(earliest.getTime() + i * 86400000);
         var iso = d.toISOString().slice(0, 10);
         var b = buckets[iso] || { high: 0, critical: 0 };
         series.push({ date: d, iso: iso, high: b.high, critical: b.critical, total: b.high + b.critical });
       }
 
-      var W = 720, H = 110, padL = 30, padR = 10, padT = 10, padB = 22;
+      var W = 720, H = 130, padL = 30, padR = 10, padT = 10, padB = 22;
       var plotW = W - padL - padR, plotH = H - padT - padB;
       var maxVal = Math.max.apply(null, series.map(function(s){ return s.total; }));
       var niceMax = maxVal <= 4 ? 4 : Math.ceil(maxVal / 5) * 5;
       var barSlot = plotW / series.length;
-      var barW = Math.max(3, barSlot * 0.55);
+      var barW = Math.max(1, Math.min(barSlot * 0.7, 14));
+      // With a long history the chart may have far more days than there is
+      // room for readable labels — space them out to roughly 8 evenly, the
+      // bars themselves still get one real slot per calendar day.
+      var labelStep = Math.max(1, Math.ceil(series.length / 8));
 
       var gridHtml = '';
       var yaxisHtml = '';
@@ -12963,18 +12962,18 @@
         var yCritTop = yHighTop - critH;
         var label = (s.date.getMonth() + 1) + '/' + s.date.getDate();
         var tip = s.total
-          ? (s.high ? (s.high + ' high') : '') + (s.high && s.critical ? ', ' : '') + (s.critical ? (s.critical + ' critical') : '')
+          ? (s.high ? (s.high + ' high') : '') + (s.high && s.critical ? ', ' : '') + (s.critical ? (s.critical + ' critical') : '') + ' — click to filter'
           : 'No flags';
         if(s.high > 0){
-          barsHtml += '<rect class="hbar" tabindex="0" x="' + x + '" y="' + yHighTop + '" width="' + barW + '" height="' + Math.max(highH, 1) + '" fill="#e8952e" data-tip-label="' + label + '" data-tip-value="' + esc(tip) + '"></rect>';
+          barsHtml += '<rect class="hbar ds-chart-bar" tabindex="0" x="' + x + '" y="' + yHighTop + '" width="' + barW + '" height="' + Math.max(highH, 1) + '" fill="#e8952e" data-tip-label="' + label + '" data-tip-value="' + esc(tip) + '" data-chart-date="' + s.iso + '"></rect>';
         }
         if(s.critical > 0){
-          barsHtml += '<rect class="hbar" tabindex="0" x="' + x + '" y="' + yCritTop + '" width="' + barW + '" height="' + Math.max(critH, 1) + '" fill="#e53553" data-tip-label="' + label + '" data-tip-value="' + esc(tip) + '"></rect>';
+          barsHtml += '<rect class="hbar ds-chart-bar" tabindex="0" x="' + x + '" y="' + yCritTop + '" width="' + barW + '" height="' + Math.max(critH, 1) + '" fill="#e53553" data-tip-label="' + label + '" data-tip-value="' + esc(tip) + '" data-chart-date="' + s.iso + '"></rect>';
         }
         if(!s.total){
-          barsHtml += '<rect x="' + x + '" y="' + (padT + plotH - 2) + '" width="' + barW + '" height="2" fill="var(--grid)" data-tip-label="' + label + '" data-tip-value="No flags"></rect>';
+          barsHtml += '<rect class="ds-chart-bar" x="' + x + '" y="' + (padT + plotH - 2) + '" width="' + barW + '" height="2" fill="var(--grid)" data-tip-label="' + label + '" data-tip-value="No flags" data-chart-date="' + s.iso + '"></rect>';
         }
-        if(idx % 5 === 0 || idx === series.length - 1){
+        if(idx % labelStep === 0 || idx === series.length - 1){
           xaxisHtml += '<text x="' + (x + barW / 2) + '" y="' + (H - 6) + '" class="axis" text-anchor="middle">' + esc(label) + '</text>';
         }
       });
@@ -12982,6 +12981,22 @@
       xaxisEl.innerHTML = xaxisHtml;
       wireBarHover({ containerId: 'ds-chart-bars', tooltipId: 'ds-chart-tooltip', dateId: 'ds-chart-tooltip-date', valueId: 'ds-chart-tooltip-value' });
     }
+
+    // Clicking a bar filters the table to that exact day — delegated once
+    // (bars are replaced wholesale on every re-render, a per-bar listener
+    // would leak/duplicate).
+    document.getElementById('ds-chart-bars').addEventListener('click', function(e){
+      var bar = e.target.closest('.ds-chart-bar');
+      if(!bar) return;
+      var iso = bar.getAttribute('data-chart-date');
+      if(!iso) return;
+      state.from = iso; state.to = iso;
+      var fromInputEl = document.getElementById('ds-from'), toInputEl = document.getElementById('ds-to');
+      if(fromInputEl) fromInputEl.value = iso;
+      if(toInputEl) toInputEl.value = iso;
+      state.offset = 0;
+      load();
+    });
 
     function refreshChart(){
       fetchAllStreaksForChart().then(renderFlagsByDayChart).catch(function(err){
@@ -13297,20 +13312,48 @@
       });
     }
 
-    // ---- details drill-down: complete event history for this streak's driver ----
+    // ---- details drill-down: driver name, avg count, description, action
+    // history, and complete daily event history — everything the main
+    // table used to show as separate columns (Emp Name/Avg Count/Action
+    // By/Timestamp/Description), moved here per direct instruction so the
+    // main table stays lean and those fields — read once, not scanned as a
+    // column — get real room instead of being squeezed. ----
     var detailMask = document.getElementById('ds-detail-mask');
     var detailTitle = document.getElementById('ds-detail-title');
     var detailSub = document.getElementById('ds-detail-sub');
     var detailSummary = document.getElementById('ds-detail-summary');
+    var detailDescription = document.getElementById('ds-detail-description');
+    var detailHistory = document.getElementById('ds-detail-history');
     var detailTbody = document.getElementById('ds-detail-tbody');
     var detailCloseBtn = document.getElementById('ds-detail-close');
 
+    function actionHistoryRowHtml(h){
+      var label = h.actionType === 'Other' ? (h.actionOtherText || 'Other') : (h.actionType || '—');
+      return '<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 10px;background:var(--surface2);border-radius:8px;font-size:12px">' +
+        '<div><strong>' + esc(label) + '</strong>' + (h.note ? ' <span style="color:var(--muted)">— ' + esc(h.note) + '</span>' : '') + '</div>' +
+        '<div style="color:var(--muted);white-space:nowrap">' + esc(h.loggedBy || '—') + ' · ' + esc(fmtActionAt(h.at)) + '</div>' +
+      '</div>';
+    }
+
     function openDriverStreakDetail(r){
-      detailTitle.textContent = 'Daily summary — ' + r.name + ' (' + r.empNo + ')';
+      detailTitle.textContent = r.name + ' (' + r.empNo + ')';
       detailSub.textContent = 'Streak: ' + r.runStart + ' – ' + r.runEnd + ' (' + fmtNum(r.streakDays) + ' day(s))';
-      detailSummary.innerHTML = '';
+      detailSummary.innerHTML = '<div class="da-inst-stat"><span class="da-inst-stat-label">Avg count</span><span class="da-inst-stat-value">' + fmtNum(r.avgCount) + '</span></div>';
+      detailDescription.textContent = streakDescription(r);
+      detailHistory.innerHTML = '<div style="color:var(--muted);font-size:12px">Loading…</div>';
       detailTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px 0">Loading…</td></tr>';
       detailMask.classList.add('on');
+
+      DB.rpc('dds_entity_action_history', { p_entity_type: 'driver', p_entity_id: r.empNo, p_limit: 20 }).then(function(res){
+        if(res.error) throw res.error;
+        var history = res.data || [];
+        detailHistory.innerHTML = history.length
+          ? history.map(actionHistoryRowHtml).join('')
+          : '<div style="color:var(--muted);font-size:12px">No actions logged yet.</div>';
+      }).catch(function(err){
+        console.error('Action history fetch failed', err);
+        detailHistory.innerHTML = '<div style="color:#c0271f;font-size:12px">Could not load action history: ' + esc(err.message || 'unknown error') + '</div>';
+      });
       // One row per day instead of one row per alert — the qualifying rule
       // (dds_driver_streaks(), 0088) is sum(event_count) per day >= 20, not
       // any single alert reaching 20, so a flat event list buried that sum
@@ -13325,6 +13368,7 @@
         var data = res.data || {};
         var dayRows = data.rows || [];
         detailSummary.innerHTML =
+          '<div class="da-inst-stat"><span class="da-inst-stat-label">Avg count</span><span class="da-inst-stat-value">' + fmtNum(r.avgCount) + '</span></div>' +
           '<div class="da-inst-stat"><span class="da-inst-stat-label">Total counts</span><span class="da-inst-stat-value">' + fmtNum(data.grandTotal || 0) + '</span></div>' +
           '<div class="da-inst-stat"><span class="da-inst-stat-label">Days</span><span class="da-inst-stat-value">' + fmtNum(data.totalDays || 0) + '</span></div>';
         if(!dayRows.length){
