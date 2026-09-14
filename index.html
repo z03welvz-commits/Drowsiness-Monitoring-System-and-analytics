@@ -12527,7 +12527,13 @@
     // CSS), and scrolling near the bottom fetches and appends the next
     // batch — per direct instruction, replacing the numbered-page pattern
     // used elsewhere in this app for this page specifically.
-    var state = { search:'', from:null, to:null, asset:null, status:null, minStreak:1, sort:'streak_days', dir:'desc', limit:50, offset:0, total:0 };
+    // Default sort is status_priority (required rows first), not streak_days:
+    // Streak Days is the length of a driver's LATEST streak, not whether it's
+    // still current, so sorting by it alone could rank a long-ago-resolved
+    // streak above a shorter but currently-required one. Streak Days stays a
+    // normal sortable column (click its header) for anyone who wants that
+    // view; this only changes what the page opens showing by default.
+    var state = { search:'', from:null, to:null, asset:null, status:null, minStreak:1, sort:'status_priority', dir:'asc', limit:50, offset:0, total:0 };
     var tbody = document.getElementById('ds-tbody');
     var scrollWrap = document.querySelector('#page-driver-streaks .da-table-wrap-flex');
     var rows = [];
