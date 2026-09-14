@@ -939,9 +939,19 @@
      against, so the browser fell back to sizing it by content and the
      footer/pagination controls floated rather than sitting in a normal
      bottom row. */
-  #page-driver-streaks.active{display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden}
+  #page-driver-streaks.active{display:flex;flex-direction:column;height:calc(100vh - 50px);overflow-y:auto}
   #page-driver-streaks.active .topbar{flex:0 0 auto}
+  /* #ds-chart-card sits between .topbar and .da-table-card now (it didn't
+     exist when this fixed-height budget was first written) — flex:0 0 auto
+     keeps it at its own natural height instead of silently eating into the
+     table's flex:1 share. .da-table-wrap-flex's own min-height (below) is
+     the floor that keeps rows visible even if the chart + the now-taller,
+     wrapped filter toolbar leave little of the fixed budget left; overflow
+     is auto (not hidden) above so a genuinely tight window scrolls the
+     whole page rather than clipping content with no way to reach it. */
+  #page-driver-streaks.active #ds-chart-card{flex:0 0 auto}
   #page-driver-streaks.active .da-table-card{flex:1;min-height:0}
+  #page-driver-streaks.active .da-table-wrap-flex{min-height:220px}
 
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
@@ -1019,6 +1029,11 @@
   td.ds-clickfilter{cursor:pointer}
   td.ds-clickfilter:hover{background:var(--surface2);text-decoration:underline}
   th.ds-clickfilter{cursor:pointer}
+  #ds-table th{overflow:hidden;text-overflow:ellipsis}
+  /* 13 explicit-width columns (see #ds-table's own colgroup comment) sum
+     past the shared .da-table{min-width:920px} floor — scoped override,
+     doesn't affect Alert Logs/Driver & Asset Monitoring's own tables. */
+  #ds-table{min-width:1390px}
   .ds-action-dd{position:relative;display:inline-block;vertical-align:middle}
   .ds-action-dd-btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:space-between;gap:8px;min-width:110px;height:28px;padding:0 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text-dim);font-size:11px;cursor:pointer}
   .ds-action-dd-btn:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
@@ -2857,7 +2872,7 @@
           </div>
         </div>
         <div class="chart-area">
-          <svg viewBox="0 0 720 180" role="img" aria-label="Bar chart of newly flagged streaks per day, by severity" id="ds-chart-svg">
+          <svg viewBox="0 0 720 110" role="img" aria-label="Bar chart of newly flagged streaks per day, by severity" id="ds-chart-svg">
             <g id="ds-chart-gridlines"></g>
             <g id="ds-chart-yaxis"></g>
             <g id="ds-chart-bars"></g>
@@ -2875,7 +2890,7 @@
       </div>
 
       <section class="card da-table-card da-table-card-flex">
-        <div class="da-table-head">
+        <div class="da-table-head da-table-head-oneline">
           <h3 class="da-table-title">Drivers on Alert Streak <small id="ds-shown">Showing 0</small></h3>
           <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." id="ds-search"></div>
           <input type="date" class="al-filter" id="ds-from" aria-label="Streak start on/after date" title="Only show streaks starting on/after this date">
@@ -2907,16 +2922,22 @@
         </div>
         <div class="da-table-wrap da-table-wrap-flex">
           <table class="da-table" id="ds-table">
-            <!-- Autofit with a floor — see #al-table's own colgroup
-                 comment (table-layout:fixed, set on #ds-table itself).
-                 Description (genuinely variable-length prose) gets the
-                 leftover width; everything else gets an explicit width
-                 sized to its content. -->
+            <!-- 13 columns, including a prose Description and an Action
+                 column wide enough for the dropdown button (min-width:110px,
+                 see .ds-action-dd-btn) — the explicit widths below sum past
+                 what fits alongside the sidebar on most windows, so this
+                 table gets its own wider min-width (below) and scrolls
+                 horizontally via the existing .da-table-wrap{overflow-x:auto}
+                 rule, same mechanism this table already relied on. Every
+                 column gets an explicit width sized to its real content;
+                 none are left to a flexible remainder, which previously
+                 got squeezed to ~0 and pushed Description/the detail button
+                 off-screen entirely. -->
             <colgroup>
-              <col style="width:85px"><col style="width:80px"><col style="width:140px">
-              <col style="width:80px"><col style="width:90px"><col>
-              <col style="width:80px"><col style="width:85px"><col style="width:170px">
-              <col style="width:100px"><col style="width:120px"><col style="width:90px"><col style="width:44px">
+              <col style="width:80px"><col style="width:75px"><col style="width:140px">
+              <col style="width:75px"><col style="width:100px"><col style="width:260px">
+              <col style="width:75px"><col style="width:80px"><col style="width:160px">
+              <col style="width:85px"><col style="width:130px"><col style="width:80px"><col style="width:44px">
             </colgroup>
             <thead>
               <tr>
@@ -12559,7 +12580,7 @@
         '<td class="ds-clickfilter" data-ds-filter="search" data-ds-value="' + esc(r.name) + '" title="Filter by this driver">' + esc(r.name) + '</td>' +
         '<td class="num">' + fmtNum(r.streakCount) + '</td>' +
         '<td class="num"><span class="al-badge ' + (sev === 'critical' ? 'critical' : 'high') + '">' + (sev === 'critical' ? 'Critical' : 'High') + '</span>&nbsp;' + fmtNum(r.streakDays) + '</td>' +
-        '<td style="white-space:normal">' + esc(streakDescription(r)) + '</td>' +
+        '<td title="' + esc(streakDescription(r)) + '">' + esc(streakDescription(r)) + '</td>' +
         '<td class="num">' + fmtNum(r.avgCount) + '</td>' +
         '<td class="num">' + fmtNum(r.runTotalCount) + '</td>' +
         '<td class="da-td-action">' +
@@ -12916,7 +12937,7 @@
         series.push({ date: d, iso: iso, high: b.high, critical: b.critical, total: b.high + b.critical });
       }
 
-      var W = 720, H = 180, padL = 30, padR = 10, padT = 10, padB = 24;
+      var W = 720, H = 110, padL = 30, padR = 10, padT = 10, padB = 22;
       var plotW = W - padL - padR, plotH = H - padT - padB;
       var maxVal = Math.max.apply(null, series.map(function(s){ return s.total; }));
       var niceMax = maxVal <= 4 ? 4 : Math.ceil(maxVal / 5) * 5;
