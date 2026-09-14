@@ -56,11 +56,22 @@
        one-off pixel value. */
     --fs-badge:9px;      /* pill badges, status tags, file-type icon letters */
     --fs-label:9.5px;    /* table headers, KPI labels, muted secondary metadata */
-    --fs-caption:10.5px; /* compact controls, toggle buttons, secondary buttons */
-    --fs-body:11.5px;    /* default body text, primary buttons, table cell text */
+    --fs-caption:11.5px; /* compact controls, toggle buttons, secondary buttons */
+    --fs-body:13px;    /* default body text, primary buttons, table cell text */
     --fs-subhead:13.5px; /* card sub-headings, section intros */
     --fs-heading:15px;   /* card/chart titles */
     --fs-display:29px;   /* page title (h1) */
+
+    /* Radius scale — surveyed live: 13 distinct border-radius values in
+       use (2/4/5/6/7/8/9/10/12/14/20/99/999px) with no shared token, only
+       the 3 tiers the skill's reference calls out. Applied here to those
+       3 named categories (.card, primary buttons, pills/badges); smaller
+       one-off values (icon chips, checkboxes, dots) are left as literals
+       — they're not really "a button" or "a card," so forcing them onto
+       this scale would be a re-design nobody asked for, not a cleanup. */
+    --radius-sm:9px;   /* buttons, inputs, small controls */
+    --radius-md:14px;  /* cards */
+    --radius-pill:999px; /* pills, badges, status tags */
   }
   /* Dark theme — applied via [data-theme="dark"] on <html>, toggled from
      Settings > Personalization or the sidebar's Dark mode switch
@@ -170,7 +181,7 @@
   .mode-toggle.signout:hover{background:rgba(239,68,68,.16);color:#fecaca}
 
   .main{min-width:0;flex:1;padding:20px 26px 30px;background:var(--bg)}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);transition:box-shadow .2s}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow);transition:box-shadow .2s}
   button.btn,.control{height:38px;border:1px solid var(--border);background:var(--card);border-radius:9px;color:var(--text-dim);font-size:var(--fs-body);padding:0 12px;transition:border-color .15s,box-shadow .15s,background-color .15s}
   button.btn:hover,.control:hover{border-color:var(--border)}
   button.btn:focus-visible,.control:focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--blue)}
@@ -183,8 +194,27 @@
   .title h1{font-size:var(--fs-display);margin:0;font-weight:800;color:var(--text-dim);line-height:1.05;letter-spacing:-.01em}
   .title p{font-size:12.5px;color:var(--muted);margin:7px 0 0}
   .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
-  .user{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:650;margin-right:2px;white-space:nowrap}
+  /* Header profile menu: turns the plain "who's signed in" chip into a
+     real dropdown (name, email, theme toggle, sign out) — previously the
+     only account entry point on any page was a text-only "Sign out" link
+     buried at the very bottom of the sidebar. Reused across every page
+     that shows this chip; see wireProfileMenu() in the shared helpers
+     block. The trigger keeps the .user class/look, now as a real button. */
+  .profile-menu{position:relative;margin-right:2px}
+  .user{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:650;white-space:nowrap}
+  button.user{all:unset;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer;padding:6px 8px;border-radius:7px}
+  button.user:hover{background:var(--surface2)}
+  button.user:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
   .online{width:7px;height:7px;border-radius:50%;background:#079669;flex:0 0 auto}
+  .profile-menu-caret{width:11px;height:11px;color:var(--muted);flex:0 0 auto;transition:transform .15s}
+  .profile-menu.open .profile-menu-caret{transform:rotate(180deg)}
+  .profile-menu-panel{position:absolute;top:calc(100% + 6px);right:0;width:220px;background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-hover);padding:10px;z-index:60}
+  .profile-menu-panel[hidden]{display:none}
+  .profile-menu-name{font-size:var(--fs-body);font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .profile-menu-email{font-size:var(--fs-caption);color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .profile-menu-divider{height:1px;background:var(--border);margin:9px 0}
+  .profile-menu-item{all:unset;box-sizing:border-box;display:block;width:100%;padding:8px 7px;border-radius:6px;font-size:var(--fs-body);color:var(--text);cursor:pointer}
+  .profile-menu-item:hover,.profile-menu-item:focus-visible{background:var(--surface2)}
   .clock-chip{display:flex;align-items:center;gap:9px;padding:8px 14px}
   .clock-chip svg{width:17px;height:17px;color:#2563eb;flex:0 0 auto}
   .clock-chip .time{font-size:15px;font-weight:750;color:#1259b6;line-height:1.15;font-variant-numeric:tabular-nums}
@@ -199,7 +229,7 @@
   .hero-text p{margin:5px 0 0;font-size:12.5px;color:#c9defb}
   .hero-status{text-align:right;flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
   .hero-status-label{font-size:var(--fs-caption);color:#a9c8f0;letter-spacing:.02em}
-  .status-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);font-size:var(--fs-body);font-weight:650}
+  .status-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:var(--radius-pill);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);font-size:var(--fs-body);font-weight:650}
   .status-pill .livedot{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.25)}
 
   /* ---------- Overview date-range filter ---------- */
@@ -286,7 +316,7 @@
   .trend-mean-label{font-size:var(--fs-badge);fill:var(--muted)}
   .trend-dot{fill:var(--card);stroke:var(--series-1);stroke-width:2.5}
   .trend-dot.peak{stroke:var(--series-8);fill:var(--series-8)}
-  .trend-badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-caption);font-weight:700;padding:4px 10px;border-radius:999px}
+  .trend-badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-caption);font-weight:700;padding:4px 10px;border-radius:var(--radius-pill)}
   .trend-badge.down{background:#dff5ea;color:#12805f}
   .trend-badge.up{background:#fdeaea;color:#c0271f}
   .trend-badge.flat{background:var(--surface2);color:var(--text-dim)}
@@ -397,7 +427,7 @@
   .an-filterbar{padding:11px 17px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:18px}
   .an-filterbar .al-filter{flex:0 0 auto;width:auto;min-width:130px}
   .an-filterbar select.al-filter{-webkit-appearance:none;appearance:none}
-  .an-active-filter{display:flex;align-items:center;gap:6px;background:#e6eefe;color:#2954e8;border-radius:999px;padding:6px 8px 6px 12px;font-size:11px;font-weight:650;flex:0 0 auto}
+  .an-active-filter{display:flex;align-items:center;gap:6px;background:#e6eefe;color:#2954e8;border-radius:var(--radius-pill);padding:6px 8px 6px 12px;font-size:11px;font-weight:650;flex:0 0 auto}
   /* This codebase's own established pattern for every other hidden-toggled
      badge/chip (.nav-badge[hidden], .al-badge[hidden], .dm-review-
      badge[hidden]) — a class with its own explicit `display` needs a
@@ -585,13 +615,18 @@
 
   /* ---------- Alert Logs page (al- prefix avoids colliding with Overview/Analytics chrome classes) ---------- */
   .al-summary{display:grid;grid-template-columns:1.15fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px}
-  .al-sc{padding:15px 16px;border-left:3px solid var(--blue)}
-  .al-sc.crit{border-left-color:#e53553}
-  .al-sc.pend{border-left-color:#e8952e}
-  .al-sc.act{border-left-color:#18a05e}
-  .al-sc-label{font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
-  .al-sc-value{font-size:24px;font-weight:800;margin-top:8px;letter-spacing:-.01em}
-  .al-sc-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:4px}
+  /* Alert Logs summary cards reuse the shared .kpi component (icon +
+     value + sub) instead of their own separate colored-left-border style
+     — was a 3rd distinct "big number" card language on top of Overview/
+     Analytics' .kpi and Summary's .su-kpi (see the design audit). No
+     spark row (these are point-in-time counts, not trend comparisons),
+     and .kpi-sub's default right-aligned/beside-the-value position is
+     overridden here since these captions are full sentences ("All
+     detected alerts matching current filters"), not short "vs prior 7d"
+     deltas — a below-the-value caption line reads better than a cramped
+     right column for that length of text. */
+  .al-kpi{grid-template-areas:"head head" "value value" "sub sub"}
+  .al-kpi-sub{grid-area:sub;justify-self:start;text-align:left;display:block;margin-top:4px}
 
   .al-table-card{padding:0}
   .al-table-head{min-height:54px;padding:14px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -642,7 +677,7 @@
   #page-alerts.active .al-summary{flex:0 0 auto}
   #page-alerts.active .al-table-card{flex:1;min-height:0;display:flex;flex-direction:column}
   #page-alerts.active .al-table-wrap{flex:1;min-height:0}
-  .al-badge{display:inline-flex;height:21px;align-items:center;border-radius:999px;padding:0 9px;font-size:var(--fs-badge);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
+  .al-badge{display:inline-flex;height:21px;align-items:center;border-radius:var(--radius-pill);padding:0 9px;font-size:var(--fs-badge);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .al-badge[hidden]{display:none}
   .al-badge.critical{background:#fdeaea;color:#e53553}
   .al-badge.high{background:#fdf0dc;color:#e8952e}
@@ -651,7 +686,7 @@
      it's visible without opening the page. Solid fill (not the light-card
      .al-badge treatment) since this sits on the sidebar's dark navy
      background. */
-  .nav-badge{display:inline-flex;height:18px;min-width:18px;align-items:center;justify-content:center;border-radius:999px;padding:0 6px;font-size:var(--fs-badge);font-weight:750;background:#e53553;color:#fff;flex:0 0 auto;font-variant-numeric:tabular-nums}
+  .nav-badge{display:inline-flex;height:18px;min-width:18px;align-items:center;justify-content:center;border-radius:var(--radius-pill);padding:0 6px;font-size:var(--fs-badge);font-weight:750;background:#e53553;color:#fff;flex:0 0 auto;font-variant-numeric:tabular-nums}
   .nav-badge[hidden]{display:none}
   /* Collapsed rail: float the badge as a small dot on the icon's corner —
      like a messenger unread-count — instead of fading it out with the
@@ -728,7 +763,7 @@
   .dm-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
   .dm-source{display:none}
   .dm-source.on{display:block}
-  .dm-review-badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:#e8952e;color:#fff;font-size:10px;font-weight:700;line-height:1}
+  .dm-review-badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:var(--radius-pill);background:#e8952e;color:#fff;font-size:10px;font-weight:700;line-height:1}
   .dm-review-badge[hidden]{display:none}
   .dm-review-row{cursor:default}
   .dm-review-candidates{font-size:11px;color:var(--muted)}
@@ -746,8 +781,8 @@
   .dm-dropzone{border:1.5px dashed var(--border);border-radius:12px;background:var(--surface2);flex:1;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:20px;text-align:center;transition:border-color .15s,background-color .15s}
   .dm-dropzone.drag{border-color:var(--blue);background:#eef5ff}
   .dm-dropzone.busy{border-style:solid;border-color:var(--blue);background:var(--card)}
-  .dm-progress-track{width:100%;max-width:220px;height:7px;background:var(--surface2);border-radius:99px;overflow:hidden;margin:4px 0}
-  .dm-progress-fill{height:100%;background:var(--blue);border-radius:99px;transition:width .2s ease}
+  .dm-progress-track{width:100%;max-width:220px;height:7px;background:var(--surface2);border-radius:var(--radius-pill);overflow:hidden;margin:4px 0}
+  .dm-progress-fill{height:100%;background:var(--blue);border-radius:var(--radius-pill);transition:width .2s ease}
   .dm-upload-cancel{all:unset;box-sizing:border-box;cursor:pointer;font-size:var(--fs-caption);font-weight:650;color:#c0271f;padding:4px 10px;border-radius:6px;border:1px solid #f3c9c9;margin-top:2px}
   .dm-upload-cancel:hover{background:#fdeaea}
   .dm-drop-note.error{color:#c0271f;font-weight:600}
@@ -768,7 +803,7 @@
   .dm-hist-body{flex:1;min-width:0}
   .dm-hist-name{font-size:11px;font-weight:650;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .dm-hist-meta{font-size:var(--fs-label);color:var(--muted);margin-top:1px}
-  .dm-hist-status{font-size:8.5px;font-weight:750;padding:3px 8px;border-radius:999px;background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em;flex:0 0 auto;white-space:nowrap}
+  .dm-hist-status{font-size:8.5px;font-weight:750;padding:3px 8px;border-radius:var(--radius-pill);background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em;flex:0 0 auto;white-space:nowrap}
   .dm-hist-link{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:var(--fs-caption);font-weight:650;display:inline-flex;align-items:center;gap:4px}
   .dm-hist-link:hover{text-decoration:underline}
   .dm-hist-link svg{width:10px;height:10px}
@@ -794,8 +829,8 @@
      override rule further down still wins per this codebase's own pattern. */
   .dm-recheck-progress{flex-basis:100%;display:flex;align-items:center;gap:10px}
   .dm-recheck-progress[hidden]{display:none}
-  .dm-recheck-progress-track{flex:1;height:6px;border-radius:999px;background:var(--surface2);overflow:hidden}
-  .dm-recheck-progress-fill{height:100%;width:0%;background:var(--blue);border-radius:999px;transition:width .2s ease}
+  .dm-recheck-progress-track{flex:1;height:6px;border-radius:var(--radius-pill);background:var(--surface2);overflow:hidden}
+  .dm-recheck-progress-fill{height:100%;width:0%;background:var(--blue);border-radius:var(--radius-pill);transition:width .2s ease}
   .dm-recheck-progress-label{font-size:var(--fs-caption);color:var(--muted);white-space:nowrap;flex:0 0 auto}
   .dm-search{flex:1 1 340px;max-width:520px;height:36px;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 11px}
   .dm-search svg{width:13px;height:13px;flex:0 0 auto;color:var(--muted)}
@@ -815,7 +850,7 @@
   .dm-file{display:flex;align-items:center;gap:9px;font-weight:650;color:var(--text-dim)}
   .dm-file-icon{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;font-size:var(--fs-badge);font-weight:800;color:#fff;flex:0 0 auto}
   .dm-tag{font-size:10px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap}
-  .dm-status{font-size:var(--fs-label);font-weight:750;padding:4px 10px;border-radius:999px;background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em}
+  .dm-status{font-size:var(--fs-label);font-weight:750;padding:4px 10px;border-radius:var(--radius-pill);background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em}
   .dm-row-actions{display:flex;align-items:center;gap:6px}
   button.dm-icon-btn{all:unset;box-sizing:border-box;cursor:pointer;width:27px;height:27px;border:1px solid var(--border);border-radius:7px;display:grid;place-items:center;color:var(--muted)}
   button.dm-icon-btn:hover{border-color:var(--border);background:var(--surface2)}
@@ -861,7 +896,7 @@
   .da-tab{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:11px 16px 12px;font-size:12.5px;font-weight:650;color:var(--muted);border-bottom:2px solid transparent}
   .da-tab:hover{color:var(--text-dim)}
   .da-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
-  .da-tab-count{font-size:var(--fs-label);font-weight:750;background:var(--surface2);color:var(--text-dim);padding:2px 7px;border-radius:999px}
+  .da-tab-count{font-size:var(--fs-label);font-weight:750;background:var(--surface2);color:var(--text-dim);padding:2px 7px;border-radius:var(--radius-pill)}
   .da-tab.on .da-tab-count{background:#dbe8fd;color:#1259b6}
   .da-view{display:none}
   .da-view.on{display:block}
@@ -939,11 +974,15 @@
      two competing scrollbars at once (#34). Per direct instruction it now
      flows like a normal page instead — the browser scrolls the whole
      page once content runs taller than the window — and only the table's
-     own row area (da-table-wrap-flex below) keeps a fixed height with
-     its own internal scroll, so a 300+ row table doesn't stretch the
-     page indefinitely; da-table-card-flex on the table's own card still
-     stacks its head/wrap/foot in a column, unrelated to page-level fit. */
-  #page-driver-streaks .da-table-wrap-flex{flex:none;height:420px;overflow-y:auto}
+     own row area (da-table-wrap-flex below) keeps a height CAP with its
+     own internal scroll, so a 300+ row table doesn't stretch the page
+     indefinitely; da-table-card-flex on the table's own card still
+     stacks its head/wrap/foot in a column, unrelated to page-level fit.
+     max-height (not a flat height) so a filtered/sparse result hugs its
+     own few rows instead of reserving a full 420px of mostly-empty card
+     — confirmed live: a 2-3 row result otherwise left ~300px of dead
+     white space between the last row and the table's own footer. */
+  #page-driver-streaks .da-table-wrap-flex{flex:none;max-height:420px;overflow-y:auto}
   /* A fixed margin (rather than relying on flex-parent spacing, gone
      above) keeps the chart-to-table gap deliberate and consistent. */
   #page-driver-streaks #ds-chart-card{margin-bottom:14px}
@@ -967,12 +1006,14 @@
      that actually uses this pattern. Rather than adding yet another
      viewport-fit budget (the exact pattern that took three rounds to get
      right on Driver Streaks before it was replaced), this applies Driver
-     Streaks' simpler fixed-height-scroller pattern directly: the page
-     flows normally, and the table's own row area is a fixed 420px with
-     its own scroll. Recently Closed below intentionally keeps plain
-     da-table-wrap (no -flex) — it's a short audit list, not meant to
-     scroll internally. */
-  #page-corrective-actions .da-table-wrap-flex{flex:none;height:420px;overflow-y:auto}
+     Streaks' simpler capped-height-scroller pattern directly: the page
+     flows normally, and the table's own row area is capped at 420px with
+     its own scroll — max-height, not a flat height, so a short result
+     (e.g. 1-2 open cases) hugs its own rows instead of reserving a full
+     420px of mostly-empty card before the footer. Recently Closed below
+     intentionally keeps plain da-table-wrap (no -flex) — it's a short
+     audit list, not meant to scroll internally. */
+  #page-corrective-actions .da-table-wrap-flex{flex:none;max-height:420px;overflow-y:auto}
 
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
@@ -1013,7 +1054,7 @@
   .da-avatar.asset{background:#f0e9fc;color:#7c3aed;border-radius:8px}
   .da-id-sub{font-size:10px;color:var(--muted);font-weight:500;margin-top:1px}
 
-  .da-risk{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:999px;padding:0 10px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
+  .da-risk{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:var(--radius-pill);padding:0 10px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .da-risk::before{content:'';width:6px;height:6px;border-radius:50%;flex:0 0 auto}
   .da-risk.high{background:#fdeaea;color:#e53553}
   .da-risk.high::before{background:#e53553}
@@ -1200,7 +1241,7 @@
   /* Sync status pill: shown while an optimistic write (single or bulk
      action) is in flight to the database, hidden once it settles. See
      the Driver & Asset Monitoring IIFE's syncEl/syncTextEl for state. */
-  .da-sync-status{display:none;align-items:center;gap:7px;height:30px;padding:0 13px;border-radius:999px;font-size:11px;font-weight:650;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);white-space:nowrap;flex:0 0 auto}
+  .da-sync-status{display:none;align-items:center;gap:7px;height:30px;padding:0 13px;border-radius:var(--radius-pill);font-size:11px;font-weight:650;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);white-space:nowrap;flex:0 0 auto}
   .da-sync-status.on{display:inline-flex}
   .da-sync-status.done{color:#18a05e;border-color:#bfe8d3;background:#dff5ea}
   .da-sync-status.error{color:#c0271f;border-color:#f3c8c8;background:#fdeaea}
@@ -1217,7 +1258,7 @@
   .da-inst-table tr:hover td{background:var(--surface2)}
   .da-inst-table .chk-col{width:34px;text-align:center;padding:0}
   .da-inst-table input[type="checkbox"]{width:15px;height:15px;cursor:pointer;accent-color:var(--blue)}
-  .da-inst-status{font-size:var(--fs-label);font-weight:750;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+  .da-inst-status{font-size:var(--fs-label);font-weight:750;padding:3px 9px;border-radius:var(--radius-pill);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
   .da-inst-status.done{background:#dff5ea;color:#18a05e}
   .da-inst-status.pending{background:#fdf0dc;color:#e8952e}
   .da-inst-row-action{font-size:var(--fs-caption);color:var(--text-dim)}
@@ -1230,15 +1271,9 @@
   button.su-export:hover{background:#1d4fd1}
   button.su-export svg{width:13px;height:13px}
 
-  .su-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:14px}
-  .su-kpi{padding:15px 16px;display:grid;grid-template-columns:1fr auto;column-gap:10px;grid-template-areas:"label label" "value sub"}
-  .su-kpi-label{grid-area:label;font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
-  .su-kpi-dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
-  .su-kpi-value{grid-area:value;align-self:center;font-size:25px;font-weight:800;letter-spacing:-.01em}
-  .su-kpi-sub{grid-area:sub;align-self:center;justify-self:end;text-align:right;font-size:var(--fs-caption);color:var(--muted)}
-  .su-kpi-sub .delta{font-weight:700}
-  .su-kpi-sub .delta.down,.su-kpi-sub .delta.up{color:var(--text-dim)}
-  .su-kpi-sub .delta.flat{color:var(--muted)}
+  /* Summary's KPI row now reuses .kpis/.kpi directly (was its own near-
+     duplicate .su-kpis/.su-kpi grid+card, same properties, separately
+     maintained — see the design audit). */
 
   .su-trend-card{padding:0 16px 14px}
   .su-trend-head{min-height:48px;padding:14px 0 4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
@@ -1339,7 +1374,7 @@
   .se-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#0a4bb0,#1972d2);color:#fff;display:grid;place-items:center;font-size:20px;font-weight:750;flex:0 0 auto}
   .se-profile-name{font-size:15px;font-weight:750;color:var(--text-dim)}
   .se-profile-role{font-size:11px;color:var(--muted);margin-top:3px}
-  .se-profile-badge{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font-size:var(--fs-label);font-weight:750;padding:3px 9px;border-radius:999px;background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em}
+  .se-profile-badge{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font-size:var(--fs-label);font-weight:750;padding:3px 9px;border-radius:var(--radius-pill);background:#dff5ea;color:#18a05e;text-transform:uppercase;letter-spacing:.02em}
   .se-profile-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:#18a05e}
   .se-profile-badge.pending{background:#fdf0dc;color:#e8952e}
   .se-profile-badge.pending::before{background:#e8952e}
@@ -1381,7 +1416,7 @@
   .se-pref-sub{font-size:var(--fs-caption);color:var(--muted);margin-top:2px}
   .se-pref-control{flex:0 0 auto;display:flex;align-items:center;gap:10px}
 
-  .se-switch{all:unset;box-sizing:border-box;cursor:pointer;width:44px;height:25px;border-radius:999px;background:var(--surface2);position:relative;transition:background-color .15s;flex:0 0 auto}
+  .se-switch{all:unset;box-sizing:border-box;cursor:pointer;width:44px;height:25px;border-radius:var(--radius-pill);background:var(--surface2);position:relative;transition:background-color .15s;flex:0 0 auto}
   .se-switch::after{content:'';position:absolute;top:2.5px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:transform .15s}
   .se-switch.on{background:var(--blue)}
   .se-switch.on::after{transform:translateX(19px)}
@@ -1389,7 +1424,7 @@
 
   .se-brightness{display:flex;align-items:center;gap:10px;width:190px}
   .se-brightness svg{width:15px;height:15px;color:var(--muted);flex:0 0 auto}
-  .se-brightness input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;height:5px;border-radius:999px;background:var(--surface2);outline:none}
+  .se-brightness input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;height:5px;border-radius:var(--radius-pill);background:var(--surface2);outline:none}
   .se-brightness input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:17px;height:17px;border-radius:50%;background:var(--blue);cursor:pointer;box-shadow:0 1px 3px rgba(15,23,42,.3)}
   .se-brightness input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--blue);cursor:pointer;border:none;box-shadow:0 1px 3px rgba(15,23,42,.3)}
   .se-brightness-val{font-size:var(--fs-caption);color:var(--muted);font-weight:650;width:32px;text-align:right;flex:0 0 auto;font-variant-numeric:tabular-nums}
@@ -1439,7 +1474,7 @@
   .se-addform-err.on{display:block}
 
   /* System Management */
-  .se-wip-badge{display:inline-flex;align-items:center;height:18px;padding:0 8px;border-radius:999px;font-size:var(--fs-badge);font-weight:750;text-transform:uppercase;letter-spacing:.02em;background:#fdf0dc;color:#e8952e;white-space:nowrap;vertical-align:middle;margin-left:6px}
+  .se-wip-badge{display:inline-flex;align-items:center;height:18px;padding:0 8px;border-radius:var(--radius-pill);font-size:var(--fs-badge);font-weight:750;text-transform:uppercase;letter-spacing:.02em;background:#fdf0dc;color:#e8952e;white-space:nowrap;vertical-align:middle;margin-left:6px}
   .se-tab .se-wip-badge{margin-left:2px}
   .se-sys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:20px 20px 6px}
   .se-sys-tile{border:1px solid var(--border);border-radius:12px;padding:16px}
@@ -1449,7 +1484,7 @@
   .se-sys-tile-title{font-size:var(--fs-body);font-weight:750;color:var(--text-dim)}
   .se-sys-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:11px;color:var(--text-dim)}
   .se-sys-row strong{color:var(--text-dim);font-weight:700}
-  .se-conf-badge{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:999px;padding:0 10px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
+  .se-conf-badge{display:inline-flex;height:22px;align-items:center;gap:5px;border-radius:var(--radius-pill);padding:0 10px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em}
   .se-conf-badge::before{content:'';width:6px;height:6px;border-radius:50%}
   .se-conf-badge.high{background:#dff5ea;color:#18a05e}
   .se-conf-badge.high::before{background:#18a05e}
@@ -1487,7 +1522,6 @@
     .kpis{grid-template-columns:repeat(3,1fr)}
     .an-kpis{grid-template-columns:repeat(3,1fr)}
     .al-summary{grid-template-columns:repeat(2,1fr)}
-    .su-kpis{grid-template-columns:repeat(3,1fr)}
   }
   @media(max-width:1080px){
     /* Trend and Hourly stack vertically below this width — no longer
@@ -1509,7 +1543,6 @@
     .stat-tiles{grid-template-columns:1fr}
     .an-kpis{grid-template-columns:repeat(2,1fr)}
     .al-summary{grid-template-columns:1fr 1fr}
-    .su-kpis{grid-template-columns:repeat(2,1fr)}
     .se-field-row{grid-template-columns:1fr}
     /* Below this width the sidebar can no longer share the row with page
        content at any usable size (it was eating 45-60% of a phone-width
@@ -1555,7 +1588,6 @@
     .dm-tabs{gap:0}
     .dm-search{width:100%;max-width:100%}
     .dm-records-head{flex-direction:column;align-items:stretch}
-    .su-kpis{grid-template-columns:1fr}
     .su-risk-table{min-width:520px}
     .su-risk-card .dm-table-wrap{overflow-x:auto}
     .se-tabs{gap:0}
@@ -1669,7 +1701,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6 13.5 15.5l-5-5L1 18"/><path d="M17 6h6v6"/></svg>
         </div>
         <div class="hero-text">
-          <h2 id="ov-greeting">Good morning, z_03welvz</h2>
+          <h2 id="ov-greeting">Welcome back</h2>
           <p>Here's what's happening with your fleet today.</p>
         </div>
       </div>
@@ -1857,6 +1889,19 @@
           <p>Analyze drowsiness patterns, contributing factors, and operational performance.</p>
         </div>
         <div class="controls">
+          <div class="profile-menu" id="an-pm">
+            <button class="user" type="button" id="an-pm-btn" aria-haspopup="true" aria-expanded="false">
+              <span class="online" aria-hidden="true"></span><span id="an-username">—</span>
+              <svg class="profile-menu-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="profile-menu-panel" id="an-pm-panel" role="menu" hidden>
+              <div class="profile-menu-name" id="an-pm-name">—</div>
+              <div class="profile-menu-email" id="an-pm-email">—</div>
+              <div class="profile-menu-divider"></div>
+              <button class="profile-menu-item" type="button" role="menuitem" data-pm-theme>Dark mode</button>
+              <button class="profile-menu-item" type="button" role="menuitem" data-pm-signout>Sign out</button>
+            </div>
+          </div>
           <div class="card clock-chip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
             <div>
@@ -2100,32 +2145,47 @@
           <h1>Alert Logs</h1>
           <p>Review detected events, severity, and actions taken</p>
         </div>
-        <div class="da-sync-status" id="al-sync-status" role="status" aria-live="polite">
-          <span class="da-sync-dot" aria-hidden="true"></span>
-          <span id="al-sync-status-text">Updating database…</span>
+        <div class="controls">
+          <div class="profile-menu" id="al-pm">
+            <button class="user" type="button" id="al-pm-btn" aria-haspopup="true" aria-expanded="false">
+              <span class="online" aria-hidden="true"></span><span id="al-username">—</span>
+              <svg class="profile-menu-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="profile-menu-panel" id="al-pm-panel" role="menu" hidden>
+              <div class="profile-menu-name" id="al-pm-name">—</div>
+              <div class="profile-menu-email" id="al-pm-email">—</div>
+              <div class="profile-menu-divider"></div>
+              <button class="profile-menu-item" type="button" role="menuitem" data-pm-theme>Dark mode</button>
+              <button class="profile-menu-item" type="button" role="menuitem" data-pm-signout>Sign out</button>
+            </div>
+          </div>
+          <div class="da-sync-status" id="al-sync-status" role="status" aria-live="polite">
+            <span class="da-sync-dot" aria-hidden="true"></span>
+            <span id="al-sync-status-text">Updating database…</span>
+          </div>
         </div>
       </header>
 
       <section class="al-summary" aria-label="Alert log summary">
-        <div class="card al-sc">
-          <div class="al-sc-label">Events in view</div>
-          <div class="al-sc-value" id="al-sc-total">—</div>
-          <div class="al-sc-sub">All detected alerts matching current filters</div>
+        <div class="card kpi al-kpi">
+          <div class="kpi-head"><span class="kpi-icon bluebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>EVENTS IN VIEW</div>
+          <div class="kpi-value" id="al-sc-total">—</div>
+          <div class="kpi-sub al-kpi-sub">All detected alerts matching current filters</div>
         </div>
-        <div class="card al-sc crit">
-          <div class="al-sc-label">Critical</div>
-          <div class="al-sc-value" id="al-sc-critical">—</div>
-          <div class="al-sc-sub" id="al-sc-critical-sub">Of events in view</div>
+        <div class="card kpi al-kpi">
+          <div class="kpi-head"><span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>CRITICAL</div>
+          <div class="kpi-value" id="al-sc-critical">—</div>
+          <div class="kpi-sub al-kpi-sub" id="al-sc-critical-sub">Of events in view</div>
         </div>
-        <div class="card al-sc pend">
-          <div class="al-sc-label">With a logged case</div>
-          <div class="al-sc-value" id="al-sc-cased">—</div>
-          <div class="al-sc-sub" id="al-sc-cased-sub">Of events in view</div>
+        <div class="card kpi al-kpi">
+          <div class="kpi-head"><span class="kpi-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/></svg></span>WITH A LOGGED CASE</div>
+          <div class="kpi-value" id="al-sc-cased">—</div>
+          <div class="kpi-sub al-kpi-sub" id="al-sc-cased-sub">Of events in view</div>
         </div>
-        <div class="card al-sc act">
-          <div class="al-sc-label">Actionable</div>
-          <div class="al-sc-value" id="al-sc-actionable">—</div>
-          <div class="al-sc-sub" id="al-sc-actionable-sub">Of events in view</div>
+        <div class="card kpi al-kpi">
+          <div class="kpi-head"><span class="kpi-icon greenbg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 13 2.5 2.5L15 11"/><circle cx="12" cy="12" r="9"/></svg></span>ACTIONABLE</div>
+          <div class="kpi-value" id="al-sc-actionable">—</div>
+          <div class="kpi-sub al-kpi-sub" id="al-sc-actionable-sub">Of events in view</div>
         </div>
       </section>
 
@@ -3070,7 +3130,19 @@
           <p>Running 7-day report across alerts, insights, and flagged drivers &amp; assets</p>
         </div>
         <div class="controls">
-          <div class="user"><span class="online" aria-hidden="true"></span>z_03welvz</div>
+          <div class="profile-menu" id="su-pm">
+            <button class="user" type="button" id="su-pm-btn" aria-haspopup="true" aria-expanded="false">
+              <span class="online" aria-hidden="true"></span><span id="su-username">—</span>
+              <svg class="profile-menu-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="profile-menu-panel" id="su-pm-panel" role="menu" hidden>
+              <div class="profile-menu-name" id="su-pm-name">—</div>
+              <div class="profile-menu-email" id="su-pm-email">—</div>
+              <div class="profile-menu-divider"></div>
+              <button class="profile-menu-item" type="button" role="menuitem" data-pm-theme>Dark mode</button>
+              <button class="profile-menu-item" type="button" role="menuitem" data-pm-signout>Sign out</button>
+            </div>
+          </div>
           <div class="su-range card">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             <span id="su-range-label">Wed–Tue · 7 days</span>
@@ -3082,31 +3154,31 @@
         </div>
       </header>
 
-      <section class="su-kpis" aria-label="7-day totals">
-        <div class="card su-kpi">
-          <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#ef4444"></span>TOTAL ALERTS</div>
-          <div class="su-kpi-value" id="su-kpi-total-value">—</div>
-          <div class="su-kpi-sub">7-day avg <strong id="su-kpi-total-avg">—</strong>/day · <span class="delta flat" id="su-kpi-total-delta">—</span></div>
+      <section class="kpis" aria-label="7-day totals">
+        <div class="card kpi">
+          <div class="kpi-head"><span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
+          <div class="kpi-value" id="su-kpi-total-value">—</div>
+          <div class="kpi-sub">7-day avg <strong id="su-kpi-total-avg">—</strong>/day · <span class="delta flat" id="su-kpi-total-delta">—</span></div>
         </div>
-        <div class="card su-kpi">
-          <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#ec4a75"></span>SLEEP ALERTS</div>
-          <div class="su-kpi-value" id="su-kpi-sleep-value">—</div>
-          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-sleep-delta">—</span></div>
+        <div class="card kpi">
+          <div class="kpi-head"><span class="kpi-icon pink" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>SLEEP ALERTS</div>
+          <div class="kpi-value" id="su-kpi-sleep-value">—</div>
+          <div class="kpi-sub"><span class="delta flat" id="su-kpi-sleep-delta">—</span></div>
         </div>
-        <div class="card su-kpi">
-          <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#e8952e"></span>DROWSINESS ALERTS</div>
-          <div class="su-kpi-value" id="su-kpi-drowsy-value">—</div>
-          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-drowsy-delta">—</span></div>
+        <div class="card kpi">
+          <div class="kpi-head"><span class="kpi-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>DROWSINESS ALERTS</div>
+          <div class="kpi-value" id="su-kpi-drowsy-value">—</div>
+          <div class="kpi-sub"><span class="delta flat" id="su-kpi-drowsy-delta">—</span></div>
         </div>
-        <div class="card su-kpi">
-          <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#3b7cf6"></span>DRIVERS INVOLVED</div>
-          <div class="su-kpi-value" id="su-kpi-drivers-value">—</div>
-          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-drivers-delta">—</span></div>
+        <div class="card kpi">
+          <div class="kpi-head"><span class="kpi-icon bluebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>DRIVERS INVOLVED</div>
+          <div class="kpi-value" id="su-kpi-drivers-value">—</div>
+          <div class="kpi-sub"><span class="delta flat" id="su-kpi-drivers-delta">—</span></div>
         </div>
-        <div class="card su-kpi">
-          <div class="su-kpi-label"><span class="su-kpi-dot" style="background:#18a05e"></span>ASSETS REPORTING</div>
-          <div class="su-kpi-value" id="su-kpi-assets-value">—</div>
-          <div class="su-kpi-sub"><span class="delta flat" id="su-kpi-assets-delta">—</span></div>
+        <div class="card kpi">
+          <div class="kpi-head"><span class="kpi-icon greenbg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>ASSETS REPORTING</div>
+          <div class="kpi-value" id="su-kpi-assets-value">—</div>
+          <div class="kpi-sub"><span class="delta flat" id="su-kpi-assets-delta">—</span></div>
         </div>
       </section>
 
@@ -3230,7 +3302,19 @@
           <p>Manage your account, preferences, users, and system data</p>
         </div>
         <div class="controls">
-          <div class="user"><span class="online" aria-hidden="true"></span>z_03welvz</div>
+          <div class="profile-menu" id="se-pm">
+            <button class="user" type="button" id="se-pm-btn" aria-haspopup="true" aria-expanded="false">
+              <span class="online" aria-hidden="true"></span><span id="se-header-username">—</span>
+              <svg class="profile-menu-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="profile-menu-panel" id="se-pm-panel" role="menu" hidden>
+              <div class="profile-menu-name" id="se-pm-name">—</div>
+              <div class="profile-menu-email" id="se-pm-email">—</div>
+              <div class="profile-menu-divider"></div>
+              <button class="profile-menu-item" type="button" role="menuitem" data-pm-theme>Dark mode</button>
+              <button class="profile-menu-item" type="button" role="menuitem" data-pm-signout>Sign out</button>
+            </div>
+          </div>
           <div class="card clock-chip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
             <div>
@@ -4321,6 +4405,67 @@
     var el = document.getElementById(elId);
     if(!el || !sess) return;
     el.textContent = (sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there';
+  }
+
+  // Turns a page's header username chip into a real profile dropdown
+  // (name, email, theme toggle, sign out) — see the .profile-menu CSS
+  // comment for why. `prefix` locates every piece by naming convention:
+  // #{prefix}-username (the chip's visible name), #{prefix}-pm-btn (the
+  // trigger button), #{prefix}-pm-panel/-name/-email (the dropdown).
+  // Reuses the sidebar's own already-correct, already-persisted dark-mode
+  // toggle and sign-out button by proxy-clicking them, rather than
+  // duplicating that logic here. Call on every session refresh — the
+  // text content updates each time, but click/outside-click/Escape
+  // wiring only binds once per trigger (data-pm-wired guard).
+  function wireProfileMenu(sess, prefix, usernameElId){
+    if(!sess) return;
+    var name = (sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there';
+    var nameEl = document.getElementById(usernameElId || (prefix + '-username'));
+    if(nameEl) nameEl.textContent = name;
+    var pmNameEl = document.getElementById(prefix + '-pm-name');
+    if(pmNameEl) pmNameEl.textContent = name;
+    var pmEmailEl = document.getElementById(prefix + '-pm-email');
+    if(pmEmailEl) pmEmailEl.textContent = sess.user.email || '';
+
+    var btn = document.getElementById(prefix + '-pm-btn');
+    var panel = document.getElementById(prefix + '-pm-panel');
+    var menu = btn && btn.closest('.profile-menu');
+    if(!btn || !panel || !menu || btn.getAttribute('data-pm-wired')) return;
+    btn.setAttribute('data-pm-wired', '1');
+
+    function close(){
+      panel.hidden = true;
+      menu.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+    function open(){
+      panel.hidden = false;
+      menu.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(panel.hidden) open(); else close();
+    });
+    document.addEventListener('click', function(e){
+      if(!panel.hidden && !menu.contains(e.target)) close();
+    });
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && !panel.hidden){ close(); btn.focus(); }
+    });
+    panel.querySelectorAll('[data-pm-theme]').forEach(function(item){
+      item.addEventListener('click', function(){
+        var sidebarToggle = document.querySelector('.mode-toggle:not(.signout)');
+        if(sidebarToggle) sidebarToggle.click();
+        close();
+      });
+    });
+    panel.querySelectorAll('[data-pm-signout]').forEach(function(item){
+      item.addEventListener('click', function(){
+        var sidebarSignout = document.getElementById('sidebar-auth-btn');
+        if(sidebarSignout) sidebarSignout.click();
+      });
+    });
   }
 
   // Request-token guard: `start()` returns a token to close over before
@@ -5973,7 +6118,7 @@
       requireSession().then(function(sess){
         if(!guard.isCurrent(token)) return;
         if(!sess){ signedOutState(); return; }
-        setHeaderUsername(sess, 'an-username');
+        wireProfileMenu(sess, 'an');
 
         var today = new Date(); today.setHours(0,0,0,0);
         // Primary window: the filter bar's explicit from/to when set,
@@ -6478,6 +6623,7 @@
       var token = summaryGuard.start();
       requireSession().then(function(sess){
         if(!summaryGuard.isCurrent(token) || !sess) return;
+        wireProfileMenu(sess, 'su');
         var today = startOfDay(new Date());
         var weekStart = addDays(today, -6);
         var prevWeekEnd = addDays(weekStart, -1);
@@ -6622,6 +6768,7 @@
     function loadPersonalInfo(){
       requireSession().then(function(sess){
         if(!sess) return;
+        wireProfileMenu(sess, 'se', 'se-header-username');
         personalState.email = sess.user.email;
         return DB.from('profiles').select('user_id, username, display_name, role, status').eq('user_id', sess.user.id).maybeSingle()
           .then(function(res){
@@ -10575,7 +10722,7 @@
           // server-side cap.
           state.limit = fitRowLimit(document.querySelector('.al-table-wrap'), 40, state.limit, 20, 200);
         }
-        setHeaderUsername(sess, 'al-username');
+        wireProfileMenu(sess, 'al');
         renderSortHeaders();
 
         fetchLogs().then(function(res){
