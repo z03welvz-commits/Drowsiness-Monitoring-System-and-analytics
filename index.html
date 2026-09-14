@@ -12820,10 +12820,24 @@
     // Cross-page bridge: Overview's Required Attention "See details" button
     // calls this after navigating here, so the row it linked from is
     // immediately visible instead of the driver having to search manually.
+    // Resets every OTHER filter too (not just search) — a leftover date
+    // range, unit, streak-length or status filter from a previous visit to
+    // this page would otherwise silently survive the navigation and could
+    // exclude the very driver Overview just flagged (e.g. a stale "3+ days"
+    // streak filter hiding a 1-2 day High/Critical flag), reproducing
+    // exactly the "flagged in Overview but looks fine here" mismatch this
+    // bridge exists to prevent.
     window.__ddsOpenDriverStreaks = function(empNo){
       if(!empNo) return;
       state.search = empNo;
+      state.from = null; state.to = null;
+      state.asset = null; state.status = null; state.minStreak = 1;
       if(searchInput) searchInput.value = empNo;
+      if(fromInput) fromInput.value = '';
+      if(toInput) toInput.value = '';
+      if(assetSelect) assetSelect.value = '';
+      if(streakSelect) streakSelect.value = '1';
+      if(statusSelect) statusSelect.value = '';
       state.offset = 0;
       load();
     };
