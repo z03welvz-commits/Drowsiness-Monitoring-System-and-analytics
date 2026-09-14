@@ -60,7 +60,13 @@
     --fs-body:13px;    /* default body text, primary buttons, table cell text */
     --fs-subhead:13.5px; /* card sub-headings, section intros */
     --fs-heading:15px;   /* card/chart titles */
-    --fs-display:29px;   /* page title (h1) */
+    --fs-display:32px;   /* page title (h1) */
+    --fs-kpi:40px;       /* KPI card big number — was sharing --fs-display
+                             with the page title (both 29px); split so a
+                             page-title bump doesn't drag KPI numbers with
+                             it and vice versa. Matches the enterprise-
+                             dashboard reference's explicit "KPI Number:
+                             40px" spec (page title there is 32px). */
 
     /* Radius scale — surveyed live: 13 distinct border-radius values in
        use (2/4/5/6/7/8/9/10/12/14/20/99/999px) with no shared token, only
@@ -253,7 +259,7 @@
      right, both vertically centered on the same grid row — value is
      the number people scan for, delta is understated supporting
      context, so it reads secondary without needing color to say so. */
-  .kpi-value{grid-area:value;align-self:center;font-size:var(--fs-display);font-weight:800;letter-spacing:-.02em}
+  .kpi-value{grid-area:value;align-self:center;font-size:var(--fs-kpi);font-weight:800;letter-spacing:-.02em}
   .kpi-sub{grid-area:sub;align-self:center;justify-self:end;text-align:right;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
   .kpi-sub .delta{font-weight:700}
   .kpi-sub .delta.down,.kpi-sub .delta.up{color:var(--text-dim)}
@@ -464,7 +470,7 @@
   .an-kpi-head{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.035em;font-weight:700;color:var(--text-dim)}
   .an-kpi-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}
   .an-kpi-icon svg{width:16px;height:16px}
-  .an-kpi-value{font-size:var(--fs-display);font-weight:800;color:var(--text);margin-top:11px;letter-spacing:-.02em;white-space:nowrap}
+  .an-kpi-value{font-size:var(--fs-kpi);font-weight:800;color:var(--text);margin-top:11px;letter-spacing:-.02em;white-space:nowrap}
   .an-kpi-sub{font-size:11px;margin-top:6px;color:var(--muted);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .an-kpi-sub .delta{font-weight:650}
   .an-kpi-sub .delta.up,.an-kpi-sub .delta.down{color:var(--text-dim)}
