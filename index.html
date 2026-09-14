@@ -954,41 +954,28 @@
      (reported as a stray floating bar next to the real one). Matching
      Driver & Asset Monitoring's overflow:hidden makes .da-table-wrap-flex
      the one scroller again, flush to the table card's own right edge. */
+  #page-driver-streaks.active #ds-filterbar{flex:0 0 auto}
   #page-driver-streaks.active #ds-chart-card{flex:0 0 auto}
   #page-driver-streaks.active .da-table-card{flex:1;min-height:0}
   #page-driver-streaks.active .da-table-wrap-flex{min-height:220px}
-  /* Driver Streaks' own toolbar, unlike .da-table-head-oneline's shared
-     default (used by Driver & Asset Monitoring, Corrective Actions, etc,
-     which deliberately wrap to a second row rather than squeeze past each
-     control's min-width — see that class's own comment), must per direct
-     instruction never drop to a second row: controls may still shrink down
-     to their existing min-width floor, but flex-wrap is forced off here,
-     scoped to this page only so the other pages keep their own wrap
-     behavior. overflow-x is the fallback for the (now rarer, with Shift
-     and Refresh removed) case where even shrunk-to-floor controls still
-     don't fit — the row scrolls horizontally instead of wrapping or
-     clipping. */
+  /* Search/date-range/status/Clear live in their own bar now, directly
+     under the page subtitle and above the chart — per direct instruction,
+     to declutter the table's own header row (which kept Unit, Streak and
+     Export). display:flex/gap/nowrap mirrors .da-table-head-oneline below
+     without .da-table-head's title-vs-controls space-between/border-
+     bottom, which this bar has no use for (no title of its own). */
+  #ds-filterbar{padding:14px 17px;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto}
+  #ds-filterbar .da-search{flex:0 1 240px;min-width:150px}
+  #ds-filterbar .al-filter{flex:0 0 auto}
+  /* Driver Streaks' own table-header toolbar, unlike .da-table-head-
+     oneline's shared default (used by Driver & Asset Monitoring,
+     Corrective Actions, etc, which deliberately wrap to a second row
+     rather than squeeze past each control's min-width — see that class's
+     own comment), must per direct instruction never drop to a second row.
+     Scoped to this page only so the other pages keep their own wrap
+     behavior; overflow-x is the fallback for a window too narrow even for
+     Unit + Streak + Export at their natural widths. */
   #page-driver-streaks .da-table-head-oneline{flex-wrap:nowrap;overflow-x:auto}
-  /* Removing Shift + Refresh bought back some width, but the remaining 7
-     controls plus title still don't fit in the ~950px this card actually
-     gets at a typical 1440px-wide window (sidebar + page padding eat the
-     rest) — so shrink the pieces that can afford it before falling back to
-     the scroll above: the title's own label text (the "Showing X of Y"
-     count is the part worth keeping legible, not the noun phrase before
-     it), the search box's floor, and every non-date control's floor.
-     ds-from/ds-to keep the shared class's 100px floor untouched — that
-     number is specifically what a native mm/dd/yyyy input needs to avoid
-     clipping its own placeholder (see .da-table-head-oneline's comment).
-     A native <select>'s own rendered value can wrap onto a second line
-     inside this flex-display control (rather than truncate) once its box
-     gets this narrow, spilling text outside the fixed 36px-tall box since
-     nothing clips it — white-space/overflow/ellipsis below is what makes
-     it truncate cleanly instead. */
-  #page-driver-streaks .da-table-head-oneline .da-search{min-width:110px}
-  #page-driver-streaks .da-table-head-oneline select.al-filter,
-  #page-driver-streaks .da-table-head-oneline button.al-filter{min-width:80px}
-  #page-driver-streaks .da-table-head-oneline select.al-filter{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;line-height:34px}
-  #page-driver-streaks .da-table-head-oneline .da-table-title{flex:0 1 140px;min-width:70px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
@@ -2891,6 +2878,26 @@
         </div>
       </header>
 
+      <!-- Search/date-range/status/Clear moved up here, out of the table's
+           own header — per direct instruction, so that row (which still
+           carries the Unit/Streak filters and Export) isn't as crowded.
+           Same ids, so nothing in the JS below (which looks these up by
+           id) needed to change. -->
+      <div class="card" id="ds-filterbar">
+        <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." id="ds-search"></div>
+        <input type="date" class="al-filter" id="ds-from" aria-label="Streak start on/after date" title="Only show streaks starting on/after this date">
+        <input type="date" class="al-filter" id="ds-to" aria-label="Streak end on/before date" title="Only show streaks ending on/before this date">
+        <select class="al-filter" id="ds-status" aria-label="Status filter">
+          <option value="">All statuses</option>
+          <option value="required">Action required</option>
+          <option value="monitoring">Monitoring</option>
+          <option value="actioned">Actioned</option>
+          <option value="resolved">Resolved</option>
+          <option value="ok">OK</option>
+        </select>
+        <button class="al-filter" type="button" id="ds-clear" style="cursor:pointer">Clear filters</button>
+      </div>
+
       <!-- Flags-by-day chart, above the table: one bar per day a streak
            started, colored by severity (High = 1 qualifying day, Critical =
            2+ consecutive days), evenly-spaced daily ticks regardless of how
@@ -2926,9 +2933,6 @@
       <section class="card da-table-card da-table-card-flex">
         <div class="da-table-head da-table-head-oneline">
           <h3 class="da-table-title">Alert Streak <small id="ds-shown">Showing 0</small></h3>
-          <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." id="ds-search"></div>
-          <input type="date" class="al-filter" id="ds-from" aria-label="Streak start on/after date" title="Only show streaks starting on/after this date">
-          <input type="date" class="al-filter" id="ds-to" aria-label="Streak end on/before date" title="Only show streaks ending on/before this date">
           <select class="al-filter" id="ds-asset" aria-label="Unit/asset filter">
             <option value="">All units</option>
           </select>
@@ -2937,15 +2941,6 @@
             <option value="2">2+ days (Critical)</option>
             <option value="3">3+ days</option>
           </select>
-          <select class="al-filter" id="ds-status" aria-label="Status filter">
-            <option value="">All statuses</option>
-            <option value="required">Action required</option>
-            <option value="monitoring">Monitoring</option>
-            <option value="actioned">Actioned</option>
-            <option value="resolved">Resolved</option>
-            <option value="ok">OK</option>
-          </select>
-          <button class="al-filter" type="button" id="ds-clear" style="cursor:pointer">Clear filters</button>
           <button class="export-btn" type="button" id="ds-export-btn" title="Export every streak matching the current filters, not just what's scrolled into view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
         </div>
         <div class="da-table-wrap da-table-wrap-flex">
@@ -12637,23 +12632,6 @@
       tbody.insertAdjacentHTML('beforeend', html);
     }
 
-    // Comparing `new Date(r.runStart)` (an MM/DD/YYYY string — parsed as
-    // LOCAL midnight) against `new Date(state.from)` (a bare YYYY-MM-DD
-    // string, from a date input or the chart's click-filter — parsed as
-    // UTC midnight, per spec) silently excludes same-day matches in any
-    // timezone ahead of UTC: a single-day streak's local midnight can fall
-    // hours before the UTC midnight of the "same" nominal date. Comparing
-    // the two as plain YYYY-MM-DD strings (via mdyToIso, defined below —
-    // function declarations hoist) sidesteps Date parsing entirely and
-    // sorts identically to chronological order.
-    function streakOverlapsRange(r){
-      if(!state.from && !state.to) return true;
-      var start = mdyToIso(r.runStart), end = mdyToIso(r.runEnd);
-      if(state.from && end && end < state.from) return false;
-      if(state.to && start && start > state.to) return false;
-      return true;
-    }
-
     function load(opts){
       opts = opts || {};
       var isLoadMore = !!opts.loadMore;
@@ -12688,7 +12666,8 @@
           p_search: state.search || null, p_min_streak: state.minStreak || 1,
           p_sort: state.sort, p_dir: state.dir,
           p_limit: state.limit, p_offset: state.offset,
-          p_asset: state.asset || null, p_status: state.status || null
+          p_asset: state.asset || null, p_status: state.status || null,
+          p_from: state.from || null, p_to: state.to || null
         }).then(function(res){
           if(res.error) throw res.error;
           var data = res.data || {};
@@ -12703,14 +12682,6 @@
           // send the field at all (openCount undefined), so the badge
           // stays hidden rather than showing a wrong/stale number.
           if(!isLoadMore) updateOpenBadge(data.openCount);
-          // Client-side date-range narrowing on the streak's own start/end
-          // — the RPC itself doesn't take from/to (a streak is a computed
-          // property of full history, not a filterable row attribute the
-          // way an event's own date is), so "narrow the all-time view" per
-          // the user's own answer means: show only streaks whose window
-          // overlaps the chosen range, applied to what the server already
-          // fetched.
-          fetched = fetched.filter(streakOverlapsRange);
           if(fetched.length < state.limit) reachedEnd = true;
           state.offset += (data.rows || []).length;
           if(isLoadMore){
@@ -12857,7 +12828,8 @@
           p_search: state.search || null, p_min_streak: state.minStreak || 1,
           p_sort: state.sort, p_dir: state.dir,
           p_limit: DS_EXPORT_PAGE_SIZE, p_offset: offset,
-          p_asset: state.asset || null, p_status: state.status || null
+          p_asset: state.asset || null, p_status: state.status || null,
+          p_from: state.from || null, p_to: state.to || null
         }).then(function(res){
           if(res.error) throw res.error;
           var data = res.data || {};
@@ -12866,7 +12838,7 @@
           collected = collected.concat(fetched);
           var hitCap = collected.length >= DS_EXPORT_MAX_ROWS;
           if(fetched.length < DS_EXPORT_PAGE_SIZE || collected.length >= total || hitCap){
-            var filtered = collected.filter(streakOverlapsRange);
+            var filtered = collected;
             if(total > collected.length){
               alert('Exported the first ' + fmtNum(collected.length) + ' of ' + fmtNum(total) + ' matching streaks — narrow the search above for a complete export.');
             }
@@ -12894,7 +12866,8 @@
           p_search: state.search || null, p_min_streak: state.minStreak || 1,
           p_sort: 'streak_days', p_dir: 'desc',
           p_limit: DS_EXPORT_PAGE_SIZE, p_offset: offset,
-          p_asset: state.asset || null, p_status: state.status || null
+          p_asset: state.asset || null, p_status: state.status || null,
+          p_from: state.from || null, p_to: state.to || null
         }).then(function(res){
           if(res.error) throw res.error;
           var data = res.data || {};
@@ -12902,8 +12875,7 @@
           var total = data.total || 0;
           collected = collected.concat(fetched);
           if(fetched.length < DS_EXPORT_PAGE_SIZE || collected.length >= total || collected.length >= DS_EXPORT_MAX_ROWS){
-            var filtered = collected.filter(streakOverlapsRange);
-            return filtered;
+            return collected;
           }
           return loop(offset + DS_EXPORT_PAGE_SIZE);
         });
