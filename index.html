@@ -931,51 +931,33 @@
   #page-driver-asset.active .da-view.on{flex:1;min-height:0;display:flex;flex-direction:column}
   #page-driver-asset.active .da-view.on > .da-table-card{flex:1;min-height:0}
 
-  /* Driver Streaks reuses the same .da-table-card-flex/.da-table-wrap-flex
-     fit-to-viewport pattern as Driver & Asset Monitoring above, but this
-     page has no tabs to size around — its single table card IS the
-     flexible row directly under the topbar. Without this page-level rule
-     the flex-column table card had no bounded parent height to size
-     against, so the browser fell back to sizing it by content and the
-     footer/pagination controls floated rather than sitting in a normal
-     bottom row. */
-  #page-driver-streaks.active{display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden}
-  #page-driver-streaks.active .topbar{flex:0 0 auto}
-  /* #ds-chart-card sits between .topbar and .da-table-card now (it didn't
-     exist when this fixed-height budget was first written) — flex:0 0 auto
-     keeps it at its own natural height instead of silently eating into the
-     table's flex:1 share. .da-table-wrap-flex's own min-height (below) is
-     the floor that keeps rows visible even if the chart + the now-taller,
-     wrapped filter toolbar leave little of the fixed budget left. This was
-     briefly overflow:auto instead of hidden as a tight-viewport safety net,
-     but that let the page itself scroll AND .da-table-wrap-flex scroll at
-     the same time whenever the page's natural height ran even slightly
-     past the viewport — two nested, simultaneously-active scrollbars
-     (reported as a stray floating bar next to the real one). Matching
-     Driver & Asset Monitoring's overflow:hidden makes .da-table-wrap-flex
-     the one scroller again, flush to the table card's own right edge. */
-  #page-driver-streaks.active #ds-filterbar{flex:0 0 auto}
-  #page-driver-streaks.active #ds-chart-card{flex:0 0 auto}
-  #page-driver-streaks.active .da-table-card{flex:1;min-height:0}
-  #page-driver-streaks.active .da-table-wrap-flex{min-height:220px}
-  /* Search/date-range/status/Clear live in their own bar now, directly
-     under the page subtitle and above the chart — per direct instruction,
-     to declutter the table's own header row (which kept Unit, Streak and
-     Export). display:flex/gap/nowrap mirrors .da-table-head-oneline below
-     without .da-table-head's title-vs-controls space-between/border-
-     bottom, which this bar has no use for (no title of its own). */
+  /* Driver Streaks used to fit itself to the viewport (matching Driver &
+     Asset Monitoring's pattern above), with only the table's row area
+     scrolling internally — but that fixed-height flex budget needed
+     re-tuning every time a new element was added above the table (the
+     chart, then the filter bar), and even tuned it could still produce
+     two competing scrollbars at once (#34). Per direct instruction it now
+     flows like a normal page instead — the browser scrolls the whole
+     page once content runs taller than the window — and only the table's
+     own row area (da-table-wrap-flex below) keeps a fixed height with
+     its own internal scroll, so a 300+ row table doesn't stretch the
+     page indefinitely; da-table-card-flex on the table's own card still
+     stacks its head/wrap/foot in a column, unrelated to page-level fit. */
+  #page-driver-streaks .da-table-wrap-flex{flex:none;height:420px;overflow-y:auto}
+  /* A fixed margin (rather than relying on flex-parent spacing, gone
+     above) keeps the chart-to-table gap deliberate and consistent. */
+  #page-driver-streaks #ds-chart-card{margin-bottom:14px}
+  /* Search/date-range/Unit/Streak/Status/Clear all live in this one bar
+     now, directly under the page subtitle and above the chart — per
+     direct instruction, so the table's own header keeps just its title
+     and Export (top-right). display:flex/gap/nowrap mirrors
+     .da-table-head-oneline without .da-table-head's title-vs-controls
+     space-between/border-bottom, which this bar has no use for (no title
+     of its own); overflow-x is the fallback for a window too narrow for
+     every control at once. */
   #ds-filterbar{padding:14px 17px;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto}
   #ds-filterbar .da-search{flex:0 1 240px;min-width:150px}
   #ds-filterbar .al-filter{flex:0 0 auto}
-  /* Driver Streaks' own table-header toolbar, unlike .da-table-head-
-     oneline's shared default (used by Driver & Asset Monitoring,
-     Corrective Actions, etc, which deliberately wrap to a second row
-     rather than squeeze past each control's min-width — see that class's
-     own comment), must per direct instruction never drop to a second row.
-     Scoped to this page only so the other pages keep their own wrap
-     behavior; overflow-x is the fallback for a window too narrow even for
-     Unit + Streak + Export at their natural widths. */
-  #page-driver-streaks .da-table-head-oneline{flex-wrap:nowrap;overflow-x:auto}
 
   .da-table-wrap{overflow-x:auto}
   .da-table{width:100%;border-collapse:collapse;min-width:920px}
@@ -1531,7 +1513,6 @@
     .main{padding-top:64px}
     #page-driver-asset.active{height:calc(100vh - 36px)}
     #page-alerts.active{height:calc(100vh - 36px)}
-    #page-driver-streaks.active{height:calc(100vh - 36px)}
   }
   @media(max-width:640px){
     /* Below this width the page's own layout already reflows heavily
@@ -1545,8 +1526,6 @@
     #page-alerts.active{height:auto;overflow:visible;display:block}
     #page-alerts.active .al-table-card{flex:none;display:block}
     #page-alerts.active .al-table-wrap{flex:none;overflow-y:visible}
-    #page-driver-streaks.active{height:auto;overflow:visible;display:block}
-    #page-driver-streaks.active .da-table-card{flex:none;display:block}
     .topbar{flex-direction:column;align-items:stretch;width:100%}
     .controls{justify-content:flex-start;width:100%;min-width:0}
     .kpis{grid-template-columns:1fr}
@@ -2503,20 +2482,20 @@
         <section class="card dm-records-card">
           <div class="dm-records-head">
             <h3 class="dm-records-title">All Contributing Factors <small>Showing 8 of 126</small></h3>
-            <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search factor or category..." data-search-table="dm-table-factors"></div>
+            <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search description or type..." data-search-table="dm-table-factors"></div>
           </div>
           <div class="dm-table-wrap">
             <table class="dm-table" id="dm-table-factors">
-              <thead><tr><th data-sort="detail">Factor</th><th data-sort="factor_type">Category</th><th>Related Alerts</th><th data-sort="start_time">Last Updated</th><th>Action</th></tr></thead>
+              <thead><tr><th data-sort="start_time">Date</th><th>Shift</th><th data-sort="factor_type">Type of Factors</th><th data-sort="detail">Description</th><th>Duration (hrs)</th><th data-sort="logged_at">Time Lag</th><th>Action</th></tr></thead>
               <tbody>
-                <tr><td>Extended shift duration</td><td><span class="dm-tag amber">Fatigue</span></td><td>412</td><td>Jun 30, 2025</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
-                <tr><td>Night shift rotation</td><td><span class="dm-tag amber">Fatigue</span></td><td>388</td><td>Jun 29, 2025</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
-                <tr><td>Poor cab ventilation</td><td><span class="dm-tag bluebg">Environment</span></td><td>94</td><td>Jun 27, 2025</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
-                <tr><td>Consecutive workdays &gt; 6</td><td><span class="dm-tag amber">Fatigue</span></td><td>221</td><td>Jun 25, 2025</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
-                <tr><td>Heavy rainfall / low visibility</td><td><span class="dm-tag bluebg">Environment</span></td><td>67</td><td>Jun 24, 2025</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
-                <tr><td>Pre-existing sleep disorder</td><td><span class="dm-tag purplebg">Medical</span></td><td>18</td><td>Jun 20, 2025</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
-                <tr><td>Route monotony (long straight haul)</td><td><span class="dm-tag greenbg">Route</span></td><td>145</td><td>Jun 18, 2025</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
-                <tr><td>Medication side effects</td><td><span class="dm-tag purplebg">Medical</span></td><td>9</td><td>Jun 15, 2025</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
+                <tr><td>Jun 30, 2025</td><td>Day</td><td><span class="dm-tag amber">Fatigue</span></td><td>Extended shift duration</td><td>2.5</td><td>Jun 30 · 18:42</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
+                <tr><td>Jun 29, 2025</td><td>Night</td><td><span class="dm-tag amber">Fatigue</span></td><td>Night shift rotation</td><td>8</td><td>Jun 30 · 07:10</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
+                <tr><td>Jun 27, 2025</td><td>Day</td><td><span class="dm-tag bluebg">Environment</span></td><td>Poor cab ventilation</td><td>1</td><td>Jun 27 · 15:05</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
+                <tr><td>Jun 25, 2025</td><td>Day</td><td><span class="dm-tag amber">Fatigue</span></td><td>Consecutive workdays &gt; 6</td><td>—</td><td>Jun 25 · 20:33</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
+                <tr><td>Jun 24, 2025</td><td>Night</td><td><span class="dm-tag bluebg">Environment</span></td><td>Heavy rainfall / low visibility</td><td>0.5</td><td>Jun 25 · 06:52</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
+                <tr><td>Jun 20, 2025</td><td>Day</td><td><span class="dm-tag purplebg">Medical</span></td><td>Pre-existing sleep disorder</td><td>—</td><td>Jun 20 · 14:18</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
+                <tr><td>Jun 18, 2025</td><td>Day</td><td><span class="dm-tag greenbg">Route</span></td><td>Route monotony (long straight haul)</td><td>6</td><td>Jun 18 · 19:47</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
+                <tr><td>Jun 15, 2025</td><td>Night</td><td><span class="dm-tag purplebg">Medical</span></td><td>Medication side effects</td><td>—</td><td>Jun 16 · 08:24</td><td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -2637,8 +2616,10 @@
             <div class="dm-modal-field"><label for="dm-ml-status">Status</label><select id="dm-ml-status"><option>Active</option><option>On Leave</option><option>Inactive</option><option value="__other__">Other…</option></select><input type="text" class="dm-other-input" id="dm-ml-status-other" placeholder="Enter status" style="margin-top:8px;display:none"></div>
           </div>
           <div class="dm-modal-body" id="dm-modal-body-factors" style="display:none">
-            <div class="dm-modal-field"><label for="dm-fac-factor">Factor</label><input type="text" id="dm-fac-factor" placeholder="e.g. Extended shift duration"></div>
-            <div class="dm-modal-row"><div class="dm-modal-field"><label for="dm-fac-category">Category</label><select id="dm-fac-category"><option>Fatigue</option><option>Environment</option><option>Medical</option><option>Route</option><option value="__other__">Other…</option></select><input type="text" class="dm-other-input" id="dm-fac-category-other" placeholder="Enter category" style="margin-top:8px;display:none"></div><div class="dm-modal-field"><label for="dm-fac-related">Related Alert ID</label><input type="text" id="dm-fac-related" placeholder="Optional"></div></div>
+            <div class="dm-modal-row"><div class="dm-modal-field"><label for="dm-fac-date">Date</label><input type="date" id="dm-fac-date"></div><div class="dm-modal-field"><label for="dm-fac-shift">Shift</label><select id="dm-fac-shift"><option value="DAY">Day</option><option value="NIGHT">Night</option></select></div></div>
+            <div class="dm-modal-field"><label for="dm-fac-category">Type of Factors</label><select id="dm-fac-category"><option>Fatigue</option><option>Environment</option><option>Medical</option><option>Route</option><option value="__other__">Other…</option></select><input type="text" class="dm-other-input" id="dm-fac-category-other" placeholder="Enter type of factor" style="margin-top:8px;display:none"></div>
+            <div class="dm-modal-field"><label for="dm-fac-factor">Description</label><input type="text" id="dm-fac-factor" placeholder="e.g. Extended shift duration"></div>
+            <div class="dm-modal-field"><label for="dm-fac-duration">Duration (hrs)</label><input type="number" id="dm-fac-duration" min="0" step="0.1" placeholder="e.g. 2.5"></div>
           </div>
           <div class="dm-modal-foot">
             <button class="dm-modal-cancel" type="button" id="dm-modal-cancel">Cancel</button>
@@ -2878,15 +2859,22 @@
         </div>
       </header>
 
-      <!-- Search/date-range/status/Clear moved up here, out of the table's
-           own header — per direct instruction, so that row (which still
-           carries the Unit/Streak filters and Export) isn't as crowded.
-           Same ids, so nothing in the JS below (which looks these up by
-           id) needed to change. -->
+      <!-- Every filter now lives up here, out of the table's own header —
+           per direct instruction, so that row keeps just its title and
+           Export (top-right). Same ids throughout, so nothing in the JS
+           below (which looks these up by id) needed to change. -->
       <div class="card" id="ds-filterbar">
         <div class="da-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search driver name or ID..." id="ds-search"></div>
         <input type="date" class="al-filter" id="ds-from" aria-label="Streak start on/after date" title="Only show streaks starting on/after this date">
         <input type="date" class="al-filter" id="ds-to" aria-label="Streak end on/before date" title="Only show streaks ending on/before this date">
+        <select class="al-filter" id="ds-asset" aria-label="Unit/asset filter">
+          <option value="">All units</option>
+        </select>
+        <select class="al-filter" id="ds-streak" aria-label="Streak length filter">
+          <option value="1">Any streak</option>
+          <option value="2">2+ days (Critical)</option>
+          <option value="3">3+ days</option>
+        </select>
         <select class="al-filter" id="ds-status" aria-label="Status filter">
           <option value="">All statuses</option>
           <option value="required">Action required</option>
@@ -2933,14 +2921,6 @@
       <section class="card da-table-card da-table-card-flex">
         <div class="da-table-head da-table-head-oneline">
           <h3 class="da-table-title">Alert Streak <small id="ds-shown">Showing 0</small></h3>
-          <select class="al-filter" id="ds-asset" aria-label="Unit/asset filter">
-            <option value="">All units</option>
-          </select>
-          <select class="al-filter" id="ds-streak" aria-label="Streak length filter">
-            <option value="1">Any streak</option>
-            <option value="2">2+ days (Critical)</option>
-            <option value="3">3+ days</option>
-          </select>
           <button class="export-btn" type="button" id="ds-export-btn" title="Export every streak matching the current filters, not just what's scrolled into view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
         </div>
         <div class="da-table-wrap da-table-wrap-flex">
@@ -2997,6 +2977,24 @@
           <p>Every currently open flag, oldest first. A row opens the day an entity's event count exceeds 10, or its day-total holds at 20+ for 3 consecutive days, and keeps accumulating until an action is logged, which closes every open day at once.</p>
         </div>
       </header>
+
+      <!-- One shared Drivers/Assets tab, filtering both the Open Cases and
+           Recently Closed tables below (not a full duplicated-view split
+           like Driver & Asset Monitoring's — both tables already render
+           either entity type through the same columns via r.entityType,
+           so this only needs to filter which rows go in, not two separate
+           table markups). data-ca-tab (not data-da-tab) so this doesn't
+           collide with Driver & Asset Monitoring's own page-wide tab
+           click handler, which listens for data-da-tab anywhere in the
+           document. -->
+      <div class="da-tabs" role="tablist" aria-label="Entity type">
+        <button class="da-tab on" type="button" role="tab" aria-selected="true" data-ca-tab="driver">
+          Drivers <span class="da-tab-count" data-ca-tabcount="driver">0</span>
+        </button>
+        <button class="da-tab" type="button" role="tab" aria-selected="false" data-ca-tab="asset">
+          Assets <span class="da-tab-count" data-ca-tabcount="asset">0</span>
+        </button>
+      </div>
 
       <section class="card da-table-card da-table-card-flex">
         <div class="da-table-head da-table-head-oneline">
@@ -7883,9 +7881,9 @@
         th.classList.toggle('asc', col === factorsState.sort && factorsState.dir === 'asc');
       });
       requireSession().then(function(sess){
-        if(!sess){ tbody.innerHTML = signedOutRow(5, 'contributing factors'); clearCounts(titleSmall, foot); return; }
+        if(!sess){ tbody.innerHTML = signedOutRow(7, 'contributing factors'); clearCounts(titleSmall, foot); return; }
         var q = DB.from('contributing_factors')
-          .select('id, factor_type, detail, start_time, end_time, notes', { count: 'exact' })
+          .select('id, factor_type, detail, start_time, end_time, shift, duration_hours, logged_at', { count: 'exact' })
           .order(factorsState.sort, { ascending: factorsState.dir === 'asc' }).limit(8);
         if(factorsState.search){
           // Server-side, same as Minestat/Masterlist — searching must see
@@ -7901,22 +7899,24 @@
             if(titleSmall) titleSmall.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(total);
             if(foot) foot.textContent = 'Rows 1–' + rows.length + ' of ' + fmtNum(total);
             if(!rows.length){
-              tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px 0">No contributing factors logged yet.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">No contributing factors logged yet.</td></tr>';
               return;
             }
             tbody.innerHTML = rows.map(function(r){
               var tag = CATEGORY_TAG[r.factor_type] || 'bluebg';
-              var editPayload = { id: r.id, factorType: r.factor_type || '', detail: r.detail || '', startTime: r.start_time };
+              var editPayload = { id: r.id, factorType: r.factor_type || '', detail: r.detail || '', startTime: r.start_time, shift: r.shift || '', durationHours: r.duration_hours };
               return '<tr>' +
-                '<td>' + esc(r.detail || r.factor_type) + '</td>' +
-                '<td><span class="dm-tag ' + tag + '">' + esc(r.factor_type) + '</span></td>' +
-                '<td>—</td>' +
                 '<td>' + esc(fmtDateShort(r.start_time).split(' · ')[0]) + '</td>' +
+                '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : (r.shift === 'DAY' ? 'Day' : '—')) + '</td>' +
+                '<td><span class="dm-tag ' + tag + '">' + esc(r.factor_type) + '</span></td>' +
+                '<td>' + esc(r.detail || '—') + '</td>' +
+                '<td>' + (r.duration_hours != null ? esc(String(r.duration_hours)) : '—') + '</td>' +
+                '<td>' + esc(fmtDateShort(r.logged_at)) + '</td>' +
                 '<td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit" data-fac-edit=\'' + esc(JSON.stringify(editPayload)) + '\'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td>' +
               '</tr>';
             }).join('');
           });
-      }).catch(function(err){ tbody.innerHTML = errorRow(5, err); });
+      }).catch(function(err){ tbody.innerHTML = errorRow(7, err); });
     }
 
     // ==================== Upload History (per-source panels) ====================
@@ -8124,6 +8124,13 @@
           inp.classList.remove('on');
         });
       }
+      // Most factors get logged the day they happen — default Date to
+      // today rather than making every add start with an empty required
+      // field (openFactorEdit overwrites this with the row's own date).
+      if(key === 'factors'){
+        var facDateEl = document.getElementById('dm-fac-date');
+        if(facDateEl) facDateEl.value = new Date().toISOString().slice(0, 10);
+      }
     }
     // Masterlist rows can already be safely edited today: dds_upsert_drivers
     // upserts on emp_no as its conflict key (0018_driver_masterlist.sql), so
@@ -8203,6 +8210,12 @@
       if(modalTitleEl) modalTitleEl.textContent = 'Edit Record';
       modalSub.textContent = 'Update this contributing factor';
       document.getElementById('dm-fac-factor').value = row.detail;
+      var dateEl = document.getElementById('dm-fac-date');
+      if(dateEl) dateEl.value = row.startTime ? String(row.startTime).slice(0, 10) : '';
+      var shiftEl = document.getElementById('dm-fac-shift');
+      if(shiftEl && row.shift) shiftEl.value = row.shift;
+      var durationEl = document.getElementById('dm-fac-duration');
+      if(durationEl) durationEl.value = row.durationHours != null ? row.durationHours : '';
       var catSel = document.getElementById('dm-fac-category');
       var knownCat = ['Fatigue', 'Environment', 'Medical', 'Route'].indexOf(row.factorType) !== -1;
       if(knownCat){
@@ -9705,8 +9718,12 @@
     function saveFactor(){
       var factor = document.getElementById('dm-fac-factor').value.trim();
       var category = selectOrOther('dm-fac-category');
-      if(!factor) throw new Error('Factor is required.');
-      if(!category) throw new Error('Category is required — enter a value for "Other".');
+      var dateVal = document.getElementById('dm-fac-date').value;
+      var shift = document.getElementById('dm-fac-shift').value;
+      var durationVal = document.getElementById('dm-fac-duration').value;
+      if(!dateVal) throw new Error('Date is required.');
+      if(!category) throw new Error('Type of factors is required — enter a value for "Other".');
+      if(!factor) throw new Error('Description is required.');
       return requireSession().then(function(sess){
         if(!sess) throw new Error('Sign in required to save records.');
         // logged_by is REQUIRED by factors_insert's RLS with-check
@@ -9714,9 +9731,14 @@
         // NULL default here is not a valid auth.uid() match and the row
         // is silently rejected by RLS if omitted, the same class of bug
         // 0002's own dds_ingest() comment already documents for uploaded_by.
+        // logged_at needs no value here — it's a DB-side now() default,
+        // the "automated timestamp" Time Lag displays; start_time is the
+        // Date field itself now, not "when this was saved" (per direct
+        // instruction, replacing the old new Date().toISOString() default).
         return DB.from('contributing_factors').insert({
-          factor_type: category, detail: factor,
-          start_time: new Date().toISOString(), logged_by: sess.user.id
+          factor_type: category, detail: factor, shift: shift,
+          duration_hours: durationVal ? Number(durationVal) : null,
+          start_time: dateVal + 'T00:00:00', logged_by: sess.user.id
         });
       });
     }
@@ -10123,12 +10145,20 @@
     function saveFactorEdit(){
       var factor = document.getElementById('dm-fac-factor').value.trim();
       var category = selectOrOther('dm-fac-category');
-      if(!factor) throw new Error('Factor is required.');
-      if(!category) throw new Error('Category is required — enter a value for "Other".');
+      var dateVal = document.getElementById('dm-fac-date').value;
+      var shift = document.getElementById('dm-fac-shift').value;
+      var durationVal = document.getElementById('dm-fac-duration').value;
+      if(!dateVal) throw new Error('Date is required.');
+      if(!category) throw new Error('Type of factors is required — enter a value for "Other".');
+      if(!factor) throw new Error('Description is required.');
       return requireSession().then(function(sess){
         if(!sess) throw new Error('Sign in required to save records.');
         return DB.from('contributing_factors')
-          .update({ factor_type: category, detail: factor })
+          .update({
+            factor_type: category, detail: factor, shift: shift,
+            duration_hours: durationVal ? Number(durationVal) : null,
+            start_time: dateVal + 'T00:00:00'
+          })
           .eq('id', editState.factorId);
       });
     }
@@ -13418,9 +13448,20 @@
     var bulkClearBtn = document.getElementById('ca-bulk-clear');
 
     var allOpenRows = [];
-    var selected = {}; // key "type|id" -> row object
+    var allClosedRows = [];
+    var selected = {}; // key "type|id" -> row object, kept across tab switches so a
+                        // bulk action can mix drivers and assets, same as the modal's
+                        // own per-row entityType dispatch already supports.
+    var activeTab = 'driver';
 
     function rowKey(r){ return r.entityType + '|' + r.entityId; }
+
+    function updateTabCounts(){
+      ['driver', 'asset'].forEach(function(kind){
+        var el = document.querySelector('[data-ca-tabcount="' + kind + '"]');
+        if(el) el.textContent = fmtNum(allOpenRows.filter(function(r){ return r.entityType === kind; }).length);
+      });
+    }
 
     // Same status-pill convention as Driver & Asset Monitoring / Driver
     // Streaks (.da-status.required/.actioned/.monitoring) — reused here so
@@ -13437,22 +13478,33 @@
       return d.toISOString().slice(0, 10);
     }
 
+    // Tab-filtered first, then search — same rows the "select all" checkbox
+    // should act on, so checking it while on the Drivers tab never silently
+    // selects hidden Asset rows too.
+    function visibleOpenRows(){
+      var byTab = allOpenRows.filter(function(r){ return r.entityType === activeTab; });
+      var q = (searchInput.value || '').trim().toLowerCase();
+      return q ? byTab.filter(function(r){
+        return r.name.toLowerCase().indexOf(q) !== -1 || r.entityId.toLowerCase().indexOf(q) !== -1;
+      }) : byTab;
+    }
+
     function updateBulkBar(){
       var count = Object.keys(selected).length;
       bulkCountEl.textContent = fmtNum(count) + (count === 1 ? ' selected' : ' selected');
       bulkBar.classList.toggle('on', count > 0);
-      var all = allOpenRows.length > 0 && allOpenRows.every(function(r){ return selected[rowKey(r)]; });
+      var visible = visibleOpenRows();
+      var all = visible.length > 0 && visible.every(function(r){ return selected[rowKey(r)]; });
       selectAllBox.checked = all;
     }
 
     function renderOpen(){
+      var tabTotal = allOpenRows.filter(function(r){ return r.entityType === activeTab; }).length;
+      var rows = visibleOpenRows();
       var q = (searchInput.value || '').trim().toLowerCase();
-      var rows = q ? allOpenRows.filter(function(r){
-        return r.name.toLowerCase().indexOf(q) !== -1 || r.entityId.toLowerCase().indexOf(q) !== -1;
-      }) : allOpenRows;
 
-      document.getElementById('ca-open-shown').textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(allOpenRows.length);
-      document.getElementById('ca-open-rowsrange').textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(allOpenRows.length);
+      document.getElementById('ca-open-shown').textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(tabTotal);
+      document.getElementById('ca-open-rowsrange').textContent = 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(tabTotal);
 
       if(!rows.length){
         openTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">No open cases' + (q ? ' matching "' + esc(q) + '"' : '') + '.</td></tr>';
@@ -13487,7 +13539,8 @@
       });
     }
 
-    function renderClosed(rows){
+    function renderClosed(){
+      var rows = allClosedRows.filter(function(r){ return r.entityType === activeTab; });
       if(!rows.length){
         closedTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px 0">No recently closed cases.</td></tr>';
         return;
@@ -13515,10 +13568,12 @@
           if(res.error) throw res.error;
           var data = res.data || {};
           allOpenRows = data.open || [];
+          allClosedRows = data.recentlyClosed || [];
           selected = {};
           updateBulkBar();
+          updateTabCounts();
           renderOpen();
-          renderClosed(data.recentlyClosed || []);
+          renderClosed();
           var navBadge = document.getElementById('ca-nav-badge');
           if(navBadge){
             if(allOpenRows.length){ navBadge.hidden = false; navBadge.textContent = fmtNum(allOpenRows.length); }
@@ -13535,9 +13590,22 @@
 
     if(searchInput) searchInput.addEventListener('input', renderOpen);
     document.getElementById('ca-refresh').addEventListener('click', load);
+    document.querySelectorAll('[data-ca-tab]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        activeTab = btn.getAttribute('data-ca-tab');
+        document.querySelectorAll('[data-ca-tab]').forEach(function(b){
+          var on = b === btn;
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        renderOpen();
+        renderClosed();
+        updateBulkBar();
+      });
+    });
     selectAllBox.addEventListener('change', function(){
-      if(selectAllBox.checked){ allOpenRows.forEach(function(r){ selected[rowKey(r)] = r; }); }
-      else { selected = {}; }
+      if(selectAllBox.checked){ visibleOpenRows().forEach(function(r){ selected[rowKey(r)] = r; }); }
+      else { visibleOpenRows().forEach(function(r){ delete selected[rowKey(r)]; }); }
       renderOpen();
       updateBulkBar();
     });
