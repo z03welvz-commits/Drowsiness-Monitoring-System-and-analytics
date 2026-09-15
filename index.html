@@ -13704,6 +13704,19 @@
       if(!p || p.length !== 3) return null;
       return p[2] + '-' + p[0] + '-' + p[1];
     }
+    // Per direct instruction: the per-alert drill-down's Start/End Time
+    // columns show the full mm/dd/yy hh:mm:ss — a NIGHT shift's events can
+    // cross midnight into the next calendar date, so a time-only display
+    // would make an end time that's actually the next day read as earlier
+    // than its own start time.
+    function fmtDayEventDateTime(iso){
+      if(!iso) return '—';
+      var d = new Date(iso);
+      if(isNaN(d.getTime())) return '—';
+      var pad = function(n){ return String(n).padStart(2, '0'); };
+      return pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + '/' + String(d.getFullYear()).slice(-2) +
+        ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    }
 
     // Applies the chosen action to every event within THIS driver's own
     // streak date range — dds_bulk_log_case_action_by_driver already
@@ -13907,6 +13920,16 @@
     var detailHistory = document.getElementById('ds-detail-history');
     var detailTbody = document.getElementById('ds-detail-tbody');
     var detailCloseBtn = document.getElementById('ds-detail-close');
+    // Per-alert drill-down state for the currently-open detail modal: which
+    // driver it's for, the day-by-day rows it's showing (so a click on a
+    // day can look up that row's exact emp_no/shift_date/shift/asset_id —
+    // the same grouping key dds_driver_daily_summary used for the row —
+    // without re-parsing anything out of the DOM), and a per-index cache
+    // of fetched events so re-expanding a day already opened this session
+    // doesn't refetch it.
+    var currentDetailEmpNo = null;
+    var currentDayRows = [];
+    var dayEventsCache = {};
 
     function actionHistoryRowHtml(h){
       var label = h.actionType === 'Other' ? (h.actionOtherText || 'Other') : (h.actionType || '—');
@@ -13916,7 +13939,90 @@
       '</div>';
     }
 
+    // Per-alert drill-down, triggered by clicking a day-by-day row's own
+    // Date cell. Scoped to that exact row's (shift_date, shift, unit) — the
+    // same grouping key dds_driver_daily_summary already used to produce
+    // this row's own numEvents/rowTotal — so the individual alerts shown
+    // here always sum to exactly this row's totals, never a wider slice.
+    function dayEventsPanelHtml(di){
+      var cache = dayEventsCache[di] || {};
+      if(cache.loading) return '<div style="padding:10px 14px;color:var(--muted);font-size:11.5px">Loading…</div>';
+      if(cache.error) return '<div style="padding:10px 14px;color:#c0271f;font-size:11.5px">Could not load: ' + esc(cache.error) + '</div>';
+      var events = cache.events || [];
+      if(!events.length) return '<div style="padding:10px 14px;color:var(--muted);font-size:11.5px">No individual alert records found.</div>';
+      var rowsHtml = events.map(function(ev){
+        return '<tr>' +
+          '<td>' + esc(fmtDayEventDateTime(ev.startTime)) + '</td>' +
+          '<td>' + esc(fmtDayEventDateTime(ev.endTime)) + '</td>' +
+          '<td>' + esc(ev.assetId || '—') + '</td>' +
+          '<td>' + esc(ev.eventCode || '—') + '</td>' +
+          '<td>' + fmtNum(ev.eventCount || 0) + '</td>' +
+        '</tr>';
+      }).join('');
+      return '<div style="padding:6px 0">' +
+        '<table class="da-inst-table" style="min-width:0"><thead><tr>' +
+          '<th>Start Time</th><th>End Time</th><th>Asset Number</th><th>Event Code</th><th>Event Count</th>' +
+        '</tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
+      '</div>';
+    }
+
+    function dayRowHtml(dr, di){
+      // One row per (date, shift, unit) — a new shift or a new unit on
+      // the same date is a separate row, not merged into one.
+      var shiftLabel = dr.shift === 'NIGHT' ? 'Night' : (dr.shift === 'DAY' ? 'Day' : (dr.shift || '—'));
+      var qualifiesTag = dr.qualifies
+        ? '<span class="dm-tag red">Qualifies</span>'
+        : '<span class="dm-tag greenbg">Below threshold</span>';
+      var mainRow = '<tr>' +
+        '<td class="ds-clickfilter" data-ds-day-toggle="' + di + '" title="Click to see individual alerts for this day">' + esc(dr.shiftDate || '—') + '</td>' +
+        '<td>' + esc(shiftLabel) + '</td>' +
+        '<td>' + esc(dr.unit || '—') + '</td>' +
+        '<td>' + fmtNum(dr.numEvents || 0) + '</td>' +
+        '<td>' + fmtNum(dr.rowTotal || 0) + '</td>' +
+        '<td>' + qualifiesTag + '</td>' +
+      '</tr>';
+      if(!dayEventsCache[di] || !dayEventsCache[di].open) return mainRow;
+      return mainRow + '<tr><td colspan="6" style="padding:0 10px;background:var(--surface2)">' + dayEventsPanelHtml(di) + '</td></tr>';
+    }
+
+    function renderDayRows(){
+      detailTbody.innerHTML = currentDayRows.map(dayRowHtml).join('');
+    }
+
+    function toggleDayEvents(di){
+      var dr = currentDayRows[di];
+      if(!dr) return;
+      var cache = dayEventsCache[di];
+      if(cache && cache.open){
+        cache.open = false;
+        renderDayRows();
+        return;
+      }
+      if(cache && cache.events){
+        cache.open = true;
+        renderDayRows();
+        return;
+      }
+      dayEventsCache[di] = { open: true, loading: true };
+      renderDayRows();
+      DB.rpc('dds_driver_day_events', {
+        p_emp_no: currentDetailEmpNo, p_shift_date: mdyToIso(dr.shiftDate),
+        p_shift: dr.shift, p_asset_id: dr.unit, p_limit: 200, p_offset: 0
+      }).then(function(res){
+        if(res.error) throw res.error;
+        dayEventsCache[di] = { open: true, loading: false, events: (res.data && res.data.rows) || [] };
+        renderDayRows();
+      }).catch(function(err){
+        console.error('Driver day events fetch failed', err);
+        dayEventsCache[di] = { open: true, loading: false, error: (err && err.message) || 'unknown error' };
+        renderDayRows();
+      });
+    }
+
     function openDriverStreakDetail(r){
+      currentDetailEmpNo = r.empNo;
+      currentDayRows = [];
+      dayEventsCache = {};
       detailTitle.textContent = r.name + ' (' + r.empNo + ')';
       detailSub.textContent = 'Streak: ' + r.runStart + ' – ' + r.runEnd + ' (' + fmtNum(r.streakDays) + ' day(s)) · Unit: ' + (r.unit || '—');
       detailSummary.innerHTML =
@@ -13970,6 +14076,7 @@
         if(res.error) throw res.error;
         var data = res.data || {};
         var dayRows = data.rows || [];
+        currentDayRows = dayRows;
         detailSummary.innerHTML =
           '<div class="da-inst-stat"><span class="da-inst-stat-label">Avg count</span><span class="da-inst-stat-value">' + fmtNum(r.avgCount) + '</span></div>' +
           '<div class="da-inst-stat"><span class="da-inst-stat-label">Unit</span><span class="da-inst-stat-value">' + esc(r.unit || '—') + '</span></div>' +
@@ -13979,22 +14086,7 @@
           detailTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px 0">No event history found for the current filters.</td></tr>';
           return;
         }
-        detailTbody.innerHTML = dayRows.map(function(dr){
-          // One row per (date, shift, unit) — a new shift or a new unit on
-          // the same date is a separate row, not merged into one.
-          var shiftLabel = dr.shift === 'NIGHT' ? 'Night' : (dr.shift === 'DAY' ? 'Day' : (dr.shift || '—'));
-          var qualifiesTag = dr.qualifies
-            ? '<span class="dm-tag red">Qualifies</span>'
-            : '<span class="dm-tag greenbg">Below threshold</span>';
-          return '<tr>' +
-            '<td>' + esc(dr.shiftDate || '—') + '</td>' +
-            '<td>' + esc(shiftLabel) + '</td>' +
-            '<td>' + esc(dr.unit || '—') + '</td>' +
-            '<td>' + fmtNum(dr.numEvents || 0) + '</td>' +
-            '<td>' + fmtNum(dr.rowTotal || 0) + '</td>' +
-            '<td>' + qualifiesTag + '</td>' +
-          '</tr>';
-        }).join('');
+        renderDayRows();
       }).catch(function(err){
         console.error('Driver daily summary fetch failed', err);
         detailTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:24px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
@@ -14010,6 +14102,11 @@
     });
     if(detailCloseBtn) detailCloseBtn.addEventListener('click', function(){ detailMask.classList.remove('on'); });
     if(detailMask) detailMask.addEventListener('click', function(e){ if(e.target === detailMask) detailMask.classList.remove('on'); });
+    if(detailTbody) detailTbody.addEventListener('click', function(e){
+      var cell = e.target.closest('[data-ds-day-toggle]');
+      if(!cell) return;
+      toggleDayEvents(Number(cell.getAttribute('data-ds-day-toggle')));
+    });
 
     window.__ddsPageLoad['driver-streaks'] = load;
     load();
