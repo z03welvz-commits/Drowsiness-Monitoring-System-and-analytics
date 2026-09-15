@@ -6165,7 +6165,7 @@
     function renderRiskTable(){
       var tbody = document.getElementById('su-risk-tbody');
       if(!tbody) return;
-      var state = window.__daState, computeRisk = window.__daComputeRisk, recommendation = window.__daRecommendation, escapeHtml = window.__daEscapeHtml;
+      var state = window.__daState, computeRisk = window.__daComputeRisk, recommendation = window.__daRecommendation, escapeHtml = window.__daEscapeHtml, statusBadgeHtml = window.__daStatusBadgeHtml;
       if(!state || !computeRisk){ tbody.innerHTML = '<tr><td class="su-empty" colspan="6">Driver &amp; Asset data not available.</td></tr>'; return; }
 
       var order = { high:0, medium:1, low:2 };
@@ -6191,9 +6191,7 @@
 
       tbody.innerHTML = rows.map(function(r){
         var rec_ = recommendation ? recommendation(r.risk) : { label:'—' };
-        var statusHtml = r.rec.status === 'required'
-          ? '<span class="da-status required">Action required</span>'
-          : '<span class="da-status actioned">Actioned</span>';
+        var statusHtml = statusBadgeHtml ? statusBadgeHtml(r.rec.status) : escapeHtml(r.rec.status);
         return '<tr>' +
           '<td class="su-risk-name">' + escapeHtml(r.rec.name) + '<small>' + escapeHtml(r.rec.id) + '</small></td>' +
           '<td><span class="su-risk-kind">' + (r.kind === 'drivers' ? 'Driver' : 'Asset') + '</span></td>' +
@@ -11386,6 +11384,28 @@
       return { key:'continue', label:'Continue' };
     }
 
+    // dds_driver_asset_weekly() can return 5 distinct status values
+    // (required/monitoring/actioned/resolved/ok — see 0135/0136's own
+    // comments). Audit finding: both places that render this as a badge
+    // (this drawer, and Summary's renderRiskTable()) used a binary ternary
+    // instead of a full mapping — one treated everything but 'actioned' as
+    // "Action required", the other treated everything but 'required' as
+    // "Actioned", so an 'ok' or 'monitoring' entity could render as either
+    // wrong label depending on which screen showed it. One shared mapping,
+    // using the same .da-status modifier classes already styled in CSS for
+    // all 5 values, replaces both ternaries.
+    var DA_STATUS_META = {
+      required:   { cls:'required',   label:'Action required' },
+      monitoring: { cls:'monitoring', label:'Monitoring' },
+      actioned:   { cls:'actioned',   label:'Actioned' },
+      resolved:   { cls:'resolved',   label:'Resolved' },
+      ok:         { cls:'ok',         label:'OK' }
+    };
+    function daStatusBadgeHtml(status){
+      var meta = DA_STATUS_META[status] || DA_STATUS_META.ok;
+      return '<span class="da-status ' + meta.cls + '">' + meta.label + '</span>';
+    }
+
     // ---- new summary table: dds_driver_event_summary / dds_asset_event_summary ----
     // Row grain is one row per driver/asset with an aggregated event-code
     // breakdown (per user decision), server-side searched/sorted/paged the
@@ -12165,7 +12185,7 @@
       document.getElementById('da-drawer-total').textContent = scored.total;
       document.getElementById('da-drawer-risk-val').innerHTML = '<span class="da-risk ' + (scored.risk === 'high' ? 'high' : scored.risk === 'medium' ? 'med' : 'low') + '">' + scored.risk + '</span>';
       document.getElementById('da-drawer-rec-val').innerHTML = '<span class="da-rec ' + rec_.key + '"><span class="da-rec-dot"></span>' + rec_.label + '</span>';
-      document.getElementById('da-drawer-status-val').innerHTML = rec.status === 'actioned' ? '<span class="da-status actioned">Actioned</span>' : '<span class="da-status required">Action required</span>';
+      document.getElementById('da-drawer-status-val').innerHTML = daStatusBadgeHtml(rec.status);
 
       var maxCount = 20;
       DAY_ORDER.forEach(function(d){ (rec.days[d]||[]).forEach(function(c){ if(c > maxCount) maxCount = c; }); });
@@ -12512,6 +12532,7 @@
     window.__daComputeRisk = computeRisk;
     window.__daRecommendation = recommendation;
     window.__daEscapeHtml = esc;
+    window.__daStatusBadgeHtml = daStatusBadgeHtml;
 
     // Phase 8: re-fetch on every nav to this page — see window.__ddsPageLoad.
     // Also completes the master prompt's own integration loop (a new alert
