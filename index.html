@@ -168,14 +168,6 @@
   .brand-text,.nav-label,.section-label,.mode-toggle span{transition:opacity .12s ease}
   .sidebar.collapsed .nav-item,.sidebar.collapsed .mode-toggle{justify-content:center}
   .sidebar.collapsed .nav-item,.sidebar.collapsed .mode-toggle{gap:0}
-  /* .mode-toggle span ("Dark mode"/"Sign out") fades via opacity like
-     .nav-label, but opacity alone doesn't free its layout space — the
-     invisible text was still pushing the icon off-center in the
-     collapsed rail. Zeroing its width (restored on hover/pinned-open,
-     alongside every other collapsed-fade element) fixes that. */
-  .sidebar.collapsed .mode-toggle span{width:0;overflow:hidden}
-  .sidebar.collapsed:hover .mode-toggle,.sidebar.collapsed.pinned-open .mode-toggle{gap:14px}
-  .sidebar.collapsed:hover .mode-toggle span,.sidebar.collapsed.pinned-open .mode-toggle span{width:auto;overflow:visible}
   .sidebar-pin{all:unset;box-sizing:border-box;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#b9d7fb;flex:0 0 auto;margin-left:auto;cursor:pointer;transition:background-color .15s,color .15s;opacity:0;pointer-events:none}
   .sidebar-pin:hover{background:rgba(255,255,255,.1);color:#fff}
   .sidebar-pin:focus-visible{outline:2px solid #fff;outline-offset:-2px}
@@ -208,7 +200,16 @@
   .mode-toggle:hover{background:rgba(255,255,255,.07)}
   .mode-toggle:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   .mode-toggle svg{width:17px;height:17px;flex:0 0 auto}
-  .mode-toggle span{white-space:nowrap}
+  /* flex:1, matching .nav-label exactly: this is what keeps the icon's
+     own position fixed regardless of collapsed/expanded state. A span
+     that only grows to fit its own text (the old behavior) changes the
+     row's total content width when it fades in on hover-expand, and
+     justify-content:center (shared with .nav-item, harmless there for
+     the same reason) then visibly shifts the icon sideways to re-center
+     that wider content block. A span that always claims the rest of the
+     row leaves nothing for centering to redistribute, so the icon never
+     moves — exactly how .nav-item's icon already never moves. */
+  .mode-toggle span{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .mode-toggle.signout:hover{background:rgba(239,68,68,.16);color:#fecaca}
 
   .main{min-width:0;flex:1;padding:20px 26px 30px;background:var(--bg)}
