@@ -564,6 +564,13 @@
   .an-legend{display:flex;gap:14px;font-size:var(--fs-body);color:var(--muted);font-weight:500}
   .an-legend span{display:flex;align-items:center;gap:5px}
   .an-swatch{width:8px;height:8px;border-radius:50%;flex:0 0 auto;display:inline-block}
+  /* Qlik-Sense-style toggleable legend (Alert Trend's contributing-factor
+     rows) — a real checkbox, not a styled span, so it's keyboard-operable
+     and announces its checked state to a screen reader for free. */
+  .an-factor-legend{display:flex;gap:14px;flex-wrap:wrap;padding:7px 0 0;font-size:var(--fs-caption);color:var(--text-dim)}
+  .an-factor-legend label{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+  .an-factor-legend input[type="checkbox"]{width:13px;height:13px;cursor:pointer;accent-color:var(--blue);margin:0}
+  .an-factor-legend label[hidden]{display:none}
   .an-chart-area{height:200px;padding-top:7px;position:relative}
   .an-chart-area svg{width:100%;height:100%;display:block}
   .an-axis{font-size:8px;fill:var(--muted)}
@@ -2057,6 +2064,19 @@
       <section class="an-charts-top an-row-3col">
         <div class="card an-chart-card" id="anAssetVolumeCard">
           <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Operating Hours</span></div></div>
+          <!-- Qlik-Sense-style checkbox legend for the contributing-factor
+               sub-series (per direct instruction) — deliberately separate
+               from the plain-dot Alerts/Operating Hours legend above:
+               those two base lines are always shown, only the factor
+               breakdown is selectable. Built generically per real event
+               code family (sleep/drowsy/other) rather than hardcoded to
+               4 assumed categories — see renderTrend()'s own comment for
+               why. -->
+          <div class="an-factor-legend" id="an-trend-factor-legend">
+            <label><input type="checkbox" id="an-factor-sleep" checked><i class="an-swatch" style="background:#e53553"></i>Sleep</label>
+            <label><input type="checkbox" id="an-factor-drowsy" checked><i class="an-swatch" style="background:#f0902e"></i>Drowsiness</label>
+            <label id="an-factor-other-row" hidden><input type="checkbox" id="an-factor-other"><i class="an-swatch" style="background:#94a3b8"></i>Other</label>
+          </div>
           <div class="an-chart-area">
             <!-- Hand-rolled SVG (smoothPathD + wireChartHover), matching this
                  page's own Hourly Trend/Alert Sync Time cards and Overview's
@@ -5470,9 +5490,19 @@
     }
     function aggregateTrend(trend){
       return trendBuckets(trend).map(function(b){
-        var units = 0, operatingHours = 0;
-        b.items.forEach(function(t){ units += t.units || 0; operatingHours += t.operatingHours || 0; });
-        return { label: b.label, units: units, operatingHours: operatingHours };
+        var units = 0, operatingHours = 0, criticalUnits = 0, highUnits = 0;
+        b.items.forEach(function(t){
+          units += t.units || 0; operatingHours += t.operatingHours || 0;
+          criticalUnits += t.criticalUnits || 0; highUnits += t.highUnits || 0;
+        });
+        // otherUnits — everything left over once Sleep/Drowsiness are
+        // subtracted out, i.e. the real event_code families severityBadge()
+        // folds into "moderate"/"Other" (inattentive, posture, unmatched).
+        // Derived here rather than added as its own dds_metrics() field —
+        // it's a pure subtraction of two numbers already on this object,
+        // not a new aggregation.
+        var otherUnits = Math.max(units - criticalUnits - highUnits, 0);
+        return { label: b.label, units: units, operatingHours: operatingHours, criticalUnits: criticalUnits, highUnits: highUnits, otherUnits: otherUnits };
       });
     }
     // KPI sparklines used to always plot the last 14 raw days regardless of
@@ -5514,7 +5544,15 @@
     // points (daily/weekly/monthly, see aggregateTrend above) always
     // spreads evenly across this one fixed-size viewport with no scrolling
     // case to handle, unlike a bar chart's discrete per-category slots.
+    // Sleep/Drowsiness default ON (the two real event codes this fleet
+    // actually has today, confirmed live), Other default OFF — matches
+    // the mockup's own "some checked, some not" starting state. Kept
+    // outside renderTrend() so a checkbox toggle survives that function's
+    // own re-renders without resetting.
+    var trendFactorState = { sleep: true, drowsy: true, other: false };
+    var trendLastCur = null;
     function renderTrend(cur){
+      trendLastCur = cur;
       var trend = cur.trend || [];
       var linesEl = document.getElementById('an-trend-lines');
       if(!linesEl) return;
@@ -5551,6 +5589,40 @@
         '<path d="' + alertsAreaD + '" fill="url(#anTrendFill)" stroke="none"/>' +
         '<path d="' + hoursLineD + '" fill="none" style="stroke:var(--series-2)" stroke-width="2.5" stroke-dasharray="6 4" stroke-linecap="round" stroke-linejoin="round"/>' +
         '<path d="' + alertsLineD + '" fill="none" style="stroke:var(--series-1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+
+      // Contributing-factor sub-series (Sleep/Drowsiness/Other), Qlik-Sense
+      // legend-style show/hide per direct instruction. Each is plotted on
+      // the SAME yForAlerts scale as the main Alerts line rather than a
+      // secondary axis — no scaling trick is needed for "factors don't
+      // flatten the main trend" because Sleep+Drowsiness+Other sum to
+      // exactly `units` by construction (see aggregateTrend), so no factor
+      // line can ever exceed the Alerts axis it already shares. Built
+      // generically per real event-code family, not hardcoded to 4
+      // assumed categories — this fleet's real data currently only has
+      // Sleep/Drowsiness (confirmed live), so "Other" is hidden entirely
+      // rather than shown as a permanently-flat, always-empty line.
+      var otherTotal = points.reduce(function(s, p){ return s + (p.otherUnits || 0); }, 0);
+      var otherRow = document.getElementById('an-factor-other-row');
+      if(otherRow) otherRow.hidden = otherTotal <= 0;
+      if(otherTotal <= 0){
+        trendFactorState.other = false;
+        var otherBox = document.getElementById('an-factor-other');
+        if(otherBox) otherBox.checked = false;
+      }
+      var factorPaths = '';
+      if(trendFactorState.sleep){
+        var ptsSleep = points.map(function(p, i){ return [xFor(i), yForAlerts(p.criticalUnits || 0)]; });
+        factorPaths += '<path d="' + smoothPathD(ptsSleep) + '" fill="none" style="stroke:#e53553" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+      }
+      if(trendFactorState.drowsy){
+        var ptsDrowsy = points.map(function(p, i){ return [xFor(i), yForAlerts(p.highUnits || 0)]; });
+        factorPaths += '<path d="' + smoothPathD(ptsDrowsy) + '" fill="none" style="stroke:#f0902e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+      }
+      if(trendFactorState.other && otherTotal > 0){
+        var ptsOther = points.map(function(p, i){ return [xFor(i), yForAlerts(p.otherUnits || 0)]; });
+        factorPaths += '<path d="' + smoothPathD(ptsOther) + '" fill="none" style="stroke:#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+      }
+      linesEl.innerHTML += factorPaths;
 
       if(yAlertsEl){
         yAlertsEl.innerHTML = '<text x="34" y="' + (T+4) + '" class="an-axis" text-anchor="end">' + fmtNum(Math.round(topAlerts)) + '</text>' +
@@ -5596,6 +5668,17 @@
         }
       });
     }
+    (function(){
+      var boxes = { sleep: document.getElementById('an-factor-sleep'), drowsy: document.getElementById('an-factor-drowsy'), other: document.getElementById('an-factor-other') };
+      Object.keys(boxes).forEach(function(key){
+        var box = boxes[key];
+        if(!box) return;
+        box.addEventListener('change', function(){
+          trendFactorState[key] = box.checked;
+          if(trendLastCur) renderTrend(trendLastCur);
+        });
+      });
+    })();
 
     // ==================== Hourly Trend by Month ====================
     var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
