@@ -3094,7 +3094,7 @@
                  remaining 8 columns comfortably fit without the wide
                  horizontal-scroll table the 13-column version needed. -->
             <colgroup>
-              <col style="width:110px"><col style="width:100px"><col style="width:110px">
+              <col style="width:110px"><col style="width:100px">
               <col style="width:130px"><col style="width:110px"><col style="width:180px">
               <col style="width:150px"><col style="width:50px">
             </colgroup>
@@ -3102,15 +3102,11 @@
               <tr>
                 <th class="ds-clickfilter" data-ds-sort="run_end" title="Click a row's date to filter by it">Date Flag</th>
                 <th class="ds-clickfilter" data-ds-sort="emp_no" title="Click a row's Emp No to filter by it">Emp No</th>
-                <!-- Streak Count and Streak Days answer different questions and
-                     can coincidentally show the same number (e.g. a driver
-                     with exactly one qualifying streak ever, and that streak
-                     is 1 day long): Streak Count is how many separate
-                     qualifying streaks this driver has had across their
-                     entire history (dds_driver_streaks()'s run_counts CTE);
-                     Streak Days is the length, in consecutive days, of just
-                     their latest streak (the one this row describes). -->
-                <th title="How many separate qualifying streaks this driver has had, across their entire history">Streak Count</th>
+                <!-- Streak Count (how many separate qualifying streaks this
+                     driver has had across their entire history) was dropped
+                     per direct instruction: Streak Days (the length of just
+                     this row's latest streak) is the number that's actually
+                     monitored day to day. -->
                 <th data-ds-sort="streak_days" title="Length, in consecutive days, of this driver's latest streak">Streak Days</th>
                 <th data-ds-sort="run_total_count">Total Count</th>
                 <th>Action</th>
@@ -3118,7 +3114,7 @@
                 <th></th>
               </tr>
             </thead>
-            <tbody id="ds-tbody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+            <tbody id="ds-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
           </table>
         </div>
         <div class="da-table-foot">
@@ -13135,7 +13131,6 @@
       return '<tr data-ds-row="' + i + '">' +
         '<td class="num ds-clickfilter" data-ds-filter="date" data-ds-value="' + esc(mdyToIso(r.runStart) || '') + '" title="Filter by this date">' + esc(r.runStart) + '</td>' +
         '<td class="num ds-clickfilter" data-ds-filter="search" data-ds-value="' + esc(r.empNo) + '" title="' + esc(r.name || '') + ' — filter by this Emp No">' + esc(r.empNo) + '</td>' +
-        '<td class="num">' + fmtNum(r.streakCount) + '</td>' +
         '<td class="num"><span class="al-badge ' + (sev === 'critical' ? 'critical' : 'high') + '">' + (sev === 'critical' ? 'Critical' : 'High') + '</span>&nbsp;' + fmtNum(r.streakDays) + '</td>' +
         '<td class="num">' + fmtNum(r.runTotalCount) + '</td>' +
         '<td class="da-td-action">' +
@@ -13157,7 +13152,7 @@
     // just fully replaced.
     function renderRows(){
       if(!rows.length){
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">No drivers currently on an alert streak.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map(rowHtml).join('');
@@ -13184,7 +13179,7 @@
         state.offset = 0;
         reachedEnd = false;
         rows = [];
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
         // Fill the available row area on this first batch instead of
         // always fetching a fixed 50 — see fitRowLimit's own comment
         // (shared with Alert Logs / Driver & Asset Monitoring). Infinite
@@ -13200,7 +13195,7 @@
       requireSession().then(function(sess){
         if(mySeq !== loadSeq) return; // superseded by a newer load() while awaiting the session
         if(!sess){
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           loadingMore = false;
           return;
         }
@@ -13245,7 +13240,7 @@
         if(isLoadMore){
           updateFooter();
         } else {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
         }
       });
     }
@@ -13365,7 +13360,7 @@
     var DS_EXPORT_MAX_ROWS = 20000;
     var DS_EXPORT_COLUMNS = [
       { key:'runStart', label:'Date Flag' }, { key:'empNo', label:'Emp No' }, { key:'name', label:'Emp Name' },
-      { key:'streakCount', label:'Streak Count' }, { key:'streakDays', label:'Streak Days' }, { key:'description', label:'Description' },
+      { key:'streakDays', label:'Streak Days' }, { key:'description', label:'Description' },
       { key:'avgCount', label:'Avg Count' }, { key:'runTotalCount', label:'Total Count' },
       { key:'lastActionType', label:'Action' }, { key:'lastActionBy', label:'Action By' },
       { key:'status', label:'Status' }, { key:'timestamp', label:'Timestamp' }
@@ -13373,7 +13368,7 @@
     function dsExportRow(r){
       return {
         runStart: r.runStart || '', empNo: r.empNo || '', name: r.name || '',
-        streakCount: r.streakCount || 0, streakDays: r.streakDays || 0, description: streakDescription(r),
+        streakDays: r.streakDays || 0, description: streakDescription(r),
         avgCount: r.avgCount || 0, runTotalCount: r.runTotalCount || 0,
         lastActionType: r.lastAction ? (r.lastAction.type || '') : '', lastActionBy: r.lastAction ? (r.lastAction.by || '') : '',
         status: r.status || '', timestamp: fmtActionAt(r.lastAction && r.lastAction.at)
@@ -13928,15 +13923,21 @@
         '<div class="da-inst-stat"><span class="da-inst-stat-label">Avg count</span><span class="da-inst-stat-value">' + fmtNum(r.avgCount) + '</span></div>' +
         '<div class="da-inst-stat"><span class="da-inst-stat-label">Unit</span><span class="da-inst-stat-value">' + esc(r.unit || '—') + '</span></div>';
       detailDescription.textContent = streakDescription(r);
-      // Detail data is scoped to whatever date-range/unit filters are active
-      // on the Driver Streaks page itself (state.from/to/asset), not the
-      // driver's complete history — so what's shown here always matches
-      // what's currently on screen for the rest of the page.
+      // Used to scope this fetch to the page's active date-range/unit
+      // filters (state.from/to/asset) instead of the row's own streak —
+      // meaning "Total counts"/"Days" here could silently disagree with
+      // this same row's own Total Count/Streak Days columns whenever the
+      // page filter didn't happen to match the streak's actual dates
+      // (data-integrity bug, not a display quirk: e.g. a row reading
+      // Total Count 86 could pop open a detail showing Total Counts 116).
+      // Always scoped to the streak's own run_start/run_end now — this
+      // panel is a drill-down into THIS row, so its numbers must foot to
+      // it exactly, never to whatever the page's filter bar happens to
+      // say. No unit filter either: run_total_count on the row doesn't
+      // filter by unit, so this shouldn't either, or the two would still
+      // disagree whenever the streak spans more than one asset.
       var filterNote = document.getElementById('ds-detail-filternote');
-      var activeFilters = [];
-      if(state.from || state.to) activeFilters.push('Date range: ' + (state.from || '…') + ' – ' + (state.to || '…'));
-      if(state.asset) activeFilters.push('Unit: ' + state.asset);
-      if(filterNote) filterNote.textContent = activeFilters.length ? 'Filtered by ' + activeFilters.join(', ') + ' (matches the page filters above)' : '';
+      if(filterNote) filterNote.textContent = '';
       detailHistory.innerHTML = '<div style="color:var(--muted);font-size:12px">Loading…</div>';
       detailTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px 0">Loading…</td></tr>';
       detailMask.classList.add('on');
@@ -13959,12 +13960,12 @@
       // server-side (0097/0128) so this stays correct however much history
       // a driver has, rather than summing whatever page of individual
       // events happened to be fetched.
-      // Scoped to the Driver Streaks page's own active date-range/unit
-      // filters (0128), not the driver's complete history — so this modal
-      // always shows the same slice of data as the rest of the page.
+      // Scoped to this row's own streak (run_start–run_end, every unit),
+      // matching exactly what dds_driver_streaks() summed into runTotalCount/
+      // streakDays for this same row — see the comment above.
       DB.rpc('dds_driver_daily_summary', {
-        p_emp_no: r.empNo, p_from: state.from || null, p_to: state.to || null,
-        p_asset_id: state.asset || null, p_limit: 500, p_offset: 0
+        p_emp_no: r.empNo, p_from: mdyToIso(r.runStart), p_to: mdyToIso(r.runEnd),
+        p_asset_id: null, p_limit: 500, p_offset: 0
       }).then(function(res){
         if(res.error) throw res.error;
         var data = res.data || {};
