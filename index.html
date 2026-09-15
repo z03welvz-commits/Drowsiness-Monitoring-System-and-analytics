@@ -13300,12 +13300,21 @@
     // the duration of the two-RPC write — without it, a save in flight and
     // a save that silently failed looked identical (the dropdown just sat
     // there either way), which is exactly what read as "nothing happened."
+    // Also disables the Pending/Closed status select for this same row —
+    // confirmed live in testing: without this, picking a new value there
+    // while an Action-dropdown save was still in flight opened a SECOND
+    // logged-by confirmation and fired a second, overlapping
+    // dds_log_entity_action for the same entity_status row (an upsert),
+    // with no guaranteed winner between the two. Both controls write the
+    // same underlying record, so both must be locked together.
     function setRowSaving(i, isSaving){
       var wrap = tbody.querySelector('.ds-action-dd[data-ds-action="' + i + '"]');
       var btn = tbody.querySelector('[data-ds-dd-btn="' + i + '"]');
       if(btn) btn.disabled = isSaving;
       var otherInput = tbody.querySelector('input[data-ds-other="' + i + '"]');
       if(otherInput) otherInput.disabled = isSaving;
+      var statusSelect = tbody.querySelector('select[data-ds-status-select="' + i + '"]');
+      if(statusSelect) statusSelect.disabled = isSaving;
       if(!wrap) return;
       var tag = wrap.parentNode.querySelector('.ds-saving-tag');
       if(isSaving){
