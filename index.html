@@ -2508,7 +2508,7 @@
               </tbody>
             </table>
           </div>
-          <div class="dm-table-foot"><span>Rows 1–8 of 312</span></div>
+          <div class="dm-table-foot"><span id="dm-masterlist-foot">Rows 1–8 of 312</span><button class="al-filter" type="button" id="dm-masterlist-loadmore" style="cursor:pointer;width:auto;padding:0 12px;margin-left:10px" hidden>Load more</button></div>
         </section>
       </div>
 
@@ -7895,21 +7895,65 @@
     }
 
     // ==================== Masterlist ====================
-    var masterlistState = { search: '', sort: 'full_name', dir: 'asc' };
-    function loadMasterlist(){
+    // Audit finding: this tab is the ONLY place in the app to browse the
+    // employee masterlist, but it hardcoded .limit(8) with no way to see
+    // further rows — searching by exact name/ID worked, but there was no
+    // way to just page through the full ~4,100-row roster. Now paginated
+    // the same way Alert Logs/Driver Streaks/the D&A summary tables are
+    // (offset/limit/loadingMore/reachedEnd), via an explicit "Load more"
+    // button rather than scroll-triggered — .dm-table-wrap only scrolls
+    // horizontally (overflow-x), the page itself scrolls vertically, so
+    // there's no single scrollable container here to attach a near-bottom
+    // scroll listener to the way the flex-scrolling D&A tabs do.
+    var MASTERLIST_PAGE_LIMIT = 50;
+    var masterlistState = { search: '', sort: 'full_name', dir: 'asc', offset: 0, limit: MASTERLIST_PAGE_LIMIT, total: 0, loadingMore: false, reachedEnd: false };
+    function masterlistRowHtml(r){
+      var d = r.details || {};
+      var statusLabel = r.status === 'inactive' ? 'Inactive' : (d.status_label || 'Active');
+      var statusStyle = r.status === 'inactive' ? ' style="background:#fdeaea;color:#e53553"' :
+        (d.status_label === 'On Leave' ? ' style="background:#fdf0dc;color:#e8952e"' : '');
+      return '<tr>' +
+        '<td>' + esc(r.emp_no) + '</td>' +
+        '<td>' + esc(r.full_name) + '</td>' +
+        '<td>' + esc(d.department || '—') + '</td>' +
+        '<td>' + esc(d.position || '—') + '</td>' +
+        '<td><span class="dm-status"' + statusStyle + '>' + esc(statusLabel) + '</span></td>' +
+        '<td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit" data-ml-edit=\'' + esc(JSON.stringify({ empNo: r.emp_no, name: r.full_name, dept: d.department || '', position: d.position || '', statusLabel: statusLabel })) + '\'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td>' +
+      '</tr>';
+    }
+    function updateMasterlistFoot(){
+      var foot = document.getElementById('dm-masterlist-foot');
+      var loadMoreBtn = document.getElementById('dm-masterlist-loadmore');
+      var shown = document.querySelectorAll('#dm-table-masterlist tbody tr').length;
+      if(foot) foot.textContent = shown ? ('Rows 1–' + fmtNum(shown) + ' of ' + fmtNum(masterlistState.total)) : '';
+      if(loadMoreBtn) loadMoreBtn.hidden = masterlistState.reachedEnd || !shown;
+    }
+    function loadMasterlist(opts){
+      opts = opts || {};
+      var isLoadMore = !!opts.loadMore;
+      if(isLoadMore && (masterlistState.loadingMore || masterlistState.reachedEnd)) return;
       var tbody = document.querySelector('#dm-table-masterlist tbody');
       var titleSmall = document.querySelector('#dm-source-masterlist .dm-records-title small');
-      var foot = document.querySelector('#dm-source-masterlist .dm-table-foot span');
+      var foot = document.getElementById('dm-masterlist-foot');
+      var loadMoreBtn = document.getElementById('dm-masterlist-loadmore');
       if(!tbody) return;
       document.querySelectorAll('#dm-table-masterlist th[data-sort]').forEach(function(th){
         var col = th.getAttribute('data-sort');
         th.classList.toggle('sorted', col === masterlistState.sort);
         th.classList.toggle('asc', col === masterlistState.sort && masterlistState.dir === 'asc');
       });
+      if(isLoadMore){
+        masterlistState.loadingMore = true;
+        if(loadMoreBtn){ loadMoreBtn.disabled = true; loadMoreBtn.textContent = 'Loading…'; }
+      } else {
+        masterlistState.offset = 0;
+        masterlistState.reachedEnd = false;
+      }
       requireSession().then(function(sess){
-        if(!sess){ tbody.innerHTML = signedOutRow(6, 'the masterlist'); clearCounts(titleSmall, foot); return; }
+        if(!sess){ tbody.innerHTML = signedOutRow(6, 'the masterlist'); clearCounts(titleSmall, foot); if(loadMoreBtn) loadMoreBtn.hidden = true; return; }
         var q = DB.from('drivers').select('emp_no, full_name, status, details', { count: 'exact' })
-          .order(masterlistState.sort || 'full_name', { ascending: masterlistState.dir !== 'desc' }).limit(8);
+          .order(masterlistState.sort || 'full_name', { ascending: masterlistState.dir !== 'desc' })
+          .range(masterlistState.offset, masterlistState.offset + masterlistState.limit - 1);
         if(masterlistState.search){
           var like = '%' + escOrFilterValue(masterlistState.search) + '%';
           q = q.or('full_name.ilike.' + like + ',emp_no.ilike.' + like);
@@ -7917,29 +7961,29 @@
         return q.then(function(res){
           if(res.error) throw res.error;
           var rows = res.data || [];
-          var total = res.count || rows.length;
-          if(titleSmall) titleSmall.textContent = 'Showing ' + rows.length + ' of ' + fmtNum(total);
-          if(foot) foot.textContent = 'Rows 1–' + rows.length + ' of ' + fmtNum(total);
-          if(!rows.length){
+          var total = res.count || 0;
+          masterlistState.total = total;
+          if(rows.length < masterlistState.limit) masterlistState.reachedEnd = true;
+          masterlistState.offset += rows.length;
+          if(titleSmall) titleSmall.textContent = 'Showing ' + fmtNum(isLoadMore ? masterlistState.offset : rows.length) + ' of ' + fmtNum(total);
+          if(isLoadMore){
+            tbody.insertAdjacentHTML('beforeend', rows.map(masterlistRowHtml).join(''));
+          } else if(!rows.length){
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">No employee records yet.</td></tr>';
-            return;
+          } else {
+            tbody.innerHTML = rows.map(masterlistRowHtml).join('');
           }
-          tbody.innerHTML = rows.map(function(r){
-            var d = r.details || {};
-            var statusLabel = r.status === 'inactive' ? 'Inactive' : (d.status_label || 'Active');
-            var statusStyle = r.status === 'inactive' ? ' style="background:#fdeaea;color:#e53553"' :
-              (d.status_label === 'On Leave' ? ' style="background:#fdf0dc;color:#e8952e"' : '');
-            return '<tr>' +
-              '<td>' + esc(r.emp_no) + '</td>' +
-              '<td>' + esc(r.full_name) + '</td>' +
-              '<td>' + esc(d.department || '—') + '</td>' +
-              '<td>' + esc(d.position || '—') + '</td>' +
-              '<td><span class="dm-status"' + statusStyle + '>' + esc(statusLabel) + '</span></td>' +
-              '<td><div class="dm-row-actions"><button class="dm-icon-btn" type="button" aria-label="Edit" data-ml-edit=\'' + esc(JSON.stringify({ empNo: r.emp_no, name: r.full_name, dept: d.department || '', position: d.position || '', statusLabel: statusLabel })) + '\'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></td>' +
-            '</tr>';
-          }).join('');
+          updateMasterlistFoot();
         });
-      }).catch(function(err){ tbody.innerHTML = errorRow(6, err); });
+      }).catch(function(err){ if(!isLoadMore) tbody.innerHTML = errorRow(6, err); })
+        .finally(function(){
+          masterlistState.loadingMore = false;
+          if(loadMoreBtn){ loadMoreBtn.disabled = false; loadMoreBtn.textContent = 'Load more'; }
+        });
+    }
+    var masterlistLoadMoreBtn = document.getElementById('dm-masterlist-loadmore');
+    if(masterlistLoadMoreBtn){
+      masterlistLoadMoreBtn.addEventListener('click', function(){ loadMasterlist({ loadMore: true }); });
     }
 
     // ==================== Contributing Factors ====================
@@ -9952,8 +9996,24 @@
     //                       decision" path, since dds_reopen_review already
     //                       existed server-side but had no UI caller until
     //                       now (PENDING_102 finding A3's remaining gap).
-    function reviewRowActionsHtml(state){
+    // Audit finding: a fuzzy_review row with exactly ONE candidate (the
+    // matcher already found a single close-spelling employee on its own,
+    // just short of its distance<=2 auto-accept cutoff) still required
+    // opening the full Confirm Match modal and re-picking the same
+    // candidate it had already surfaced. For that one specific case —
+    // and ONLY that case, never a 0- or 2+-candidate row — offer a direct
+    // Yes/No shortcut instead: Yes calls the exact same resolve RPC the
+    // modal's Confirm button uses (writes the same alias, same effect),
+    // No falls back to the normal Confirm/Ignore buttons rather than
+    // assuming "not a driver".
+    function reviewRowActionsHtml(r){
+      var state = r.state, tier = r.tier, candidates = r.candidates || [];
       if(state === 'open'){
+        if(tier === 'fuzzy_review' && candidates.length === 1){
+          var only = candidates[0];
+          return '<button class="al-filter" type="button" data-review-yes="' + esc(only.emp_no) + '" style="cursor:pointer;width:auto;padding:0 10px" title="Confirm: this is ' + esc(only.name) + '">Yes, that’s them</button>' +
+            '<button class="dm-icon-btn" type="button" data-review-no title="No — not a match, pick manually"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+        }
         return '<button class="dm-icon-btn" type="button" data-review-confirm title="Confirm match…"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>' +
           '<button class="dm-icon-btn" type="button" data-review-ignore title="Not a driver — ignore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
       }
@@ -10021,7 +10081,7 @@
               '<td>' + esc(tierLabel(r.tier)) + '</td>' +
               '<td class="dm-review-candidates">' + candHtml + '</td>' +
               '<td>' + fmtNum(r.rowCount) + '</td>' +
-              '<td><div class="dm-row-actions">' + reviewRowActionsHtml(r.state) + '</div></td>' +
+              '<td><div class="dm-row-actions">' + reviewRowActionsHtml(r) + '</div></td>' +
             '</tr>';
           }).join('');
         });
@@ -10209,6 +10269,35 @@
         if(pickBtn){
           openReviewModal(kind, id, rawName, null);
           reviewModalEmpno.value = pickBtn.getAttribute('data-review-pick');
+          return;
+        }
+        var yesBtn = e.target.closest('[data-review-yes]');
+        if(yesBtn){
+          var noBtnSibling = row.querySelector('[data-review-no]');
+          yesBtn.disabled = true;
+          if(noBtnSibling) noBtnSibling.disabled = true;
+          requireSession().then(function(sess){
+            if(!sess) throw new Error('Sign in required.');
+            // Same RPC the Confirm Match modal's own Save button calls —
+            // this shortcut skips the modal, not the underlying action.
+            return DB.rpc(REVIEW[kind].resolve, { p_review_id: id, p_emp_no: yesBtn.getAttribute('data-review-yes') });
+          }).then(function(res){
+            if(res.error) throw res.error;
+            loadNameReviewQueue(kind);
+          }).catch(function(err){
+            console.error('Quick-confirm failed', err);
+            alert('Could not confirm match: ' + (err.message || 'unknown error'));
+            yesBtn.disabled = false;
+            if(noBtnSibling) noBtnSibling.disabled = false;
+          });
+          return;
+        }
+        if(e.target.closest('[data-review-no]')){
+          // "No" doesn't mean "not a driver" — just that the one
+          // auto-suggested candidate is wrong. Fall back to the normal
+          // Confirm/Ignore buttons so they can search manually or ignore.
+          var actionsCell = row.querySelector('.dm-row-actions');
+          if(actionsCell) actionsCell.innerHTML = reviewRowActionsHtml({ state: 'open', tier: null, candidates: [] });
           return;
         }
         if(e.target.closest('[data-review-confirm]')){
