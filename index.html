@@ -12549,6 +12549,16 @@
     var rows = [];
     var loadingMore = false;
     var reachedEnd = false;
+    // Bumped on every load() call, fresh or loadMore; a response is only
+    // applied if it's still the most recent one requested. Fixes a real
+    // duplicate-row bug: loadingMore/reachedEnd only ever guarded a
+    // loadMore call against ANOTHER loadMore call, not against a fresh
+    // filter-driven load() running at the same time. A scroll-triggered
+    // loadMore that started just before the user changed a filter would
+    // resolve after the fresh load's own response had already replaced
+    // `rows`, then append (rows.concat) its own copy of that same single
+    // row on top of it — "Showing 2 of 1", both rows byte-identical.
+    var loadSeq = 0;
 
     function fmtDateTimeShort(mdyhms){
       if(!mdyhms) return '—';
@@ -12732,6 +12742,7 @@
     function load(opts){
       opts = opts || {};
       var isLoadMore = !!opts.loadMore;
+      var mySeq = ++loadSeq;
       if(isLoadMore){
         if(loadingMore || reachedEnd) return;
         loadingMore = true;
@@ -12754,6 +12765,7 @@
         state.limit = fitRowLimit(scrollWrap, 40, state.limit, 50, 500);
       }
       requireSession().then(function(sess){
+        if(mySeq !== loadSeq) return; // superseded by a newer load() while awaiting the session
         if(!sess){
           tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           loadingMore = false;
@@ -12766,6 +12778,7 @@
           p_asset: state.asset || null, p_status: state.status || null,
           p_from: state.from || null, p_to: state.to || null
         }).then(function(res){
+          if(mySeq !== loadSeq) return; // a newer load() (fresh or loadMore) has since started — discard this stale response rather than let it double up on `rows`
           if(res.error) throw res.error;
           var data = res.data || {};
           var fetched = data.rows || [];
@@ -12793,6 +12806,7 @@
           updateFooter();
         });
       }).catch(function(err){
+        if(mySeq !== loadSeq) return;
         console.error('Driver streaks fetch failed', err);
         loadingMore = false;
         if(isLoadMore){
