@@ -483,7 +483,7 @@
      26px of real horizontal overflow at 1366px before this fix). Every
      column of every row on this page below is a grid, but this row is the
      one whose children previously had non-shrinking fixed widths. */
-  .an-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:18px}
+  .an-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
   /* .card supplies background/border/radius/shadow only — no padding of its
      own (every other page's KPI cards get padding from their own modifier
      class, e.g. .kpi{padding:16px 17px}). This card's content was sitting
@@ -522,21 +522,26 @@
   @keyframes an-spark-glow-pulse{0%,100%{opacity:.55}50%{opacity:1}}
   @media (prefers-reduced-motion: reduce){ .an-kpi-spark [id$="-glow"]{animation:none} }
 
-  /* Every direct row of #page-analytics gets the same 18px vertical gap
-     below it (Key Insights -> Row 1 -> Row 2 -> Row 3) — a uniform
-     margin-bottom on the row classes themselves, rather than only on
-     .an-charts-top, so no row's bottom gap can silently collapse to 0
-     when a new row type is added after it. The last row's trailing
-     margin is harmless (page has bottom padding already). */
-  #page-analytics > .an-charts-top,#page-analytics > .an-charts-bottom{margin-bottom:18px}
-  /* Two cards per row throughout Analytics' chart/list sections, per direct
-     instruction — was 3-per-row for the top chart row until the Alert
-     Trend redesign (Chart.js, more series/legend) needed the extra width a
-     third sibling didn't leave room for. .an-row-2col is the explicit name
-     for this (equal to the repeat(2,1fr) default) so a reader doesn't have
-     to infer "2 cards = 2 columns" from card count alone. */
-  .an-charts-top,.an-charts-bottom{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+  /* Every direct row of #page-analytics gets the same gap below it (KPIs ->
+     Row 1 -> Row 2 -> Row 3) — a uniform margin-bottom on the row classes
+     themselves, rather than only on .an-charts-top, so no row's bottom gap
+     can silently collapse to 0 when a new row type is added after it. The
+     last row's trailing margin is harmless (page has bottom padding
+     already). Reduced from 18px per direct instruction (compact analytics
+     workspace, not large standalone cards with empty space around them). */
+  #page-analytics > .an-charts-top,#page-analytics > .an-charts-bottom{margin-bottom:14px}
+  /* Three-per-row compact grid, per direct instruction: the six charts
+     (Alert Trend/Hourly Trend/Alert Type Distribution, then Alerts by Unit/
+     Alerts by Employee/Alert Sync Interval) each get a third of the row
+     instead of half — .an-row-3col is the explicit name for it, same reason
+     .an-row-2col/.an-row-wide-table are named rather than left as the grid's
+     bare default. Drops to 2 columns at tablet width and 1 at mobile (see
+     the shared breakpoint blocks below). Recent Alerts Overview/Contributing
+     Factors keep .an-row-wide-table (1.55fr/1fr, unchanged) — they're
+     reference tables, not part of the six-chart grid. */
+  .an-charts-top,.an-charts-bottom{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
   .an-row-2col{grid-template-columns:repeat(2,1fr)}
+  .an-row-3col{grid-template-columns:repeat(3,1fr)}
   .an-row-wide-table{grid-template-columns:1.55fr 1fr}
   .an-chart-card{padding:var(--chart-pad);overflow:hidden}
   .an-chart-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
@@ -544,7 +549,7 @@
   .an-legend{display:flex;gap:14px;font-size:var(--fs-body);color:var(--muted);font-weight:500}
   .an-legend span{display:flex;align-items:center;gap:5px}
   .an-swatch{width:8px;height:8px;border-radius:50%;flex:0 0 auto;display:inline-block}
-  .an-chart-area{height:238px;padding-top:7px;position:relative}
+  .an-chart-area{height:200px;padding-top:7px;position:relative}
   .an-chart-area svg{width:100%;height:100%;display:block}
   .an-axis{font-size:8px;fill:var(--muted)}
   .an-panel-label{font-size:9px;font-weight:700;fill:var(--text-dim);letter-spacing:.02em}
@@ -562,7 +567,7 @@
      not just a top-10 slice) rather than pushing the card, and the page,
      taller with every row; a shared list length instead scrolls within a
      fixed-height panel, same footprint at 5 rows or 150. */
-  .an-rank-list{flex:1;display:flex;flex-direction:column;gap:12px;margin-top:4px;max-height:230px;overflow-y:auto;padding-right:4px}
+  .an-rank-list{flex:1;display:flex;flex-direction:column;gap:10px;margin-top:4px;max-height:200px;overflow-y:auto;padding-right:4px}
   .an-rank-row{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text);cursor:pointer;border-radius:6px;padding:2px 4px;margin:0 -4px;transition:background-color .12s}
   .an-rank-row:hover{background:var(--surface2)}
   .an-rank-row.active{background:#e6eefe}
@@ -612,18 +617,20 @@
      Centering the pair as one unit spreads that same leftover space
      evenly instead. With a full 4-tier legend the group's natural width
      already fills most of the card, so this is a no-op in that case. */
-  .an-donut-card{display:flex;align-items:center;justify-content:center;gap:32px;flex:1}
-  /* 190x190 matches the donut SVG's own viewBox 1:1 (see markup) — sized
-     up from the old 130px per direct instruction ("donut is too small,
-     utilize the remaining space"); native size avoids any upscale blur
-     even though it's SVG. Legend/center text sized up to match rather
-     than leaving a big ring next to small type. */
-  .an-donut-wrap{width:190px;height:190px;position:relative;flex:0 0 auto}
+  .an-donut-card{display:flex;align-items:center;justify-content:center;gap:14px;flex:1}
+  /* Sized to fit the 3-column grid's narrower card (was 190px, then 168px,
+     before the 3-per-row layout — a 3-col card's own width is roughly 2/3
+     of what a 2-col card had, and the fixed-width donut wasn't shrinking
+     with it, squeezing .an-donut-legend down to ~73px wide and clipping
+     "4,200 (84%)" off the card's right edge, confirmed live via
+     getBoundingClientRect). 148px plus the reduced 14px gap above leaves
+     the legend enough room at its own reduced font-size below. */
+  .an-donut-wrap{width:148px;height:148px;position:relative;flex:0 0 auto}
   .an-donut-wrap svg{width:100%;height:100%}
   .an-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .an-donut-center b{font-size:22px;font-weight:800;color:var(--text)}
-  .an-donut-center span{font-size:var(--fs-body);color:var(--muted)}
-  .an-donut-legend{display:flex;flex-direction:column;gap:16px;font-size:15px;flex:0 1 auto;min-width:0}
+  .an-donut-center b{font-size:20px;font-weight:800;color:var(--text)}
+  .an-donut-center span{font-size:var(--fs-caption);color:var(--muted)}
+  .an-donut-legend{display:flex;flex-direction:column;gap:14px;font-size:13px;flex:0 1 auto;min-width:0}
   /* Name and value always stack in their own row (not side-by-side) so a
      long name (e.g. "Drowsiness Alert") wrapping to 2 lines can never
      overlap the value — previously they shared one flex row with
@@ -1557,7 +1564,8 @@
     .sidebar.collapsed:hover,.sidebar.collapsed.pinned-open{width:235px;flex-basis:235px}
     .title h1{font-size:25px}
     .kpis{grid-template-columns:repeat(3,1fr)}
-    .an-kpis{grid-template-columns:repeat(3,1fr)}
+    .an-kpis{grid-template-columns:repeat(2,1fr)}
+    .an-row-3col{grid-template-columns:repeat(2,1fr)}
     .al-summary{grid-template-columns:repeat(2,1fr)}
   }
   @media(max-width:1080px){
@@ -1578,7 +1586,6 @@
     .hero{padding:16px}
     .kpis{grid-template-columns:repeat(2,1fr)}
     .stat-tiles{grid-template-columns:1fr}
-    .an-kpis{grid-template-columns:repeat(2,1fr)}
     .al-summary{grid-template-columns:1fr 1fr}
     .se-field-row{grid-template-columns:1fr}
     /* Below this width the sidebar can no longer share the row with page
@@ -1977,7 +1984,7 @@
         <div class="card an-kpi">
           <div class="an-kpi-body">
             <div class="an-kpi-main">
-              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#e6eefe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>TOTAL UNITS</div>
+              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#e6eefe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16 16.5 9.5"/><circle cx="12" cy="16" r="1.4" fill="#2954e8" stroke="none"/></svg></span>ALERTS / OPERATING HOUR</div>
               <div class="an-kpi-value" id="an-kpi-units-value">&mdash;</div>
               <div class="an-kpi-sub" id="an-kpi-units-change">&mdash;</div>
             </div>
@@ -1987,36 +1994,25 @@
         <div class="card an-kpi">
           <div class="an-kpi-body">
             <div class="an-kpi-main">
-              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fdf0dc" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>AVG SYNC TIME</div>
+              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#ddf6e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>MOST AFFECTED UNIT</div>
+              <div class="an-kpi-value" id="an-kpi-topunit-value">&mdash;</div>
+              <div class="an-kpi-sub" id="an-kpi-topunit-change">&mdash;</div>
+            </div>
+          </div>
+        </div>
+        <div class="card an-kpi">
+          <div class="an-kpi-body">
+            <div class="an-kpi-main">
+              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fdf0dc" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>AVERAGE SYNC INTERVAL</div>
               <div class="an-kpi-value" id="an-kpi-sync-value">&mdash;</div>
               <div class="an-kpi-sub" id="an-kpi-sync-change">&mdash;</div>
             </div>
             <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-sync" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5a524" stop-opacity=".22"/><stop offset="100%" stop-color="#f5a524" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-sync"><stop offset="0%" stop-color="#f5a524" stop-opacity=".55"/><stop offset="100%" stop-color="#f5a524" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-sync-fill" fill="url(#an-spark-fill-sync)" stroke="none" d=""/><path id="an-kpi-sync-spark" d="M0,28 L100,28" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-sync-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-sync)"/><circle id="an-kpi-sync-dot" cx="100" cy="28" r="2.5" fill="#f5a524"/></svg></div>
           </div>
         </div>
-        <div class="card an-kpi">
-          <div class="an-kpi-body">
-            <div class="an-kpi-main">
-              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#ddf6e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span>ACTIONABLE RATIO</div>
-              <div class="an-kpi-value" id="an-kpi-ratio-value">&mdash;</div>
-              <div class="an-kpi-sub" id="an-kpi-ratio-change">&mdash;</div>
-            </div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-ratio" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#12b76a" stop-opacity=".22"/><stop offset="100%" stop-color="#12b76a" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-ratio"><stop offset="0%" stop-color="#12b76a" stop-opacity=".55"/><stop offset="100%" stop-color="#12b76a" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-ratio-fill" fill="url(#an-spark-fill-ratio)" stroke="none" d=""/><path id="an-kpi-ratio-spark" d="M0,28 L100,28" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-ratio-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-ratio)"/><circle id="an-kpi-ratio-dot" cx="100" cy="28" r="2.5" fill="#12b76a"/></svg></div>
-          </div>
-        </div>
-        <div class="card an-kpi">
-          <div class="an-kpi-body">
-            <div class="an-kpi-main">
-              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#efe9fe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#7c5cfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>DRIVERS INVOLVED</div>
-              <div class="an-kpi-value" id="an-kpi-drivers-value">&mdash;</div>
-              <div class="an-kpi-sub" id="an-kpi-drivers-change">&mdash;</div>
-            </div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-drivers" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c5cfc" stop-opacity=".22"/><stop offset="100%" stop-color="#7c5cfc" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-drivers"><stop offset="0%" stop-color="#7c5cfc" stop-opacity=".55"/><stop offset="100%" stop-color="#7c5cfc" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-drivers-fill" fill="url(#an-spark-fill-drivers)" stroke="none" d=""/><path id="an-kpi-drivers-spark" d="M0,28 L100,28" fill="none" stroke="#7c5cfc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-drivers-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-drivers)"/><circle id="an-kpi-drivers-dot" cx="100" cy="28" r="2.5" fill="#7c5cfc"/></svg></div>
-          </div>
-        </div>
       </section>
 
-      <section class="an-charts-top an-row-2col">
+      <section class="an-charts-top an-row-3col">
         <div class="card an-chart-card" id="anAssetVolumeCard">
           <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Operating Hours</span></div></div>
           <div class="an-chart-area">
@@ -2096,24 +2092,6 @@
           <div class="an-legend" id="an-hourly-month-legend" style="display:none;flex-wrap:wrap;row-gap:4px;padding-top:6px"></div>
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-hourly-note">&mdash;</span></div>
         </div>
-      </section>
-
-      <section class="an-charts-bottom an-row-2col">
-        <div class="card an-chart-card" id="anSyncIntervalCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span><h3 class="chart-title an-chart-title">Alert Sync Time</h3></div></div>
-          <div class="an-chart-area">
-            <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-sync-svg">
-              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
-              <g id="an-sync-bars"></g>
-              <g id="an-sync-axis"></g>
-            </svg>
-            <div class="chart-tooltip" id="an-sync-tooltip">
-              <div class="chart-tooltip-date" id="an-sync-tooltip-date">—</div>
-              <div class="chart-tooltip-value" id="an-sync-tooltip-value">—</div>
-            </div>
-          </div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-sync-note">&mdash;</span></div>
-        </div>
 
         <div class="card an-chart-card" id="anAlertTypeDonutCard" style="display:flex;flex-direction:column">
           <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><h3 class="chart-title an-chart-title">Alert Type Distribution</h3></div></div>
@@ -2126,23 +2104,43 @@
             </div>
             <div class="an-donut-legend" id="an-donut-legend">&mdash;</div>
           </div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-donut-note">Distribution by alert type.</span></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-donut-note">Distribution by alert type — click a segment to filter the page.</span></div>
         </div>
       </section>
 
-      <section class="an-charts-bottom an-row-2col">
+      <section class="an-charts-bottom an-row-3col">
         <div class="card an-chart-card" id="anTopAssetsCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><h3 class="chart-title an-chart-title">Top Assets by Alerts</h3></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><h3 class="chart-title an-chart-title">Alerts by Unit</h3></div></div>
           <div id="an-topassets-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
             <div class="da-empty">Loading&hellip;</div>
           </div>
         </div>
 
         <div class="card an-chart-card" id="anTopDriversCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><h3 class="chart-title an-chart-title">Top Employees by Alerts</h3></div><button class="view-all" type="button" data-goto="alerts">View all employees</button></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><h3 class="chart-title an-chart-title">Alerts by Employee ID / Driver</h3></div>
+            <div class="an-toggle" role="group" aria-label="Employee list size">
+              <button type="button" data-topn="10" class="active">Top 10</button><button type="button" data-topn="15">Top 15</button><button type="button" data-topn="20">Top 20</button>
+            </div>
+          </div>
           <div id="an-topdrivers-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
             <div class="da-empty">Loading&hellip;</div>
           </div>
+        </div>
+
+        <div class="card an-chart-card" id="anSyncIntervalCard">
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span><h3 class="chart-title an-chart-title">Alert Sync Interval</h3></div></div>
+          <div class="an-chart-area">
+            <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-sync-svg">
+              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
+              <g id="an-sync-bars"></g>
+              <g id="an-sync-axis"></g>
+            </svg>
+            <div class="chart-tooltip" id="an-sync-tooltip">
+              <div class="chart-tooltip-date" id="an-sync-tooltip-date">—</div>
+              <div class="chart-tooltip-value" id="an-sync-tooltip-value">—</div>
+            </div>
+          </div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-sync-note">&mdash;</span></div>
         </div>
       </section>
 
@@ -5276,6 +5274,24 @@
         }
       }
     }
+    function fmtAlertsPerHour(v){ return v == null ? '—' : v.toFixed(1) + '/hr'; }
+    // "Most Affected Unit" isn't one of dds_metrics()'s own kpis — it's
+    // the #1 row of the SAME Alerts by Unit ranked list this page already
+    // renders below (fetchTopAssets/dds_asset_event_summary), not a
+    // separate query, so the KPI can never disagree with the chart it
+    // summarizes. Called from renderTopAssets() once that list resolves,
+    // not from renderKpis(), since it depends on that list's own data.
+    function renderMostAffectedUnit(rows){
+      var valueEl = document.getElementById('an-kpi-topunit-value');
+      var subEl = document.getElementById('an-kpi-topunit-change');
+      if(!valueEl) return;
+      var top = rows && rows[0];
+      if(!top){ valueEl.textContent = '—'; if(subEl) subEl.textContent = 'No data for this filter'; return; }
+      var totalAll = rows.reduce(function(s, r){ return s + (r.total || 0); }, 0);
+      var pct = totalAll > 0 ? Math.round((top.total / totalAll) * 100) : 0;
+      valueEl.textContent = top.assetId;
+      if(subEl) subEl.textContent = fmtNum(top.total) + ' alerts · ' + pct + '% of units in view';
+    }
     function renderKpis(cur, prev7d, spanDays){
       var kpis = cur.kpis || {};
       var p7 = prev7d ? prev7d.kpis : null;
@@ -5285,7 +5301,6 @@
       // averaged per bucket (a "typical day" figure for that week/month) —
       // same sum-vs-average split aggregateTrend uses for the main chart.
       var totalsSpark = bucketSparkline(trend, function(t){ return t.units; }, 'sum');
-      var assetsSpark = bucketSparkline(trend, function(t){ return t.assets; }, 'avg');
       // dds_metrics()'s trend[] already carries a per-day avgSyncSeconds
       // (confirmed in its own CTE) — previously unused here, so this card
       // fell back to the "no data" flat baseline every time even though a
@@ -5302,27 +5317,15 @@
       // range's weekly/monthly buckets get the same treatment.
       var MIN_SYNC_SAMPLE = 5;
       var syncSpark = bucketSparkline(trend, function(t){ return t.avgSyncSeconds; }, 'avg', MIN_SYNC_SAMPLE);
-      // actionableRatio and distinctOperators were only ever whole-window
-      // totals until 0103 added a per-day breakdown to trend[] — both
-      // sparklines rendered as a permanently flat "no data" line before
-      // that (reported live: "its dead"). actionableRatio is a percentage
-      // like avgSyncSeconds, so it gets the same low-sample-day filter;
-      // distinctOperators is a plain per-day count, not an average, so a
-      // quiet day isn't "skewed" the same way — it's plotted as-is.
-      var ratioSpark = bucketSparkline(trend, function(t){ return t.actionableRatio; }, 'avg', MIN_SYNC_SAMPLE);
-      var driversSpark = bucketSparkline(trend, function(t){ return t.distinctOperators; }, 'avg');
+      // alertsPerOperatingHour is already computed per-day in trend[]
+      // (0109/0115) — same rate-metric treatment as avgSyncSeconds above.
+      var rateSpark = bucketSparkline(trend, function(t){ return t.alertsPerOperatingHour; }, 'avg', MIN_SYNC_SAMPLE);
 
       setKpi('total', kpis.totalAlerts, p7 ? p7.totalAlerts : null, totalsSpark, null, periodLabel);
-      setKpi('units', kpis.distinctAssets, p7 ? p7.distinctAssets : null, assetsSpark, null, periodLabel);
+      setKpi('units', kpis.alertsPerOperatingHour, p7 ? p7.alertsPerOperatingHour : null, rateSpark, fmtAlertsPerHour, periodLabel);
       setKpi('sync', kpis.avgSyncSeconds, p7 ? p7.avgSyncSeconds : null, syncSpark, fmtSyncSeconds, periodLabel);
-      // actionableRatio is already a 0-100 percentage (dds_metrics() computes
-      // it as (actionable/total)*100 server-side, confirmed live), not a 0-1
-      // fraction — fmtPct(n) appends '%' directly, no extra *100 here.
-      setKpi('ratio', kpis.actionableRatio, p7 ? p7.actionableRatio : null, ratioSpark, function(v){ return fmtPct(v || 0); }, periodLabel);
-      // Replaces the old "Alert Type Count" card (2 types, Sleep/Drowsy —
-      // already fully shown by the Alert Type Distribution donut below, so
-      // this card was redundant) per direct instruction.
-      setKpi('drivers', kpis.distinctOperators, p7 ? p7.distinctOperators : null, driversSpark, null, periodLabel);
+      // 'topunit' (Most Affected Unit) is set by renderMostAffectedUnit()
+      // from the Alerts by Unit list, not here — see its own comment above.
     }
 
     // ==================== Alert Trend: Alerts / Operating Hours ====================
@@ -5793,24 +5796,46 @@
         return (res.data || {}).rows || [];
       });
     }
+    // Employee list defaults to Top 10 (was the full, scrollable ranked
+    // list up to 200 rows) per direct instruction — long-tail employees
+    // with 1-2 alerts aren't the point of this card the way they are for
+    // "Alerts by Unit" (a fleet only has so many units to begin with).
+    // topDriversN/lastTopDriverRows let the Top 10/15/20 toggle re-slice
+    // the already-fetched rows instantly rather than re-querying the RPC.
+    var topDriversN = 10;
+    var lastTopDriverRows = [];
+    function renderTopDriversList(){
+      var items = lastTopDriverRows.slice(0, topDriversN).map(function(r){ return { label: r.empNo, value: r.total, key: r.empNo }; });
+      renderRankedList('an-topdrivers-body', items,
+        { emptyText: 'No driver data for this filter', kind: 'driver' });
+    }
     function renderTopDrivers(from, to){
       return fetchTopDrivers(from, to).then(function(rows){
-        var items = rows.map(function(r){ return { label: r.empNo, value: r.total, key: r.empNo }; });
-        renderRankedList('an-topdrivers-body', items,
-          { emptyText: 'No driver data for this filter', kind: 'driver' });
+        lastTopDriverRows = rows;
+        renderTopDriversList();
       }).catch(function(err){
         console.error('Top drivers fetch failed', err);
+        lastTopDriverRows = [];
         renderRankedList('an-topdrivers-body', [], { emptyText: 'Could not load driver data' });
       });
     }
+    document.querySelectorAll('#anTopDriversCard [data-topn]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        topDriversN = Number(btn.getAttribute('data-topn'));
+        document.querySelectorAll('#anTopDriversCard [data-topn]').forEach(function(b){ b.classList.toggle('active', b === btn); });
+        renderTopDriversList();
+      });
+    });
     function renderTopAssets(from, to){
       return fetchTopAssets(from, to).then(function(rows){
         var items = rows.map(function(r){ return { label: r.assetId, value: r.total, key: r.assetId }; });
         renderRankedList('an-topassets-body', items,
           { emptyText: 'No assets for this filter', kind: 'asset' });
+        renderMostAffectedUnit(rows);
       }).catch(function(err){
         console.error('Top assets fetch failed', err);
         renderRankedList('an-topassets-body', [], { emptyText: 'Could not load asset data' });
+        renderMostAffectedUnit([]);
       });
     }
 
