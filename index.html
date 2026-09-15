@@ -1067,9 +1067,9 @@
   /* Driver Streaks' Pending/Closed status control — a real <select>, but
      colored like a .da-status pill (same red/green as .required/.actioned
      above) so it still reads as a status badge, not a generic form field. */
-  .ds-status-select{display:inline-flex;height:22px;align-items:center;border-radius:6px;padding:0 6px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em;cursor:pointer;background:var(--surface2)}
-  .ds-status-select.is-pending{border:1px solid #e53553;color:#e53553}
-  .ds-status-select.is-closed{border:1px solid #18a05e;color:#18a05e;background:#dff5ea}
+  .ds-status-select{display:inline-flex;height:22px;align-items:center;border-radius:6px;padding:0 6px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em;cursor:pointer;border:none}
+  .ds-status-select.is-pending{background:#fdeaea;color:#e53553}
+  .ds-status-select.is-closed{background:#dff5ea;color:#18a05e}
 
   /* Driver Streaks' "Action Performed" control — a plain in-page button +
      absolutely-positioned menu instead of a native <select>. A native
@@ -12666,7 +12666,7 @@
     function statusCellHtml(r, i){
       if(r.status === 'monitoring') return statusBadgeHtml(r);
       var isClosed = r.status === 'closed';
-      return '<select class="ds-status-select ' + (isClosed ? 'is-closed' : 'is-pending') + '" data-ds-status-select="' + i + '">' +
+      return '<select class="ds-status-select ' + (isClosed ? 'is-closed' : 'is-pending') + '" data-ds-status-select="' + i + '" aria-label="Status for ' + esc(r.name || r.empNo) + '">' +
           '<option value="pending"' + (isClosed ? '' : ' selected') + '>Pending</option>' +
           '<option value="closed"' + (isClosed ? ' selected' : '') + '>Closed</option>' +
         '</select>';
