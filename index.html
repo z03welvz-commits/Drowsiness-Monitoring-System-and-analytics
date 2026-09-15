@@ -2629,6 +2629,31 @@
           </div>
           <div class="dm-table-foot"><span id="dm-review-minestat-foot"></span></div>
         </section>
+
+        <!-- Attribution conflicts: DDS's own operator field and MineStat's
+             shift roster disagree about who ran an asset for a given shift.
+             dds_backfill_emp_no_from_minestat() has always detected these
+             (emp_no_attribution_conflicts) but until now nothing ever
+             showed them — a real driver-attribution dispute could sit
+             invisible indefinitely. Each row is one disputed event; picking
+             a side sets that event's emp_no and marks the row resolved. -->
+        <section class="card dm-records-card" style="margin-top:16px">
+          <div class="dm-records-head">
+            <h3 class="dm-records-title" id="dm-conflicts-title">Attribution Conflicts <small>0 open</small></h3>
+            <select class="al-filter" id="dm-conflicts-state" style="cursor:pointer;flex:0 0 auto;width:auto;padding:0 28px 0 11px">
+              <option value="open">Open</option>
+              <option value="resolved">Resolved</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+          <div class="dm-table-wrap">
+            <table class="dm-table" id="dm-table-conflicts">
+              <thead><tr><th>Asset</th><th>Shift</th><th>Date</th><th>DDS says</th><th>MineStat says</th><th>Decision</th></tr></thead>
+              <tbody><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+            </table>
+          </div>
+          <div class="dm-table-foot"><span id="dm-conflicts-foot"></span></div>
+        </section>
       </div>
 
       <!-- ============ CONFIRM MATCH MODAL ============ -->
@@ -10006,6 +10031,81 @@
     function loadNameReview(){
       loadNameReviewQueue('dds');
       loadNameReviewQueue('minestat');
+      loadAttributionConflicts();
+    }
+
+    // ---- Attribution Conflicts: DDS's operator field vs. MineStat's shift
+    // roster disagreeing about who ran an asset. Simpler than the Name
+    // Review rows above — no candidate list, just a binary pick, so it
+    // gets its own small loader instead of joining the REVIEW config
+    // (which assumes a resolve/ignore/reopen/recheck RPC set that doesn't
+    // apply here: a conflict isn't a name that failed to match anything,
+    // it's two sources that both matched, disagreeing).
+    var conflictsState = 'open';
+    function loadAttributionConflicts(){
+      var tbody = document.querySelector('#dm-table-conflicts tbody');
+      var titleSmall = document.getElementById('dm-conflicts-title') && document.getElementById('dm-conflicts-title').querySelector('small');
+      var foot = document.getElementById('dm-conflicts-foot');
+      if(!tbody) return;
+      requireSession().then(function(sess){
+        if(!sess){ tbody.innerHTML = signedOutRow(6, 'attribution conflicts'); clearCounts(titleSmall, foot); return; }
+        return DB.rpc('dds_attribution_conflicts_list', { p_state: conflictsState, p_limit: 50, p_offset: 0 }).then(function(res){
+          if(res.error) throw res.error;
+          var data = res.data || {};
+          var rows = data.rows || [];
+          var total = data.total || 0;
+          if(titleSmall) titleSmall.textContent = fmtNum(total) + ' ' + (conflictsState === 'all' ? 'total' : conflictsState);
+          if(foot) foot.textContent = rows.length ? ('Showing ' + rows.length + ' of ' + fmtNum(total)) : '';
+          if(!rows.length){
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px 0">' +
+              (conflictsState === 'open' ? 'No attribution conflicts waiting on review.' : 'No ' + conflictsState + ' conflicts.') + '</td></tr>';
+            return;
+          }
+          tbody.innerHTML = rows.map(function(r){
+            var decisionHtml = r.state === 'open'
+              ? '<div class="dm-row-actions">' +
+                  '<button class="al-filter" type="button" data-conflict-pick="' + r.id + '" data-conflict-choice="operator" style="cursor:pointer;width:auto;padding:0 10px">Use DDS</button>' +
+                  '<button class="al-filter" type="button" data-conflict-pick="' + r.id + '" data-conflict-choice="minestat" style="cursor:pointer;width:auto;padding:0 10px">Use MineStat</button>' +
+                '</div>'
+              : '<span class="dm-tag' + (r.resolution === 'operator' ? '' : ' bluebg') + '">Used ' + (r.resolution === 'operator' ? 'DDS' : 'MineStat') + '</span>';
+            return '<tr>' +
+              '<td>' + esc(r.assetId) + '</td>' +
+              '<td>' + esc(r.shift) + '</td>' +
+              '<td>' + esc(r.shiftDate) + '</td>' +
+              '<td>' + esc(r.operatorName) + ' <span class="dm-id-sub">(' + esc(r.operatorEmpNo) + ')</span></td>' +
+              '<td>' + esc(r.minestatName) + ' <span class="dm-id-sub">(' + esc(r.minestatEmpNo) + ')</span></td>' +
+              '<td>' + decisionHtml + '</td>' +
+            '</tr>';
+          }).join('');
+        });
+      }).catch(function(err){ tbody.innerHTML = errorRow(6, err); });
+    }
+    var conflictsStateSelect = document.getElementById('dm-conflicts-state');
+    if(conflictsStateSelect){
+      conflictsStateSelect.addEventListener('change', function(){
+        conflictsState = conflictsStateSelect.value;
+        loadAttributionConflicts();
+      });
+    }
+    var conflictsTbody = document.querySelector('#dm-table-conflicts tbody');
+    if(conflictsTbody){
+      conflictsTbody.addEventListener('click', function(e){
+        var btn = e.target.closest('[data-conflict-pick]');
+        if(!btn) return;
+        var id = Number(btn.getAttribute('data-conflict-pick'));
+        var choice = btn.getAttribute('data-conflict-choice');
+        var row = btn.closest('tr');
+        var buttons = row ? row.querySelectorAll('button') : [];
+        buttons.forEach(function(b){ b.disabled = true; });
+        DB.rpc('dds_attribution_conflicts_resolve', { p_id: id, p_choice: choice }).then(function(res){
+          if(res.error) throw res.error;
+          loadAttributionConflicts();
+        }).catch(function(err){
+          console.error('Resolve attribution conflict failed', err);
+          alert('Could not save: ' + ((err && err.message) || 'unknown error'));
+          buttons.forEach(function(b){ b.disabled = false; });
+        });
+      });
     }
 
     Object.keys(REVIEW).forEach(function(kind){
