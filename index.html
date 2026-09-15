@@ -1081,6 +1081,13 @@
   .da-status.resolved{background:#dff5ea;color:#18a05e}
   .da-status.ok{background:var(--surface2);color:var(--muted)}
 
+  /* Driver Streaks' Pending/Closed status control — a real <select>, but
+     colored like a .da-status pill (same red/green as .required/.actioned
+     above) so it still reads as a status badge, not a generic form field. */
+  .ds-status-select{display:inline-flex;height:22px;align-items:center;border-radius:6px;padding:0 6px;font-size:var(--fs-label);font-weight:750;text-transform:uppercase;letter-spacing:.02em;cursor:pointer;background:var(--surface2)}
+  .ds-status-select.is-pending{border:1px solid #e53553;color:#e53553}
+  .ds-status-select.is-closed{border:1px solid #18a05e;color:#18a05e;background:#dff5ea}
+
   /* Driver Streaks' "Action Performed" control — a plain in-page button +
      absolutely-positioned menu instead of a native <select>. A native
      select's dropdown list is an OS-level popup, not part of the page's
@@ -2958,11 +2965,9 @@
         </select>
         <select class="al-filter" id="ds-status" aria-label="Status filter">
           <option value="">All statuses</option>
-          <option value="required">Action required</option>
+          <option value="pending">Pending</option>
           <option value="monitoring">Monitoring</option>
-          <option value="actioned">Actioned</option>
-          <option value="resolved">Resolved</option>
-          <option value="ok">OK</option>
+          <option value="closed">Closed</option>
         </select>
         <button class="al-filter" type="button" id="ds-clear" style="cursor:pointer">Clear filters</button>
       </div>
@@ -3034,7 +3039,7 @@
                 <th data-ds-sort="streak_days" title="Length, in consecutive days, of this driver's latest streak">Streak Days</th>
                 <th data-ds-sort="run_total_count">Total Count</th>
                 <th>Action</th>
-                <th class="ds-clickfilter" title="Click a row's status to filter by it">Status</th>
+                <th>Status</th>
                 <th></th>
               </tr>
             </thead>
@@ -12773,17 +12778,35 @@
     // reopened the dropdown and checked which option was pre-selected. These
     // two columns surface what the server already computes.
     var STATUS_META = {
-      required:   { cls: 'required',   label: 'Action required' },
-      actioned:   { cls: 'actioned',   label: 'Actioned' },
-      monitoring: { cls: 'monitoring', label: 'Monitoring' },
-      resolved:   { cls: 'resolved',   label: 'Resolved' },
-      ok:         { cls: 'ok',         label: 'OK' }
+      pending:    { cls: 'required',   label: 'Pending' },
+      closed:     { cls: 'actioned',   label: 'Closed' },
+      monitoring: { cls: 'monitoring', label: 'Monitoring' }
     };
     function statusBadgeHtml(r){
-      var meta = STATUS_META[r.status] || STATUS_META.ok;
+      var meta = STATUS_META[r.status] || STATUS_META.pending;
       var extra = (r.status === 'monitoring' && r.monitorUntil)
         ? ' <span style="color:var(--muted);font-size:10px">until ' + esc(r.monitorUntil) + '</span>' : '';
       return '<span class="da-status ' + meta.cls + '">' + meta.label + '</span>' + extra;
+    }
+    // The status cell for a non-monitoring row is a genuinely editable
+    // control (per direct instruction) — a Pending/Closed <select> styled
+    // as a status pill (red border/text while Pending, matching the
+    // Critical/High severity badge's visual weight so the flag stays
+    // obvious; green once Closed) rather than a read-out of a computed
+    // value. Monitoring stays read-only: it's a richer, time-boxed state
+    // set via the full Action dropdown/log-action flow (Monitor/Continue/
+    // Spare 3 Days) that this 2-option toggle can't represent, so it isn't
+    // offered as an early-override path here. A separate "Action required"
+    // text badge was tried alongside the select but didn't fit this
+    // column's width (the cell truncates overflow) — the colored select
+    // alone carries the same signal.
+    function statusCellHtml(r, i){
+      if(r.status === 'monitoring') return statusBadgeHtml(r);
+      var isClosed = r.status === 'closed';
+      return '<select class="ds-status-select ' + (isClosed ? 'is-closed' : 'is-pending') + '" data-ds-status-select="' + i + '">' +
+          '<option value="pending"' + (isClosed ? '' : ' selected') + '>Pending</option>' +
+          '<option value="closed"' + (isClosed ? ' selected' : '') + '>Closed</option>' +
+        '</select>';
     }
     // lastAction.at comes back as a UTC ISO timestamp (dds_driver_streaks()),
     // not the "MM/DD/YYYY HH:MM:SS" shape this file's own fmtDateTimeShort
@@ -12828,7 +12851,7 @@
           '</div>' +
           '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;display:none" value="' + esc(isOtherCurrent ? (r.lastAction.note || '') : '') + '">' +
         '</td>' +
-        '<td class="ds-clickfilter" data-ds-filter="status" data-ds-value="' + esc(r.status || '') + '" title="Filter by this status">' + statusBadgeHtml(r) + '</td>' +
+        '<td data-ds-status-cell="' + i + '">' + statusCellHtml(r, i) + '</td>' +
         '<td><button class="dm-icon-btn" type="button" data-ds-detail="' + i + '" title="See details: driver name, avg count, description, action history" aria-label="See details">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>' +
         '</button></td>' +
@@ -13353,6 +13376,27 @@
       if(!r || !input.value.trim()) return;
       applyStreakAction(r, 'Other', true, input.value.trim(), i);
     }, true);
+
+    // The Pending/Closed status toggle reuses the exact same logged-action
+    // path as the Action column (applyStreakAction -> dds_log_entity_action)
+    // rather than a separate write, so the two controls can never disagree:
+    // Pending maps to the existing 'Cleared' action type (already means
+    // "remove any override" per 0102), Closed logs a generic 'Other'/
+    // "Closed" entry — there is no dedicated action type for "closed" in
+    // entity_action_log's fixed vocabulary, and inventing one would touch
+    // shared infrastructure Corrective Actions Queue also depends on.
+    tbody.addEventListener('change', function(e){
+      var sel = e.target.closest('select[data-ds-status-select]');
+      if(!sel) return;
+      var i = Number(sel.getAttribute('data-ds-status-select'));
+      var r = rows[i];
+      if(!r) return;
+      if(sel.value === 'closed'){
+        applyStreakAction(r, 'Other', true, 'Closed', i);
+      } else {
+        applyStreakAction(r, 'Cleared', false, null, i);
+      }
+    });
 
     // r.runStart/r.runEnd come back from dds_driver_streaks() as MM/DD/YYYY
     // strings. Converting those via `new Date(mdy).toISOString()` parses
