@@ -1,0 +1,28 @@
+-- ============================================================================
+-- DDS — 0132_drop_stale_entity_action_history_overload
+-- ----------------------------------------------------------------------------
+-- Audit finding: two overloads of dds_entity_action_history() coexisted:
+--   (p_entity_type, p_entity_id) — no auth.uid() check at all, unbounded
+--     row count, granted EXECUTE to `anon` (confirmed live) — a real,
+--     unauthenticated attack-surface gap: anyone with the anon key could
+--     call it directly, and whether it actually returns rows depends only
+--     on entity_action_log's own RLS, not on this function refusing the
+--     call the way every other dds_* RPC does.
+--   (p_entity_type, p_entity_id, p_limit default 20) — the properly
+--     SECURITY DEFINER, auth-gated, row-capped (1-100) version already used
+--     by Driver Streaks' own detail modal.
+--
+-- Since both share the first two parameter names and the third has a
+-- default, a call naming only p_entity_type/p_entity_id — exactly what
+-- Driver & Asset Monitoring's fetchHistory() does — is genuinely ambiguous.
+-- Confirmed live: `select dds_entity_action_history(p_entity_type=>'driver',
+-- p_entity_id=>'9701176')` fails with "function ... is not unique". That
+-- detail drawer's action-history timeline has been erroring on every open
+-- as a result, independent of anything else in this session.
+--
+-- Fix: drop the old, unguarded overload, keeping only the secured one.
+-- index.html's fetchHistory() call and the two `h.createdAt` reads that
+-- were written against the old overload's field name are updated in the
+-- same change to the surviving overload's actual field name (`at`).
+-- ============================================================================
+drop function if exists public.dds_entity_action_history(text, text);

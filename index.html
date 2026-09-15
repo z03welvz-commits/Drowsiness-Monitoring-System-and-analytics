@@ -12134,7 +12134,7 @@
     // localStorage-backed rec.history array used to.
     function fetchHistory(kind, id){
       return DB.rpc('dds_entity_action_history', {
-        p_entity_type: KIND_TO_ENTITY_TYPE[kind], p_entity_id: id
+        p_entity_type: KIND_TO_ENTITY_TYPE[kind], p_entity_id: id, p_limit: 20
       }).then(function(res){
         if(res.error) throw res.error;
         return res.data || [];
@@ -12199,7 +12199,7 @@
         DAY_ORDER.forEach(function(d){ byDay[d] = []; });
         var undated = [];
         history.forEach(function(h){
-          var dayLabel = new Date(h.createdAt).toLocaleDateString('en-US', { weekday:'short' });
+          var dayLabel = new Date(h.at).toLocaleDateString('en-US', { weekday:'short' });
           (byDay[dayLabel] || undated).push(h);
         });
 
@@ -12222,7 +12222,7 @@
       });
     }
     function actionEntryHtml(h){
-      var when = new Date(h.createdAt);
+      var when = new Date(h.at);
       var typeLabel = h.actionType === 'Other' ? (h.actionOtherText || 'Other') : h.actionType;
       return '<div class="da-tl-row"><span class="da-tl-dot action"></span><div class="da-tl-body">' +
         '<div class="da-tl-main">' + esc(typeLabel) + ' — logged by ' + esc(h.loggedBy) + '</div>' +
