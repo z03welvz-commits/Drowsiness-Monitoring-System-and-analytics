@@ -12578,13 +12578,15 @@
       if(statusEl) statusEl.textContent = loadingMore ? 'Loading more…' : (reachedEnd && rows.length ? 'All streaks loaded' : '');
     }
 
-    // "Open" = status 'required' (a streak long enough to flag, with no
-    // active monitoring window logged) — same definition Driver & Asset
-    // Monitoring's own "Action Required" tile uses, via dds_driver_
-    // streaks()'s status field. Hidden entirely (not shown as "0 open")
-    // when the field is missing, so a live database that hasn't picked up
-    // this session's migration yet just shows no badge instead of a
-    // number that would look real but always read zero.
+    // "Open" = status 'pending' (a streak that qualified and hasn't been
+    // explicitly Closed) via dds_driver_streaks()'s own status field.
+    // NOT the same definition as Driver & Asset Monitoring's own "Action
+    // Required" tile (dds_driver_asset_weekly(), a day-pooled >=20/day
+    // rule) — deliberately, per 0127/0130's per-shift/single-alert rule
+    // being scoped to Driver Streaks only. Hidden entirely (not shown as
+    // "0 open") when the field is missing, so a live database that hasn't
+    // picked up this session's migration yet just shows no badge instead
+    // of a number that would look real but always read zero.
     function updateOpenBadge(openCount){
       // Mirrored onto the sidebar nav item so it's visible
       // without opening the page — sidebar space is tight, so just the
