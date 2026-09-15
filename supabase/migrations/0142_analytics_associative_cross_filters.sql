@@ -30,6 +30,12 @@
 -- carries start_time and sync_seconds, so no new column or join is needed.
 -- ============================================================================
 
+-- CREATE OR REPLACE only replaces a function whose argument list matches
+-- exactly — adding 3 new parameters makes Postgres treat this as a distinct
+-- overload rather than a replacement (same trap 0104's own header
+-- documents), so the old 6-arg dds_metrics() is dropped explicitly first.
+drop function if exists public.dds_metrics(date, date, text, text[], text[], boolean);
+
 create or replace function public.dds_metrics(
   p_from date default null::date,
   p_to date default null::date,

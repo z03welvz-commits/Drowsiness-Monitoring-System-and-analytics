@@ -330,6 +330,11 @@
      user sees it respond, matching the line charts' hover dot. */
   .hbar{cursor:pointer;transition:filter .1s;outline:none}
   .hbar:hover,.hbar:focus-visible{filter:brightness(1.12)}
+  /* Selected-bucket state for click-to-filter bar charts (Alert Sync
+     Interval) — a visible stroke ring rather than only a color/brightness
+     change, so the selection reads even for a bar whose ordinal color is
+     already fairly dark. */
+  .hbar.active{stroke:var(--text);stroke-width:2px}
 
   /* stat tiles */
   .stat-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -475,6 +480,16 @@
   .an-active-filter[hidden]{display:none}
   .an-active-filter button{all:unset;cursor:pointer;width:16px;height:16px;display:grid;place-items:center;border-radius:50%;font-size:13px;line-height:1}
   .an-active-filter button:hover{background:rgba(41,84,232,.15)}
+  /* ACTIVE FILTERS chip row — one .an-active-filter chip per active
+     cross-chart selection (reusing that class's existing pill styling,
+     unchanged) plus a single Clear All. margin-top is negative-ish
+     (matches .an-filterbar's own bottom margin below) so this row sits
+     snugly under the filter bar rather than adding a second full gap. */
+  .an-filter-chips{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-10px 0 18px}
+  .an-filter-chips[hidden]{display:none}
+  #an-filter-chips-list{display:flex;gap:8px;flex-wrap:wrap}
+  .an-clearall-btn{all:unset;cursor:pointer;font-size:12px;font-weight:700;color:#e5484d;padding:4px 2px}
+  .an-clearall-btn:hover{text-decoration:underline}
 
   /* minmax(0,1fr), not bare 1fr: a bare 1fr track is still allowed to grow
      past its fair share to fit non-shrinkable content (e.g. the sparkline's
@@ -627,7 +642,12 @@
      the legend enough room at its own reduced font-size below. */
   .an-donut-wrap{width:148px;height:148px;position:relative;flex:0 0 auto}
   .an-donut-wrap svg{width:100%;height:100%}
-  .an-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  /* pointer-events:none — this div's inset:0 box covers the WHOLE donut,
+     not just its visual hole, so without this it silently sat in front of
+     every arc and swallowed every click meant for a slice (confirmed live
+     via Playwright: a real click on a slice landed on this label instead).
+     Nothing inside it needs to be interactive. */
+  .an-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
   .an-donut-center b{font-size:20px;font-weight:800;color:var(--text)}
   .an-donut-center span{font-size:var(--fs-caption);color:var(--muted)}
   .an-donut-legend{display:flex;flex-direction:column;gap:14px;font-size:13px;flex:0 1 auto;min-width:0}
@@ -644,6 +664,14 @@
   .an-donut-legend-name i{width:10px;height:10px;border-radius:2px;flex:0 0 auto}
   .an-donut-legend-val{color:var(--muted);font-weight:600;white-space:nowrap;padding-left:18px}
   .an-donut-legend-val b{color:var(--muted);font-weight:600}
+  /* Click-to-filter: clickable slices only (the aggregated "Other" wedge
+     has no single event_code to filter by, so it's left non-interactive —
+     no class, no cursor change). Dimming every OTHER slice rather than
+     just outlining the selected one matches the donut's own established
+     "recolor on filter" avoidance elsewhere on this page — the selected
+     slice keeps its real color, everything else fades. */
+  .an-donut-arc-click{cursor:pointer;transition:opacity .15s}
+  .an-donut-arc-dimmed{opacity:.32}
 
   /* Recent Alerts Overview table (page-local — Alert Logs owns the full paginated table) */
   .an-alerts-table{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -1963,11 +1991,25 @@
         <select class="al-filter" id="an-asset" aria-label="Asset filter">
           <option value="">All assets</option>
         </select>
+        <select class="al-filter" id="an-shift" aria-label="Shift filter">
+          <option value="">All shifts</option>
+          <option value="DAY">Day</option>
+          <option value="NIGHT">Night</option>
+        </select>
         <button class="al-filter" type="button" id="an-clear-filters">Clear filters</button>
-        <div class="an-active-filter" id="an-active-filter" hidden>
-          <span id="an-active-filter-text"></span>
-          <button type="button" id="an-active-filter-clear" aria-label="Clear selection filter">&times;</button>
-        </div>
+      </div>
+
+      <!-- ACTIVE FILTERS chip row — every cross-chart selection (unit,
+           shift, employee, alert type, hour, sync bucket) shown as one
+           individually-removable chip, plus a single Clear All. Kept as
+           its own row below the filter bar (not squeezed into it) so the
+           bar's own dropdowns never reflow around a growing chip list —
+           see renderFilterChips(). Date range/Month/Year aren't chipped:
+           they're the page's base view configuration, always visible in
+           the bar itself, not an ad-hoc drill-down selection. -->
+      <div class="an-filter-chips" id="an-filter-chips" hidden>
+        <div id="an-filter-chips-list"></div>
+        <button type="button" class="an-clearall-btn" id="an-clearall-btn">Clear All Filters</button>
       </div>
 
       <section class="an-kpis" id="an-kpi-row" aria-label="Key insights">
@@ -5121,55 +5163,66 @@
     function fmtPct(n, d){ return (n == null ? 0 : n).toFixed(d == null ? 0 : d) + '%'; }
 
     // Single source of truth for every filter/selection on this page — the
-    // filter bar (month/year/from/to/asset) and the cross-filter click-to-
-    // select on Top Assets/Top Employees/the donut all write here, and
-    // `load()` reads from here on every re-fetch, so every chart and KPI on
-    // the page always reflects the same combined filter set rather than
-    // each control owning its own private state that only some charts see.
-    // The free-text search box this replaced only ever reached two of the
-    // ~10 panels here (Top Assets/Top Employees — dds_metrics() itself has
-    // no text-search parameter at all), which read as "the filters don't
-    // do anything" everywhere else on the page — month/year/from/to/asset
-    // all resolve to real dds_metrics() parameters every panel shares.
-    var filterState = { month: null, year: null, from: null, to: null, assetId: null, crossAsset: null, crossDriver: null };
+    // filter bar (month/year/from/to/asset/shift) AND every click-to-select
+    // on the six charts (unit/employee/alert type/hour/sync bucket) write
+    // here, and `load()` reads from here on every re-fetch, so every chart
+    // and KPI on the page always reflects the same combined filter set
+    // rather than each control owning its own private state only some
+    // charts see. Qlik-Sense-style associative filtering (per direct
+    // instruction) needed dds_metrics()/dds_asset_event_summary()/
+    // dds_driver_event_summary() to gain p_emp_no/p_hour/p_sync_bucket
+    // params (migration 0142) — before that, employee/hour/sync-bucket
+    // selections had nowhere to plug in server-side at all.
+    var filterState = {
+      month: null, year: null, from: null, to: null,
+      assetId: null, shift: null, empNo: null, eventCode: null, hour: null, syncBucket: null
+    };
+    // CROSS_FILTER_KEYS are the chip-row/click-driven dimensions — every
+    // key here gets its own removable chip and is cleared by Clear All.
+    // month/year/from/to are the page's base view configuration (always
+    // visible in the filter bar itself), not chipped as ad-hoc selections.
+    var CROSS_FILTER_KEYS = ['assetId', 'shift', 'empNo', 'eventCode', 'hour', 'syncBucket'];
+    var CROSS_FILTER_LABELS = { assetId: 'Unit', shift: 'Shift', empNo: 'Employee', eventCode: 'Alert Type', hour: 'Hour', syncBucket: 'Sync Interval' };
     function activeAssetIds(){
-      // Filter-bar asset picker and a clicked Top-Assets row both narrow to
-      // one asset; if both are set the more specific click-to-filter wins.
-      var id = filterState.crossAsset || filterState.assetId;
-      return id ? [id] : null;
+      return filterState.assetId ? [filterState.assetId] : null;
     }
-    function setCrossFilter(kind, value){
-      if(kind === 'asset'){ filterState.crossAsset = value; filterState.crossDriver = null; }
-      else { filterState.crossDriver = value; filterState.crossAsset = null; }
-      renderActiveFilterChip();
+    function chipValueText(key){
+      var v = filterState[key];
+      if(v == null) return null;
+      if(key === 'hour') return String(v).padStart(2, '0') + ':00';
+      if(key === 'syncBucket') return SYNC_LABELS[v] || String(v);
+      if(key === 'shift') return v === 'DAY' ? 'Day' : 'Night';
+      return v;
+    }
+    // Generic setter for every click-driven/dropdown-driven cross filter —
+    // clicking the SAME value again clears it (toggle), matching the
+    // ranked-list rows' pre-existing toggle behavior. Keeps the matching
+    // filter-bar control (asset/shift selects) in sync so the dropdown
+    // never silently disagrees with a chart click that set the same field.
+    function setFilterDim(key, value){
+      filterState[key] = filterState[key] === value ? null : value;
+      if(key === 'assetId' && assetSelect) assetSelect.value = filterState.assetId || '';
+      if(key === 'shift' && shiftSelect) shiftSelect.value = filterState.shift || '';
+      renderFilterChips();
       load();
     }
-    function renderActiveFilterChip(){
-      var chip = document.getElementById('an-active-filter');
-      var text = document.getElementById('an-active-filter-text');
-      if(!chip || !text) return;
-      if(filterState.crossAsset){
-        chip.hidden = false;
-        // dds_driver_event_summary()/dds_asset_event_summary() (the two
-        // ranked lists) now also take p_asset_id (0104), same as
-        // dds_metrics() (KPIs, trend/hourly/sync charts, donut) already did
-        // — an asset filter now narrows every panel on this page uniformly.
-        text.textContent = 'Filtered to asset ' + filterState.crossAsset;
-      } else if(filterState.crossDriver){
-        chip.hidden = false;
-        // dds_metrics() (the KPI cards, trend/hourly/sync charts, and donut)
-        // has no per-driver filter parameter — only p_asset_ids. Narrowing
-        // by driver can only reach the two ranked lists and Recent Alerts
-        // below, which do take a search/emp_no filter of their own. Saying
-        // so here instead of silently leaving the KPIs unfiltered avoids
-        // implying a driver click does the same full-page narrowing an
-        // asset click does, when it genuinely can't with the RPCs this page
-        // has available today.
-        text.textContent = 'Filtered to driver ' + filterState.crossDriver + ' — lists narrowed (KPIs/charts have no per-driver filter)';
-      } else {
-        chip.hidden = true;
-        text.textContent = '';
-      }
+    function renderFilterChips(){
+      var wrap = document.getElementById('an-filter-chips');
+      var list = document.getElementById('an-filter-chips-list');
+      if(!wrap || !list) return;
+      var active = CROSS_FILTER_KEYS.filter(function(k){ return filterState[k] != null; });
+      if(!active.length){ wrap.hidden = true; list.innerHTML = ''; return; }
+      wrap.hidden = false;
+      list.innerHTML = active.map(function(k){
+        return '<div class="an-active-filter"><span>' + esc(CROSS_FILTER_LABELS[k]) + ': ' + esc(chipValueText(k)) + '</span>' +
+          '<button type="button" data-chip-key="' + k + '" aria-label="Clear ' + esc(CROSS_FILTER_LABELS[k]) + ' filter">&times;</button></div>';
+      }).join('');
+    }
+    function clearAllCrossFilters(){
+      CROSS_FILTER_KEYS.forEach(function(k){ filterState[k] = null; });
+      if(assetSelect) assetSelect.value = '';
+      if(shiftSelect) shiftSelect.value = '';
+      renderFilterChips();
     }
 
     var UNSPECIFIED_OPERATOR = 'Unspecified';
@@ -5196,8 +5249,16 @@
 
     function fetchMetrics(from, to){
       return DB.rpc('dds_metrics', {
-        p_from: from || null, p_to: to || null, p_shift: null,
-        p_asset_ids: activeAssetIds(), p_event_codes: null, p_actionable_only: false
+        p_from: from || null, p_to: to || null, p_shift: filterState.shift || null,
+        p_asset_ids: activeAssetIds(), p_event_codes: filterState.eventCode ? [filterState.eventCode] : null,
+        p_actionable_only: false,
+        // p_emp_no/p_hour/p_sync_bucket (0142) — the three dimensions that
+        // previously had no dds_metrics() parameter to filter by at all,
+        // so an employee/hour/sync-interval selection only ever reached
+        // the two ranked lists below, never the KPIs/trend/hourly/donut.
+        p_emp_no: filterState.empNo || null,
+        p_hour: filterState.hour != null ? filterState.hour : null,
+        p_sync_bucket: filterState.syncBucket != null ? filterState.syncBucket : null
       }).then(function(res){
           if(res.error) throw res.error;
           return res.data;
@@ -5638,13 +5699,45 @@
           ? ('Highest concentration around ' + String(peakHour).padStart(2,'0') + ':00.')
           : 'No hourly data yet.';
       }
+      var hourlyGrandTotal = totals.reduce(function(s,v){ return s+v; }, 0);
       wireChartHover({
         rectId: 'an-hourly-hover-rect', crosshairId: 'an-hourly-crosshair',
         dotId: 'an-hourly-hover-dot', tooltipId: 'an-hourly-tooltip',
         dateId: 'an-hourly-tooltip-date', valueId: 'an-hourly-tooltip-value',
         getPoints: function(){ return ptsXY; },
-        getInfo: function(h){ return { label: String(h).padStart(2,'0') + ':00', value: fmtNum(totals[h]) + ' alerts' }; }
+        getInfo: function(h){
+          var share = hourlyGrandTotal ? fmtPct((totals[h] / hourlyGrandTotal) * 100, 1) : '0%';
+          return { label: String(h).padStart(2,'0') + ':00', value: fmtNum(totals[h]) + ' alerts · ' + share + ' of day' };
+        }
       });
+      // Click-to-filter (own listener, not part of the shared wireChartHover
+      // helper — that helper is reused by other pages' charts too, and its
+      // hover-only contract shouldn't grow an Analytics-specific side
+      // effect). Same nearest-point-by-x lookup wireChartHover uses
+      // internally, rebuilt here against this render's own `ptsXY` closure
+      // and re-bound on every call so a filter change's re-render doesn't
+      // click against stale data.
+      var hourlyRect = document.getElementById('an-hourly-hover-rect');
+      if(hourlyRect){
+        var oldHourClick = hourlyRect.__hourClickHandler;
+        if(oldHourClick) hourlyRect.removeEventListener('click', oldHourClick);
+        var hourClick = function(e){
+          var svg = hourlyRect.ownerSVGElement;
+          var pt = svg.createSVGPoint();
+          pt.x = e.clientX; pt.y = e.clientY;
+          var ctm = hourlyRect.getScreenCTM();
+          if(!ctm) return;
+          var svgX = pt.matrixTransform(ctm.inverse()).x;
+          var nearest = 0, nearestDist = Infinity;
+          for(var h = 0; h < ptsXY.length; h++){
+            var dist = Math.abs(ptsXY[h][0] - svgX);
+            if(dist < nearestDist){ nearestDist = dist; nearest = h; }
+          }
+          setFilterDim('hour', nearest);
+        };
+        hourlyRect.addEventListener('click', hourClick);
+        hourlyRect.__hourClickHandler = hourClick;
+      }
     }
 
     var hourlyView = 'hour';
@@ -5688,16 +5781,25 @@
       var barW = 42, gap = (R - L - SYNC_LABELS.length * barW) / (SYNC_LABELS.length + 1);
       var barsEl = document.getElementById('an-sync-bars');
       var axisEl = document.getElementById('an-sync-axis');
+      var syncGrandTotal = totals.reduce(function(s,v){ return s+v; }, 0);
       if(barsEl){
         barsEl.innerHTML = totals.map(function(v, i){
           var h = Math.max((v / peak) * (B - T), 0);
           var x = L + gap + i * (barW + gap);
           var y = B - h;
-          return '<path class="hbar" tabindex="0" role="img" aria-label="' + esc(SYNC_LABELS[i]) + ' sync time, ' + v + ' events" ' +
-            'data-tip-label="' + esc(SYNC_LABELS[i]) + ' sync" data-tip-value="' + fmtNum(v) + ' event' + (v===1?'':'s') + '" ' +
+          var share = syncGrandTotal ? fmtPct((v / syncGrandTotal) * 100, 1) : '0%';
+          var isActive = filterState.syncBucket === i;
+          return '<path class="hbar' + (isActive ? ' active' : '') + '" tabindex="0" role="img" aria-label="' + esc(SYNC_LABELS[i]) + ' sync time, ' + v + ' events" ' +
+            'data-tip-label="' + esc(SYNC_LABELS[i]) + ' sync" data-tip-value="' + fmtNum(v) + ' alert' + (v===1?'':'s') + ' · ' + share + ' share" ' +
+            'data-sync-bucket="' + i + '" ' +
             'd="' + roundTopRectPath(x, y, barW, h, 4) + '" style="fill:' + SYNC_ORD[i] + '"></path>';
         }).join('');
         wireBarHover({ containerId: 'an-sync-bars', tooltipId: 'an-sync-tooltip', dateId: 'an-sync-tooltip-date', valueId: 'an-sync-tooltip-value' });
+        barsEl.querySelectorAll('[data-sync-bucket]').forEach(function(bar){
+          bar.addEventListener('click', function(){
+            setFilterDim('syncBucket', Number(bar.getAttribute('data-sync-bucket')));
+          });
+        });
       }
       if(axisEl){
         axisEl.innerHTML = SYNC_LABELS.map(function(label, i){
@@ -5737,7 +5839,7 @@
       }
       var rawPeak = Math.max.apply(null, items.map(function(i){ return i.value; }).concat([1]));
       var axisMax = niceAxisMax(rawPeak);
-      var activeKey = opts.kind === 'asset' ? filterState.crossAsset : filterState.crossDriver;
+      var activeKey = opts.kind === 'asset' ? filterState.assetId : filterState.empNo;
       var rows = items.map(function(item){
         var pct = Math.round((item.value / axisMax) * 100);
         var isActive = activeKey != null && activeKey === item.key;
@@ -5751,8 +5853,7 @@
       body.querySelectorAll('.an-rank-row').forEach(function(row){
         row.addEventListener('click', function(){
           var key = row.getAttribute('data-an-rank-key');
-          if(opts.kind === 'asset') setCrossFilter('asset', filterState.crossAsset === key ? null : key);
-          else setCrossFilter('driver', filterState.crossDriver === key ? null : key);
+          setFilterDim(opts.kind === 'asset' ? 'assetId' : 'empNo', key);
         });
       });
     }
@@ -5770,11 +5871,17 @@
       return DB.rpc('dds_driver_event_summary', {
         p_search: null, p_sort: 'total', p_dir: 'desc',
         p_limit: 200, p_offset: 0,
-        p_from: from || null, p_to: to || null, p_shift: null,
+        p_from: from || null, p_to: to || null, p_shift: filterState.shift || null,
         // p_asset_id (0104) — same asset the filter bar/cross-filter
         // already narrows KPIs/charts to, so this list agrees with them
         // instead of always showing the fleet-wide ranking regardless.
-        p_asset_id: (activeAssetIds() || [null])[0]
+        p_asset_id: (activeAssetIds() || [null])[0],
+        // p_event_code/p_hour/p_sync_bucket (0142) — an alert type/hour/
+        // sync-interval selection now narrows this list too, not just the
+        // KPI/chart group above.
+        p_event_code: filterState.eventCode || null,
+        p_hour: filterState.hour != null ? filterState.hour : null,
+        p_sync_bucket: filterState.syncBucket != null ? filterState.syncBucket : null
       }).then(function(res){
         if(res.error) throw res.error;
         // emp_no_norm carries the literal string 'UNSPECIFIED' (a real
@@ -5789,8 +5896,11 @@
       return DB.rpc('dds_asset_event_summary', {
         p_search: null, p_sort: 'total', p_dir: 'desc',
         p_limit: 200, p_offset: 0,
-        p_from: from || null, p_to: to || null, p_shift: null,
-        p_asset_id: (activeAssetIds() || [null])[0]
+        p_from: from || null, p_to: to || null, p_shift: filterState.shift || null,
+        p_asset_id: (activeAssetIds() || [null])[0],
+        p_event_code: filterState.eventCode || null,
+        p_hour: filterState.hour != null ? filterState.hour : null,
+        p_sync_bucket: filterState.syncBucket != null ? filterState.syncBucket : null
       }).then(function(res){
         if(res.error) throw res.error;
         return (res.data || {}).rows || [];
@@ -5855,8 +5965,8 @@
       if(!arcsEl) return;
       var top = all.slice(0, 5);
       var rest = all.slice(5).reduce(function(s,c){ return s + c.units; }, 0);
-      var slices = top.map(function(c){ return { name: c.code || 'Other', value: c.units, color: severityBadge(c.code).color }; });
-      if(rest > 0) slices.push({ name: 'Other', value: rest, color: DONUT_OTHER_COLOR });
+      var slices = top.map(function(c){ return { name: c.code || 'Other', value: c.units, color: severityBadge(c.code).color, code: c.code, clickable: true }; });
+      if(rest > 0) slices.push({ name: 'Other', value: rest, color: DONUT_OTHER_COLOR, code: null, clickable: false });
       var total = slices.reduce(function(s,c){ return s + c.value; }, 0);
       if(totalEl) totalEl.textContent = fmtNum(cur.kpis ? cur.kpis.totalAlerts : total);
       if(!total){ arcsEl.innerHTML = ''; if(legendEl) legendEl.textContent = 'No event data.'; return; }
@@ -5884,9 +5994,23 @@
           ' L' + i1[0].toFixed(1) + ' ' + i1[1].toFixed(1) +
           ' A' + innerR + ' ' + innerR + ' 0 ' + large + ' 0 ' + i2[0].toFixed(1) + ' ' + i2[1].toFixed(1) + ' Z';
         startAngle = endAngle;
-        return '<path d="' + d + '" fill="' + s.color + '"/>';
+        // Selected slice keeps its real color; every other slice (the
+        // aggregated "Other" wedge included) dims — same "highlight the
+        // selection, fade the rest" treatment as the sync bars/rank rows,
+        // rather than only outlining the one that's picked.
+        var isDimmed = filterState.eventCode != null && s.code !== filterState.eventCode;
+        var classes = [];
+        if(s.clickable) classes.push('an-donut-arc-click');
+        if(isDimmed) classes.push('an-donut-arc-dimmed');
+        var attrs = s.clickable ? ' data-donut-code="' + esc(s.code) + '"' : '';
+        return '<path class="' + classes.join(' ') + '" d="' + d + '" fill="' + s.color + '"' + attrs + '/>';
       });
       arcsEl.innerHTML = paths.join('');
+      arcsEl.querySelectorAll('[data-donut-code]').forEach(function(path){
+        path.addEventListener('click', function(){
+          setFilterDim('eventCode', path.getAttribute('data-donut-code'));
+        });
+      });
       if(legendEl){
         legendEl.innerHTML = slices.map(function(s){
           var pct = total ? Math.round(s.value/total*100) : 0;
@@ -6231,6 +6355,13 @@
     var assetSelect = document.getElementById('an-asset');
     if(assetSelect) assetSelect.addEventListener('change', function(e){
       filterState.assetId = e.target.value || null;
+      renderFilterChips();
+      load();
+    });
+    var shiftSelect = document.getElementById('an-shift');
+    if(shiftSelect) shiftSelect.addEventListener('change', function(e){
+      filterState.shift = e.target.value || null;
+      renderFilterChips();
       load();
     });
 
@@ -6262,20 +6393,28 @@
 
     var clearBtn = document.getElementById('an-clear-filters');
     if(clearBtn) clearBtn.addEventListener('click', function(){
-      filterState.month = null; filterState.year = null; filterState.from = null; filterState.to = null; filterState.assetId = null;
-      filterState.crossAsset = null; filterState.crossDriver = null;
+      filterState.month = null; filterState.year = null; filterState.from = null; filterState.to = null;
+      clearAllCrossFilters();
       if(monthSelect) monthSelect.value = '';
       if(yearSelect) yearSelect.value = '';
       if(fromInput) fromInput.value = '';
       if(toInput) toInput.value = '';
-      if(assetSelect) assetSelect.value = '';
-      renderActiveFilterChip();
       load();
     });
-    var activeFilterClearBtn = document.getElementById('an-active-filter-clear');
-    if(activeFilterClearBtn) activeFilterClearBtn.addEventListener('click', function(){
-      filterState.crossAsset = null; filterState.crossDriver = null;
-      renderActiveFilterChip();
+    var clearAllBtn = document.getElementById('an-clearall-btn');
+    if(clearAllBtn) clearAllBtn.addEventListener('click', function(){
+      clearAllCrossFilters();
+      load();
+    });
+    var filterChipsList = document.getElementById('an-filter-chips-list');
+    if(filterChipsList) filterChipsList.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-chip-key]');
+      if(!btn) return;
+      var key = btn.getAttribute('data-chip-key');
+      filterState[key] = null;
+      if(key === 'assetId' && assetSelect) assetSelect.value = '';
+      if(key === 'shift' && shiftSelect) shiftSelect.value = '';
+      renderFilterChips();
       load();
     });
 
