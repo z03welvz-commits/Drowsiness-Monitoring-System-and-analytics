@@ -651,7 +651,7 @@
   .an-alerts-foot{display:flex;align-items:center;margin-top:14px;font-size:var(--fs-body);color:var(--muted)}
 
   /* ---------- Alert Logs page (al- prefix avoids colliding with Overview/Analytics chrome classes) ---------- */
-  .al-summary{display:grid;grid-template-columns:1.15fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+  .al-summary{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:14px;margin-bottom:14px}
   /* Alert Logs summary cards reuse the shared .kpi component (icon +
      value + sub) instead of their own separate colored-left-border style
      — was a 3rd distinct "big number" card language on top of Overview/
@@ -2202,11 +2202,6 @@
           <div class="kpi-head"><span class="kpi-icon bluebg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>EVENTS IN VIEW</div>
           <div class="kpi-value" id="al-sc-total">—</div>
           <div class="kpi-sub al-kpi-sub">All detected alerts matching current filters</div>
-        </div>
-        <div class="card kpi al-kpi">
-          <div class="kpi-head"><span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>CRITICAL</div>
-          <div class="kpi-value" id="al-sc-critical">—</div>
-          <div class="kpi-sub al-kpi-sub" id="al-sc-critical-sub">Of events in view</div>
         </div>
         <div class="card kpi al-kpi">
           <div class="kpi-head"><span class="kpi-icon amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/></svg></span>WITH A LOGGED CASE</div>
@@ -10722,7 +10717,7 @@
   // the moment case-logging exists elsewhere in the app.
   (function(){
     var guard = makeGuard();
-    var state = { from:null, to:null, shift:null, status:'all', severity:null, search:'', sort:'start_time', dir:'desc', limit:20, offset:0, total:0, criticalTotal:0, casedTotal:0, actionableTotal:0 };
+    var state = { from:null, to:null, shift:null, status:'all', severity:null, search:'', sort:'start_time', dir:'desc', limit:20, offset:0, total:0, casedTotal:0, actionableTotal:0 };
     // Infinite scroll instead of numbered pagination — same pattern as
     // Driver Streaks/Driver & Asset Monitoring, per direct instruction:
     // `rows` accumulates everything fetched so far for the current filter
@@ -10893,17 +10888,22 @@
       '</tr>';
     }
 
-    // criticalTotal/casedTotal/actionableTotal (0100_dds_alert_logs_
-    // summary_totals.sql) are computed server-side over every row matching
-    // the current filters — same grain as `total` — not just what's
-    // scrolled into the browser so far. This used to be recomputed from
-    // the accumulated `rows` array instead, which meant "CRITICAL 19"
-    // next to "EVENTS IN VIEW 997" was actually "19 of the 20 rows loaded
-    // so far are critical," a number with no reliable relationship to the
-    // real 997-event total, mislabeled "95% loaded" (a fetch-progress-
-    // shaped label for what was really a composition-of-what's-loaded
-    // number). "With a logged case" never even had that: its sub-label
-    // had no id, so it stayed the static "Of events loaded" forever.
+    // casedTotal/actionableTotal (0100_dds_alert_logs_summary_totals.sql)
+    // are computed server-side over every row matching the current filters
+    // — same grain as `total` — not just what's scrolled into the browser
+    // so far. This used to be recomputed from the accumulated `rows` array
+    // instead, which meant a percentage next to "EVENTS IN VIEW 997" was
+    // actually "X of the 20 rows loaded so far," a number with no reliable
+    // relationship to the real 997-event total, mislabeled "95% loaded" (a
+    // fetch-progress-shaped label for what was really a composition-of-
+    // what's-loaded number). "With a logged case" never even had that: its
+    // sub-label had no id, so it stayed the static "Of events loaded"
+    // forever.
+    // Critical (the third tile this row used to show) is dropped per
+    // direct instruction: Driver Streaks is the one place "Critical" is
+    // shown as a page-level count now, since it and this page's own
+    // critical rule measure different things (streak length vs. alert
+    // type) and showing both invited exactly that kind of confusion.
     function updateSummaryCardsAL(){
       var total = state.total;
       document.getElementById('al-sc-total').textContent = fmtNum(total);
@@ -10912,7 +10912,6 @@
         if(valueEl) valueEl.textContent = total ? fmtNum(count) : '—';
         if(subEl) subEl.textContent = total ? (Math.round(count/total*100) + '% of events in view') : 'Of events in view';
       }
-      setTile('al-sc-critical', 'al-sc-critical-sub', state.criticalTotal);
       setTile('al-sc-cased', 'al-sc-cased-sub', state.casedTotal);
       setTile('al-sc-actionable', 'al-sc-actionable-sub', state.actionableTotal);
     }
@@ -10930,7 +10929,7 @@
         if(!sess){
           if(tbody) tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           if(showingEl) showingEl.textContent = '';
-          ['al-sc-total','al-sc-critical','al-sc-cased','al-sc-actionable'].forEach(function(id){
+          ['al-sc-total','al-sc-cased','al-sc-actionable'].forEach(function(id){
             var el = document.getElementById(id); if(el) el.textContent = '—';
           });
           return;
@@ -10969,7 +10968,9 @@
           // current filters server-side, not just what's scrolled into
           // the browser so far. Identical on every page of the same
           // filter, so just overwriting them each fetch is fine.
-          state.criticalTotal = (res.data && res.data.criticalTotal) || 0;
+          // criticalTotal itself is still returned by the RPC (an existing
+          // server field, left alone) but no longer read here — Alert Logs
+          // no longer shows its own page-level Critical count client-side.
           state.casedTotal = (res.data && res.data.casedTotal) || 0;
           state.actionableTotal = (res.data && res.data.actionableTotal) || 0;
           if(fetched.length < state.limit) reachedEnd = true;
