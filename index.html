@@ -694,12 +694,12 @@
   .al-table-wrap{overflow-x:auto;overflow-y:auto}
   .al-table{width:100%;border-collapse:collapse;min-width:1500px;table-layout:fixed}
   .al-table thead th{position:sticky;top:0;z-index:1}
-  .al-table th{height:34px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 11px;background:var(--surface2);white-space:nowrap}
+  .al-table th{height:28px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 11px;background:var(--surface2);white-space:nowrap}
   .al-table th[data-sort]{cursor:pointer;user-select:none}
   .al-table th[data-sort]:hover{color:var(--link-blue)}
   .al-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
   .al-table th[data-sort].sorted.asc::after{content:' ▴'}
-  .al-table td{height:40px;border-bottom:1px solid var(--border);padding:0 11px;font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .al-table td{height:34px;border-bottom:1px solid var(--border);padding:0 11px;font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .al-table tr:hover td{background:var(--surface2)}
   .al-table td.al-remarks{max-width:220px;overflow:hidden;text-overflow:ellipsis}
   .al-time{color:var(--muted)}
@@ -876,12 +876,12 @@
 
   .dm-table-wrap{overflow-x:auto}
   .dm-table{width:100%;border-collapse:collapse;min-width:660px}
-  .dm-table th{height:36px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
+  .dm-table th{height:30px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
   .dm-table th[data-sort]{cursor:pointer;user-select:none}
   .dm-table th[data-sort]:hover{color:var(--link-blue)}
   .dm-table th[data-sort].sorted::after{content:' ▾';font-size:8px}
   .dm-table th[data-sort].sorted.asc::after{content:' ▴'}
-  .dm-table td{height:50px;border-bottom:1px solid var(--border);padding:0 10px;font-size:11px;color:var(--text-dim);white-space:nowrap}
+  .dm-table td{height:40px;border-bottom:1px solid var(--border);padding:0 10px;font-size:11px;color:var(--text-dim);white-space:nowrap}
   .dm-table tr:last-child td{border-bottom:none}
   .dm-table tr:hover td{background:var(--surface2)}
   .dm-file{display:flex;align-items:center;gap:9px;font-weight:650;color:var(--text-dim)}
@@ -1048,12 +1048,12 @@
      each page picking its own (this was 38px/56px). A uniform, denser row
      height also means more real rows fit in the same fixed-height
      scrollable area before infinite scroll needs to kick in at all. */
-  .da-table th{height:34px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
+  .da-table th{height:28px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
   .da-table th[data-da-sort]{cursor:pointer;user-select:none}
   .da-table th[data-da-sort]:hover{color:var(--link-blue)}
   .da-table th[data-da-sort].sorted::after{content:' ▾';font-size:8px}
   .da-table th[data-da-sort].sorted.asc::after{content:' ▴'}
-  .da-table td{height:40px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .da-table td{height:34px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* Driver Streaks' action dropdown (.ds-action-dd-menu) is position:absolute,
      floating below its button — but every .da-table td clips overflow (the
      rule right above this one) to get text-overflow:ellipsis on the columns
@@ -1290,8 +1290,8 @@
   :root[data-theme="dark"] .da-sync-status.error{background:#2a1518}
 
   .da-inst-table{width:100%;border-collapse:collapse;min-width:900px}
-  .da-inst-table th{height:36px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
-  .da-inst-table td{height:48px;border-bottom:1px solid var(--border);padding:0 10px;font-size:11px;color:var(--text-dim);white-space:nowrap}
+  .da-inst-table th{height:30px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
+  .da-inst-table td{height:38px;border-bottom:1px solid var(--border);padding:0 10px;font-size:11px;color:var(--text-dim);white-space:nowrap}
   .da-inst-table tr:hover td{background:var(--surface2)}
   .da-inst-table .chk-col{width:34px;text-align:center;padding:0}
   .da-inst-table input[type="checkbox"]{width:15px;height:15px;cursor:pointer;accent-color:var(--blue)}
@@ -1362,8 +1362,8 @@
   .su-risk-goto:hover{background:#edf5ff}
   .su-risk-goto svg{width:11px;height:11px}
   .su-risk-table{width:100%;border-collapse:collapse}
-  .su-risk-table th{height:36px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 17px;background:var(--surface2);white-space:nowrap}
-  .su-risk-table td{height:48px;border-bottom:1px solid var(--border);padding:0 17px;font-size:var(--fs-body);color:var(--text-dim)}
+  .su-risk-table th{height:30px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 17px;background:var(--surface2);white-space:nowrap}
+  .su-risk-table td{height:38px;border-bottom:1px solid var(--border);padding:0 17px;font-size:var(--fs-body);color:var(--text-dim)}
   .su-risk-table tr:last-child td{border-bottom:none}
   .su-risk-table tr:hover td{background:var(--surface2)}
   .su-risk-name{font-weight:700;color:var(--text-dim)}
@@ -1477,8 +1477,8 @@
   .se-users-count{font-size:11px;color:var(--muted)}
   .se-table-wrap{overflow-x:auto}
   .se-table{width:100%;border-collapse:collapse;min-width:680px}
-  .se-table th{height:38px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
-  .se-table td{height:56px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap}
+  .se-table th{height:32px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 14px;background:var(--surface2);white-space:nowrap}
+  .se-table td{height:44px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap}
   .se-table tr:last-child td{border-bottom:none}
   .se-table tr:hover td{background:var(--surface2)}
   .se-user-name{display:flex;align-items:center;gap:10px;font-weight:650;color:var(--text-dim)}
@@ -12988,7 +12988,7 @@
       var navBadge = document.getElementById('ds-nav-badge');
       if(navBadge){
         if(openCount == null || openCount === 0){ navBadge.hidden = true; }
-        else { navBadge.hidden = false; navBadge.textContent = fmtNum(openCount); }
+        else { navBadge.hidden = false; navBadge.textContent = openCount > 99 ? '99+' : fmtNum(openCount); }
       }
     }
     // Same "hidden rather than a wrong zero" contract as updateOpenBadge —
