@@ -469,6 +469,15 @@
   .an-filterbar{padding:11px 17px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:18px}
   .an-filterbar .al-filter{flex:0 0 auto;width:auto;min-width:130px}
   .an-filterbar select.al-filter{-webkit-appearance:none;appearance:none}
+  /* Shown while load() is in flight for any click/dropdown-driven filter
+     change — previously nothing on the page indicated a click had been
+     registered until the new data quietly appeared, so a slow fetch read
+     as "did that click even do anything?" margin-left:auto pins it to the
+     filter bar's right edge regardless of how many filter controls wrap. */
+  .an-loading{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--muted);margin-left:auto;flex:0 0 auto}
+  .an-loading[hidden]{display:none}
+  .an-spinner{width:13px;height:13px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--blue);animation:an-spin .7s linear infinite;display:inline-block}
+  @keyframes an-spin{to{transform:rotate(360deg)}}
   .an-active-filter{display:flex;align-items:center;gap:6px;background:#e6eefe;color:#2954e8;border-radius:var(--radius-pill);padding:6px 8px 6px 12px;font-size:11px;font-weight:650;flex:0 0 auto}
   /* This codebase's own established pattern for every other hidden-toggled
      badge/chip (.nav-badge[hidden], .al-badge[hidden], .dm-review-
@@ -610,7 +619,12 @@
      element's own box was 0x0 despite style="width:89%" being set
      correctly in the DOM). Wasn't width math, wasn't a CSS specificity
      conflict — inline elements just don't respect either property. */
-  .an-rank-fill{display:block;height:100%;background:#2954e8;border-radius:5px;transition:width .3s ease}
+  .an-rank-fill{display:block;height:100%;background:#a9c3f5;border-radius:5px;transition:width .3s ease}
+  /* Highest-count row in the list gets the same "hot" red .an-bar.hot
+     already uses elsewhere on this page — the rest stay the lighter blue
+     above, so the single busiest unit/driver reads as an at-a-glance
+     standout rather than blending into a uniform bar color. */
+  .an-rank-fill.top{background:#e5484d}
   .an-rank-value{width:44px;flex:0 0 auto;text-align:right;font-size:12px;font-weight:700;color:var(--text)}
   .an-rank-axis{display:flex;justify-content:space-between;margin-top:12px;font-size:10px;color:var(--muted);padding-left:72px}
 
@@ -2026,6 +2040,7 @@
           <option value="NIGHT">Night</option>
         </select>
         <button class="al-filter" type="button" id="an-clear-filters">Clear filters</button>
+        <span class="an-loading" id="an-loading-indicator" role="status" aria-live="polite" hidden><i class="an-spinner" aria-hidden="true"></i>Updating…</span>
       </div>
 
       <!-- ACTIVE FILTERS chip row — every cross-chart selection (unit,
@@ -5228,6 +5243,23 @@
       renderFilterChips();
       load();
     }
+    // Alert Trend's own click-to-filter (see renderTrend below) sets the
+    // page's real From/To range rather than a chip — from/to are the
+    // page's base view configuration, already visible in the filter bar
+    // itself (see CROSS_FILTER_KEYS above), same as the Month/Year
+    // quick-pick already does. Clicking the SAME already-selected bucket
+    // again clears back to no explicit range, matching every other
+    // click-driven filter's toggle-on-repeat behavior.
+    function setTrendDateFilter(fromVal, toVal){
+      if(filterState.from === fromVal && filterState.to === toVal){
+        filterState.from = null; filterState.to = null;
+      } else {
+        filterState.from = fromVal; filterState.to = toVal;
+      }
+      if(fromInput) fromInput.value = filterState.from || '';
+      if(toInput) toInput.value = filterState.to || '';
+      load();
+    }
     function renderFilterChips(){
       var wrap = document.getElementById('an-filter-chips');
       var list = document.getElementById('an-filter-chips-list');
@@ -5501,6 +5533,16 @@
         return { label: b.label, units: units, operatingHours: operatingHours, dates: b.items.map(function(t){ return t.date; }) };
       });
     }
+    // The real day span a plotted bucket covers — a single day for a daily
+    // bucket, the whole week/month for a rolled-up one — used by the Alert
+    // Trend chart's click-to-filter (renderTrend below) to narrow the
+    // page's From/To range to exactly what was clicked. p.dates is already
+    // sorted ascending (trendBuckets built it from trend[], itself ordered
+    // by shift_date), so the first/last entries are the bucket's bounds.
+    function trendBucketRange(p){
+      if(!p || !p.dates || !p.dates.length) return null;
+      return { from: toISO(factorToDate(p.dates[0])), to: toISO(factorToDate(p.dates[p.dates.length - 1])) };
+    }
 
     // ==================== Alert Trend — contributing-factor overlay ====================
     // trendPoints/trendGeom cache renderTrend()'s last-computed bucket
@@ -5734,6 +5776,35 @@
           return { label: p.label, value: fmtNum(p.units) + ' alerts · ' + fmtNum(Math.round(p.operatingHours || 0)) + ' hrs' };
         }
       });
+      // Click-to-filter (own listener, not part of the shared wireChartHover
+      // helper — same reasoning/pattern as Hourly Trend's own click handler
+      // below). Clicking a point narrows the page's From/To range to that
+      // bucket's real day span (a single day for a daily bucket, the whole
+      // week/month for a rolled-up one) — previously this chart was the
+      // only one on the page with no click-to-filter at all, so selecting
+      // a date here had no effect on any other card.
+      var trendRect = document.getElementById('an-trend-hover-rect');
+      if(trendRect){
+        var oldTrendClick = trendRect.__trendClickHandler;
+        if(oldTrendClick) trendRect.removeEventListener('click', oldTrendClick);
+        var trendClick = function(e){
+          var svg = trendRect.ownerSVGElement;
+          var pt = svg.createSVGPoint();
+          pt.x = e.clientX; pt.y = e.clientY;
+          var ctm = trendRect.getScreenCTM();
+          if(!ctm) return;
+          var svgX = pt.matrixTransform(ctm.inverse()).x;
+          var nearest = 0, nearestDist = Infinity;
+          for(var i = 0; i < ptsAlerts.length; i++){
+            var dist = Math.abs(ptsAlerts[i][0] - svgX);
+            if(dist < nearestDist){ nearestDist = dist; nearest = i; }
+          }
+          var range = trendBucketRange(points[nearest]);
+          if(range) setTrendDateFilter(range.from, range.to);
+        };
+        trendRect.addEventListener('click', trendClick);
+        trendRect.__trendClickHandler = trendClick;
+      }
 
       // Cached so the contributing-factor band overlay (setupTrendFactors/
       // renderTrendFactorBands — factors resolve on a separate, slower
@@ -5991,8 +6062,13 @@
       var rows = items.map(function(item){
         var pct = Math.round((item.value / axisMax) * 100);
         var isActive = activeKey != null && activeKey === item.key;
+        // Highest-count row (ties included) stands out in red — the rest
+        // stay the lighter default fill (see .an-rank-fill/.an-rank-
+        // fill.top) — rather than every row reading as the same uniform
+        // blue with no visual cue for which one is actually the standout.
+        var isTop = item.value === rawPeak && rawPeak > 0;
         return '<div class="an-rank-row' + (isActive ? ' active' : '') + '" data-an-rank-key="' + esc(item.key) + '" title="Click to filter this page to ' + esc(item.label) + '"><span class="an-rank-name" title="' + esc(item.label) + '">' + esc(item.label) +
-          '</span><span class="an-rank-track"><span class="an-rank-fill" style="width:' + pct + '%"></span></span>' +
+          '</span><span class="an-rank-track"><span class="an-rank-fill' + (isTop ? ' top' : '') + '" style="width:' + pct + '%"></span></span>' +
           '<span class="an-rank-value">' + fmtNum(item.value) + '</span></div>';
       }).join('');
       var ticks = [0, 0.25, 0.5, 0.75, 1].map(function(f){ return fmtNum(Math.round(axisMax * f)); });
@@ -6029,7 +6105,12 @@
         // KPI/chart group above.
         p_event_code: filterState.eventCode || null,
         p_hour: filterState.hour != null ? filterState.hour : null,
-        p_sync_bucket: filterState.syncBucket != null ? filterState.syncBucket : null
+        p_sync_bucket: filterState.syncBucket != null ? filterState.syncBucket : null,
+        // p_emp_no (0143) — an employee selection now narrows this list
+        // too; previously only dds_metrics() (KPIs/trend/hourly/donut/
+        // sync) took an emp_no filter, so clicking a driver row left
+        // "Alerts by Unit" showing the unfiltered fleet-wide ranking.
+        p_emp_no: filterState.empNo || null
       }).then(function(res){
         if(res.error) throw res.error;
         // emp_no_norm carries the literal string 'UNSPECIFIED' (a real
@@ -6048,7 +6129,12 @@
         p_asset_id: (activeAssetIds() || [null])[0],
         p_event_code: filterState.eventCode || null,
         p_hour: filterState.hour != null ? filterState.hour : null,
-        p_sync_bucket: filterState.syncBucket != null ? filterState.syncBucket : null
+        p_sync_bucket: filterState.syncBucket != null ? filterState.syncBucket : null,
+        // p_emp_no (0143) — closes the one asymmetric cross-filter gap:
+        // an asset selection already narrowed "Alerts by Employee ID /
+        // Driver" (p_asset_id, 0104), but an employee selection had no
+        // matching param here, so "Alerts by Unit" stayed unfiltered.
+        p_emp_no: filterState.empNo || null
       }).then(function(res){
         if(res.error) throw res.error;
         return (res.data || {}).rows || [];
@@ -6392,11 +6478,26 @@
     function toISO(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
     function parseISODate(s){ if(!s) return null; var p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
 
+    // Shown for the duration of any click/dropdown-driven load() run — see
+    // the two hook points inside load() below. A stale prior spinner can
+    // never linger past a newer click: showAnalyticsLoading() re-shows
+    // unconditionally on every load() call, and the guard.isCurrent(token)
+    // check before every hide means only the MOST RECENT call's own hide
+    // actually takes effect if several fire in quick succession.
+    function showAnalyticsLoading(){
+      var el = document.getElementById('an-loading-indicator');
+      if(el) el.hidden = false;
+    }
+    function hideAnalyticsLoading(){
+      var el = document.getElementById('an-loading-indicator');
+      if(el) el.hidden = true;
+    }
     function load(){
       var token = guard.start();
+      showAnalyticsLoading();
       requireSession().then(function(sess){
         if(!guard.isCurrent(token)) return;
-        if(!sess){ signedOutState(); return; }
+        if(!sess){ signedOutState(); hideAnalyticsLoading(); return; }
         wireProfileMenu(sess, 'an');
 
         var today = new Date(); today.setHours(0,0,0,0);
@@ -6471,8 +6572,23 @@
           else { renderFactorImpact(m.cur, f.factors); setupTrendFactors(m.cur, f.factors); }
         });
 
-        renderTopDrivers(toISO(winFrom), toISO(winTo));
-        renderTopAssets(toISO(winFrom), toISO(winTo));
+        var topDriversResult = renderTopDrivers(toISO(winFrom), toISO(winTo));
+        var topAssetsResult = renderTopAssets(toISO(winFrom), toISO(winTo));
+
+        // Hides the spinner once every fetch this click/dropdown change
+        // kicked off has settled (renderTopDrivers/renderTopAssets already
+        // never reject, so this always resolves — it doesn't need its own
+        // .catch). The secondary comparison-window fetch above is left out
+        // on purpose: it only refines the KPI deltas after the page has
+        // already rendered, same "non-fatal, degrades gracefully" reasoning
+        // as its own comment gives, so waiting on it would just make the
+        // spinner linger for a fetch nothing is visibly waiting on.
+        Promise.all([metricsResult, factorsResult, topDriversResult, topAssetsResult]).then(function(){
+          if(guard.isCurrent(token)) hideAnalyticsLoading();
+        });
+      }).catch(function(err){
+        console.error('Analytics session check failed', err);
+        if(guard.isCurrent(token)) hideAnalyticsLoading();
       });
     }
 
