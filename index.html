@@ -498,44 +498,52 @@
      26px of real horizontal overflow at 1366px before this fix). Every
      column of every row on this page below is a grid, but this row is the
      one whose children previously had non-shrinking fixed widths. */
-  .an-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
-  /* .card supplies background/border/radius/shadow only — no padding of its
-     own (every other page's KPI cards get padding from their own modifier
-     class, e.g. .kpi{padding:16px 17px}). This card's content was sitting
-     flush against its own edges with zero breathing room until this rule
-     was added: the sparkline's line and the card's bottom edge were only
-     ~1px apart, reading as the whole card overlapping/crowding itself. */
-  .an-kpi{padding:var(--kpi-pad)}
-  /* Two-column body: label/value/trend stack on the left, the sparkline
-     gets its own dedicated zone on the right instead of stretching full-
-     width below everything — per direct instruction, this reads as an
-     accent chart rather than a cramped underline, and gets real margin
-     from the card's own right/bottom edges instead of touching them. */
-  .an-kpi-body{display:flex;align-items:stretch;gap:12px;min-width:0}
-  .an-kpi-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
-  .an-kpi-head{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.035em;font-weight:700;color:var(--text-dim)}
-  .an-kpi-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}
-  .an-kpi-icon svg{width:16px;height:16px}
-  .an-kpi-value{color:var(--text);margin-top:11px;white-space:nowrap}
-  .an-kpi-sub{font-size:var(--fs-caption);margin-top:6px;color:var(--muted);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-  .an-kpi-sub .delta{font-weight:650}
-  .an-kpi-sub .delta.up,.an-kpi-sub .delta.down{color:var(--text-dim)}
-  .an-kpi-sub .delta.flat{color:var(--muted)}
-  /* Sparkline zone: right-aligned, vertically centered against the label/
-     value/trend stack beside it, with real right-edge margin (the card's
-     own 20px padding) instead of running edge-to-edge. Width shrinks with
-     the card via clamp() + min-width:0 rather than a fixed flex-basis —
-     a fixed width doesn't shrink, so at 5-across on a 1366px-wide screen
-     the row's true minimum content width exceeded its grid track and the
-     whole page gained a horizontal scrollbar. */
-  .an-kpi-spark{flex:1 1 84px;width:auto;min-width:0;max-width:136px;height:56px;align-self:center;position:relative}
-  .an-kpi-spark svg{width:100%;height:100%;display:block;overflow:visible}
-  /* Soft breathing glow at the sparkline's endpoint — a slow opacity pulse
-     rather than a size/position change, so it reads as "alive" without
-     drawing attention away from the KPI value it sits beside. */
-  .an-kpi-spark [id$="-glow"]{animation:an-spark-glow-pulse 2.6s ease-in-out infinite}
+  .an-kpis{margin-bottom:18px}
+  /* One premium card (per direct instruction — a reference-driven redesign
+     of this section only) instead of 4 separate .kpi cards: one large
+     primary metric (Total Alerts) on the left with its own sparkline, a
+     vertical divider, then the remaining KPIs stacked as compact rows on
+     the right — each just icon+label+value+comparison, no sparkline of
+     its own, so it doesn't compete with the primary number. Every element
+     below keeps the exact ids setKpi()/renderKpis()/renderMostAffectedUnit()
+     already write to; only the surrounding markup/CSS changed. */
+  .an-kpi-mega{display:flex;padding:38px;border-radius:20px;gap:36px}
+  .an-kpi-primary{flex:0 0 53%;min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--border);padding-right:36px}
+  .an-kpi-primary-head{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.035em;font-weight:700;color:var(--text-dim);text-transform:uppercase}
+  .an-kpi-primary-icon{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto}
+  .an-kpi-primary-icon svg{width:20px;height:20px}
+  .an-kpi-primary-value{font-size:68px;font-weight:800;letter-spacing:-.02em;color:var(--text);margin-top:14px;line-height:1;white-space:nowrap}
+  .an-kpi-primary-sub{font-size:15px;color:var(--muted);margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .an-kpi-primary-sub .delta{font-weight:650}
+  /* Green/red now actually differ (both used to render the same gray) —
+     "up"/"down" name the DIRECTION deltaChip() already classified as
+     good/bad (e.g. fewer alerts = "up"/good = green), not literally
+     whether the number went up, so this never needs a metric-specific
+     override: deltaChip()'s existing semantics decide the color. */
+  .an-kpi-primary-sub .delta.up{color:var(--green)}
+  .an-kpi-primary-sub .delta.down{color:var(--red)}
+  .an-kpi-primary-sub .delta.flat{color:var(--muted)}
+  .an-kpi-primary-spark{margin-top:24px;height:70px;position:relative}
+  .an-kpi-primary-spark svg{width:100%;height:100%;display:block;overflow:visible}
+  .an-kpi-primary-spark [id$="-glow"]{animation:an-spark-glow-pulse 2.6s ease-in-out infinite}
   @keyframes an-spark-glow-pulse{0%,100%{opacity:.55}50%{opacity:1}}
-  @media (prefers-reduced-motion: reduce){ .an-kpi-spark [id$="-glow"]{animation:none} }
+  @media (prefers-reduced-motion: reduce){ .an-kpi-primary-spark [id$="-glow"]{animation:none} }
+  .an-kpi-primary-caption{font-size:13px;color:var(--muted);margin-top:8px}
+
+  .an-kpi-supporting{flex:1;min-width:0;display:flex;flex-direction:column}
+  .an-kpi-supp-cell{display:flex;align-items:center;gap:14px;padding:22px 4px;border-bottom:1px solid var(--border)}
+  .an-kpi-supp-cell:first-child{padding-top:4px}
+  .an-kpi-supp-cell:last-child{border-bottom:none;padding-bottom:4px}
+  .an-kpi-supp-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}
+  .an-kpi-supp-icon svg{width:16px;height:16px}
+  .an-kpi-supp-body{flex:1;min-width:0}
+  .an-kpi-supp-label{font-size:13px;font-weight:650;letter-spacing:.03em;text-transform:uppercase;color:var(--text-dim)}
+  .an-kpi-supp-value{font-size:34px;font-weight:800;color:var(--text);margin-top:6px;letter-spacing:-.01em;white-space:nowrap}
+  .an-kpi-supp-sub{font-size:13px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .an-kpi-supp-sub .delta{font-weight:650}
+  .an-kpi-supp-sub .delta.up{color:var(--green)}
+  .an-kpi-supp-sub .delta.down{color:var(--red)}
+  .an-kpi-supp-sub .delta.flat{color:var(--muted)}
 
   /* Every direct row of #page-analytics gets the same gap below it (KPIs ->
      Row 1 -> Row 2 -> Row 3) — a uniform margin-bottom on the row classes
@@ -1592,7 +1600,10 @@
     .sidebar.collapsed:hover,.sidebar.collapsed.pinned-open{width:235px;flex-basis:235px}
     .title h1{font-size:25px}
     .kpis{grid-template-columns:repeat(3,1fr)}
-    .an-kpis{grid-template-columns:repeat(2,1fr)}
+    .an-kpi-mega{padding:26px;gap:22px}
+    .an-kpi-primary{padding-right:22px}
+    .an-kpi-primary-value{font-size:52px}
+    .an-kpi-supp-value{font-size:27px}
     .an-row-3col{grid-template-columns:repeat(2,1fr)}
     .al-summary{grid-template-columns:repeat(2,1fr)}
   }
@@ -1614,6 +1625,14 @@
     .hero{padding:16px}
     .kpis{grid-template-columns:repeat(2,1fr)}
     .stat-tiles{grid-template-columns:1fr}
+    /* Below this width there's no room left for a side-by-side primary/
+       supporting split — stacks instead, per direct instruction ("At
+       tablet/mobile: gracefully stack the sections"). The divider moves
+       from the primary's right edge to its bottom edge accordingly. */
+    .an-kpi-mega{flex-direction:column;padding:22px;gap:20px}
+    .an-kpi-primary{flex:1 1 auto;border-right:none;border-bottom:1px solid var(--border);padding-right:0;padding-bottom:20px}
+    .an-kpi-primary-value{font-size:44px}
+    .an-kpi-supp-value{font-size:26px}
     .al-summary{grid-template-columns:1fr 1fr}
     .se-field-row{grid-template-columns:1fr}
     /* Below this width the sidebar can no longer share the row with page
@@ -1651,7 +1670,9 @@
     .kpis{grid-template-columns:1fr}
     .hero-status{align-items:flex-start;text-align:left}
     .feed-time{width:32px}
-    .an-kpis{grid-template-columns:1fr}
+    .an-kpi-mega{padding:18px}
+    .an-kpi-primary-value{font-size:38px}
+    .an-kpi-supp-value{font-size:24px}
     .al-summary{grid-template-columns:1fr}
     .al-search{flex:1 1 100%}
     .al-filter{flex:1 1 auto}
@@ -2013,43 +2034,39 @@
       </div>
 
       <section class="an-kpis" id="an-kpi-row" aria-label="Key insights">
-        <div class="card an-kpi">
-          <div class="an-kpi-body">
-            <div class="an-kpi-main">
-              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:var(--red-soft)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
-              <div class="an-kpi-value" id="an-kpi-total-value">&mdash;</div>
-              <div class="an-kpi-sub" id="an-kpi-total-change">&mdash;</div>
-            </div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-total" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e5484d" stop-opacity=".22"/><stop offset="100%" stop-color="#e5484d" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-total"><stop offset="0%" stop-color="#e5484d" stop-opacity=".55"/><stop offset="100%" stop-color="#e5484d" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-total-fill" fill="url(#an-spark-fill-total)" stroke="none" d=""/><path id="an-kpi-total-spark" d="M0,28 L100,28" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-total-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-total)"/><circle id="an-kpi-total-dot" cx="100" cy="28" r="2.5" fill="#e5484d"/></svg></div>
+        <div class="card an-kpi-mega">
+          <div class="an-kpi-primary">
+            <div class="an-kpi-primary-head"><span class="an-kpi-primary-icon" style="background:var(--red-soft)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
+            <div class="an-kpi-primary-value" id="an-kpi-total-value">&mdash;</div>
+            <div class="an-kpi-primary-sub" id="an-kpi-total-change">&mdash;</div>
+            <div class="an-kpi-primary-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-total" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e5484d" stop-opacity=".22"/><stop offset="100%" stop-color="#e5484d" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-total"><stop offset="0%" stop-color="#e5484d" stop-opacity=".55"/><stop offset="100%" stop-color="#e5484d" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-total-fill" fill="url(#an-spark-fill-total)" stroke="none" d=""/><path id="an-kpi-total-spark" d="M0,28 L100,28" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-total-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-total)"/><circle id="an-kpi-total-dot" cx="100" cy="28" r="2.5" fill="#e5484d"/></svg></div>
+            <div class="an-kpi-primary-caption">Alerts trend &mdash; last 7 days</div>
           </div>
-        </div>
-        <div class="card an-kpi">
-          <div class="an-kpi-body">
-            <div class="an-kpi-main">
-              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#e6eefe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16 16.5 9.5"/><circle cx="12" cy="16" r="1.4" fill="#2954e8" stroke="none"/></svg></span>ALERTS / OPERATING HOUR</div>
-              <div class="an-kpi-value" id="an-kpi-units-value">&mdash;</div>
-              <div class="an-kpi-sub" id="an-kpi-units-change">&mdash;</div>
+          <div class="an-kpi-supporting">
+            <div class="an-kpi-supp-cell">
+              <span class="an-kpi-supp-icon" style="background:#e6eefe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16 16.5 9.5"/><circle cx="12" cy="16" r="1.4" fill="#2954e8" stroke="none"/></svg></span>
+              <div class="an-kpi-supp-body">
+                <div class="an-kpi-supp-label">Alerts / Operating Hour</div>
+                <div class="an-kpi-supp-value" id="an-kpi-units-value">&mdash;</div>
+                <div class="an-kpi-supp-sub" id="an-kpi-units-change">&mdash;</div>
+              </div>
             </div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-units" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2954e8" stop-opacity=".22"/><stop offset="100%" stop-color="#2954e8" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-units"><stop offset="0%" stop-color="#2954e8" stop-opacity=".55"/><stop offset="100%" stop-color="#2954e8" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-units-fill" fill="url(#an-spark-fill-units)" stroke="none" d=""/><path id="an-kpi-units-spark" d="M0,28 L100,28" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-units-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-units)"/><circle id="an-kpi-units-dot" cx="100" cy="28" r="2.5" fill="#2954e8"/></svg></div>
-          </div>
-        </div>
-        <div class="card an-kpi">
-          <div class="an-kpi-body">
-            <div class="an-kpi-main">
-              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#ddf6e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>MOST AFFECTED UNIT</div>
-              <div class="an-kpi-value" id="an-kpi-topunit-value">&mdash;</div>
-              <div class="an-kpi-sub" id="an-kpi-topunit-change">&mdash;</div>
+            <div class="an-kpi-supp-cell">
+              <span class="an-kpi-supp-icon" style="background:#ddf6e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>
+              <div class="an-kpi-supp-body">
+                <div class="an-kpi-supp-label">Most Affected Unit</div>
+                <div class="an-kpi-supp-value" id="an-kpi-topunit-value">&mdash;</div>
+                <div class="an-kpi-supp-sub" id="an-kpi-topunit-change">&mdash;</div>
+              </div>
             </div>
-          </div>
-        </div>
-        <div class="card an-kpi">
-          <div class="an-kpi-body">
-            <div class="an-kpi-main">
-              <div class="an-kpi-head"><span class="an-kpi-icon" style="background:#fdf0dc" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>AVERAGE SYNC INTERVAL</div>
-              <div class="an-kpi-value" id="an-kpi-sync-value">&mdash;</div>
-              <div class="an-kpi-sub" id="an-kpi-sync-change">&mdash;</div>
+            <div class="an-kpi-supp-cell">
+              <span class="an-kpi-supp-icon" style="background:#fdf0dc" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
+              <div class="an-kpi-supp-body">
+                <div class="an-kpi-supp-label">Average Sync Interval</div>
+                <div class="an-kpi-supp-value" id="an-kpi-sync-value">&mdash;</div>
+                <div class="an-kpi-supp-sub" id="an-kpi-sync-change">&mdash;</div>
+              </div>
             </div>
-            <div class="an-kpi-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-sync" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5a524" stop-opacity=".22"/><stop offset="100%" stop-color="#f5a524" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-sync"><stop offset="0%" stop-color="#f5a524" stop-opacity=".55"/><stop offset="100%" stop-color="#f5a524" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-sync-fill" fill="url(#an-spark-fill-sync)" stroke="none" d=""/><path id="an-kpi-sync-spark" d="M0,28 L100,28" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-sync-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-sync)"/><circle id="an-kpi-sync-dot" cx="100" cy="28" r="2.5" fill="#f5a524"/></svg></div>
           </div>
         </div>
       </section>
