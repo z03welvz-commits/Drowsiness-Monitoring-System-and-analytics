@@ -569,9 +569,17 @@
   .an-chart-card{padding:var(--chart-pad);overflow:hidden}
   .an-chart-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
   .an-chart-title{font-size:14.5px;font-weight:750;color:var(--text)}
-  .an-legend{display:flex;gap:14px;font-size:var(--fs-body);color:var(--muted);font-weight:500}
+  .an-legend{display:flex;gap:14px;font-size:var(--fs-body);color:var(--muted);font-weight:500;flex-wrap:wrap}
   .an-legend span{display:flex;align-items:center;gap:5px}
   .an-swatch{width:8px;height:8px;border-radius:50%;flex:0 0 auto;display:inline-block}
+  /* Alert Trend's toggleable legend items (Alerts, and each real
+     contributing-factor type present in the current view) — clicking
+     dims the swatch/label and hides that series/band, same "click to
+     isolate" idiom as the donut/sync-bar/rank-row filters elsewhere on
+     this page, just local to this one chart rather than page-wide. */
+  .an-legend-toggle{cursor:pointer;user-select:none}
+  .an-legend-toggle:not(.active){opacity:.4}
+  .an-legend-toggle:not(.active) .an-swatch{background:var(--muted) !important}
   .an-chart-area{height:200px;padding-top:7px;position:relative}
   .an-chart-area svg{width:100%;height:100%;display:block}
   .an-axis{font-size:8px;fill:var(--muted)}
@@ -2073,7 +2081,7 @@
 
       <section class="an-charts-top an-row-3col">
         <div class="card an-chart-card" id="anAssetVolumeCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend</h3></div><div class="an-legend"><span><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Operating Hours</span></div></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend</h3></div><div class="an-legend" id="an-trend-legend"><span class="an-legend-toggle active" data-trend-toggle="alerts" title="Click to show/hide"><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Operating Hours</span><span id="an-trend-factor-legend"></span></div></div>
           <div class="an-chart-area">
             <!-- Hand-rolled SVG (smoothPathD + wireChartHover), matching this
                  page's own Hourly Trend/Alert Sync Time cards and Overview's
@@ -2104,6 +2112,7 @@
                 </linearGradient>
               </defs>
               <line class="gridline" x1="40" y1="25" x2="460" y2="25"/><line class="gridline" x1="40" y1="86" x2="460" y2="86"/><line class="gridline" x1="40" y1="147" x2="460" y2="147"/><line class="gridline" x1="40" y1="208" x2="460" y2="208"/>
+              <g id="an-trend-factor-bands"></g>
               <g id="an-trend-yaxis-alerts"></g>
               <g id="an-trend-yaxis-hours"></g>
               <g id="an-trend-lines"></g>
@@ -2176,11 +2185,7 @@
         </div>
 
         <div class="card an-chart-card" id="anTopDriversCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><h3 class="chart-title an-chart-title">Alerts by Employee ID / Driver</h3></div>
-            <div class="an-toggle" role="group" aria-label="Employee list size">
-              <button type="button" data-topn="10" class="active">Top 10</button><button type="button" data-topn="15">Top 15</button><button type="button" data-topn="20">Top 20</button>
-            </div>
-          </div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><h3 class="chart-title an-chart-title">Alerts by Employee ID / Driver</h3></div></div>
           <div id="an-topdrivers-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
             <div class="da-empty">Loading&hellip;</div>
           </div>
@@ -5489,9 +5494,120 @@
       return trendBuckets(trend).map(function(b){
         var units = 0, operatingHours = 0;
         b.items.forEach(function(t){ units += t.units || 0; operatingHours += t.operatingHours || 0; });
-        return { label: b.label, units: units, operatingHours: operatingHours };
+        // dates: the raw per-day trend[] dates rolled into this bucket —
+        // needed by the factor-band overlay below to test "was a given
+        // contributing factor active on any day in this bucket", which the
+        // summed units/operatingHours fields alone can't answer.
+        return { label: b.label, units: units, operatingHours: operatingHours, dates: b.items.map(function(t){ return t.date; }) };
       });
     }
+
+    // ==================== Alert Trend — contributing-factor overlay ====================
+    // trendPoints/trendGeom cache renderTrend()'s last-computed bucket
+    // points and x-axis geometry so the factor legend/bands below can
+    // redraw against them without re-fetching dds_metrics() — both a
+    // legend-checkbox click and the factors RPC settling later than cur
+    // (see load()) need to redraw independently of a full page reload.
+    var trendPoints = null;
+    var trendGeom = null;
+    var trendAlertsOn = true;
+    // trendFactorsByType/trendFactorTypes: real public.contributing_factors
+    // factor_type values that actually overlap at least one day in the
+    // CURRENT visible trend window — never a fixed/hardcoded list, since
+    // factor_type is free text (see 0003_contributing_factors.sql) and a
+    // fleet with none logged for this period should show no factor legend
+    // items at all rather than empty placeholders.
+    var trendFactorsByType = {};
+    var trendFactorTypes = [];
+    var trendFactorOn = {};
+    function applyTrendAlertsVisibility(){
+      var legendEl = document.querySelector('#an-trend-legend [data-trend-toggle="alerts"]');
+      if(legendEl) legendEl.classList.toggle('active', trendAlertsOn);
+      ['an-trend-alerts-area', 'an-trend-alerts-line'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.style.display = trendAlertsOn ? '' : 'none';
+      });
+    }
+    var trendAlertsToggleEl = document.querySelector('#an-trend-legend [data-trend-toggle="alerts"]');
+    if(trendAlertsToggleEl) trendAlertsToggleEl.addEventListener('click', function(){
+      trendAlertsOn = !trendAlertsOn;
+      applyTrendAlertsVisibility();
+    });
+    // Called once both cur.trend and factors have resolved (see load()'s
+    // Promise.all below) — decoupled from renderTrend() itself since the
+    // factors fetch settles on its own, separate timeline (same reasoning
+    // as renderFactorImpact()) and shouldn't hold up the Alerts/Operating
+    // Hours lines rendering first.
+    function setupTrendFactors(cur, factors){
+      var trend = cur.trend || [];
+      var byType = {};
+      factors.forEach(function(f){ (byType[f.factor_type] = byType[f.factor_type] || []).push(f); });
+      var present = Object.keys(byType).filter(function(type){
+        return trend.some(function(t){
+          var d = factorToDate(t.date);
+          return byType[type].some(function(f){ return factorActiveOnDay(d, f); });
+        });
+      }).sort();
+      trendFactorsByType = byType;
+      trendFactorTypes = present;
+      var nextOn = {};
+      present.forEach(function(type){ nextOn[type] = trendFactorOn.hasOwnProperty(type) ? trendFactorOn[type] : false; });
+      trendFactorOn = nextOn;
+      renderTrendFactorLegend();
+      renderTrendFactorBands();
+    }
+    function clearTrendFactors(){
+      trendFactorsByType = {}; trendFactorTypes = []; trendFactorOn = {};
+      renderTrendFactorLegend();
+      renderTrendFactorBands();
+    }
+    // Series colors start at index 2 (var(--series-3)) — series-1/-2 are
+    // already Alerts/Operating Hours on this same chart.
+    function renderTrendFactorLegend(){
+      var el = document.getElementById('an-trend-factor-legend');
+      if(!el) return;
+      el.innerHTML = trendFactorTypes.map(function(type, i){
+        var on = trendFactorOn[type];
+        return '<span class="an-legend-toggle' + (on ? ' active' : '') + '" data-trend-factor="' + esc(type) + '" title="Click to show/hide"><i class="an-swatch" style="background:' + seriesVar(i + 2) + '"></i>' + esc(type) + '</span>';
+      }).join('');
+      el.querySelectorAll('[data-trend-factor]').forEach(function(span){
+        span.addEventListener('click', function(){
+          var type = span.getAttribute('data-trend-factor');
+          trendFactorOn[type] = !trendFactorOn[type];
+          renderTrendFactorLegend();
+          renderTrendFactorBands();
+        });
+      });
+    }
+    function renderTrendFactorBands(){
+      var el = document.getElementById('an-trend-factor-bands');
+      if(!el) return;
+      if(!trendPoints || !trendGeom || !trendFactorTypes.length){ el.innerHTML = ''; return; }
+      var xFor = trendGeom.xFor, L = trendGeom.L, R = trendGeom.R, T = trendGeom.T, B = trendGeom.B;
+      var n = trendPoints.length;
+      function bucketEdges(i){
+        var left = i === 0 ? L : (xFor(i - 1) + xFor(i)) / 2;
+        var right = i === n - 1 ? R : (xFor(i) + xFor(i + 1)) / 2;
+        return [left, right];
+      }
+      var rects = [];
+      trendFactorTypes.forEach(function(type, ti){
+        if(!trendFactorOn[type]) return;
+        var fList = trendFactorsByType[type] || [];
+        var color = seriesVar(ti + 2);
+        trendPoints.forEach(function(p, i){
+          var active = (p.dates || []).some(function(dateStr){
+            var d = factorToDate(dateStr);
+            return fList.some(function(f){ return factorActiveOnDay(d, f); });
+          });
+          if(!active) return;
+          var edges = bucketEdges(i);
+          rects.push('<rect x="' + edges[0].toFixed(1) + '" y="' + T + '" width="' + (edges[1] - edges[0]).toFixed(1) + '" height="' + (B - T) + '" style="fill:' + color + '" opacity="0.16"/>');
+        });
+      });
+      el.innerHTML = rects.join('');
+    }
+
     // KPI sparklines used to always plot the last 14 raw days regardless of
     // the selected filter range — for a multi-month range that showed a
     // small, unrelated recent slice rather than the actual period the KPI
@@ -5543,6 +5659,8 @@
         if(axisEl) axisEl.innerHTML = '';
         if(yAlertsEl) yAlertsEl.innerHTML = '';
         if(yHoursEl) yHoursEl.innerHTML = '';
+        trendPoints = null; trendGeom = null;
+        renderTrendFactorBands();
         return;
       }
 
@@ -5564,10 +5682,14 @@
       var alertsLineD = smoothPathD(ptsAlerts);
       var alertsAreaD = alertsLineD + ' L' + xFor(points.length-1).toFixed(1) + ',' + B + ' L' + xFor(0).toFixed(1) + ',' + B + ' Z';
       var hoursLineD = smoothPathD(ptsHours);
+      // an-trend-alerts-area/-line carry their own ids so the Alerts legend
+      // toggle (below) can show/hide them directly without re-deriving the
+      // path data — a plain visibility flip, not a re-render.
       linesEl.innerHTML =
-        '<path d="' + alertsAreaD + '" fill="url(#anTrendFill)" stroke="none"/>' +
+        '<path id="an-trend-alerts-area" d="' + alertsAreaD + '" fill="url(#anTrendFill)" stroke="none"/>' +
         '<path d="' + hoursLineD + '" fill="none" style="stroke:var(--series-2)" stroke-width="2.5" stroke-dasharray="6 4" stroke-linecap="round" stroke-linejoin="round"/>' +
-        '<path d="' + alertsLineD + '" fill="none" style="stroke:var(--series-1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+        '<path id="an-trend-alerts-line" d="' + alertsLineD + '" fill="none" style="stroke:var(--series-1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+      applyTrendAlertsVisibility();
 
       if(yAlertsEl){
         yAlertsEl.innerHTML = '<text x="34" y="' + (T+4) + '" class="an-axis" text-anchor="end">' + fmtNum(Math.round(topAlerts)) + '</text>' +
@@ -5612,6 +5734,15 @@
           return { label: p.label, value: fmtNum(p.units) + ' alerts · ' + fmtNum(Math.round(p.operatingHours || 0)) + ' hrs' };
         }
       });
+
+      // Cached so the contributing-factor band overlay (setupTrendFactors/
+      // renderTrendFactorBands — factors resolve on a separate, slower
+      // fetch than cur, see load() below) can redraw its bands against the
+      // SAME point positions without re-fetching or re-deriving them, and
+      // so a legend checkbox click can redraw instantly with no fetch at all.
+      trendPoints = points;
+      trendGeom = { xFor: xFor, L: L, R: R, T: T, B: B };
+      renderTrendFactorBands();
     }
 
     // ==================== Hourly Trend by Month ====================
@@ -5923,36 +6054,19 @@
         return (res.data || {}).rows || [];
       });
     }
-    // Employee list defaults to Top 10 (was the full, scrollable ranked
-    // list up to 200 rows) per direct instruction — long-tail employees
-    // with 1-2 alerts aren't the point of this card the way they are for
-    // "Alerts by Unit" (a fleet only has so many units to begin with).
-    // topDriversN/lastTopDriverRows let the Top 10/15/20 toggle re-slice
-    // the already-fetched rows instantly rather than re-querying the RPC.
-    var topDriversN = 10;
-    var lastTopDriverRows = [];
-    function renderTopDriversList(){
-      var items = lastTopDriverRows.slice(0, topDriversN).map(function(r){ return { label: r.empNo, value: r.total, key: r.empNo }; });
-      renderRankedList('an-topdrivers-body', items,
-        { emptyText: 'No driver data for this filter', kind: 'driver' });
-    }
+    // Full ranked list (no Top-N cap), matching "Alerts by Unit"'s own
+    // renderTopAssets() below — per direct instruction, this list now
+    // behaves identically to that one rather than capping at a fixed size.
     function renderTopDrivers(from, to){
       return fetchTopDrivers(from, to).then(function(rows){
-        lastTopDriverRows = rows;
-        renderTopDriversList();
+        var items = rows.map(function(r){ return { label: r.empNo, value: r.total, key: r.empNo }; });
+        renderRankedList('an-topdrivers-body', items,
+          { emptyText: 'No driver data for this filter', kind: 'driver' });
       }).catch(function(err){
         console.error('Top drivers fetch failed', err);
-        lastTopDriverRows = [];
         renderRankedList('an-topdrivers-body', [], { emptyText: 'Could not load driver data' });
       });
     }
-    document.querySelectorAll('#anTopDriversCard [data-topn]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        topDriversN = Number(btn.getAttribute('data-topn'));
-        document.querySelectorAll('#anTopDriversCard [data-topn]').forEach(function(b){ b.classList.toggle('active', b === btn); });
-        renderTopDriversList();
-      });
-    });
     function renderTopAssets(from, to){
       return fetchTopAssets(from, to).then(function(rows){
         var items = rows.map(function(r){ return { label: r.assetId, value: r.total, key: r.assetId }; });
@@ -6047,26 +6161,30 @@
     // alert timestamps using already-loaded local data, which this mock has
     // no equivalent of; per user decision, day-grain here avoids downloading
     // raw rows, matching the master prompt's server-side-aggregation rule.
+    // Shared by computeFactorImpact() below and the Alert Trend chart's own
+    // factor-band overlay (setupTrendFactors/renderTrendFactorBands) — same
+    // day-level approximation (trend[] date vs. factor start/end), one
+    // definition of "was this factor active on this day" for both.
+    function factorToDate(mdy){
+      var p = mdy.split('/');
+      return new Date(Number(p[2]), Number(p[0])-1, Number(p[1]));
+    }
+    function factorActiveOnDay(dayDate, f){
+      var start = new Date(f.start_time); start.setHours(0,0,0,0);
+      var end = f.end_time ? new Date(f.end_time) : new Date();
+      end.setHours(0,0,0,0);
+      return dayDate.getTime() >= start.getTime() && dayDate.getTime() <= end.getTime();
+    }
     function computeFactorImpact(cur, factors){
       var trend = cur.trend || [];
       if(!factors.length || !trend.length) return null;
-      function toDate(mdy){
-        var p = mdy.split('/');
-        return new Date(Number(p[2]), Number(p[0])-1, Number(p[1]));
-      }
-      function inWindow(dayDate, f){
-        var start = new Date(f.start_time); start.setHours(0,0,0,0);
-        var end = f.end_time ? new Date(f.end_time) : new Date();
-        end.setHours(0,0,0,0);
-        return dayDate.getTime() >= start.getTime() && dayDate.getTime() <= end.getTime();
-      }
       var byCategory = {};
       factors.forEach(function(f){ byCategory[f.factor_type] = byCategory[f.factor_type] || []; byCategory[f.factor_type].push(f); });
 
       var baselineUnits = 0, baselineDays = 0;
       trend.forEach(function(t){
-        var dayDate = toDate(t.date);
-        var inAny = factors.some(function(f){ return inWindow(dayDate, f); });
+        var dayDate = factorToDate(t.date);
+        var inAny = factors.some(function(f){ return factorActiveOnDay(dayDate, f); });
         if(inAny) return;
         baselineUnits += t.units; baselineDays++;
       });
@@ -6076,8 +6194,8 @@
         var fList = byCategory[cat];
         var units = 0, days = 0;
         trend.forEach(function(t){
-          var dayDate = toDate(t.date);
-          if(fList.some(function(f){ return inWindow(dayDate, f); })){ units += t.units; days++; }
+          var dayDate = factorToDate(t.date);
+          if(fList.some(function(f){ return factorActiveOnDay(dayDate, f); })){ units += t.units; days++; }
         });
         var rate = days ? units / days : 0;
         var ratio = baselineRate > 0 ? rate / baselineRate : (rate > 0 ? Infinity : 0);
@@ -6348,9 +6466,9 @@
         Promise.all([metricsResult, factorsResult]).then(function(results){
           if(!guard.isCurrent(token)) return;
           var m = results[0], f = results[1];
-          if(!m.ok) factorsErrorState(m.err);
-          else if(!f.ok) factorsErrorState(f.err);
-          else renderFactorImpact(m.cur, f.factors);
+          if(!m.ok){ factorsErrorState(m.err); clearTrendFactors(); }
+          else if(!f.ok){ factorsErrorState(f.err); clearTrendFactors(); }
+          else { renderFactorImpact(m.cur, f.factors); setupTrendFactors(m.cur, f.factors); }
         });
 
         renderTopDrivers(toISO(winFrom), toISO(winTo));
