@@ -8175,14 +8175,42 @@
     // scan per row, since a 10k+ row DDS file resolves a few dozen DISTINCT
     // names, not 10k independent lookups (same "resolve once per distinct
     // name" principle dds_ingest()'s SQL already used).
+    //
+    // A bare .select() with no .range() only ever returns PostgREST's
+    // default page (1000 rows) — confirmed live: drivers has 4,117 rows and
+    // driver_aliases has 4,134, so roughly 3 out of 4 rows in EACH table
+    // were silently missing from every resolver context, for every upload,
+    // with no error surfaced anywhere. This is why names with a real,
+    // human-confirmed alias (T0, the very first tier checked) kept coming
+    // back tier='none' on the client while dds_resolve_name() found them
+    // instantly server-side — the alias existed, it just fell outside
+    // whatever ~1000 rows the default page happened to contain.
+    // RESOLVER_FETCH_PAGE_SIZE follows the exact .order()+.range() loop
+    // pattern the masterlist table view (Settings/Data Management) already
+    // uses for the same reason.
+    var RESOLVER_FETCH_PAGE_SIZE = 1000;
+    function fetchAllRows(table, columns, orderCol){
+      var collected = [];
+      function loop(offset){
+        return DB.from(table).select(columns)
+          .order(orderCol)
+          .range(offset, offset + RESOLVER_FETCH_PAGE_SIZE - 1)
+          .then(function(res){
+            if(res.error) throw res.error;
+            var rows = res.data || [];
+            collected = collected.concat(rows);
+            if(rows.length < RESOLVER_FETCH_PAGE_SIZE) return collected;
+            return loop(offset + RESOLVER_FETCH_PAGE_SIZE);
+          });
+      }
+      return loop(0);
+    }
     DDS.loadResolverContext = function(){
       return Promise.all([
-        DB.from('drivers').select('emp_no, full_name, status'),
-        DB.from('driver_aliases').select('norm_name, emp_no')
+        fetchAllRows('drivers', 'emp_no, full_name, status', 'emp_no'),
+        fetchAllRows('driver_aliases', 'norm_name, emp_no', 'norm_name')
       ]).then(function(results){
-        var driversRes = results[0], aliasesRes = results[1];
-        if(driversRes.error) throw driversRes.error;
-        if(aliasesRes.error) throw aliasesRes.error;
+        var driverRows = results[0], aliasRows = results[1];
 
         var ctx = {
           aliasByNormName: {},
@@ -8193,11 +8221,11 @@
           activeDrivers: []
         };
 
-        (aliasesRes.data || []).forEach(function(a){
+        aliasRows.forEach(function(a){
           ctx.aliasByNormName[a.norm_name] = a.emp_no;
         });
 
-        (driversRes.data || []).forEach(function(d){
+        driverRows.forEach(function(d){
           var norm = ddsNormName(d.full_name);
           if(norm == null) return;
           var bare = ddsStripSuffix(norm);
