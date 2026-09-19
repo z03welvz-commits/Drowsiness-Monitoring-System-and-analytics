@@ -8189,12 +8189,22 @@
     // pattern the masterlist table view (Settings/Data Management) already
     // uses for the same reason.
     var RESOLVER_FETCH_PAGE_SIZE = 1000;
-    function fetchAllRows(table, columns, orderCol){
+    // orderCols must fully determine row order (a unique key, or a superset
+    // of one) — a tie-breaking column PostgREST can't sort consistently
+    // between successive .range() calls would risk silently dropping rows
+    // at a page boundary, the same failure mode this whole helper exists to
+    // avoid. filterFn, when given, narrows the query (.gte/.lte/.in/.eq)
+    // before ordering — used by the upload dedup-key lookups below, which
+    // must page the exact same way this function's two original callers
+    // (loadResolverContext's drivers/driver_aliases fetch) always have.
+    function fetchAllRows(table, columns, orderCols, filterFn){
+      var cols = Array.isArray(orderCols) ? orderCols : [orderCols];
       var collected = [];
       function loop(offset){
-        return DB.from(table).select(columns)
-          .order(orderCol)
-          .range(offset, offset + RESOLVER_FETCH_PAGE_SIZE - 1)
+        var q = DB.from(table).select(columns);
+        if(filterFn) q = filterFn(q);
+        cols.forEach(function(c){ q = q.order(c); });
+        return q.range(offset, offset + RESOLVER_FETCH_PAGE_SIZE - 1)
           .then(function(res){
             if(res.error) throw res.error;
             var rows = res.data || [];
@@ -9448,6 +9458,16 @@
     // depending on engine) and crashing the tab on a genuinely large DDS
     // export, which is exactly the file size this dedup check exists to
     // handle safely.
+    // These three dedup-key lookups had the exact same bug the resolver
+    // context fetch did (see fetchAllRows above): an unranged .select() on
+    // `events`/`minestat_shifts` only ever returns PostgREST's first ~1000
+    // rows. A single high-volume day already runs 800+ events fleet-wide,
+    // so any re-upload whose date range spans more than a day or two of
+    // existing data would have silently seen an incomplete dedup set here —
+    // rows past the first page would look "new" even though they already
+    // exist, and get inserted again as duplicates. Ordering by each table's
+    // own primary key (events.id; minestat_shifts' four-column PK) keeps
+    // .range() paging gap-free.
     function fetchExistingDdsKeys(rows){
       if(!rows.length) return Promise.resolve(new Set());
       var minT = Infinity, maxT = -Infinity;
@@ -9458,38 +9478,41 @@
       }
       minT = new Date(minT).toISOString();
       maxT = new Date(maxT).toISOString();
-      return DB.from('events').select('asset_id,start_time,event_code')
-        .gte('start_time', minT).lte('start_time', maxT)
-        .then(function(res){
-          var set = new Set();
-          (res.data || []).forEach(function(r){
-            set.add(r.asset_id + '|' + new Date(r.start_time).getTime() + '|' + r.event_code);
-          });
-          return set;
-        }).catch(function(){ return new Set(); });
+      return fetchAllRows('events', 'asset_id,start_time,event_code', 'id', function(q){
+        return q.gte('start_time', minT).lte('start_time', maxT);
+      }).then(function(allRows){
+        var set = new Set();
+        allRows.forEach(function(r){
+          set.add(r.asset_id + '|' + new Date(r.start_time).getTime() + '|' + r.event_code);
+        });
+        return set;
+      }).catch(function(){ return new Set(); });
     }
     function fetchExistingMinestatKeys(rows){
       if(!rows.length) return Promise.resolve(new Set());
       var dates = rows.map(function(r){ return r.SHIFT_DATE; }).sort();
-      return DB.from('minestat_shifts').select('asset_id,shift_date,shift,last_name,first_name,middle_name')
-        .gte('shift_date', dates[0]).lte('shift_date', dates[dates.length - 1])
-        .then(function(res){
-          var set = new Set();
-          (res.data || []).forEach(function(r){
-            set.add(r.asset_id + '|' + r.shift_date + '|' + r.shift + '|' + clientOperatorKey(r.last_name, r.first_name, r.middle_name));
-          });
-          return set;
-        }).catch(function(){ return new Set(); });
+      return fetchAllRows(
+        'minestat_shifts', 'asset_id,shift_date,shift,last_name,first_name,middle_name',
+        ['asset_id', 'shift_date', 'shift', 'operator_key'],
+        function(q){ return q.gte('shift_date', dates[0]).lte('shift_date', dates[dates.length - 1]); }
+      ).then(function(allRows){
+        var set = new Set();
+        allRows.forEach(function(r){
+          set.add(r.asset_id + '|' + r.shift_date + '|' + r.shift + '|' + clientOperatorKey(r.last_name, r.first_name, r.middle_name));
+        });
+        return set;
+      }).catch(function(){ return new Set(); });
     }
     function fetchExistingMasterlistKeys(rows){
       var empNos = rows.map(function(r){ return r.emp_no; });
       if(!empNos.length) return Promise.resolve(new Set());
-      return DB.from('drivers').select('emp_no').in('emp_no', empNos)
-        .then(function(res){
-          var set = new Set();
-          (res.data || []).forEach(function(r){ set.add(r.emp_no); });
-          return set;
-        }).catch(function(){ return new Set(); });
+      return fetchAllRows('drivers', 'emp_no', 'emp_no', function(q){
+        return q.in('emp_no', empNos);
+      }).then(function(allRows){
+        var set = new Set();
+        allRows.forEach(function(r){ set.add(r.emp_no); });
+        return set;
+      }).catch(function(){ return new Set(); });
     }
 
     var preflightMask = document.getElementById('dm-preflight-mask');
@@ -11206,11 +11229,28 @@
     // change while this page is open) — backs the inline Emp ID cell's
     // "type an ID, the name fills in from the masterlist" behavior.
     var driversByEmpNo = null;
+    // A bare .select() with no .range() only returns PostgREST's default
+    // page (1000 rows) — drivers has 4,000+ rows, so this must page through
+    // with .range() the same way DDS.loadResolverContext() does, or an Emp
+    // ID whose row falls past the first page would silently never autofill.
+    var DRIVERS_MAP_PAGE_SIZE = 1000;
+    function fetchAllDriverRows(offset, collected){
+      collected = collected || [];
+      return DB.from('drivers').select('emp_no,full_name').order('emp_no')
+        .range(offset, offset + DRIVERS_MAP_PAGE_SIZE - 1)
+        .then(function(res){
+          if(res.error) throw res.error;
+          var rows = res.data || [];
+          collected = collected.concat(rows);
+          if(rows.length < DRIVERS_MAP_PAGE_SIZE) return collected;
+          return fetchAllDriverRows(offset + DRIVERS_MAP_PAGE_SIZE, collected);
+        });
+    }
     function loadDriversMap(){
       if(driversByEmpNo) return Promise.resolve(driversByEmpNo);
-      return DB.from('drivers').select('emp_no,full_name').then(function(res){
+      return fetchAllDriverRows(0).then(function(allRows){
         driversByEmpNo = {};
-        (res.data || []).forEach(function(d){
+        allRows.forEach(function(d){
           if(d.emp_no) driversByEmpNo[String(d.emp_no).trim().toUpperCase()] = d.full_name;
         });
         return driversByEmpNo;
