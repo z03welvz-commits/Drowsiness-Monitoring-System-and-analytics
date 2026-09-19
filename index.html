@@ -6802,10 +6802,11 @@
       }
 
       list.innerHTML = items.map(function(it){
+        var tagLabel = (it.h.type === 'Other' && it.h.otherText) ? it.h.otherText : it.h.type;
         return '<div class="su-action-row">' +
           '<span class="su-action-dot" aria-hidden="true"></span>' +
           '<div class="su-action-body">' +
-            '<div class="su-action-main"><span class="tag">' + escapeHtml(it.h.type) + '</span> — ' + escapeHtml(it.rec.name) + '</div>' +
+            '<div class="su-action-main"><span class="tag">' + escapeHtml(tagLabel) + '</span> — ' + escapeHtml(it.rec.name) + '</div>' +
             '<div class="su-action-sub">' + (it.h.note ? escapeHtml(it.h.note) + ' · ' : '') + 'Logged by ' + escapeHtml(it.h.by) + '</div>' +
           '</div>' +
           '<span class="su-action-when">' + timeAgo(it.h.at) + '</span>' +
@@ -12126,7 +12127,7 @@
         id: r.id, name: r.name, sub: SUB_LABEL[kind],
         days: r.days || {}, status: r.status || 'required',
         history: r.lastAction ? [{
-          type: r.lastAction.type, note: r.lastAction.note,
+          type: r.lastAction.type, otherText: r.lastAction.otherText, note: r.lastAction.note,
           by: r.lastAction.by, at: r.lastAction.at
         }] : []
       };
@@ -13130,13 +13131,9 @@
               // actually reached this branch.
               var last = rec.lastAction;
               if(!last) return '';
-              // dds_driver_asset_weekly()'s lastAction only carries the raw
-              // action_type, never action_other_text — when the logged
-              // action was "Other" this literally shows "Other" rather than
-              // the free text (only dds_entity_action_history(), used by
-              // the detail drawer, has the actual other-text column).
+              var lastActionLabel = (last.type === 'Other' && last.otherText) ? last.otherText : last.type;
               return '<tr class="da-hist-row" data-da-detail="' + kind + '|' + rec.id + '" style="cursor:pointer"><td class="da-hist-name">' + esc(rec.name) + ' <span class="da-id-sub">(' + esc(rec.id) + ')</span></td>' +
-                '<td>' + esc(last.type) + '</td><td>' + esc(last.by) + '</td><td>' + (last.at ? new Date(last.at).toLocaleString() : '—') + '</td></tr>';
+                '<td>' + esc(lastActionLabel) + '</td><td>' + esc(last.by) + '</td><td>' + (last.at ? new Date(last.at).toLocaleString() : '—') + '</td></tr>';
             }).join('') + '</tbody></table>';
         }
         histMask.classList.add('on');
@@ -13509,10 +13506,10 @@
     // as duplicated/garbled "Other: <text>" — the same one-value-shown-
     // twice bug Alert Logs' own AL_ACTION_OPTIONS fix already avoids for
     // its known values.
-    function actionButtonLabel(currentType, note){
+    function actionButtonLabel(currentType, otherText){
       if(!currentType || currentType === 'Cleared') return '—';
       if(ACTION_OPTIONS.indexOf(currentType) !== -1) return currentType;
-      return note || 'Other…';
+      return otherText || 'Other…';
     }
     // "—" is always offered (not just while nothing has been logged yet):
     // picking it now really resets the entity. Reported live: "i try to
@@ -13620,10 +13617,10 @@
         '<td class="num">' + fmtNum(r.runTotalCount) + '</td>' +
         '<td class="da-td-action">' +
           '<div class="ds-action-dd" data-ds-action="' + i + '">' +
-            '<button type="button" class="ds-action-dd-btn" data-ds-dd-btn="' + i + '" aria-haspopup="true" aria-expanded="false">' + esc(actionButtonLabel(currentType, r.lastAction && r.lastAction.note)) + '</button>' +
+            '<button type="button" class="ds-action-dd-btn" data-ds-dd-btn="' + i + '" aria-haspopup="true" aria-expanded="false">' + esc(actionButtonLabel(currentType, r.lastAction && r.lastAction.otherText)) + '</button>' +
             '<div class="ds-action-dd-menu" data-ds-dd-menu="' + i + '" hidden>' + actionMenuHtml(i) + '</div>' +
           '</div>' +
-          '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;display:none" value="' + esc(isOtherCurrent ? (r.lastAction.note || '') : '') + '">' +
+          '<input type="text" data-ds-other="' + i + '" class="da-bulk-other" placeholder="Describe action..." style="margin-left:6px;display:none" value="' + esc(isOtherCurrent ? (r.lastAction.otherText || '') : '') + '">' +
         '</td>' +
         '<td data-ds-status-cell="' + i + '">' + statusCellHtml(r, i) + '</td>' +
         '<td><button class="dm-icon-btn" type="button" data-ds-detail="' + i + '" title="See details: driver name, avg count, description, action history" aria-label="See details">' +
@@ -13971,7 +13968,16 @@
       var W = 720, H = 130, padL = 30, padR = 10, padT = 10, padB = 22;
       var plotW = W - padL - padR, plotH = H - padT - padB;
       var maxVal = Math.max.apply(null, series.map(function(s){ return s.total; }));
-      var niceMax = maxVal <= 4 ? 4 : Math.ceil(maxVal / 5) * 5;
+      // Must be a multiple of 4: the loop below draws gridlines at exact
+      // quarters of niceMax (g/4 for g=0..4) and labels each with
+      // Math.round((g/4)*niceMax). Rounding to the nearest 5 (the old
+      // behavior) makes the odd quarters land on a non-integer — e.g.
+      // niceMax=10 puts gridlines at 0/2.5/5/7.5/10 but LABELS them
+      // 0/3/5/8/10, so a bar whose real value is exactly 3 rises visibly
+      // above the gridline printed "3" (which actually sits at 2.5).
+      // Rounding to the nearest 4 keeps every quarter a whole number, so
+      // the printed label always matches the gridline's true position.
+      var niceMax = maxVal <= 4 ? 4 : Math.ceil(maxVal / 4) * 4;
       var barSlot = plotW / series.length;
       var barW = Math.max(1, Math.min(barSlot * 0.7, 14));
       // With a long history the chart may have far more days than there is
