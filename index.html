@@ -1354,6 +1354,20 @@
   :root[data-theme="dark"] .da-sync-status.done{background:#132b1f}
   :root[data-theme="dark"] .da-sync-status.error{background:#2a1518}
 
+  /* App-wide edit-lock badge — one instance per page's .topbar .controls
+     (all 8 exist in the DOM simultaneously; a single shared render
+     function keeps every instance in sync, see the EditLock module). */
+  .edit-lock-badge{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:var(--radius-pill);font-size:11px;font-weight:650;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);white-space:nowrap;flex:0 0 auto}
+  .edit-lock-badge.mine{color:#18a05e;border-color:#bfe8d3;background:#dff5ea}
+  .edit-lock-badge.other{color:#a5690a;border-color:#f2dcae;background:#fdf3df}
+  .edit-lock-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+  .edit-lock-badge.mine .edit-lock-dot{background:#18a05e}
+  .edit-lock-badge.other .edit-lock-dot{background:#e8952e}
+  .edit-lock-btn{border:none;background:none;padding:0;font:inherit;font-weight:700;color:var(--blue);cursor:pointer;white-space:nowrap}
+  .edit-lock-btn:hover{text-decoration:underline}
+  :root[data-theme="dark"] .edit-lock-badge.mine{background:#132b1f}
+  :root[data-theme="dark"] .edit-lock-badge.other{background:#2e2410}
+
   .da-inst-table{width:100%;border-collapse:collapse;min-width:900px}
   .da-inst-table th{height:30px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 10px;background:var(--surface2);white-space:nowrap}
   .da-inst-table td{height:38px;border-bottom:1px solid var(--border);padding:0 10px;font-size:11px;color:var(--text-dim);white-space:nowrap}
@@ -1795,6 +1809,14 @@
         <p>Real-time overview of your drowsiness detection system</p>
       </div>
       <div class="controls">
+        <div class="edit-lock-badge" data-el-badge>
+          <span class="edit-lock-dot" aria-hidden="true"></span>
+          <span data-el-text>—</span>
+          <button class="edit-lock-btn" type="button" data-el-action="enter" hidden>Enter Edit Mode</button>
+          <button class="edit-lock-btn" type="button" data-el-action="release" hidden>Release</button>
+          <button class="edit-lock-btn" type="button" data-el-action="request" hidden>Request Edit Access</button>
+          <button class="edit-lock-btn" type="button" data-el-action="override" hidden>Override</button>
+        </div>
         <div class="card clock-chip">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
           <div>
@@ -1999,6 +2021,14 @@
           <p>Analyze drowsiness patterns, contributing factors, and operational performance.</p>
         </div>
         <div class="controls">
+          <div class="edit-lock-badge" data-el-badge>
+            <span class="edit-lock-dot" aria-hidden="true"></span>
+            <span data-el-text>—</span>
+            <button class="edit-lock-btn" type="button" data-el-action="enter" hidden>Enter Edit Mode</button>
+            <button class="edit-lock-btn" type="button" data-el-action="release" hidden>Release</button>
+            <button class="edit-lock-btn" type="button" data-el-action="request" hidden>Request Edit Access</button>
+            <button class="edit-lock-btn" type="button" data-el-action="override" hidden>Override</button>
+          </div>
           <div class="profile-menu" id="an-pm">
             <button class="user" type="button" id="an-pm-btn" aria-haspopup="true" aria-expanded="false">
               <span class="online" aria-hidden="true"></span><span id="an-username">—</span>
@@ -2254,6 +2284,14 @@
           <p>Review detected events, severity, and actions taken</p>
         </div>
         <div class="controls">
+          <div class="edit-lock-badge" data-el-badge>
+            <span class="edit-lock-dot" aria-hidden="true"></span>
+            <span data-el-text>—</span>
+            <button class="edit-lock-btn" type="button" data-el-action="enter" hidden>Enter Edit Mode</button>
+            <button class="edit-lock-btn" type="button" data-el-action="release" hidden>Release</button>
+            <button class="edit-lock-btn" type="button" data-el-action="request" hidden>Request Edit Access</button>
+            <button class="edit-lock-btn" type="button" data-el-action="override" hidden>Override</button>
+          </div>
           <div class="profile-menu" id="al-pm">
             <button class="user" type="button" id="al-pm-btn" aria-haspopup="true" aria-expanded="false">
               <span class="online" aria-hidden="true"></span><span id="al-username">—</span>
@@ -2430,6 +2468,14 @@
           <p>Manage DDS data, monitor data quality, and maintain the analysis dataset.</p>
         </div>
         <div class="controls">
+          <div class="edit-lock-badge" data-el-badge>
+            <span class="edit-lock-dot" aria-hidden="true"></span>
+            <span data-el-text>—</span>
+            <button class="edit-lock-btn" type="button" data-el-action="enter" hidden>Enter Edit Mode</button>
+            <button class="edit-lock-btn" type="button" data-el-action="release" hidden>Release</button>
+            <button class="edit-lock-btn" type="button" data-el-action="request" hidden>Request Edit Access</button>
+            <button class="edit-lock-btn" type="button" data-el-action="override" hidden>Override</button>
+          </div>
           <div class="card dm-sync">
             <div class="dm-sync-top"><span class="dm-sync-dot" aria-hidden="true"></span>Last sync: <span id="dm-sync-ago">—</span></div>
             <div class="dm-sync-date" id="dm-sync-date">—</div>
@@ -2888,6 +2934,14 @@
           <h1>Driver &amp; Asset Monitoring</h1>
           <p>Weekly alert consistency for drivers and assets, prioritized for action</p>
         </div>
+        <div class="edit-lock-badge" data-el-badge>
+          <span class="edit-lock-dot" aria-hidden="true"></span>
+          <span data-el-text>—</span>
+          <button class="edit-lock-btn" type="button" data-el-action="enter" hidden>Enter Edit Mode</button>
+          <button class="edit-lock-btn" type="button" data-el-action="release" hidden>Release</button>
+          <button class="edit-lock-btn" type="button" data-el-action="request" hidden>Request Edit Access</button>
+          <button class="edit-lock-btn" type="button" data-el-action="override" hidden>Override</button>
+        </div>
         <div class="da-sync-status" id="da-sync-status" role="status" aria-live="polite">
           <span class="da-sync-dot" aria-hidden="true"></span>
           <span id="da-sync-status-text">Updating database…</span>
@@ -3060,6 +3114,14 @@
           <h1>Driver Streaks</h1>
           <p>Every driver's current alert streak, across the full history — not just the last 7 days</p>
         </div>
+        <div class="edit-lock-badge" data-el-badge>
+          <span class="edit-lock-dot" aria-hidden="true"></span>
+          <span data-el-text>—</span>
+          <button class="edit-lock-btn" type="button" data-el-action="enter" hidden>Enter Edit Mode</button>
+          <button class="edit-lock-btn" type="button" data-el-action="release" hidden>Release</button>
+          <button class="edit-lock-btn" type="button" data-el-action="request" hidden>Request Edit Access</button>
+          <button class="edit-lock-btn" type="button" data-el-action="override" hidden>Override</button>
+        </div>
       </header>
 
       <!-- UI audit: every other monitoring page (Overview/Analytics/Driver
@@ -3204,6 +3266,14 @@
           <p>Running 7-day report across alerts, insights, and flagged drivers &amp; assets</p>
         </div>
         <div class="controls">
+          <div class="edit-lock-badge" data-el-badge>
+            <span class="edit-lock-dot" aria-hidden="true"></span>
+            <span data-el-text>—</span>
+            <button class="edit-lock-btn" type="button" data-el-action="enter" hidden>Enter Edit Mode</button>
+            <button class="edit-lock-btn" type="button" data-el-action="release" hidden>Release</button>
+            <button class="edit-lock-btn" type="button" data-el-action="request" hidden>Request Edit Access</button>
+            <button class="edit-lock-btn" type="button" data-el-action="override" hidden>Override</button>
+          </div>
           <div class="profile-menu" id="su-pm">
             <button class="user" type="button" id="su-pm-btn" aria-haspopup="true" aria-expanded="false">
               <span class="online" aria-hidden="true"></span><span id="su-username">—</span>
@@ -3376,6 +3446,14 @@
           <p>Manage your account, preferences, users, and system data</p>
         </div>
         <div class="controls">
+          <div class="edit-lock-badge" data-el-badge>
+            <span class="edit-lock-dot" aria-hidden="true"></span>
+            <span data-el-text>—</span>
+            <button class="edit-lock-btn" type="button" data-el-action="enter" hidden>Enter Edit Mode</button>
+            <button class="edit-lock-btn" type="button" data-el-action="release" hidden>Release</button>
+            <button class="edit-lock-btn" type="button" data-el-action="request" hidden>Request Edit Access</button>
+            <button class="edit-lock-btn" type="button" data-el-action="override" hidden>Override</button>
+          </div>
           <div class="profile-menu" id="se-pm">
             <button class="user" type="button" id="se-pm-btn" aria-haspopup="true" aria-expanded="false">
               <span class="online" aria-hidden="true"></span><span id="se-header-username">—</span>
@@ -3925,6 +4003,51 @@
         </div>
       </div>
     </div>
+
+    <!-- App-wide edit-lock modals — placed here, outside every .page div,
+         since the lock can pop up regardless of which page is active. -->
+    <div class="da-modal-mask" id="el-request-mask">
+      <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="el-request-title">
+        <div class="da-modal-head">
+          <div>
+            <div class="da-modal-title" id="el-request-title">Edit access requested</div>
+            <div class="da-modal-sub" id="el-request-sub">—</div>
+          </div>
+        </div>
+        <div class="da-modal-body">
+          <p style="margin:0;color:var(--text-dim);font-size:13px">Release edit mode to them, or reject the request and keep editing.</p>
+        </div>
+        <div class="da-modal-foot">
+          <button class="da-modal-cancel" type="button" id="el-request-reject">Reject</button>
+          <button class="da-modal-save" type="button" id="el-request-release">Release edit mode</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="da-modal-mask" id="el-override-mask">
+      <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="el-override-title">
+        <div class="da-modal-head">
+          <div>
+            <div class="da-modal-title" id="el-override-title">Override edit session</div>
+            <div class="da-modal-sub" id="el-override-sub">—</div>
+          </div>
+          <button class="da-modal-close" type="button" id="el-override-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="da-modal-body">
+          <div class="da-field da-modal-field">
+            <label for="el-override-reason">Reason (required)</label>
+            <input type="text" id="el-override-reason" placeholder="Why are you ending their session?">
+          </div>
+          <div class="se-addform-err" id="el-override-err" style="display:none">A reason is required.</div>
+        </div>
+        <div class="da-modal-foot">
+          <button class="da-modal-cancel" type="button" id="el-override-cancel">Cancel</button>
+          <button class="da-modal-save" type="button" id="el-override-confirm">End their session</button>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -4391,6 +4514,7 @@
       }
       if(gate) gate.remove();
       armInactivityTimeout();
+      EditLock.init();
     }).catch(function(err){
       console.error('Auth gate check failed', err);
       window.location.replace('login.html');
@@ -4406,8 +4530,10 @@
     var timer = null;
     var lastReset = 0;
     function onTimeout(){
-      DB.auth.signOut().finally(function(){
-        window.location.replace('login.html');
+      EditLock.releaseIfMine().finally(function(){
+        DB.auth.signOut().finally(function(){
+          window.location.replace('login.html');
+        });
       });
     }
     function reset(){
@@ -4512,6 +4638,334 @@
     };
   }
 
+  // ---- App-wide single-editor lock ----
+  // Only one signed-in user may perform a shared-data write at a time; see
+  // migrations 0149-0151 for the real (server-side) enforcement — this
+  // module is the client-side mirror + UX (status polling, the header
+  // badge, and short-circuiting blocked writes before they hit the
+  // network), matching this codebase's own established "client mirrors,
+  // server enforces" pattern (MIGRATION_MAP.md §9's isAdmin).
+  //
+  // Deliberately NOT gated here (matches the server-side scoping exactly):
+  // Access Management writes (profiles approve/reject/role-change, the
+  // invite-user edge function) and personal writes (own profile,
+  // user_settings). Gating those would create a bootstrapping deadlock —
+  // an admin unable to approve a new user because someone else holds the
+  // lock — for no real coordination benefit.
+  var EditLock = (function(){
+    var STATUS_POLL_MS = 12000;
+    var HEARTBEAT_THROTTLE_MS = 60000;
+
+    // Every RPC that actually mutates shared data (see 0151) — .rpc() is
+    // also used for plain reads (dds_metrics, dds_driver_streaks, ...), so
+    // this must be an explicit allowlist, not a name-pattern guess (e.g.
+    // dds_find_near_duplicate_events sounds like a write but is read-only).
+    var GATED_RPCS = {
+      dds_ingest_resolved: 1, dds_complete_import: 1, dds_update_event_resolved: 1,
+      dds_minestat_ingest_resolved: 1, dds_upsert_drivers: 1, dds_fail_import: 1,
+      dds_backfill_emp_no_from_minestat: 1, dds_reresolve_all: 1, dds_minestat_reresolve_all: 1,
+      dds_resolve_review: 1, dds_minestat_resolve_review: 1, dds_ignore_review: 1,
+      dds_minestat_ignore_review: 1, dds_reopen_review: 1, dds_minestat_reopen_review: 1,
+      dds_attribution_conflicts_resolve: 1, dds_reset_fleet_data: 1, dds_bulk_log_case_action: 1,
+      dds_log_driver_asset_action: 1, dds_bulk_log_case_action_by_driver: 1, dds_log_entity_action: 1
+    };
+    // The only tables the client writes to directly (no RPC wrapper) — an
+    // allowlist of *tables*, so profiles/user_settings pass through
+    // untouched by construction, never by a maintained exclusion list.
+    var GATED_TABLES = { contributing_factors: 1, imports: 1 };
+
+    var state = {
+      heldBy: null, heldByName: null, isMine: false, isExpired: false,
+      pendingRequestBy: null, pendingRequestByName: null, isPendingMine: false
+    };
+    var listeners = [];
+    var pollTimer = null;
+    var lastHeartbeatAt = 0;
+    var seenPendingAt = null; // pendingRequestedAt already shown in the incoming-request modal
+
+    function notify(){ listeners.forEach(function(fn){ try{ fn(state); }catch(e){} }); }
+
+    function applyStatus(s){
+      state = {
+        heldBy: s.heldBy || null, heldByName: s.heldByName || null,
+        isMine: !!s.isMine, isExpired: !!s.isExpired,
+        pendingRequestBy: s.pendingRequestBy || null, pendingRequestByName: s.pendingRequestByName || null,
+        pendingRequestedAt: s.pendingRequestedAt || null, isPendingMine: !!s.isPendingMine
+      };
+      notify();
+      if(state.isMine && state.pendingRequestBy && state.pendingRequestedAt !== seenPendingAt){
+        seenPendingAt = state.pendingRequestedAt;
+        showIncomingRequestModal(state.pendingRequestByName || 'Someone');
+      }
+    }
+
+    function refreshStatus(){
+      return DB.rpc('dds_edit_lock_status', {}).then(function(res){
+        if(res.error) throw res.error;
+        applyStatus(res.data || {});
+        return state;
+      }).catch(function(){ /* transient network hiccup — next poll retries */ });
+    }
+
+    function maybeHeartbeat(){
+      if(!state.isMine) return;
+      var now = Date.now();
+      if(now - lastHeartbeatAt < HEARTBEAT_THROTTLE_MS) return;
+      lastHeartbeatAt = now;
+      DB.rpc('dds_edit_lock_heartbeat', {}).then(function(res){
+        if(res.error) throw res.error;
+        applyStatus(res.data || {});
+      }).catch(function(){
+        // Lock already changed hands (stolen/released/overridden) — resync
+        // silently on the next status poll rather than surfacing an error
+        // for something the user didn't do wrong.
+      });
+    }
+
+    ['mousemove','mousedown','keydown','touchstart','scroll','wheel'].forEach(function(evt){
+      window.addEventListener(evt, maybeHeartbeat, { passive: true, capture: true });
+    });
+
+    function startPolling(){
+      if(pollTimer) return;
+      refreshStatus();
+      pollTimer = setInterval(refreshStatus, STATUS_POLL_MS);
+    }
+
+    // A dead-end "thenable" that stays chainable forever: some call sites
+    // chain .select()/.eq() etc. onto .insert()/.update() before ever
+    // awaiting the result, so a plain object here would throw on the next
+    // chained call. Every property access returns a function returning
+    // this same proxy again, except .then/.catch/.finally, which resolve
+    // to the blocked-write error — matching the {data,error} shape every
+    // existing call site already checks (`if(res.error) throw res.error`),
+    // so no per-call-site error handling needs to change.
+    function makeBlockedResult(){
+      var payload = { data: null, error: {
+        message: 'Someone else is currently editing. Ask them to release Edit Mode, or wait your turn.',
+        code: 'EDIT_LOCK_REQUIRED'
+      }};
+      var proxy = new Proxy({}, {
+        get: function(_, prop){
+          if(prop === 'then') return function(onFulfilled, onRejected){ return Promise.resolve(payload).then(onFulfilled, onRejected); };
+          if(prop === 'catch') return function(){ return proxy; };
+          if(prop === 'finally') return function(fn){ if(fn) fn(); return proxy; };
+          return function(){ return proxy; };
+        }
+      });
+      return proxy;
+    }
+
+    // Wraps the shared DB client once, at construction — every future
+    // caller of DB.rpc(...)/DB.from(table).insert/update/upsert/delete(...)
+    // is transparently gated with no per-call-site changes. This is a
+    // client-side UX speed mirror only: the real enforcement is 0150's RLS
+    // retrofit + 0151's per-RPC guard, so even a gap here can't compromise
+    // data integrity, only delay the user seeing a rejection.
+    function wrapClient(){
+      var origRpc = DB.rpc.bind(DB);
+      DB.rpc = function(name, params){
+        if(GATED_RPCS[name] && !state.isMine) return makeBlockedResult();
+        return origRpc(name, params);
+      };
+
+      var origFrom = DB.from.bind(DB);
+      DB.from = function(table){
+        var builder = origFrom(table);
+        if(!GATED_TABLES[table]) return builder;
+        ['insert','update','upsert','delete'].forEach(function(method){
+          var orig = builder[method].bind(builder);
+          builder[method] = function(){
+            if(!state.isMine) return makeBlockedResult();
+            return orig.apply(builder, arguments);
+          };
+        });
+        return builder;
+      };
+    }
+
+    function acquire(){
+      return DB.rpc('dds_edit_lock_acquire', {}).then(function(res){
+        if(res.error) throw res.error;
+        applyStatus(res.data || {}); // optimistic — don't wait for the next poll tick
+        return state;
+      });
+    }
+    function release(grantToPending){
+      return DB.rpc('dds_edit_lock_release', { p_grant_to_pending: grantToPending !== false }).then(function(res){
+        if(res.error) throw res.error;
+        applyStatus(res.data || {});
+        return state;
+      });
+    }
+    function releaseIfMine(){
+      if(!state.isMine) return Promise.resolve(state);
+      return release(false).catch(function(){ return state; });
+    }
+    function request(){
+      return DB.rpc('dds_edit_lock_request', {}).then(function(res){
+        if(res.error) throw res.error;
+        applyStatus(res.data || {});
+        return state;
+      });
+    }
+    function rejectRequest(){
+      return DB.rpc('dds_edit_lock_reject_request', {}).then(function(res){
+        if(res.error) throw res.error;
+        applyStatus(res.data || {});
+        return state;
+      });
+    }
+    function override(reason){
+      return DB.rpc('dds_edit_lock_override', { p_reason: reason }).then(function(res){
+        if(res.error) throw res.error;
+        applyStatus(res.data || {});
+        return state;
+      });
+    }
+
+    var incomingModalWired = false;
+    function showIncomingRequestModal(requesterName){
+      var mask = document.getElementById('el-request-mask');
+      var sub = document.getElementById('el-request-sub');
+      if(!mask) return;
+      if(sub) sub.textContent = requesterName + ' would like to edit.';
+      mask.classList.add('on');
+      if(incomingModalWired) return;
+      incomingModalWired = true;
+      var releaseBtn = document.getElementById('el-request-release');
+      var rejectBtn = document.getElementById('el-request-reject');
+      if(releaseBtn) releaseBtn.addEventListener('click', function(){
+        release(true).finally(function(){ mask.classList.remove('on'); });
+      });
+      if(rejectBtn) rejectBtn.addEventListener('click', function(){
+        rejectRequest().finally(function(){ mask.classList.remove('on'); });
+      });
+    }
+
+    function init(){
+      wrapClient();
+      startPolling();
+    }
+
+    return {
+      init: init,
+      onChange: function(fn){ listeners.push(fn); },
+      getState: function(){ return state; },
+      isMine: function(){ return state.isMine; },
+      acquire: acquire,
+      release: release,
+      releaseIfMine: releaseIfMine,
+      request: request,
+      rejectRequest: rejectRequest,
+      override: override,
+      noteExplicitActivity: maybeHeartbeat
+    };
+  })();
+
+  // Renders every edit-lock badge in the DOM (one per page's topbar, all
+  // mounted simultaneously — see goToPage()'s .page/.page.active toggle)
+  // from EditLock's shared state, and wires each badge's action buttons
+  // once. A single subscriber handles all 8 instances since they all show
+  // the exact same state.
+  (function(){
+    function isAdminViewer(){ return !!(window.__ddsIsAdmin); }
+
+    function render(state){
+      document.querySelectorAll('[data-el-badge]').forEach(function(badge){
+        var textEl = badge.querySelector('[data-el-text]');
+        var enterBtn = badge.querySelector('[data-el-action="enter"]');
+        var releaseBtn = badge.querySelector('[data-el-action="release"]');
+        var requestBtn = badge.querySelector('[data-el-action="request"]');
+        var overrideBtn = badge.querySelector('[data-el-action="override"]');
+        [enterBtn, releaseBtn, requestBtn, overrideBtn].forEach(function(b){ if(b) b.hidden = true; });
+        badge.classList.remove('mine', 'other');
+
+        if(!state.heldBy){
+          if(textEl) textEl.textContent = 'Edit Mode: open';
+          if(enterBtn) enterBtn.hidden = false;
+        } else if(state.isMine){
+          badge.classList.add('mine');
+          if(textEl) textEl.textContent = 'You are editing';
+          if(releaseBtn) releaseBtn.hidden = false;
+        } else {
+          badge.classList.add('other');
+          if(state.isExpired){
+            // No live holder to grant anything — the right action is to
+            // take it over directly (acquire()'s own steal-clause), not
+            // to "request" from someone who isn't actively holding it.
+            if(textEl) textEl.textContent = (state.heldByName || 'Someone') + ' (inactive) is editing';
+            if(enterBtn) enterBtn.hidden = false;
+          } else {
+            if(textEl) textEl.textContent = (state.heldByName || 'Someone else') + ' is editing';
+            if(state.isPendingMine){
+              if(requestBtn){ requestBtn.hidden = false; requestBtn.textContent = 'Request sent…'; requestBtn.disabled = true; }
+            } else if(requestBtn){
+              requestBtn.hidden = false; requestBtn.textContent = 'Request Edit Access'; requestBtn.disabled = false;
+            }
+          }
+          if(overrideBtn && isAdminViewer()) overrideBtn.hidden = false;
+        }
+      });
+    }
+
+    function openOverrideModal(){
+      var mask = document.getElementById('el-override-mask');
+      var input = document.getElementById('el-override-reason');
+      var err = document.getElementById('el-override-err');
+      if(!mask) return;
+      if(input) input.value = '';
+      if(err) err.style.display = 'none';
+      mask.classList.add('on');
+    }
+
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-el-action]');
+      if(btn){
+        var action = btn.getAttribute('data-el-action');
+        if(action === 'enter') EditLock.acquire().catch(function(err){ window.alert(err.message || 'Could not enter Edit Mode.'); });
+        else if(action === 'release') EditLock.release(false).catch(function(err){ window.alert(err.message || 'Could not release Edit Mode.'); });
+        else if(action === 'request') EditLock.request().catch(function(err){ window.alert(err.message || 'Could not request edit access.'); });
+        else if(action === 'override') openOverrideModal();
+        return;
+      }
+      if(e.target.closest('#el-override-close') || e.target.closest('#el-override-cancel')){
+        var mask = document.getElementById('el-override-mask');
+        if(mask) mask.classList.remove('on');
+        return;
+      }
+      if(e.target.closest('#el-override-confirm')){
+        var input = document.getElementById('el-override-reason');
+        var err = document.getElementById('el-override-err');
+        var reason = input ? input.value.trim() : '';
+        if(!reason){ if(err) err.style.display = 'block'; return; }
+        EditLock.override(reason).then(function(){
+          var m = document.getElementById('el-override-mask');
+          if(m) m.classList.remove('on');
+        }).catch(function(e2){ window.alert(e2.message || 'Could not override.'); });
+      }
+    });
+
+    EditLock.onChange(render);
+    render(EditLock.getState());
+
+    // The Override button's visibility needs to know if the viewer is an
+    // admin — a one-time lookup here (this module runs at top level, not
+    // inside Settings/Access Management's own IIFE where accessState.isAdmin
+    // already exists) mirrors that exact same role==='admin' && status===
+    // 'approved' check, same "client mirrors, server enforces" pattern as
+    // everywhere else — dds_edit_lock_override() re-checks this itself.
+    requireSession().then(function(sess){
+      if(!sess) return;
+      return DB.from('profiles').select('role, status').eq('user_id', sess.user.id).maybeSingle();
+    }).then(function(res){
+      if(res && res.data){
+        window.__ddsIsAdmin = res.data.role === 'admin' && res.data.status === 'approved';
+        render(EditLock.getState());
+      }
+    }).catch(function(){});
+  })();
+
   // Sign in/out control — the mock shipped a "Sign out" button in the
   // sidebar (both desktop and mobile) with no click handler at all, and
   // no way for a signed-out visitor to actually get to login.html. Mirrors
@@ -4537,7 +4991,9 @@
           if(!x.btn) return;
           x.btn.addEventListener('click', function(){
             if(sess){
-              DB.auth.signOut().then(function(){ window.location.reload(); });
+              EditLock.releaseIfMine().finally(function(){
+                DB.auth.signOut().then(function(){ window.location.reload(); });
+              });
             } else {
               window.location.href = 'login.html';
             }
@@ -9762,6 +10218,11 @@
         return withTimeout(sendBatchFn(batches[i]), BATCH_TIMEOUT_MS).then(function(res){
           inserted += (res && res.count) || 0;
           setUploadProgress(progressLabel(inserted, totalRows), inserted, totalRows);
+          // A large upload can run for minutes with zero mouse/keyboard
+          // activity — an explicit heartbeat here (same throttle as the
+          // activity-listener one) keeps a genuinely in-progress upload
+          // from losing the edit lock to the idle timeout mid-flight.
+          EditLock.noteExplicitActivity();
           return step(i + 1);
         }).catch(function(err){
           if(!isRetryableError(err)) throw err;
