@@ -3477,6 +3477,33 @@
             </table>
           </div>
         </section>
+
+        <section class="card">
+          <div class="se-card-head">
+            <div>
+              <h3 class="se-card-title">Critical Alert Recipients</h3>
+              <div class="se-card-sub">Everyone listed here gets an email within minutes of a new critical drowsiness event</div>
+            </div>
+          </div>
+          <div class="se-users-toolbar">
+            <span class="se-users-count" id="se-alertrecip-count">Loading…</span>
+          </div>
+          <div class="se-field-row" id="se-alertrecip-addrow" style="display:none;grid-template-columns:1fr auto;align-items:end;margin-bottom:16px">
+            <div class="se-field">
+              <label for="se-alertrecip-email">Add recipient</label>
+              <input type="email" id="se-alertrecip-email" placeholder="name@example.com" autocomplete="off" />
+            </div>
+            <button class="se-btn-primary" type="button" id="se-alertrecip-add">Add</button>
+          </div>
+          <div class="se-table-wrap">
+            <table class="se-table">
+              <thead>
+                <tr><th>Email</th><th>Status</th><th>Added</th><th>Action</th></tr>
+              </thead>
+              <tbody id="se-alertrecip-tbody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
       <!-- ===================== SYSTEM MANAGEMENT ===================== -->
@@ -7942,6 +7969,11 @@
           '<td>' + actionsHtml + '</td>' +
         '</tr>';
       }).join('');
+      // accessState.isAdmin is only known once this fetch resolves, and
+      // the recipients list's own fetch runs independently (may resolve
+      // before or after this one) — re-render here too so its add-row
+      // visibility is never gated on fetch-order luck.
+      renderAlertRecipients();
     }
 
     function updateProfile(userId, patch){
@@ -8096,14 +8128,114 @@
         if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#c0271f;padding:30px 0">Could not load users: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
       });
     }
+    // ---- Critical Alert Recipients (0159_alert_recipients_and_digest_
+    // state.sql) ---- Same admin-only RLS pattern as profiles_update_admin
+    // — alert_recipients_admin_all only lets an approved admin see or
+    // change this list at all; a non-admin's select just returns zero
+    // rows rather than an error, so the table renders empty for them with
+    // no separate "not allowed" state needed.
+    var alertRecipState = { rows: [] };
+
+    function fmtAdded(iso){
+      var d = new Date(iso);
+      return isNaN(d) ? '—' : d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    }
+
+    function renderAlertRecipients(){
+      var tbody = document.getElementById('se-alertrecip-tbody');
+      var countEl = document.getElementById('se-alertrecip-count');
+      var addRow = document.getElementById('se-alertrecip-addrow');
+      if(addRow) addRow.style.display = accessState.isAdmin ? '' : 'none';
+      if(!tbody) return;
+      var rows = alertRecipState.rows;
+      if(countEl) countEl.textContent = rows.length + (rows.length === 1 ? ' recipient' : ' recipients');
+      if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px 0">No recipients yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(function(r){
+        var actionsHtml = accessState.isAdmin
+          ? '<button class="se-remove-btn" type="button" data-se-alertrecip-toggle="' + esc(r.id) + '">' + (r.active ? 'Disable' : 'Enable') + '</button> ' +
+            '<button class="se-remove-btn" type="button" data-se-alertrecip-remove="' + esc(r.id) + '">Remove</button>'
+          : '';
+        return '<tr>' +
+          '<td>' + esc(r.email) + '</td>' +
+          '<td><span class="se-status-badge ' + (r.active ? 'active' : 'disabled') + '">' + (r.active ? 'Active' : 'Disabled') + '</span></td>' +
+          '<td>' + esc(fmtAdded(r.created_at)) + '</td>' +
+          '<td>' + actionsHtml + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function loadAlertRecipients(){
+      var tbody = document.getElementById('se-alertrecip-tbody');
+      DB.from('alert_recipients').select('id, email, active, created_at').order('created_at')
+        .then(function(res){
+          if(res.error) throw res.error;
+          alertRecipState.rows = res.data || [];
+          renderAlertRecipients();
+        }).catch(function(err){
+          if(tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#c0271f;padding:30px 0">Could not load recipients: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
+        });
+    }
+
+    var alertRecipTbody = document.getElementById('se-alertrecip-tbody');
+    if(alertRecipTbody){
+      alertRecipTbody.addEventListener('click', function(e){
+        var toggleBtn = e.target.closest('[data-se-alertrecip-toggle]');
+        if(toggleBtn){
+          var tid = toggleBtn.getAttribute('data-se-alertrecip-toggle');
+          var trow = alertRecipState.rows.find(function(r){ return r.id === tid; });
+          if(!trow) return;
+          DB.from('alert_recipients').update({ active: !trow.active }).eq('id', tid).then(function(res){
+            if(res.error) throw res.error;
+            trow.active = !trow.active;
+            renderAlertRecipients();
+          }).catch(function(err){ window.alert('Could not update recipient: ' + ((err && err.message) || 'unknown error')); });
+          return;
+        }
+        var removeBtn = e.target.closest('[data-se-alertrecip-remove]');
+        if(removeBtn){
+          var rid = removeBtn.getAttribute('data-se-alertrecip-remove');
+          if(!window.confirm('Remove this recipient? They will stop receiving critical alert emails.')) return;
+          DB.from('alert_recipients').delete().eq('id', rid).then(function(res){
+            if(res.error) throw res.error;
+            alertRecipState.rows = alertRecipState.rows.filter(function(r){ return r.id !== rid; });
+            renderAlertRecipients();
+          }).catch(function(err){ window.alert('Could not remove recipient: ' + ((err && err.message) || 'unknown error')); });
+        }
+      });
+    }
+
+    var alertRecipAddBtn = document.getElementById('se-alertrecip-add');
+    var alertRecipEmailInput = document.getElementById('se-alertrecip-email');
+    if(alertRecipAddBtn && alertRecipEmailInput){
+      alertRecipAddBtn.addEventListener('click', function(){
+        var email = alertRecipEmailInput.value.trim().toLowerCase();
+        if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+          window.alert('Enter a valid email address.');
+          return;
+        }
+        DB.from('alert_recipients').insert({ email: email }).select('id, email, active, created_at').then(function(res){
+          if(res.error) throw res.error;
+          alertRecipState.rows = alertRecipState.rows.concat(res.data || []);
+          alertRecipEmailInput.value = '';
+          renderAlertRecipients();
+        }).catch(function(err){
+          window.alert('Could not add recipient: ' + ((err && err.message) || 'unknown error'));
+        });
+      });
+    }
+
     // Re-fetch on every nav to this page (same pattern as Data Management/
     // Analytics/etc. — see window.__ddsPageLoad) so signing in after
     // landing on Settings, or approving/rejecting a user and navigating
     // back, shows current data instead of a stale first-load snapshot.
     // Also re-runs Personal Info's own load (defined earlier in this same
     // IIFE) so both real-data sections on this page stay fresh together.
-    window.__ddsPageLoad.settings = function(){ loadPersonalInfo(); loadUsers(); loadSystemStats(); };
+    window.__ddsPageLoad.settings = function(){ loadPersonalInfo(); loadUsers(); loadSystemStats(); loadAlertRecipients(); };
     loadUsers();
+    loadAlertRecipients();
 
     // ---- System Management: real stats, real refresh, real download ----
     // Previously every number here (Records stored, Last sync, confidence
