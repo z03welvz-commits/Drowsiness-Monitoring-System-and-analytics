@@ -1,3 +1,12 @@
+> **Status note added 2026-09-20**: this document is from 2026-09-04.
+> Its central finding — that Summary's KPI row, 7-day trend chart, and
+> "Top Increases & Key Insights"/"Open Items" cards were all static mock
+> markup with zero live writers — is **confirmed fixed**: a live,
+> signed-in screenshot taken 2026-09-20 shows real KPI values, a real
+> trend chart, and real insight text on that page. Every other individual
+> claim in this document has not been re-verified line-by-line. Treat this
+> as a historical lead, not a current status report.
+
 # Pending 101 — Summary page is substantially mock content
 
 Found during a live-data audit (signed in, real database, 2026-09-04) that

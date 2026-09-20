@@ -1,0 +1,32 @@
+name: Critical alert digest
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  invoke:
+    name: Invoke critical-alert-digest Edge Function
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the digest function
+        env:
+          SUPABASE_FUNCTION_URL: ${{ secrets.SUPABASE_FUNCTION_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_FUNCTION_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "SUPABASE_FUNCTION_URL and/or SUPABASE_ANON_KEY repo secrets are not set — skipping." >&2
+            exit 1
+          fi
+          status=$(curl -sS -o /tmp/digest-response.json -w "%{http_code}" \
+            -X POST "$SUPABASE_FUNCTION_URL" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json")
+          echo "HTTP status: $status"
+          cat /tmp/digest-response.json
+          echo
+          if [ "$status" -ge 300 ]; then
+            exit 1
+          fi

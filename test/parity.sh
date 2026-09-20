@@ -35,7 +35,7 @@ psql -d postgres -q -c "create database $DB;"
 # Supabase branch these already exist; locally they need stubbing.
 psql -d "$DB" -q <<'SQL'
 create schema if not exists auth;
-create table if not exists auth.users (id uuid primary key);
+create table if not exists auth.users (id uuid primary key, email text);
 create or replace function auth.uid() returns uuid
   language sql stable as $$ select current_setting('dds.uid', true)::uuid $$;
 do $$ begin
@@ -48,6 +48,75 @@ SQL
 
 echo "→ applying migrations"
 for f in "$ROOT"/supabase/migrations/*.sql; do
+  # Forward-declaration, test-harness only, injected right before the first
+  # file that needs it. 0064_fix_driver_asset_weekly_unspecified_streak.sql
+  # and 0086_entity_status_reopen_actioned_recurrence.sql both create their
+  # own `language sql` functions whose bodies call public.dds_current_
+  # streak() — a real function, but one whose own CREATE doesn't appear
+  # until 0088_streak_threshold_raised_to_20.sql. `language sql` functions
+  # are validated against the catalog at CREATE time (unlike plpgsql), so
+  # replaying these 162 files from an empty database in strict numeric
+  # order fails here even though the same order has run fine against the
+  # live, already-migrated project for years — dds_current_streak() already
+  # existed there before these two files were ever applied for real. This
+  # stub is 0088's own real body, copied verbatim, so results stay correct
+  # for any call made before the real 0088/0133 versions `create or
+  # replace` over it later in this same replay. Needs `public.events`
+  # (created by 0001) to already exist, hence injected here rather than in
+  # the pre-migration setup block above.
+  if [[ "$(basename "$f")" == 0064_* ]]; then
+    echo "   (forward-declaring dds_current_streak() ahead of 0088 — see comment)"
+    psql -d "$DB" -q <<'SQL'
+create or replace function public.dds_current_streak(
+  p_entity_type text,
+  p_entity_id text,
+  p_day_threshold integer default 20,
+  p_lookback_days integer default 90
+)
+returns integer
+language sql
+stable
+set search_path to 'public'
+as $function$
+  with entity_days as (
+    select shift_date, sum(event_count) as day_total
+    from public.events
+    where (p_entity_type = 'driver' and coalesce(emp_no, 'UNSPECIFIED') = p_entity_id)
+       or (p_entity_type = 'asset' and asset_id = p_entity_id)
+    group by shift_date
+  ),
+  last_day as (
+    select max(shift_date) as d from entity_days
+  ),
+  cal as (
+    select generate_series(
+      (select d from last_day) - (greatest(coalesce(p_lookback_days, 90), 1) - 1) * interval '1 day',
+      (select d from last_day),
+      interval '1 day'
+    )::date as cal_date
+  ),
+  joined as (
+    select cal.cal_date,
+           (coalesce(ed.day_total, 0) >= coalesce(p_day_threshold, 20)) as qualifies
+    from cal
+    left join entity_days ed on ed.shift_date = cal.cal_date
+  ),
+  ranked as (
+    select row_number() over (order by cal_date desc) as rn, qualifies
+    from joined
+  ),
+  first_break as (
+    select min(rn) as rn from ranked where not qualifies
+  )
+  select coalesce(
+    case
+      when (select rn from first_break) is null then (select count(*) from ranked)
+      else (select rn from first_break) - 1
+    end, 0
+  );
+$function$;
+SQL
+  fi
   echo "   $(basename "$f")"
   psql -d "$DB" -q -f "$f"
 done
@@ -65,8 +134,8 @@ writeFileSync('/tmp/js-$$.json', JSON.stringify(derive(rows,null)));
 echo "→ seeding + ingesting via dds_ingest()"
 psql -d "$DB" -q <<SQL
 insert into auth.users(id) values ('$USR');
-insert into public.imports(id,uploaded_by,storage_key,original_name,status)
-  values ('$IMP','$USR','k/parity','fixture.json','complete');
+insert into public.imports(id,uploaded_by,original_name,status)
+  values ('$IMP','$USR','fixture.json','complete');
 SQL
 python3 - "$ROOT/test/fixture.json" "$IMP" > /tmp/seed-$$.sql <<'PY'
 import json,sys
@@ -102,10 +171,65 @@ js=norm(json.load(open(sys.argv[1]))); sq=norm(json.load(open(sys.argv[2])))
 # back to an 'Unspecified' sentinel for blanks), while the SQL side keys
 # distinctOperators on emp_no (excluding null emp_no rows entirely) — two
 # different identities over the same rows, not expected to agree numerically.
+# JS's own per-day fields for the same reason: `operators` (raw-text
+# identity, see above) and `sleep`/`drowsy` (a severity split by
+# event-CODE-text regex — dds-state.js's own comment calls these
+# "sparkline series only... No existing consumer of trend reads them").
+# SQL's trend carries a different, event-COUNT-magnitude severity axis
+# instead (criticalUnits/highUnits, 0115_dds_metrics_severity_trend.sql) —
+# not the same computation under a different name, a different axis
+# entirely (see PENDING_102's A4 finding on the two severity axes).
+# trend[].alertsPerOperatingHour/stillArriving are SQL-only for the same
+# reason as operatingHours above: both are derived from minestat_shifts
+# data (0109/0110), which derive() has no input for at all.
 for t in (sq.get('trend') or []):
     t.pop('operatingHours', None)
     t.pop('actionableRatio', None)
     t.pop('distinctOperators', None)
+    t.pop('alertsPerOperatingHour', None)
+    t.pop('criticalUnits', None)
+    t.pop('highUnits', None)
+    t.pop('stillArriving', None)
+for t in (js.get('trend') or []):
+    t.pop('operators', None)
+    t.pop('sleep', None)
+    t.pop('drowsy', None)
+# kpis.distinctOperators: same raw-text-vs-emp_no identity split as above,
+# at the whole-period level instead of per-day. kpis.alertsPerOperatingHour
+# is SQL-only, same minestat_shifts reason as trend[] above.
+for d in (js.get('kpis') or {}), (sq.get('kpis') or {}):
+    d.pop('distinctOperators', None)
+sq.get('kpis', {}).pop('alertsPerOperatingHour', None)
+# meta.stillArrivingThresholdDays (0110) is a server-side config constant
+# (a threshold, not a derived value) with no equivalent concept in a
+# one-shot local import; SQL-only by design.
+sq.get('meta', {}).pop('stillArrivingThresholdDays', None)
+# topOperators/operatorConsistency: whole-array casualties of the same
+# raw-text-vs-emp_no identity split as kpis.distinctOperators above — not
+# just a few extra/missing fields but a completely different grouping, so
+# lengths and contents are never expected to line up. Excluded outright
+# rather than diffed field-by-field.
+for d in (js, sq):
+    d.pop('topOperators', None)
+    d.pop('operatorConsistency', None)
+# assetConsistency[]/operatorConsistency[]: flagged/severity/severityRank are
+# a classification derive() computes inline (applySeverity() in
+# dds-state.js) on top of the shared, actually-compared highDayRatio number —
+# not a second independent computation of that number itself, so drift here
+# isn't the JS/SQL disagreement this test exists to catch. dds_metrics()
+# (0142_analytics_associative_cross_filters.sql) deliberately never adds
+# them: per dds-state.js's own comment, that was meant to be applied
+# client-side over the raw highDayRatio, by both data sources, from one
+# shared rule. In practice index.html (the live app) never adopted that
+# rule at all — it has zero references to highDayRatio or applySeverity, and
+# its own severityBadge() classifies by event-code text, an unrelated axis —
+# so this is dead classification logic on the JS side of an otherwise-live
+# comparison, not a live drift risk.
+for key in ('assetConsistency', 'operatorConsistency'):
+    for row in (js.get(key) or []):
+        row.pop('flagged', None)
+        row.pop('severity', None)
+        row.pop('severityRank', None)
 def diff(a,b,p=''):
     out=[]
     if isinstance(a,dict) and isinstance(b,dict):
