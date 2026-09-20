@@ -2255,7 +2255,7 @@
 
       <section class="an-charts-bottom an-row-wide-table">
         <div class="card an-chart-card" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><h3 class="chart-title an-chart-title">Recent Alerts Overview</h3></div><button class="view-all" type="button" data-goto="alerts">View all alerts</button></div>
+          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><h3 class="chart-title an-chart-title">Recent Alerts Overview</h3></div><button class="view-all" type="button" id="an-view-all-alerts" data-goto="alerts">View all alerts</button></div>
           <div style="overflow-x:auto;flex:1">
             <table class="an-alerts-table">
               <thead><tr><th data-sort="time">Time</th><th data-sort="operator">Driver</th><th data-sort="asset">Asset ID</th><th data-sort="eventCode">Event Type</th><th data-sort="count">Event Count</th><th>Shift</th></tr></thead>
@@ -2275,6 +2275,30 @@
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Associated with higher alerts &mdash; not a claim of causation.</span></div>
         </div>
       </section>
+
+      <!-- Spike investigation: the direct answer to "why did volume spike
+           over this range — is it driver-specific or fleet-wide, and what
+           was done about it." Ranks contributors over the SAME window this
+           page's own KPIs/charts are showing (dds_spike_investigation(),
+           0157), with each one's case status/last action read LIVE from
+           entity_status/entity_action_log — never a copy, same pattern as
+           Alert Logs' Driver Case Status column (0156). -->
+      <div class="card an-chart-card" id="an-si-card" style="display:flex;flex-direction:column;margin-bottom:14px">
+        <div class="chart-head an-chart-head">
+          <div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a8 8 0 1 0 5.3 14L21 21"/></svg></span><h3 class="chart-title an-chart-title">Spike Investigation</h3></div>
+          <div class="da-tabs" style="border-bottom:none;margin-bottom:0">
+            <button class="da-tab on" type="button" role="tab" aria-selected="true" data-an-si-tab="drivers">Drivers</button>
+            <button class="da-tab" type="button" role="tab" aria-selected="false" data-an-si-tab="assets">Assets</button>
+          </div>
+        </div>
+        <div id="an-si-summary" style="padding:2px 17px 12px;font-size:12px;color:var(--text-dim)">Loading&hellip;</div>
+        <div style="overflow-x:auto;flex:1">
+          <table class="an-alerts-table">
+            <thead><tr id="an-si-thead"><th>Driver</th><th>Alert Types</th><th>Total</th><th>Reviewed</th><th>Case Status</th><th>Last Action</th><th></th></tr></thead>
+            <tbody id="an-si-tbody"><tr><td colspan="7" style="color:var(--muted);padding:14px 10px">Loading&hellip;</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div id="page-alerts" class="page">
@@ -2409,7 +2433,7 @@
               <col class="al-check-col"><col style="width:130px"><col style="width:90px">
               <col style="width:140px"><col style="width:90px"><col style="width:80px">
               <col style="width:80px"><col style="width:90px"><col style="width:100px">
-              <col><col>
+              <col><col style="width:135px"><col>
               <col style="width:120px"><col style="width:120px">
               <col>
             </colgroup>
@@ -2425,6 +2449,7 @@
                 <th data-sort="update_time">Update Time</th>
                 <th data-sort="emp_no">Emp No</th>
                 <th data-sort="driver">Emp Name</th>
+                <th title="Driver's current case status, read live from Driver &amp; Asset Monitoring — separate from this event's own Status column, never copied into it">Driver Case Status</th>
                 <th data-sort="action">Action Performed</th>
                 <th data-sort="action_by">Action By</th>
                 <th data-sort="status">Status</th>
@@ -2432,7 +2457,7 @@
               </tr>
             </thead>
             <tbody id="al-tbody">
-              <tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>
+              <tr><td colspan="15" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -3419,7 +3444,7 @@
               </div>
             </div>
             <div class="su-open-cta">
-              <button type="button" data-goto="alerts">
+              <button type="button" id="su-review-pending-btn" data-goto="alerts">
                 Review pending alerts
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
               </button>
@@ -6622,6 +6647,105 @@
       });
     }
 
+    // ==================== Spike investigation (0157) ====================
+    // The direct "is it driver-specific or fleet-wide, what was done about
+    // it" answer — ranks contributors over the exact window load() is
+    // already showing, with each one's case status/last action read LIVE
+    // (never a copy). siData/siRange are cached so switching the
+    // Drivers/Assets tab re-renders instantly instead of re-fetching, and
+    // so each row's "View in Alert Logs" link knows which range to carry
+    // across via the same __ddsOpenAlertLogs bridge Analytics' own "View
+    // all alerts" button uses.
+    var siKind = 'drivers';
+    var siData = null;
+    var siRange = { from: null, to: null };
+
+    function siCaseStatusHtml(cs){
+      if(!cs) return '<span style="color:var(--muted)">—</span>';
+      var label = cs === 'monitoring' ? 'Monitoring' : cs === 'actioned' ? 'Actioned' : 'Resolved';
+      var cls = cs === 'monitoring' ? 'bluebg' : cs === 'actioned' ? 'greenbg' : '';
+      return cls ? '<span class="dm-tag ' + cls + '">' + label + '</span>' : '<span style="color:var(--muted)">' + label + '</span>';
+    }
+    function siLastActionHtml(la){
+      if(!la) return '<span style="color:var(--muted)">—</span>';
+      var text = la.otherText || la.type;
+      var at = la.at ? new Date(la.at) : null;
+      var atLabel = at && !isNaN(at) ? at.toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'}) : null;
+      return esc(text) + (la.by ? ' by ' + esc(la.by) : '') + (atLabel ? ' <span style="color:var(--muted)">(' + atLabel + ')</span>' : '');
+    }
+
+    function renderSpikeTable(){
+      var thead = document.getElementById('an-si-thead');
+      var tbody = document.getElementById('an-si-tbody');
+      if(!thead || !tbody) return;
+      thead.innerHTML = '<th>' + (siKind === 'drivers' ? 'Driver' : 'Asset') + '</th><th>Alert Types</th><th>Total</th><th>Reviewed</th><th>Case Status</th><th>Last Action</th><th></th>';
+      var rows = (siData && siData[siKind]) || [];
+      if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);padding:14px 10px">No ' + (siKind === 'drivers' ? 'driver' : 'asset') + ' activity in this range.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(function(r){
+        var id = siKind === 'drivers' ? r.empNo : r.assetId;
+        var label = siKind === 'drivers' ? (r.name || r.empNo) : r.assetId;
+        var codes = (r.eventCodes || []).slice(0, 2).map(function(c){ return esc(c.eventCode) + ' (' + fmtNum(c.count) + ')'; }).join(', ');
+        return '<tr>' +
+          '<td>' + esc(label) + '</td>' +
+          '<td>' + (codes || '—') + '</td>' +
+          '<td>' + fmtNum(r.total) + '</td>' +
+          '<td>' + fmtNum(r.reviewedEvents) + ' / ' + fmtNum(r.totalEvents) + '</td>' +
+          '<td>' + siCaseStatusHtml(r.caseStatus) + '</td>' +
+          '<td>' + siLastActionHtml(r.lastAction) + '</td>' +
+          '<td><button type="button" class="view-all" data-an-si-view="' + esc(id) + '">View in Alert Logs</button></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function renderSpikeInvestigation(from, to){
+      siRange.from = from; siRange.to = to;
+      return DB.rpc('dds_spike_investigation', { p_from: from, p_to: to }).then(function(res){
+        if(res.error) throw res.error;
+        siData = res.data;
+        var summaryEl = document.getElementById('an-si-summary');
+        if(summaryEl){
+          var d = siData || {};
+          var reviewPct = d.totalEvents > 0 ? Math.round((d.reviewedEvents || 0) / d.totalEvents * 100) : 0;
+          summaryEl.textContent = fmtNum(d.totalEvents || 0) + ' events (' + fmtNum(d.totalCount || 0) + ' total count) in this range — ' +
+            fmtNum(d.reviewedEvents || 0) + ' reviewed (' + reviewPct + '%). ' +
+            (d.top5Share != null ? 'Top 5 ' + siKind + ' account for ' + d.top5Share + '% of volume.' : '');
+        }
+        renderSpikeTable();
+      }).catch(function(err){
+        console.error('Spike investigation fetch failed', err);
+        siData = null;
+        var summaryEl = document.getElementById('an-si-summary');
+        if(summaryEl) summaryEl.textContent = 'Could not load: ' + ((err && err.message) || 'unknown error');
+        var tbody = document.getElementById('an-si-tbody');
+        if(tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:#c0271f;padding:14px 10px">Could not load spike investigation data.</td></tr>';
+      });
+    }
+
+    document.querySelectorAll('[data-an-si-tab]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        siKind = btn.getAttribute('data-an-si-tab');
+        document.querySelectorAll('[data-an-si-tab]').forEach(function(b){
+          var on = b === btn;
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        renderSpikeTable();
+      });
+    });
+
+    document.getElementById('an-si-tbody').addEventListener('click', function(e){
+      var btn = e.target.closest('[data-an-si-view]');
+      if(!btn) return;
+      var navBtn = document.querySelector('[data-page="alerts"]');
+      if(navBtn) navBtn.click();
+      if(window.__ddsOpenAlertLogs) window.__ddsOpenAlertLogs({
+        from: siRange.from, to: siRange.to, search: btn.getAttribute('data-an-si-view')
+      });
+    });
+
     // ==================== Alert Type Distribution (donut) ====================
     // Grouped by real event code (cur.eventCodeDistribution), not severity
     // tier — matches dashboard.jsx's AlertTypeDonutCard, which names each
@@ -7030,16 +7154,18 @@
 
         var topDriversResult = renderTopDrivers(toISO(winFrom), toISO(winTo));
         var topAssetsResult = renderTopAssets(toISO(winFrom), toISO(winTo));
+        var spikeResult = renderSpikeInvestigation(toISO(winFrom), toISO(winTo));
 
         // Hides the spinner once every fetch this click/dropdown change
-        // kicked off has settled (renderTopDrivers/renderTopAssets already
-        // never reject, so this always resolves — it doesn't need its own
-        // .catch). The secondary comparison-window fetch above is left out
-        // on purpose: it only refines the KPI deltas after the page has
-        // already rendered, same "non-fatal, degrades gracefully" reasoning
-        // as its own comment gives, so waiting on it would just make the
-        // spinner linger for a fetch nothing is visibly waiting on.
-        Promise.all([metricsResult, factorsResult, topDriversResult, topAssetsResult]).then(function(){
+        // kicked off has settled (renderTopDrivers/renderTopAssets/
+        // renderSpikeInvestigation already never reject, so this always
+        // resolves — it doesn't need its own .catch). The secondary
+        // comparison-window fetch above is left out on purpose: it only
+        // refines the KPI deltas after the page has already rendered, same
+        // "non-fatal, degrades gracefully" reasoning as its own comment
+        // gives, so waiting on it would just make the spinner linger for a
+        // fetch nothing is visibly waiting on.
+        Promise.all([metricsResult, factorsResult, topDriversResult, topAssetsResult, spikeResult]).then(function(){
           if(guard.isCurrent(token)) hideAnalyticsLoading();
         });
       }).catch(function(err){
@@ -7169,6 +7295,28 @@
       }).catch(function(err){ console.warn('Year filter list fetch failed', err); });
     }
 
+    // Scoped hand-off — same bridge pattern as Overview's
+    // window.__ddsOpenDriverStreaks(empNo). Carries across the exact
+    // window this page's own KPIs/charts are currently showing (filter
+    // bar's explicit from/to, or the standing trailing-7-day default —
+    // same resolution load() uses just above) plus the active
+    // driver/unit cross-filter if one is set, so "View all alerts" lands
+    // pre-scoped instead of on a blind, unfiltered table.
+    var viewAllAlertsBtn = document.getElementById('an-view-all-alerts');
+    if(viewAllAlertsBtn) viewAllAlertsBtn.addEventListener('click', function(){
+      var today = new Date(); today.setHours(0,0,0,0);
+      var rangeFrom = parseISODate(filterState.from);
+      var rangeTo = parseISODate(filterState.to);
+      var winTo = rangeTo || today;
+      var winFrom = rangeFrom || (function(){ var d = new Date(winTo); d.setDate(d.getDate()-6); return d; })();
+      var navBtn = document.querySelector('[data-page="alerts"]');
+      if(navBtn) navBtn.click();
+      if(window.__ddsOpenAlertLogs) window.__ddsOpenAlertLogs({
+        from: toISO(winFrom), to: toISO(winTo),
+        search: filterState.empNo || filterState.assetId || ''
+      });
+    });
+
     // Phase 8: re-fetch on every nav to this page — see window.__ddsPageLoad.
     window.__ddsPageLoad.analytics = load;
     load();
@@ -7281,6 +7429,11 @@
     function toMDY(d){
       return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear();
     }
+    // ISO (YYYY-MM-DD) — distinct from toMDY above: an <input type="date">
+    // element's .value only accepts this format, so the su-review-pending
+    // hand-off into Alert Logs (which sets al-from/al-to's real DOM value,
+    // not just an RPC param) needs this, not toMDY's MM/DD/YYYY.
+    function toISO(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
     function startOfDay(d){ var x = new Date(d); x.setHours(0,0,0,0); return x; }
     function addDays(d, n){ var x = new Date(d); x.setDate(x.getDate()+n); return x; }
     function countByTier(eventCodeDistribution, tier){
@@ -7591,6 +7744,23 @@
 
     var printBtn = document.getElementById('su-print-btn');
     if(printBtn) printBtn.addEventListener('click', function(){ window.print(); });
+
+    // Scoped hand-off — same bridge pattern as Overview's
+    // window.__ddsOpenDriverStreaks(empNo). Without this, the button
+    // claimed to open "pending alerts" but landed on a blind, unfiltered
+    // Alert Logs table; su-open-pending is counted over the trailing-7-day
+    // window with status='unset' (fetchAlertLogsTotal above), so that's
+    // exactly what gets carried across — recomputed fresh at click time
+    // rather than reusing loadSummaryMetrics()'s closed-over dates, so
+    // "today" always means today even if this page loaded hours ago.
+    var reviewPendingBtn = document.getElementById('su-review-pending-btn');
+    if(reviewPendingBtn) reviewPendingBtn.addEventListener('click', function(){
+      var today = startOfDay(new Date());
+      var weekStart = addDays(today, -6);
+      var navBtn = document.querySelector('[data-page="alerts"]');
+      if(navBtn) navBtn.click();
+      if(window.__ddsOpenAlertLogs) window.__ddsOpenAlertLogs({ from: toISO(weekStart), to: toISO(today), status: 'unset' });
+    });
 
     // Initial paint, in case Summary is the first page ever shown.
     renderSummary();
@@ -11790,6 +11960,32 @@
       if(statusEl) statusEl.textContent = loadingMore ? 'Loading more…' : (reachedEnd && rows.length ? 'All events loaded' : '');
     }
 
+    // Live, read-only view of this event's driver's CURRENT case status
+    // (r.driverCaseStatus, 0156) — a left join against entity_status/
+    // entity_action_log, never a copy: this reads the very same record
+    // Driver & Asset Monitoring's status pill reads, so it can't go stale
+    // or disagree the way the removed alert_cases mirror used to. Distinct
+    // from this row's own event-level Status column (alert_cases.status_
+    // value, set from Alert Logs' own bulk/inline actions) — the two
+    // answer different questions ("has this specific alert been reviewed"
+    // vs. "is there an open case on this driver right now") and are shown
+    // side by side on purpose rather than forced to agree.
+    function driverCaseStatusHtml(dcs){
+      if(!dcs || !dcs.status) return '<span style="color:var(--muted)">—</span>';
+      var label = dcs.status === 'monitoring' ? 'Monitoring' : dcs.status === 'actioned' ? 'Actioned' : 'Resolved';
+      var cls = dcs.status === 'monitoring' ? 'bluebg' : dcs.status === 'actioned' ? 'greenbg' : '';
+      var la = dcs.lastAction;
+      var title = 'Driver case: ' + label;
+      if(la){
+        var at = la.at ? new Date(la.at) : null;
+        var atLabel = at && !isNaN(at) ? at.toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'}) : null;
+        title += ' — last action ' + (la.otherText || la.type) + (la.by ? ' by ' + la.by : '') + (atLabel ? ' (' + atLabel + ')' : '');
+      }
+      return cls
+        ? '<span class="dm-tag ' + cls + '" title="' + esc(title) + '">' + label + '</span>'
+        : '<span style="color:var(--muted)" title="' + esc(title) + '">' + label + '</span>';
+    }
+
     // One row's markup — shared by a fresh render and an infinite-scroll
     // append so both stay byte-for-byte identical.
     function alRowHtml(r){
@@ -11821,6 +12017,7 @@
         '<td class="al-time">' + esc(fmtTimeOnly(r.updateTime)) + '</td>' +
         '<td><input type="text" class="al-inline-input" data-al-empid="' + r.id + '" value="' + esc(r.empNo || '') + '" placeholder="—"></td>' +
         '<td data-al-empname="' + r.id + '">' + esc(driver) + (needsReview ? ' <span class="dm-tag amber" title="Operator text did not match any masterlist employee — see Name Review">Needs Review</span>' : '') + '</td>' +
+        '<td>' + driverCaseStatusHtml(r.driverCaseStatus) + '</td>' +
         '<td>' +
           '<select class="al-inline-select" data-al-action="' + r.id + '">' + actionOptionsHtml(r.actionType) + '</select>' +
           '<input type="text" class="al-inline-input al-action-other" data-al-action-other="' + r.id + '" placeholder="Describe action...">' +
@@ -11870,7 +12067,7 @@
         var tbody = document.getElementById('al-tbody');
         var showingEl = document.getElementById('al-table-showing');
         if(!sess){
-          if(tbody) tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
+          if(tbody) tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           if(showingEl) showingEl.textContent = '';
           ['al-sc-total','al-sc-cased','al-sc-actionable'].forEach(function(id){
             var el = document.getElementById(id); if(el) el.textContent = '—';
@@ -11885,7 +12082,7 @@
           reachedEnd = false;
           rows = [];
           lastRowsById = {};
-          if(tbody) tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
+          if(tbody) tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;color:var(--muted);padding:30px 0">Loading…</td></tr>';
           // Fill the available row area on this first batch instead of
           // always fetching a fixed 20 — see fitRowLimit's own comment.
           // Infinite scroll normally fetches more as the user scrolls near
@@ -11943,7 +12140,7 @@
           if(isLoadMore){
             updateFooterAL();
           } else {
-            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;color:#c0271f;padding:30px 0">Could not load records: ' + esc(err.message || 'unknown error') + '</td></tr>';
           }
         });
       });
@@ -11953,7 +12150,7 @@
       var tbody = document.getElementById('al-tbody');
       if(!tbody) return;
       if(!rows.length){
-        tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:30px 0">No records match.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;color:var(--muted);padding:30px 0">No records match.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map(alRowHtml).join('');
@@ -12449,6 +12646,32 @@
         load();
       });
     });
+
+    // Scoped hand-off bridge — same pattern as Overview's
+    // window.__ddsOpenDriverStreaks(empNo): a caller elsewhere in the app
+    // (Analytics' "View all alerts", Summary's "Review pending alerts",
+    // the spike-investigation panel) clicks the real nav button first
+    // (already wired to goToPage(), which fires this page's default load())
+    // then calls this to override that default load with a scoped one —
+    // carrying the date range/driver/asset context across instead of
+    // landing on a blind, unfiltered table. Resets every OTHER filter too,
+    // same reasoning as Driver Streaks' bridge: a leftover status/severity
+    // filter from a previous visit could hide the very events the caller
+    // meant to surface.
+    window.__ddsOpenAlertLogs = function(opts){
+      opts = opts || {};
+      state.from = opts.from || null; state.to = opts.to || null;
+      state.shift = null; state.status = opts.status || 'all'; state.severity = null;
+      state.search = opts.search || '';
+      state.offset = 0;
+      document.getElementById('al-from').value = state.from || '';
+      document.getElementById('al-to').value = state.to || '';
+      document.getElementById('al-shift').value = '';
+      document.getElementById('al-status').value = state.status;
+      document.getElementById('al-severity').value = 'all';
+      document.getElementById('al-search').value = state.search;
+      load();
+    };
 
     window.__ddsPageLoad.alerts = load;
     load();
