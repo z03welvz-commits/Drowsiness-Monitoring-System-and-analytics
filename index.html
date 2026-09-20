@@ -3939,9 +3939,9 @@
 
     <!-- Driver Streaks: read-only complete event-history drill-down. No
          bulk-action bar here — action logging for a streak happens at the
-         row level in the main table (dds_bulk_log_case_action_by_driver,
-         scoped to that streak's own date range), so this modal is purely
-         "see everything that happened," modeled on da-inst-mask above. -->
+         row level in the main table (dds_log_entity_action, via
+         submitStreakAction), so this modal is purely "see everything that
+         happened," modeled on da-inst-mask above. -->
     <div class="da-modal-mask" id="ds-detail-mask">
       <div class="da-modal wide" role="dialog" aria-modal="true" aria-labelledby="ds-detail-title">
         <div class="da-modal-head">
@@ -4667,7 +4667,7 @@
       dds_resolve_review: 1, dds_minestat_resolve_review: 1, dds_ignore_review: 1,
       dds_minestat_ignore_review: 1, dds_reopen_review: 1, dds_minestat_reopen_review: 1,
       dds_attribution_conflicts_resolve: 1, dds_reset_fleet_data: 1, dds_bulk_log_case_action: 1,
-      dds_log_driver_asset_action: 1, dds_bulk_log_case_action_by_driver: 1, dds_log_entity_action: 1
+      dds_bulk_log_case_action_by_driver: 1, dds_log_entity_action: 1
     };
     // The only tables the client writes to directly (no RPC wrapper) — an
     // allowlist of *tables*, so profiles/user_settings pass through
@@ -8305,8 +8305,8 @@
     // shipped in 0053_reset_fleet_data_full_coverage.sql but never invoked
     // from the client until now) — truncates every operational table
     // (events, imports, drivers, minestat_shifts, contributing_factors,
-    // alert_cases, driver_asset_actions/severity, entity_status/action_log,
-    // name-review queues) while leaving profiles/user_settings untouched.
+    // alert_cases, entity_status/action_log, name-review queues) while
+    // leaving profiles/user_settings untouched.
     // The RPC itself only requires an authenticated session, not admin —
     // so the button is hidden from non-admins here, same gating pattern as
     // Access Management's inviteBtn just above.
@@ -11681,10 +11681,8 @@
       return d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false});
     }
     function toISODate(v){ return v || null; }
-    // Populated fresh on every load() — the bulk-apply handler looks up a
-    // selected row's assetId/empNo here to know which entities' action
-    // histories (driver_asset_actions, read elsewhere by Driver & Asset
-    // Monitoring) should also get this same logged action.
+    // Populated fresh on every load() — inline-edit handlers (Emp ID,
+    // status/action cells) look up a row's current values here by id.
     var lastRowsById = {};
 
     // Emp ID -> full_name, fetched once and cached (the roster doesn't
@@ -12302,8 +12300,6 @@
       var empNo = bulkEmpNo.value.trim() || null;
       if(!actionType && !statusValue && !remarks && !empNo) return;
 
-      var selectedRows = ids.map(function(id){ return lastRowsById[id]; }).filter(Boolean);
-
       bulkApplyBtn.disabled = true;
       bulkApplyBtn.textContent = 'Applying…';
       var jobId = alSyncJobStart(ids.length);
@@ -12314,35 +12310,6 @@
         p_status_is_other: isStatusOther, p_emp_no: empNo
       }).then(function(res){
         if(res.error) throw res.error;
-        // "Reflect to all": the same logged action also lands in
-        // driver_asset_actions (dds_log_driver_asset_action(), 0007) with
-        // source='alert_logs', so it shows up in Driver & Asset
-        // Monitoring's per-driver/per-asset action history for the same
-        // case — one entry per distinct affected asset and per distinct
-        // affected driver among the selected rows, not one per row, so
-        // bulk-selecting many alerts against the same truck/driver doesn't
-        // spam duplicate log entries. Only fires when an actual action
-        // (not just a status/remarks tweak) was recorded, since
-        // driver_asset_actions.action_type is required.
-        if(!actionType) return;
-        var assetIds = [], empNos = [], seenAsset = {}, seenEmp = {};
-        selectedRows.forEach(function(r){
-          if(r.assetId && !seenAsset[r.assetId]){ seenAsset[r.assetId] = true; assetIds.push(r.assetId); }
-          if(r.empNo && !seenEmp[r.empNo]){ seenEmp[r.empNo] = true; empNos.push(r.empNo); }
-        });
-        var calls = assetIds.map(function(aid){
-          return DB.rpc('dds_log_driver_asset_action', {
-            p_entity_type: 'asset', p_entity_id: aid, p_action_type: actionType,
-            p_action_is_other: isActionOther, p_remarks: remarks, p_source: 'alert_logs'
-          });
-        }).concat(empNos.map(function(en){
-          return DB.rpc('dds_log_driver_asset_action', {
-            p_entity_type: 'driver', p_entity_id: en, p_action_type: actionType,
-            p_action_is_other: isActionOther, p_remarks: remarks, p_source: 'alert_logs'
-          });
-        }));
-        return Promise.all(calls);
-      }).then(function(){
         alSyncJobDone(jobId);
         resetBulkForm();
         load();
@@ -13411,41 +13378,9 @@
         // trg_entity_status_reopen, 0033) so it's never permanently
         // silenced by an old action.
         //
-        // dds_log_entity_action() only writes entity_status/entity_action_log
-        // — it never touches alert_cases, which is what Alert Logs' Action
-        // Performed/Action By/Status/Remarks columns actually read
-        // (dds_alert_logs()). Without this second write, those columns
-        // stayed null for every event under this driver forever, no matter
-        // how many actions got logged here — same class of gap Driver
-        // Streaks' action dropdown had before its own fix. Scoped to this
-        // driver's trailing-7-day window, matching what "N counts this
-        // week" in this modal's own context line already shows (fetchWeekly()
-        // always calls dds_driver_asset_weekly with null/null — the RPC's own
-        // default 7-day window — not whatever date filter the table happens
-        // to have active). Assets have the identical gap but no equivalent
-        // by-asset bulk RPC exists yet, so this is driver-only for now.
-        // 'Cleared' has nothing to mirror into Alert Logs (no action was
-        // performed on these events) — and alert_cases_action_type_check's
-        // fixed vocabulary (Reviewed/Escalated/Coached/Dismissed/Spare/
-        // Continue/Other/Replace) doesn't accept 'Cleared' at all, so
-        // sending it here always failed with a check-constraint violation.
-        // Same root cause and same fix as Driver Streaks' submitStreakAction().
-        if(entityType === 'driver' && selectedType !== 'Cleared'){
-          return DB.rpc('dds_bulk_log_case_action_by_driver', {
-            p_emp_nos: [currentTarget.id], p_include_unspecified: false,
-            p_from: null, p_to: null, p_shift: null,
-            p_action_type: selectedType === 'Other' ? otherText : selectedType,
-            p_action_is_other: selectedType === 'Other',
-            p_action_date: new Date().toISOString().slice(0,10),
-            p_status_value: 'Logged',
-            p_remarks: selectedType === 'Other' ? otherText : (note || null)
-          }).then(function(res2){
-            if(res2.error) throw res2.error;
-            if(!((res2.data && res2.data.updated) || 0)){
-              throw new Error('No matching events found for ' + currentTarget.id + ' in the last 7 days — action was logged, but Alert Logs won\'t show it.');
-            }
-          });
-        }
+        // This driver/asset-level case action and Alert Logs' per-event
+        // review are deliberately separate, uncopied records — Alert Logs'
+        // Driver Case Status column reads this one live instead.
       }).then(function(){
         closeActionModal();
         return fetchWeekly();
@@ -14670,23 +14605,16 @@
         ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
     }
 
-    // Applies the chosen action to every event within THIS driver's own
-    // streak date range — dds_bulk_log_case_action_by_driver already
-    // exists exactly for this (writes one alert_cases row per matching
-    // event via a set-based query), so no new RPC was needed. This is the
-    // literal "any action logged should reflect on the recorded name
-    // during the duration" behavior the user asked for.
-    //
-    // That alert_cases write is what Alert Logs reads — it does NOT touch
-    // entity_status/entity_action_log, which is what Driver & Asset
-    // Monitoring's status pill and this page's own "last action" column
-    // (dds_driver_streaks()'s lastAction, sourced from entity_action_log)
-    // actually read. Without also calling dds_log_entity_action(), an
-    // action logged here could never appear in either place. logged_by is
-    // a required column on entity_action_log with no session-derived
-    // default anywhere else in the app (Driver & Asset Monitoring's own
-    // equivalent modal always prompts for it too), so ask for it here
-    // rather than inventing a value.
+    // Applies the chosen action to this driver's case status
+    // (entity_status/entity_action_log via dds_log_entity_action) — the
+    // driver-level record this page and Driver & Asset Monitoring's status
+    // pill both read. This is deliberately NOT copied into alert_cases:
+    // Alert Logs' per-event review is a separate, honestly-scoped record,
+    // cross-referenced live (its Driver Case Status column) rather than
+    // mirrored. logged_by is a required column on entity_action_log with
+    // no session-derived default anywhere else in the app (Driver & Asset
+    // Monitoring's own equivalent modal always prompts for it too), so ask
+    // for it here rather than inventing a value.
     // Disables this row's controls and shows an inline "Saving…" tag for
     // the duration of the two-RPC write — without it, a save in flight and
     // a save that silently failed looked identical (the dropdown just sat
@@ -14809,45 +14737,12 @@
 
     function submitStreakAction(r, actionType, isOther, otherText, i, loggedBy){
       setRowSaving(i, true);
-      var finalType = isOther ? 'Other' : actionType;
-      // 'Cleared' ("—") has nothing to mirror into Alert Logs: it means no
-      // action was performed on these events, not a new one to record
-      // against them, and alert_cases_action_type_check's fixed vocabulary
-      // (Reviewed/Escalated/Coached/Dismissed/Spare/Continue/Other/Replace)
-      // doesn't even accept 'Cleared' as a value — sending it here failed
-      // outright with a check-constraint violation, which (since this call
-      // runs BEFORE dds_log_entity_action below) aborted the whole reset
-      // before entity_status ever got touched. Skipping straight to
-      // dds_log_entity_action for 'Cleared' is what actually lets 0102's
-      // fix run.
-      var mirrorToAlertCases = actionType === 'Cleared' ? Promise.resolve() : DB.rpc('dds_bulk_log_case_action_by_driver', {
-        p_emp_nos: [r.empNo], p_include_unspecified: false,
-        p_from: mdyToIso(r.runStart),
-        p_to: mdyToIso(r.runEnd),
-        p_shift: null,
-        p_action_type: finalType,
-        p_action_is_other: !!isOther,
-        p_action_date: new Date().toISOString().slice(0,10),
-        p_status_value: 'Logged',
-        p_remarks: isOther ? otherText : null
-      }).then(function(res){
-        if(res.error) throw res.error;
-        var updated = (res.data && res.data.updated) || 0;
-        if(!updated){
-          // A successful call with nothing matched is indistinguishable from
-          // a real save unless we check the row count ourselves — surface it
-          // instead of silently reloading as if it worked.
-          throw new Error('No matching events found for ' + r.empNo + ' between ' + r.runStart + ' and ' + r.runEnd + ' — nothing was saved.');
-        }
-      });
-      mirrorToAlertCases.then(function(){
-        return DB.rpc('dds_log_entity_action', {
-          p_entity_type: 'driver', p_entity_id: r.empNo,
-          p_action_type: isOther ? 'Other' : actionType,
-          p_action_other_text: isOther ? otherText : null,
-          p_note: 'Logged from Driver Streaks (' + r.runStart + '–' + r.runEnd + ')',
-          p_logged_by: loggedBy
-        });
+      DB.rpc('dds_log_entity_action', {
+        p_entity_type: 'driver', p_entity_id: r.empNo,
+        p_action_type: isOther ? 'Other' : actionType,
+        p_action_other_text: isOther ? otherText : null,
+        p_note: 'Logged from Driver Streaks (' + r.runStart + '–' + r.runEnd + ')',
+        p_logged_by: loggedBy
       }).then(function(res){
         if(res && res.error) throw res.error;
         load();
