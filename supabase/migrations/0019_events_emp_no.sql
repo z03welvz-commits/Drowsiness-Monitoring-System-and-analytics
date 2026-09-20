@@ -426,13 +426,13 @@ returns void
 language sql
 security definer
 set search_path = public
-as $
+as $$
   update public.imports i
      set unresolved_count = coalesce((
        select sum(r.row_count) from public.import_name_review r
         where r.import_id = i.id and r.state = 'open'
      ), 0);
-$;
+$$;
 
 -- Confirm a name against an employee. Writes the alias (so the decision is
 -- learned and never asked again), re-attributes every matching event ACROSS
