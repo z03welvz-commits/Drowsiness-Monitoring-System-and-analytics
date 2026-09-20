@@ -1,3 +1,16 @@
+> **Status note added 2026-09-20**: this document is from 2026-09-08. At
+> least one central finding — Part A3, "the name-review queue is entirely
+> dead... zero UI to call any of [its RPCs]" — is **confirmed fixed**: a
+> live DB check on 2026-09-20 shows `minestat_name_review` at 2,407
+> resolved / 9 open, and a working UI under Data Management → Name Review
+> (`index.html`'s `#dm-source-review` tab) does call
+> `dds_name_review_list`/`dds_resolve_review`/etc. The other findings in
+> this document (the masterlist `status='inactive'` mystery, the
+> `dds_backfill_emp_no_from_minestat()` call-site question, severity
+> persistence) have **not** been re-verified. Treat this as a historical
+> lead, not a current status report — re-check each claim against the live
+> code/database before acting on it.
+
 # Pending 102 — Full pipeline audit + fix plan (code↔DB, live-verified)
 
 Requested as a senior-developer-level audit: trace upload→ingest→matching→
