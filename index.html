@@ -532,12 +532,17 @@
 
   #page-analytics > .an-grid-row{margin-bottom:14px}
   .an-grid-row{display:grid;gap:10px}
-  /* Sync Interval | Trend of Alerts | Alerts by Hour of Day */
-  .an-grid-row.cols-a{grid-template-columns:1.4fr 2.8fr 2.8fr}
-  /* Alert Count Bucket | Alert Type donut | Shift donut */
-  .an-grid-row.cols-b{grid-template-columns:repeat(3,1fr)}
-  /* Alerts by Equipment | Alerts by Driver | Recent Alerts */
-  .an-grid-row.cols-c{grid-template-columns:1fr 1fr 1.3fr}
+  /* Trend of Alerts and Alerts by Hour each get a full-width row of their
+     own (see .an-chart-panel/.an-chart-wrap below) so they can run taller
+     without a shorter, unrelated panel sharing — and being squeezed by —
+     their row. */
+  .an-grid-row.cols-full{grid-template-columns:1fr}
+  /* Sync Interval | Alert Count Bucket */
+  .an-grid-row.cols-a{grid-template-columns:repeat(2,1fr)}
+  /* Alert Type donut | Shift donut */
+  .an-grid-row.cols-b{grid-template-columns:repeat(2,1fr)}
+  /* Alerts by Equipment | Alerts by Driver */
+  .an-grid-row.cols-c{grid-template-columns:repeat(2,1fr)}
 
   .an-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px 12px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-width:0;min-height:230px}
   .an-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap}
@@ -555,6 +560,13 @@
   .an-seg-check.disabled{opacity:.45;cursor:not-allowed}
 
   .an-chart-wrap{position:relative;flex:1;min-height:180px}
+  /* Trend/Hourly are the two full-width Chart.js panels — taller than
+     every other panel type by design, with fullscreen + minimize controls
+     (see [data-chart-fullscreen]/[data-chart-minimize] wiring). */
+  .an-chart-panel .an-chart-wrap{min-height:380px}
+  .an-panel.an-minimized .an-chart-wrap,.an-panel.an-minimized .an-note{display:none}
+  .an-panel:fullscreen,.an-panel:-webkit-full-screen{width:100%;height:100%;margin:0;padding:22px 26px}
+  .an-panel:fullscreen .an-chart-wrap,.an-panel:-webkit-full-screen .an-chart-wrap{min-height:0}
 
   .an-note{font-size:12px;color:var(--muted);padding-top:12px;display:flex;align-items:flex-start;gap:6px}
   .an-note i{width:13px;height:13px;flex:0 0 auto;margin-top:1.5px;display:inline-flex;color:var(--muted)}
@@ -603,7 +615,6 @@
   .an-alerts-table th[data-sort].sorted.asc::after{content:' ▴'}
   .an-alerts-table td{padding:9px 10px 9px 0;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
   .an-alerts-table tbody tr:hover td{background:var(--surface2)}
-  .an-alert-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
   .an-alerts-foot{display:flex;align-items:center;margin-top:14px;font-size:var(--fs-body);color:var(--muted)}
 
   /* ---------- Alert Logs page (al- prefix avoids colliding with Overview/Analytics chrome classes) ---------- */
@@ -1908,16 +1919,8 @@
            in Data Management → Contributing Factors. -->
       <div class="an-kpi-grid" id="an-kpi-grid" aria-label="Key metrics"></div>
 
-      <div class="an-grid-row cols-a">
-        <div class="an-panel" style="--accent:var(--green)">
-          <div class="an-panel-head">
-            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Sync Interval</span></div>
-          </div>
-          <div class="an-bar-list" id="an-bl-sync"><div class="an-bar-list-empty">Loading&hellip;</div></div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Time from alert end to dashboard sync &mdash; click a band to isolate it.</span></div>
-        </div>
-
-        <div class="an-panel" style="--accent:var(--blue)">
+      <div class="an-grid-row cols-full">
+        <div class="an-panel an-chart-panel" id="an-panel-trend" style="--accent:var(--blue)">
           <div class="an-panel-head">
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Trend of Alerts Over Time</span></div>
             <div class="an-panel-tools">
@@ -1928,20 +1931,36 @@
                 <button class="an-seg-btn" type="button" data-gran="weekly">Weekly</button>
                 <button class="an-seg-btn" type="button" data-gran="monthly">Monthly</button>
               </div>
+              <button class="dm-icon-btn" type="button" data-chart-minimize title="Minimize" aria-label="Minimize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h12"/></svg></button>
+              <button class="dm-icon-btn" type="button" data-chart-fullscreen title="Fullscreen" aria-label="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
             </div>
           </div>
           <div class="an-chart-wrap"><canvas id="an-chart-trend"></canvas></div>
         </div>
+      </div>
 
-        <div class="an-panel" style="--accent:var(--orange)">
+      <div class="an-grid-row cols-full">
+        <div class="an-panel an-chart-panel" id="an-panel-hourly" style="--accent:var(--orange)">
           <div class="an-panel-head">
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alerts by Hour of Day</span></div>
+            <div class="an-panel-tools">
+              <button class="dm-icon-btn" type="button" data-chart-minimize title="Minimize" aria-label="Minimize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h12"/></svg></button>
+              <button class="dm-icon-btn" type="button" data-chart-fullscreen title="Fullscreen" aria-label="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+            </div>
           </div>
           <div class="an-chart-wrap"><canvas id="an-chart-hourly"></canvas></div>
         </div>
       </div>
 
-      <div class="an-grid-row cols-b">
+      <div class="an-grid-row cols-a">
+        <div class="an-panel" style="--accent:var(--green)">
+          <div class="an-panel-head">
+            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Sync Interval</span></div>
+          </div>
+          <div class="an-bar-list" id="an-bl-sync"><div class="an-bar-list-empty">Loading&hellip;</div></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Time from alert end to dashboard sync &mdash; click a band to isolate it.</span></div>
+        </div>
+
         <div class="an-panel" style="--accent:var(--purple)">
           <div class="an-panel-head">
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alert Count Bucket</span></div>
@@ -1949,7 +1968,9 @@
           <div class="an-bar-list" id="an-bl-bucket"><div class="an-bar-list-empty">Loading&hellip;</div></div>
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Which EVENT_COUNT band is most common &mdash; click a band to isolate it.</span></div>
         </div>
+      </div>
 
+      <div class="an-grid-row cols-b">
         <div class="an-panel" style="--accent:var(--blue)">
           <div class="an-panel-head">
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alert Type Distribution</span></div>
@@ -1992,19 +2013,6 @@
             </div>
           </div>
           <div class="an-bar-list scroll-y" id="an-bl-driver"><div class="an-bar-list-empty">Loading&hellip;</div></div>
-        </div>
-
-        <div class="an-panel" style="--accent:var(--blue)">
-          <div class="an-panel-head">
-            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Recent Alerts</span></div>
-            <button class="view-all" type="button" id="an-view-all-alerts" data-goto="alerts">View all</button>
-          </div>
-          <div style="overflow-x:auto;flex:1">
-            <table class="an-alerts-table">
-              <thead><tr><th>Time</th><th>Driver</th><th>Asset ID</th><th>Event Type</th><th>Count</th><th>Shift</th></tr></thead>
-              <tbody id="an-recent-alerts-body"><tr><td colspan="6" style="color:var(--muted);padding:14px 10px">Loading&hellip;</td></tr></tbody>
-            </table>
-          </div>
         </div>
       </div>
 
@@ -5620,7 +5628,7 @@
           },
           onHover: function(evt, els){ evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
           plugins:{
-            legend:{ display: intervalCapable || unitsCapable, position:'top', align:'end', labels:{color: cssVar('--muted'), boxWidth:9, boxHeight:2, font:{size:10}} },
+            legend:{ display: intervalCapable || unitsCapable, position:'top', align:'end', labels:{color: cssVar('--muted'), boxWidth:6, boxHeight:6, padding:6, font:{size:9}} },
             tooltip:{
               backgroundColor: cssVar('--card'), titleColor: cssVar('--text'), bodyColor: cssVar('--muted'),
               borderColor: cssVar('--border'), borderWidth:1, padding:9, cornerRadius:8, displayColors:false,
@@ -5706,7 +5714,7 @@
           onClick: function(evt, els){ if(els.length) setFilterDim('hour', els[0].index); },
           onHover: function(evt, els){ evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
           plugins:{
-            legend:{ display: months.length > 1, position:'top', align:'end', labels:{color: cssVar('--muted'), boxWidth:9, boxHeight:2, font:{size:10}} },
+            legend:{ display: months.length > 1, position:'top', align:'end', labels:{color: cssVar('--muted'), boxWidth:6, boxHeight:6, padding:6, font:{size:9}} },
             tooltip:{
               backgroundColor: cssVar('--card'), titleColor: cssVar('--text'), bodyColor: cssVar('--muted'),
               borderColor: cssVar('--border'), borderWidth:1, padding:9, cornerRadius:8, displayColors:false,
@@ -5716,6 +5724,51 @@
         }
       });
     }
+
+    // ---------- Chart panel tools: fullscreen + minimize (Trend/Hourly) ----------
+    // Chart.js's own responsive:true+maintainAspectRatio:false already picks
+    // up the container resize via its internal ResizeObserver, but a
+    // fullscreenchange/un-minimize can land in a state that observer misses
+    // (element was display:none, or the fullscreen transition finishes on a
+    // later frame) — the explicit chart.resize() calls below are a cheap,
+    // reliable backstop rather than a dependency on that timing.
+    function wireChartPanelTools(panelId, getChart){
+      var panel = document.getElementById(panelId);
+      if(!panel) return;
+      var minBtn = panel.querySelector('[data-chart-minimize]');
+      var fsBtn = panel.querySelector('[data-chart-fullscreen]');
+      if(minBtn){
+        minBtn.addEventListener('click', function(){
+          panel.classList.toggle('an-minimized');
+          var minimized = panel.classList.contains('an-minimized');
+          minBtn.title = minimized ? 'Restore' : 'Minimize';
+          minBtn.setAttribute('aria-label', minBtn.title);
+          minBtn.setAttribute('aria-pressed', String(minimized));
+          if(!minimized){
+            var chart = getChart();
+            if(chart) setTimeout(function(){ chart.resize(); }, 50);
+          }
+        });
+      }
+      if(fsBtn){
+        fsBtn.addEventListener('click', function(){
+          if(document.fullscreenElement === panel){
+            if(document.exitFullscreen) document.exitFullscreen();
+          } else if(panel.requestFullscreen){
+            panel.requestFullscreen();
+          }
+        });
+        document.addEventListener('fullscreenchange', function(){
+          var isFs = document.fullscreenElement === panel;
+          fsBtn.title = isFs ? 'Exit fullscreen' : 'Fullscreen';
+          fsBtn.setAttribute('aria-label', fsBtn.title);
+          var chart = getChart();
+          if(chart) setTimeout(function(){ chart.resize(); }, 50);
+        });
+      }
+    }
+    wireChartPanelTools('an-panel-trend', function(){ return trendChart; });
+    wireChartPanelTools('an-panel-hourly', function(){ return hourlyChart; });
 
     // ==================== Alert Count by Sync Interval ====================
     var SYNC_LABELS = ['<3h','3-6h','6-8h','8-10h','10h+'];
@@ -6108,30 +6161,6 @@
       });
     }
 
-    // ==================== Recent Alerts Overview (page-local preview — Alert Logs owns the full paginated table) ====================
-    function renderRecentAlerts2(cur){
-      var body = document.getElementById('an-recent-alerts-body');
-      if(!body) return;
-      var rows = (cur.recentAlerts || []).slice(0, 8);
-      if(!rows.length){
-        body.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:14px 10px">No alerts recorded.</td></tr>';
-        return;
-      }
-      body.innerHTML = rows.map(function(r){
-        var t = r.time ? new Date(r.time) : null;
-        var timeStr = t ? t.toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true }) : '—';
-        var badge = severityBadge(r.eventCode);
-        return '<tr>' +
-          '<td>' + esc(timeStr) + '</td>' +
-          '<td>' + esc(r.operator || 'Unspecified') + '</td>' +
-          '<td>' + esc(r.asset || '—') + '</td>' +
-          '<td><span class="an-alert-badge" style="background:' + badge.color + '22;color:' + badge.color + '">' + esc(r.eventCode || 'Alert') + '</span></td>' +
-          '<td>' + fmtNum(r.count || 0) + '</td>' +
-          '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : 'Day') + '</td>' +
-          '</tr>';
-      }).join('');
-    }
-
     // ==================== orchestration ====================
     var analyticsLastCur = null;
     function signedOutState(){
@@ -6141,8 +6170,6 @@
         var el = document.getElementById(id);
         if(el) el.innerHTML = '<div class="an-bar-list-empty">Sign in to load real data.</div>';
       });
-      var alertsBody = document.getElementById('an-recent-alerts-body');
-      if(alertsBody) alertsBody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:14px 10px">Sign in to load real data.</td></tr>';
       ['an-donut-type-legend','an-donut-shift-legend'].forEach(function(id){
         var el = document.getElementById(id);
         if(el) el.innerHTML = '<div class="an-bar-list-empty">Sign in to load real data.</div>';
@@ -6166,8 +6193,6 @@
         var el = document.getElementById(id);
         if(el) el.innerHTML = '<div class="an-bar-list-empty" style="color:#c0271f">' + msg + '</div>';
       });
-      var alertsBody = document.getElementById('an-recent-alerts-body');
-      if(alertsBody) alertsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:14px 10px">' + msg + '</td></tr>';
       if(trendChart){ trendChart.destroy(); trendChart = null; }
       if(hourlyChart){ hourlyChart.destroy(); hourlyChart = null; }
     }
@@ -6240,7 +6265,6 @@
           renderAlertBucket2(cur);
           renderAlertTypeDonut2(cur);
           renderShiftDonut2(cur);
-          renderRecentAlerts2(cur);
           renderKpis2(cur, null, spanDays);
 
           // Comparison window: the same span length immediately before the
@@ -6400,28 +6424,6 @@
         yearSelect.insertAdjacentHTML('beforeend', options);
       }).catch(function(err){ console.warn('Year filter list fetch failed', err); });
     }
-
-    // Scoped hand-off — same bridge pattern as Overview's
-    // window.__ddsOpenDriverStreaks(empNo). Carries across the exact
-    // window this page's own KPIs/charts are currently showing (filter
-    // bar's explicit from/to, or the standing trailing-7-day default —
-    // same resolution load() uses just above) plus the active
-    // driver/unit cross-filter if one is set, so "View all alerts" lands
-    // pre-scoped instead of on a blind, unfiltered table.
-    var viewAllAlertsBtn = document.getElementById('an-view-all-alerts');
-    if(viewAllAlertsBtn) viewAllAlertsBtn.addEventListener('click', function(){
-      var today = new Date(); today.setHours(0,0,0,0);
-      var rangeFrom = parseISODate(filterState.from);
-      var rangeTo = parseISODate(filterState.to);
-      var winTo = rangeTo || today;
-      var winFrom = rangeFrom || (function(){ var d = new Date(winTo); d.setDate(d.getDate()-6); return d; })();
-      var navBtn = document.querySelector('[data-page="alerts"]');
-      if(navBtn) navBtn.click();
-      if(window.__ddsOpenAlertLogs) window.__ddsOpenAlertLogs({
-        from: toISO(winFrom), to: toISO(winTo),
-        search: filterState.empNo || filterState.assetId || ''
-      });
-    });
 
     // Chart.js canvases bake colors in at render time (getComputedStyle via
     // cssVar()) — unlike this app's hand-rolled SVG charts elsewhere, which
