@@ -102,7 +102,7 @@
        here on one shared padding without touching their still-different
        internal layouts). */
     --kpi-pad:16px 17px;
-    --chart-pad:0 16px 14px; /* shared by .chart-card/.an-chart-card — same reasoning as --kpi-pad */
+    --chart-pad:0 16px 14px; /* shared by .chart-card — same reasoning as --kpi-pad */
   }
   /* Dark theme — applied via [data-theme="dark"] on <html>, toggled from
      Settings > Personalization or the sidebar's Dark mode switch
@@ -500,208 +500,99 @@
   .an-clearall-btn{all:unset;cursor:pointer;font-size:12px;font-weight:700;color:#e5484d;padding:4px 2px}
   .an-clearall-btn:hover{text-decoration:underline}
 
-  /* minmax(0,1fr), not bare 1fr: a bare 1fr track is still allowed to grow
-     past its fair share to fit non-shrinkable content (e.g. the sparkline's
-     old fixed flex-basis), which silently pushed the whole grid — and the
-     page — wider than the viewport at narrower desktop widths (confirmed:
-     26px of real horizontal overflow at 1366px before this fix). Every
-     column of every row on this page below is a grid, but this row is the
-     one whose children previously had non-shrinking fixed widths. */
-  .an-kpis{margin-bottom:18px}
-  /* One premium card (per direct instruction — a reference-driven redesign
-     of this section only) instead of 4 separate .kpi cards: one large
-     primary metric (Total Alerts) on the left with its own sparkline, a
-     vertical divider, then the remaining KPIs stacked as compact rows on
-     the right — each just icon+label+value+comparison, no sparkline of
-     its own, so it doesn't compete with the primary number. Every element
-     below keeps the exact ids setKpi()/renderKpis()/renderMostAffectedUnit()
-     already write to; only the surrounding markup/CSS changed. */
-  .an-kpi-mega{display:flex;padding:38px;border-radius:20px;gap:36px}
-  .an-kpi-primary{flex:0 0 53%;min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--border);padding-right:36px}
-  .an-kpi-primary-head{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.035em;font-weight:700;color:var(--text-dim);text-transform:uppercase}
-  .an-kpi-primary-icon{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto}
-  .an-kpi-primary-icon svg{width:20px;height:20px}
-  .an-kpi-primary-value{font-size:68px;font-weight:800;letter-spacing:-.02em;color:var(--text);margin-top:14px;line-height:1;white-space:nowrap}
-  .an-kpi-primary-sub{font-size:15px;color:var(--muted);margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-  .an-kpi-primary-sub .delta{font-weight:650}
-  /* Green/red now actually differ (both used to render the same gray) —
-     "up"/"down" name the DIRECTION deltaChip() already classified as
-     good/bad (e.g. fewer alerts = "up"/good = green), not literally
-     whether the number went up, so this never needs a metric-specific
-     override: deltaChip()'s existing semantics decide the color. */
-  .an-kpi-primary-sub .delta.up{color:var(--green)}
-  .an-kpi-primary-sub .delta.down{color:var(--red)}
-  .an-kpi-primary-sub .delta.flat{color:var(--muted)}
-  .an-kpi-primary-spark{margin-top:24px;height:70px;position:relative}
-  .an-kpi-primary-spark svg{width:100%;height:100%;display:block;overflow:visible}
-  .an-kpi-primary-spark [id$="-glow"]{animation:an-spark-glow-pulse 2.6s ease-in-out infinite}
-  @keyframes an-spark-glow-pulse{0%,100%{opacity:.55}50%{opacity:1}}
-  @media (prefers-reduced-motion: reduce){ .an-kpi-primary-spark [id$="-glow"]{animation:none} }
-  .an-kpi-primary-caption{font-size:13px;color:var(--muted);margin-top:8px}
+  /* ==========================================================================
+     KPI GRID + PANEL/GRID-ROW SYSTEM
+     Replaces the old single "mega KPI card" + hand-rolled-SVG chart-card
+     layout with the "Command Center" dashboard layout supplied for this
+     redesign (dashboard v1.1.5): a 6-card KPI strip, then 3 rows of
+     panels — re-themed onto this app's own light/dark tokens (--card,
+     --text,--muted,--border,--surface2,--series-N) instead of that
+     source file's own fixed dark palette, so this page still switches
+     with the same Dark mode toggle every other page uses. Layout/rhythm
+     (grid-template-columns, gaps, panel padding, bar-list/donut/
+     seg-control mechanics) match the source design closely; colors/fonts
+     are this app's own — no new font dependency (Inter, already loaded
+     app-wide, throughout; the source design's separate display/mono
+     Google Fonts aren't pulled in). */
+  .an-kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+  .an-kpi-card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 13px 10px;box-shadow:var(--shadow)}
+  .an-kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent,var(--blue))}
+  .an-kpi-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px}
+  .an-kpi-label{font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .an-kpi-icon{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent,var(--blue)) 16%,transparent);color:var(--accent,var(--blue));flex:0 0 auto}
+  .an-kpi-icon svg{width:12px;height:12px}
+  .an-kpi-value{font-size:clamp(15px,2.4vw,22px);font-weight:800;letter-spacing:-.01em;line-height:1.1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+  .an-kpi-value .unit{font-size:12px;font-weight:650;color:var(--muted);margin-left:3px}
+  .an-kpi-foot{margin-top:6px;font-size:11px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .an-kpi-delta{font-weight:700;padding:2px 6px;border-radius:5px}
+  .an-kpi-delta.up{color:#c0271f;background:var(--red-soft)}
+  .an-kpi-delta.down{color:var(--green);background:#dff5ea}
+  .an-kpi-delta.flat{color:var(--muted);background:var(--surface2)}
+  .an-kpi-foot-label{color:var(--muted)}
 
-  .an-kpi-supporting{flex:1;min-width:0;display:flex;flex-direction:column}
-  .an-kpi-supp-cell{display:flex;align-items:center;gap:14px;padding:22px 4px;border-bottom:1px solid var(--border)}
-  .an-kpi-supp-cell:first-child{padding-top:4px}
-  .an-kpi-supp-cell:last-child{border-bottom:none;padding-bottom:4px}
-  .an-kpi-supp-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}
-  .an-kpi-supp-icon svg{width:16px;height:16px}
-  .an-kpi-supp-body{flex:1;min-width:0}
-  .an-kpi-supp-label{font-size:13px;font-weight:650;letter-spacing:.03em;text-transform:uppercase;color:var(--text-dim)}
-  .an-kpi-supp-value{font-size:34px;font-weight:800;color:var(--text);margin-top:6px;letter-spacing:-.01em;white-space:nowrap}
-  .an-kpi-supp-sub{font-size:13px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-  .an-kpi-supp-sub .delta{font-weight:650}
-  .an-kpi-supp-sub .delta.up{color:var(--green)}
-  .an-kpi-supp-sub .delta.down{color:var(--red)}
-  .an-kpi-supp-sub .delta.flat{color:var(--muted)}
+  #page-analytics > .an-grid-row{margin-bottom:14px}
+  .an-grid-row{display:grid;gap:10px}
+  /* Sync Interval | Trend of Alerts | Alerts by Hour of Day */
+  .an-grid-row.cols-a{grid-template-columns:1.4fr 2.8fr 2.8fr}
+  /* Alert Count Bucket | Alert Type donut | Shift donut */
+  .an-grid-row.cols-b{grid-template-columns:repeat(3,1fr)}
+  /* Alerts by Equipment | Alerts by Driver | Recent Alerts */
+  .an-grid-row.cols-c{grid-template-columns:1fr 1fr 1.3fr}
 
-  /* Every direct row of #page-analytics gets the same gap below it (KPIs ->
-     Row 1 -> Row 2 -> Row 3) — a uniform margin-bottom on the row classes
-     themselves, rather than only on .an-charts-top, so no row's bottom gap
-     can silently collapse to 0 when a new row type is added after it. The
-     last row's trailing margin is harmless (page has bottom padding
-     already). Reduced from 18px per direct instruction (compact analytics
-     workspace, not large standalone cards with empty space around them). */
-  #page-analytics > .an-charts-top,#page-analytics > .an-charts-bottom{margin-bottom:14px}
-  /* Three-per-row compact grid, per direct instruction: the six charts
-     (Alert Trend/Hourly Trend/Alert Type Distribution, then Alerts by Unit/
-     Alerts by Employee/Alert Sync Interval) each get a third of the row
-     instead of half — .an-row-3col is the explicit name for it, same reason
-     .an-row-2col/.an-row-wide-table are named rather than left as the grid's
-     bare default. Drops to 2 columns at tablet width and 1 at mobile (see
-     the shared breakpoint blocks below). Recent Alerts Overview/Contributing
-     Factors keep .an-row-wide-table (1.55fr/1fr, unchanged) — they're
-     reference tables, not part of the six-chart grid. */
-  .an-charts-top,.an-charts-bottom{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-  .an-row-2col{grid-template-columns:repeat(2,1fr)}
-  .an-row-3col{grid-template-columns:repeat(3,1fr)}
-  .an-row-wide-table{grid-template-columns:1.55fr 1fr}
-  .an-chart-card{padding:var(--chart-pad);overflow:hidden}
-  .an-chart-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-  .an-chart-title{font-size:14.5px;font-weight:750;color:var(--text)}
-  .an-legend{display:flex;gap:14px;font-size:var(--fs-body);color:var(--muted);font-weight:500;flex-wrap:wrap}
-  .an-legend span{display:flex;align-items:center;gap:5px}
-  .an-swatch{width:8px;height:8px;border-radius:50%;flex:0 0 auto;display:inline-block}
-  /* Alert Trend's toggleable legend items (Alerts, and each real
-     contributing-factor type present in the current view) — clicking
-     dims the swatch/label and hides that series/band, same "click to
-     isolate" idiom as the donut/sync-bar/rank-row filters elsewhere on
-     this page, just local to this one chart rather than page-wide. */
-  .an-legend-toggle{cursor:pointer;user-select:none}
-  .an-legend-toggle:not(.active){opacity:.4}
-  .an-legend-toggle:not(.active) .an-swatch{background:var(--muted) !important}
-  .an-chart-area{height:200px;padding-top:7px;position:relative}
-  .an-chart-area svg{width:100%;height:100%;display:block}
-  .an-axis{font-size:8px;fill:var(--muted)}
-  .an-panel-label{font-size:9px;font-weight:700;fill:var(--text-dim);letter-spacing:.02em}
-  .an-bar{fill:#2954e8}
-  .an-bar.hot{fill:#e5484d}
-  .an-bar.warn{fill:#d97706}
+  .an-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px 12px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-width:0;min-height:230px}
+  .an-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .an-panel-title-group{display:flex;align-items:center;gap:7px;min-width:0}
+  .an-panel-dot{width:7px;height:7px;border-radius:2px;background:var(--accent,var(--blue));flex:0 0 auto}
+  .an-panel-title{font-size:13px;font-weight:750;color:var(--text)}
+  .an-panel-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto}
+
+  .an-seg{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:2px;gap:2px}
+  .an-seg-btn{font-size:10.5px;font-weight:650;color:var(--muted);background:transparent;border:none;padding:4px 8px;border-radius:5px;cursor:pointer;transition:all .12s}
+  .an-seg-btn.active{background:var(--blue);color:#fff}
+  .an-seg-btn:not(.active):hover{color:var(--text)}
+  .an-seg-check{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);cursor:pointer;padding:0 6px}
+  .an-seg-check input{width:12px;height:12px;margin:0}
+  .an-seg-check.disabled{opacity:.45;cursor:not-allowed}
+
+  .an-chart-wrap{position:relative;flex:1;min-height:180px}
+
   .an-note{font-size:12px;color:var(--muted);padding-top:12px;display:flex;align-items:flex-start;gap:6px}
   .an-note i{width:13px;height:13px;flex:0 0 auto;margin-top:1.5px;display:inline-flex;color:var(--muted)}
-  .an-view-toggle{font-size:12px;color:#2954e8;font-weight:600;cursor:pointer;background:none;border:none;padding:4px 6px}
 
-  /* Ranked lists (Top Assets, Top Employees): segmented progress bars with a
-     shared axis row beneath, matching jsx's BarListCard/TopEmployeesCard.
-     Fixed max-height + scroll-y — per direct instruction, these now load
-     the FULL ranked list (up to 93 assets / 155 drivers in a 7-day window,
-     not just a top-10 slice) rather than pushing the card, and the page,
-     taller with every row; a shared list length instead scrolls within a
-     fixed-height panel, same footprint at 5 rows or 150. */
-  .an-rank-list{flex:1;display:flex;flex-direction:column;gap:10px;margin-top:4px;max-height:200px;overflow-y:auto;padding-right:4px}
-  .an-rank-row{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text);cursor:pointer;border-radius:6px;padding:2px 4px;margin:0 -4px;transition:background-color .12s}
-  .an-rank-row:hover{background:var(--surface2)}
-  .an-rank-row.active{background:#e6eefe}
-  .an-rank-name{width:62px;flex:0 0 auto;font-weight:650}
-  .an-rank-track{flex:1;height:9px;background:var(--surface2);border-radius:5px;overflow:hidden}
-  /* display:block — a bare <span> defaults to inline, which silently
-     ignores the inline width:X% and the height:100% below it, so this
-     "bar" never rendered any visible fill at all (confirmed live: the
-     element's own box was 0x0 despite style="width:89%" being set
-     correctly in the DOM). Wasn't width math, wasn't a CSS specificity
-     conflict — inline elements just don't respect either property. */
-  .an-rank-fill{display:block;height:100%;background:#a9c3f5;border-radius:5px;transition:width .3s ease}
-  /* Highest-count row in the list gets the same "hot" red .an-bar.hot
-     already uses elsewhere on this page — the rest stay the lighter blue
-     above, so the single busiest unit/driver reads as an at-a-glance
-     standout rather than blending into a uniform bar color. */
-  .an-rank-fill.top{background:#e5484d}
-  .an-rank-value{width:44px;flex:0 0 auto;text-align:right;font-size:12px;font-weight:700;color:var(--text)}
-  .an-rank-axis{display:flex;justify-content:space-between;margin-top:12px;font-size:10px;color:var(--muted);padding-left:72px}
+  /* Ranked/banded bar lists (Sync Interval, Alert Count Bucket, Alerts by
+     Equipment, Alerts by Driver) — plain DOM rows (label + track + fill +
+     value), not canvas, matching the source design's .bar-list. Sync
+     Interval/Alert Count Bucket are a fixed small set of bands spread
+     evenly (justify-content:space-evenly, no .scroll-y); Equipment/Driver
+     show the FULL ranked list (not just a top-10 slice) scrolling within
+     a fixed-height panel via .scroll-y, so a long roster doesn't keep
+     growing the panel/page taller per row. */
+  .an-bar-list{display:flex;flex-direction:column;justify-content:space-evenly;flex:1;min-height:0;gap:5px}
+  .an-bar-list.scroll-y{justify-content:flex-start;overflow-y:auto;max-height:190px;padding-right:2px}
+  .an-bar-row{display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer;border-radius:5px}
+  .an-bar-row-label{font-size:11px;color:var(--muted);flex:0 0 68px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .an-bar-row-track{flex:1;height:14px;border-radius:4px;background:var(--surface2);position:relative;overflow:hidden;min-width:0}
+  .an-bar-row-fill{height:100%;border-radius:4px;transition:filter .12s}
+  .an-bar-row:hover .an-bar-row-fill{filter:brightness(1.12)}
+  .an-bar-row-value{font-size:11px;font-weight:700;color:var(--text);flex:0 0 auto;white-space:nowrap;min-width:56px;text-align:right}
+  .an-bar-row-value .pct{color:var(--muted);font-weight:600}
+  .an-bar-list-empty{color:var(--muted);font-size:12px;text-align:center;margin:auto}
 
-  /* hourly trend view toggle (By Hour / By Month) */
-  .an-toggle{display:flex;gap:4px}
-  .an-toggle button{all:unset;box-sizing:border-box;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);border-radius:7px;padding:4px 10px}
-  .an-toggle button.active{background:#2954e8;color:#fff}
-
-  /* Contributing Factors table (real data — jsx shows only a static empty
-     state; this table replaces that placeholder whenever factors exist) */
-  .an-factor-table{width:100%;border-collapse:collapse;font-size:var(--fs-body)}
-  .an-factor-table th{text-align:left;font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:650;padding:0 8px 8px;border-bottom:1px solid var(--border)}
-  .an-factor-table td{padding:9px 8px;border-bottom:1px solid var(--border);color:var(--text-dim);vertical-align:middle}
-  .an-factor-table tr:last-child td{border-bottom:none}
-  .an-impact-badge{font-size:var(--fs-badge);font-weight:750;padding:3px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
-  .an-impact-badge.high{background:var(--red-soft);color:#e53553}
-  .an-impact-badge.medium{background:#fdf0dc;color:#e8952e}
-  .an-impact-badge.low{background:#dff5ea;color:#18a05e}
-  .an-factor-link{background:none;border:none;color:#2563eb;font-size:11px;font-weight:650;cursor:pointer;padding:0}
-  .an-factor-link:hover{text-decoration:underline}
-  .an-factor-detail{font-size:var(--fs-caption);color:var(--muted);padding:0 8px 9px;margin-top:-4px}
-  .an-factors-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0;text-align:center}
-  .an-factors-empty-icon{width:54px;height:54px;border-radius:12px;background:#f1f3f8;display:grid;place-items:center;margin-bottom:12px;color:var(--muted)}
-  .an-factors-empty-text{font-size:12.5px;color:var(--muted);font-weight:500}
-
-  /* Alert Type Distribution donut (replaces the old Action-Taken donut —
-     jsx's card groups by real event type, colored per severityBadge()) */
-  /* justify-content:center — with only 1-2 event types actually occurring
-     in a given filter window (Sleep/Drowsiness, say), the legend's real
-     content is much narrower than the card. .an-donut-legend used to be
-     flex:1, stretching the (invisible) legend box to fill 100% of the
-     remaining card width while its actual text stayed left-anchored
-     inside that box — all the leftover space landed as dead air on the
-     right instead of being distributed around the donut+legend group.
-     Centering the pair as one unit spreads that same leftover space
-     evenly instead. With a full 4-tier legend the group's natural width
-     already fills most of the card, so this is a no-op in that case. */
-  .an-donut-card{display:flex;align-items:center;justify-content:center;gap:14px;flex:1}
-  /* Sized to fit the 3-column grid's narrower card (was 190px, then 168px,
-     before the 3-per-row layout — a 3-col card's own width is roughly 2/3
-     of what a 2-col card had, and the fixed-width donut wasn't shrinking
-     with it, squeezing .an-donut-legend down to ~73px wide and clipping
-     "4,200 (84%)" off the card's right edge, confirmed live via
-     getBoundingClientRect). 148px plus the reduced 14px gap above leaves
-     the legend enough room at its own reduced font-size below. */
-  .an-donut-wrap{width:148px;height:148px;position:relative;flex:0 0 auto}
-  .an-donut-wrap svg{width:100%;height:100%}
-  /* pointer-events:none — this div's inset:0 box covers the WHOLE donut,
-     not just its visual hole, so without this it silently sat in front of
-     every arc and swallowed every click meant for a slice (confirmed live
-     via Playwright: a real click on a slice landed on this label instead).
-     Nothing inside it needs to be interactive. */
-  .an-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
-  .an-donut-center b{font-size:20px;font-weight:800;color:var(--text)}
-  .an-donut-center span{font-size:var(--fs-caption);color:var(--muted)}
-  .an-donut-legend{display:flex;flex-direction:column;gap:14px;font-size:13px;flex:0 1 auto;min-width:0}
-  /* Name and value always stack in their own row (not side-by-side) so a
-     long name (e.g. "Drowsiness Alert") wrapping to 2 lines can never
-     overlap the value — previously they shared one flex row with
-     align-items:center, which vertically centered "127 (5%)" against the
-     row's full 2-line height and landed it on top of the name's wrapped
-     second line. Stacking costs a little vertical density but the value
-     never has to guess how much horizontal room a variable-length name
-     leaves it, at any container width. */
-  .an-donut-legend-row{display:flex;flex-direction:column;gap:2px}
-  .an-donut-legend-name{display:flex;align-items:center;gap:8px;color:var(--text);font-weight:500;min-width:0}
-  .an-donut-legend-name i{width:10px;height:10px;border-radius:2px;flex:0 0 auto}
-  .an-donut-legend-val{color:var(--muted);font-weight:600;white-space:nowrap;padding-left:18px}
-  .an-donut-legend-val b{color:var(--muted);font-weight:600}
-  /* Click-to-filter: clickable slices only (the aggregated "Other" wedge
-     has no single event_code to filter by, so it's left non-interactive —
-     no class, no cursor change). Dimming every OTHER slice rather than
-     just outlining the selected one matches the donut's own established
-     "recolor on filter" avoidance elsewhere on this page — the selected
-     slice keeps its real color, everything else fades. */
-  .an-donut-arc-click{cursor:pointer;transition:opacity .15s}
-  .an-donut-arc-dimmed{opacity:.32}
+  /* Donut panels (Alert Type / Shift) — Chart.js doughnut on the left with
+     a center-total overlay, legend list on the right; replaces the old
+     hand-rolled SVG arc donut (an-donut-wrap/an-donut-arcs/an-donut-center/
+     an-donut-legend, all retired along with it). */
+  .an-donut-body{display:flex;align-items:center;gap:12px;flex:1;min-height:0}
+  .an-donut-canvas-wrap{flex:0 0 auto;width:96px;height:96px;position:relative}
+  .an-donut-total2{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center}
+  .an-donut-total2 b{font-size:16px;font-weight:800;color:var(--text);line-height:1.1}
+  .an-donut-total2 span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .an-donut-legend2{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;justify-content:center}
+  .an-donut-legend2-row{display:flex;align-items:center;gap:6px;min-width:0;cursor:pointer}
+  .an-donut-legend2-dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+  .an-donut-legend2-label{font-size:11.5px;color:var(--text);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .an-donut-legend2-value{font-size:11.5px;font-weight:700;color:var(--text);flex:0 0 auto;white-space:nowrap}
+  .an-donut-legend2-value .pct{color:var(--muted);font-weight:600;margin-left:3px}
 
   /* Recent Alerts Overview table (page-local — Alert Logs owns the full paginated table) */
   .an-alerts-table{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -1564,11 +1455,7 @@
     .sidebar.collapsed:hover,.sidebar.collapsed.pinned-open{width:235px;flex-basis:235px}
     .title h1{font-size:25px}
     .kpis{grid-template-columns:repeat(3,1fr)}
-    .an-kpi-mega{padding:26px;gap:22px}
-    .an-kpi-primary{padding-right:22px}
-    .an-kpi-primary-value{font-size:52px}
-    .an-kpi-supp-value{font-size:27px}
-    .an-row-3col{grid-template-columns:repeat(2,1fr)}
+    .an-kpi-grid{grid-template-columns:repeat(3,1fr)}
     .al-summary{grid-template-columns:repeat(2,1fr)}
   }
   @media(max-width:1080px){
@@ -1579,7 +1466,7 @@
     .ov-charts-row > .chart-card .chart-area{flex:none;height:auto}
     .ov-charts-row > .chart-card .chart-area svg{height:auto}
     .stat-tiles{grid-template-columns:1fr 1fr 1fr}
-    .an-charts-top,.an-charts-bottom{grid-template-columns:1fr}
+    .an-grid-row.cols-a,.an-grid-row.cols-b,.an-grid-row.cols-c{grid-template-columns:1fr}
     .dm-toprow > .card{flex-basis:100%}
     .su-grid{grid-template-columns:1fr}
     .se-sys-grid{grid-template-columns:1fr}
@@ -1593,10 +1480,7 @@
        supporting split — stacks instead, per direct instruction ("At
        tablet/mobile: gracefully stack the sections"). The divider moves
        from the primary's right edge to its bottom edge accordingly. */
-    .an-kpi-mega{flex-direction:column;padding:22px;gap:20px}
-    .an-kpi-primary{flex:1 1 auto;border-right:none;border-bottom:1px solid var(--border);padding-right:0;padding-bottom:20px}
-    .an-kpi-primary-value{font-size:44px}
-    .an-kpi-supp-value{font-size:26px}
+    .an-kpi-grid{grid-template-columns:repeat(2,1fr)}
     .al-summary{grid-template-columns:1fr 1fr}
     .se-field-row{grid-template-columns:1fr}
     /* Below this width the sidebar can no longer share the row with page
@@ -1631,9 +1515,7 @@
     .kpis{grid-template-columns:1fr}
     .hero-status{align-items:flex-start;text-align:left}
     .feed-time{width:32px}
-    .an-kpi-mega{padding:18px}
-    .an-kpi-primary-value{font-size:38px}
-    .an-kpi-supp-value{font-size:24px}
+    .an-kpi-grid{grid-template-columns:1fr}
     .al-summary{grid-template-columns:1fr}
     .al-search{flex:1 1 100%}
     .al-filter{flex:1 1 auto}
@@ -2007,195 +1889,124 @@
         <button type="button" class="an-clearall-btn" id="an-clearall-btn">Clear All Filters</button>
       </div>
 
-      <section class="an-kpis" id="an-kpi-row" aria-label="Key insights">
-        <div class="card an-kpi-mega">
-          <div class="an-kpi-primary">
-            <div class="an-kpi-primary-head"><span class="an-kpi-primary-icon" style="background:var(--red-soft)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg></span>TOTAL ALERTS</div>
-            <div class="an-kpi-primary-value" id="an-kpi-total-value">&mdash;</div>
-            <div class="an-kpi-primary-sub" id="an-kpi-total-change">&mdash;</div>
-            <div class="an-kpi-primary-spark" aria-hidden="true"><svg viewBox="0 0 100 56" overflow="visible"><defs><linearGradient id="an-spark-fill-total" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e5484d" stop-opacity=".22"/><stop offset="100%" stop-color="#e5484d" stop-opacity="0"/></linearGradient><radialGradient id="an-spark-glow-total"><stop offset="0%" stop-color="#e5484d" stop-opacity=".55"/><stop offset="100%" stop-color="#e5484d" stop-opacity="0"/></radialGradient></defs><path id="an-kpi-total-fill" fill="url(#an-spark-fill-total)" stroke="none" d=""/><path id="an-kpi-total-spark" d="M0,28 L100,28" fill="none" stroke="#e5484d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle id="an-kpi-total-glow" cx="100" cy="28" r="7" fill="url(#an-spark-glow-total)"/><circle id="an-kpi-total-dot" cx="100" cy="28" r="2.5" fill="#e5484d"/></svg></div>
-            <div class="an-kpi-primary-caption">Alerts trend &mdash; last 7 days</div>
+      <!-- ==========================================================================
+           KPI GRID + PANEL LAYOUT — dashboard v1.1.5's "Overview" layout,
+           wired to real data. Every panel below reads from the SAME
+           dds_metrics()/dds_driver_event_summary()/dds_asset_event_summary()/
+           dds_spike_investigation() calls the old chart layout already used
+           (this page's own filter bar + cross-chart drilldown chips above
+           still drive all of them) — only the rendering/visual layer changed,
+           from hand-rolled SVG to this Chart.js + bar-list/donut system. See
+           the "Analytics page" IIFE further down for the render functions.
+           Tenure/Age (the source design's other two donuts) aren't in this
+           list: this app has never tracked driver tenure or age, and rather
+           than ship two donuts permanently stuck on "no data", they're
+           replaced with two dimensions the app already has — Alert Type and
+           Shift — keeping the same 3-panel row rhythm. Contributing Factors
+           (a chart panel in the OLD layout) isn't reproduced here either —
+           it isn't part of the new design and already has its own full home
+           in Data Management → Contributing Factors. -->
+      <div class="an-kpi-grid" id="an-kpi-grid" aria-label="Key metrics"></div>
+
+      <div class="an-grid-row cols-a">
+        <div class="an-panel" style="--accent:var(--green)">
+          <div class="an-panel-head">
+            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Sync Interval</span></div>
           </div>
-          <div class="an-kpi-supporting">
-            <div class="an-kpi-supp-cell">
-              <span class="an-kpi-supp-icon" style="background:#e6eefe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#2954e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16 16.5 9.5"/><circle cx="12" cy="16" r="1.4" fill="#2954e8" stroke="none"/></svg></span>
-              <div class="an-kpi-supp-body">
-                <div class="an-kpi-supp-label">Alerts / Operating Hour</div>
-                <div class="an-kpi-supp-value" id="an-kpi-units-value">&mdash;</div>
-                <div class="an-kpi-supp-sub" id="an-kpi-units-change">&mdash;</div>
+          <div class="an-bar-list" id="an-bl-sync"><div class="an-bar-list-empty">Loading&hellip;</div></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Time from alert end to dashboard sync &mdash; click a band to isolate it.</span></div>
+        </div>
+
+        <div class="an-panel" style="--accent:var(--blue)">
+          <div class="an-panel-head">
+            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Trend of Alerts Over Time</span></div>
+            <div class="an-panel-tools">
+              <label class="an-seg-check" id="an-trend-interval-toggle" title="Overlay average alert-end-to-dashboard-sync interval on a second axis"><input type="checkbox" id="an-trend-interval-checkbox"><span>Avg. Interval</span></label>
+              <label class="an-seg-check" id="an-trend-units-toggle" title="Overlay the count of distinct units alerting on a second axis"><input type="checkbox" id="an-trend-units-checkbox"><span>Unique Units</span></label>
+              <div class="an-seg" id="an-trend-gran">
+                <button class="an-seg-btn active" type="button" data-gran="daily">Daily</button>
+                <button class="an-seg-btn" type="button" data-gran="weekly">Weekly</button>
+                <button class="an-seg-btn" type="button" data-gran="monthly">Monthly</button>
               </div>
             </div>
-            <div class="an-kpi-supp-cell">
-              <span class="an-kpi-supp-icon" style="background:#ddf6e8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#12b76a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span>
-              <div class="an-kpi-supp-body">
-                <div class="an-kpi-supp-label">Most Affected Unit</div>
-                <div class="an-kpi-supp-value" id="an-kpi-topunit-value">&mdash;</div>
-                <div class="an-kpi-supp-sub" id="an-kpi-topunit-change">&mdash;</div>
-              </div>
-            </div>
-            <div class="an-kpi-supp-cell">
-              <span class="an-kpi-supp-icon" style="background:#fdf0dc" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
-              <div class="an-kpi-supp-body">
-                <div class="an-kpi-supp-label">Average Sync Interval</div>
-                <div class="an-kpi-supp-value" id="an-kpi-sync-value">&mdash;</div>
-                <div class="an-kpi-supp-sub" id="an-kpi-sync-change">&mdash;</div>
-              </div>
-            </div>
           </div>
-        </div>
-      </section>
-
-      <section class="an-charts-top an-row-3col">
-        <div class="card an-chart-card" id="anAssetVolumeCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span><h3 class="chart-title an-chart-title">Alert Trend</h3></div><div class="an-legend" id="an-trend-legend"><span class="an-legend-toggle active" data-trend-toggle="alerts" title="Click to show/hide"><i class="an-swatch" style="background:var(--series-1)"></i>Alerts</span><span><i class="an-swatch" style="background:var(--series-2)"></i>Operating Hours</span><span id="an-trend-factor-legend"></span></div></div>
-          <div class="an-chart-area">
-            <!-- Hand-rolled SVG (smoothPathD + wireChartHover), matching this
-                 page's own Hourly Trend/Alert Sync Time cards and Overview's
-                 Total Alerts chart — same rendering technique as both, so
-                 "character" (smooth curve, gradient area fill, hover
-                 crosshair+tooltip) is shared across all three rather than
-                 this one chart alone using Chart.js. Two lines, each on its
-                 own y-axis (Alerts solid+filled, Operating Hours dashed) —
-                 Operating Hours comes from trend[].operatingHours, MineStat
-                 data (public.minestat_shifts.operating_hrs), a separate
-                 ingest path from the DDS alert events everything else on
-                 this page reads (0099_dds_metrics_operating_hours.sql). A
-                 third "Assets Involved" series, and a Chart.js bar/scroll
-                 implementation before this, were both tried and dropped per
-                 direct instruction. Since a line has no minimum physical
-                 width the way a bar does, xFor() below just spreads however
-                 many aggregated points there are (daily/weekly/monthly, see
-                 aggregateTrend) evenly across this fixed-size viewport —
-                 no scrolling case exists to handle. No filter control of
-                 its own — this chart reads `cur` from the SAME dds_metrics()
-                 call the page's real filter bar (Month/Year/From/To/Asset)
-                 already drives, per direct instruction. -->
-            <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-trend-svg">
-              <defs>
-                <linearGradient id="anTrendFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" style="stop-color:var(--series-1)" stop-opacity="0.14"/>
-                  <stop offset="100%" style="stop-color:var(--series-1)" stop-opacity="0"/>
-                </linearGradient>
-              </defs>
-              <line class="gridline" x1="40" y1="25" x2="460" y2="25"/><line class="gridline" x1="40" y1="86" x2="460" y2="86"/><line class="gridline" x1="40" y1="147" x2="460" y2="147"/><line class="gridline" x1="40" y1="208" x2="460" y2="208"/>
-              <g id="an-trend-factor-bands"></g>
-              <g id="an-trend-yaxis-alerts"></g>
-              <g id="an-trend-yaxis-hours"></g>
-              <g id="an-trend-lines"></g>
-              <g id="an-trend-axis"></g>
-              <line class="chart-crosshair" id="an-trend-crosshair" x1="0" y1="25" x2="0" y2="208"/>
-              <circle class="chart-hover-dot" id="an-trend-hover-dot" r="4"/>
-              <circle class="chart-hover-dot" id="an-trend-hover-dot2" r="4" style="stroke:var(--series-2)"/>
-              <rect class="chart-hover-rect" id="an-trend-hover-rect" x="40" y="0" width="420" height="238"/>
-            </svg>
-            <div class="chart-tooltip" id="an-trend-tooltip">
-              <div class="chart-tooltip-date" id="an-trend-tooltip-date">—</div>
-              <div class="chart-tooltip-value" id="an-trend-tooltip-value">—</div>
-            </div>
-          </div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-trend-note">Alert counts and MineStat operating hours over the selected period — each on its own scale.</span></div>
+          <div class="an-chart-wrap"><canvas id="an-chart-trend"></canvas></div>
         </div>
 
-        <div class="card an-chart-card" id="anHourlyCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><h3 class="chart-title an-chart-title">Hourly Trend</h3></div>
-            <div class="an-toggle" role="group" aria-label="Hourly trend view">
-              <button type="button" class="active" data-hourly-view="hour" id="an-hourly-view-hour">By Hour</button><button type="button" data-hourly-view="month" id="an-hourly-view-month">By Month</button>
+        <div class="an-panel" style="--accent:var(--orange)">
+          <div class="an-panel-head">
+            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alerts by Hour of Day</span></div>
+          </div>
+          <div class="an-chart-wrap"><canvas id="an-chart-hourly"></canvas></div>
+        </div>
+      </div>
+
+      <div class="an-grid-row cols-b">
+        <div class="an-panel" style="--accent:var(--purple)">
+          <div class="an-panel-head">
+            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alert Count Bucket</span></div>
+          </div>
+          <div class="an-bar-list" id="an-bl-bucket"><div class="an-bar-list-empty">Loading&hellip;</div></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Which EVENT_COUNT band is most common &mdash; click a band to isolate it.</span></div>
+        </div>
+
+        <div class="an-panel" style="--accent:var(--blue)">
+          <div class="an-panel-head">
+            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alert Type Distribution</span></div>
+          </div>
+          <div class="an-donut-body">
+            <div class="an-donut-canvas-wrap"><canvas id="an-donut-type"></canvas><div class="an-donut-total2"><b id="an-donut-type-total">&mdash;</b><span>Total</span></div></div>
+            <div class="an-donut-legend2" id="an-donut-type-legend"></div>
+          </div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Click a segment or legend row to filter the page.</span></div>
+        </div>
+
+        <div class="an-panel" style="--accent:var(--purple)">
+          <div class="an-panel-head">
+            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alerts by Shift</span></div>
+          </div>
+          <div class="an-donut-body">
+            <div class="an-donut-canvas-wrap"><canvas id="an-donut-shift"></canvas><div class="an-donut-total2"><b id="an-donut-shift-total">&mdash;</b><span>Total</span></div></div>
+            <div class="an-donut-legend2" id="an-donut-shift-legend"></div>
+          </div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Click a segment or legend row to filter the page.</span></div>
+        </div>
+      </div>
+
+      <div class="an-grid-row cols-c">
+        <div class="an-panel" style="--accent:var(--red)">
+          <div class="an-panel-head">
+            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alerts by Equipment</span></div>
+            <div class="an-panel-tools">
+              <div class="an-seg" data-sort-target="assets"><button class="an-seg-btn active" type="button" data-sort="desc">High→Low</button><button class="an-seg-btn" type="button" data-sort="asc">Low→High</button></div>
             </div>
           </div>
-          <div class="an-chart-area">
-            <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-hourly-svg">
-              <defs>
-                <linearGradient id="anHourlyFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" style="stop-color:var(--series-1)" stop-opacity="0.14"/>
-                  <stop offset="100%" style="stop-color:var(--series-1)" stop-opacity="0"/>
-                </linearGradient>
-              </defs>
-              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
-              <g id="an-hourly-yaxis"></g>
-              <g id="an-hourly-lines"></g>
-              <g id="an-hourly-axis"></g>
-              <line class="chart-crosshair" id="an-hourly-crosshair" x1="0" y1="25" x2="0" y2="208"/>
-              <circle class="chart-hover-dot" id="an-hourly-hover-dot" r="4"/>
-              <rect class="chart-hover-rect" id="an-hourly-hover-rect" x="40" y="0" width="440" height="238"/>
-            </svg>
-            <div class="chart-tooltip" id="an-hourly-tooltip">
-              <div class="chart-tooltip-date" id="an-hourly-tooltip-date">—</div>
-              <div class="chart-tooltip-value" id="an-hourly-tooltip-value">—</div>
+          <div class="an-bar-list scroll-y" id="an-bl-equipment"><div class="an-bar-list-empty">Loading&hellip;</div></div>
+        </div>
+
+        <div class="an-panel" style="--accent:var(--purple)">
+          <div class="an-panel-head">
+            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alerts by Driver</span></div>
+            <div class="an-panel-tools">
+              <div class="an-seg" data-sort-target="drivers"><button class="an-seg-btn active" type="button" data-sort="desc">High→Low</button><button class="an-seg-btn" type="button" data-sort="asc">Low→High</button></div>
             </div>
           </div>
-          <div class="an-legend" id="an-hourly-month-legend" style="display:none;flex-wrap:wrap;row-gap:4px;padding-top:6px"></div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-hourly-note">&mdash;</span></div>
+          <div class="an-bar-list scroll-y" id="an-bl-driver"><div class="an-bar-list-empty">Loading&hellip;</div></div>
         </div>
 
-        <div class="card an-chart-card" id="anAlertTypeDonutCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><h3 class="chart-title an-chart-title">Alert Type Distribution</h3></div></div>
-          <div class="an-donut-card">
-            <div class="an-donut-wrap">
-              <svg viewBox="0 0 190 190">
-                <g id="an-donut-arcs"></g>
-              </svg>
-              <div class="an-donut-center"><b id="an-donut-total">&mdash;</b><span>Total Alerts</span></div>
-            </div>
-            <div class="an-donut-legend" id="an-donut-legend">&mdash;</div>
+        <div class="an-panel" style="--accent:var(--blue)">
+          <div class="an-panel-head">
+            <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Recent Alerts</span></div>
+            <button class="view-all" type="button" id="an-view-all-alerts" data-goto="alerts">View all</button>
           </div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-donut-note">Distribution by alert type — click a segment to filter the page.</span></div>
-        </div>
-      </section>
-
-      <section class="an-charts-bottom an-row-3col">
-        <div class="card an-chart-card" id="anTopAssetsCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="11" rx="1.5"/><path d="M16 10h3l3 3v5h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg></span><h3 class="chart-title an-chart-title">Alerts by Unit</h3></div></div>
-          <div id="an-topassets-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
-            <div class="da-empty">Loading&hellip;</div>
-          </div>
-        </div>
-
-        <div class="card an-chart-card" id="anTopDriversCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span><h3 class="chart-title an-chart-title">Alerts by Employee ID / Driver</h3></div></div>
-          <div id="an-topdrivers-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
-            <div class="da-empty">Loading&hellip;</div>
-          </div>
-        </div>
-
-        <div class="card an-chart-card" id="anSyncIntervalCard">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span><h3 class="chart-title an-chart-title">Alert Sync Interval</h3></div></div>
-          <div class="an-chart-area">
-            <svg viewBox="0 0 500 238" preserveAspectRatio="none" id="an-sync-svg">
-              <line class="gridline" x1="40" y1="25" x2="480" y2="25"/><line class="gridline" x1="40" y1="86" x2="480" y2="86"/><line class="gridline" x1="40" y1="147" x2="480" y2="147"/><line class="gridline" x1="40" y1="208" x2="480" y2="208"/>
-              <g id="an-sync-bars"></g>
-              <g id="an-sync-axis"></g>
-            </svg>
-            <div class="chart-tooltip" id="an-sync-tooltip">
-              <div class="chart-tooltip-date" id="an-sync-tooltip-date">—</div>
-              <div class="chart-tooltip-value" id="an-sync-tooltip-value">—</div>
-            </div>
-          </div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span id="an-sync-note">&mdash;</span></div>
-        </div>
-      </section>
-
-      <section class="an-charts-bottom an-row-wide-table">
-        <div class="card an-chart-card" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg></span><h3 class="chart-title an-chart-title">Recent Alerts Overview</h3></div><button class="view-all" type="button" id="an-view-all-alerts" data-goto="alerts">View all alerts</button></div>
           <div style="overflow-x:auto;flex:1">
             <table class="an-alerts-table">
-              <thead><tr><th data-sort="time">Time</th><th data-sort="operator">Driver</th><th data-sort="asset">Asset ID</th><th data-sort="eventCode">Event Type</th><th data-sort="count">Event Count</th><th>Shift</th></tr></thead>
+              <thead><tr><th>Time</th><th>Driver</th><th>Asset ID</th><th>Event Type</th><th>Count</th><th>Shift</th></tr></thead>
               <tbody id="an-recent-alerts-body"><tr><td colspan="6" style="color:var(--muted);padding:14px 10px">Loading&hellip;</td></tr></tbody>
             </table>
           </div>
-          <div class="an-alerts-foot">
-            <span id="an-recent-alerts-showing">&mdash;</span>
-          </div>
         </div>
-
-        <div class="card an-chart-card" id="anFactorImpactCard" style="display:flex;flex-direction:column">
-          <div class="chart-head an-chart-head"><div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11Z"/></svg></span><h3 class="chart-title an-chart-title">Contributing Factors</h3></div></div>
-          <div id="an-factors-body" style="flex:1;min-height:0;display:flex;flex-direction:column">
-            <div class="da-empty">Loading&hellip;</div>
-          </div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Associated with higher alerts &mdash; not a claim of causation.</span></div>
-        </div>
-      </section>
+      </div>
 
       <!-- Spike investigation: the direct answer to "why did volume spike
            over this range — is it driver-specific or fleet-wide, and what
@@ -2204,15 +2015,15 @@
            0157), with each one's case status/last action read LIVE from
            entity_status/entity_action_log — never a copy, same pattern as
            Alert Logs' Driver Case Status column (0156). -->
-      <div class="card an-chart-card" id="an-si-card" style="display:flex;flex-direction:column;margin-bottom:14px">
-        <div class="chart-head an-chart-head">
-          <div class="chart-title-group"><span class="chart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a8 8 0 1 0 5.3 14L21 21"/></svg></span><h3 class="chart-title an-chart-title">Spike Investigation</h3></div>
+      <div class="an-panel" id="an-si-card" style="--accent:var(--red);margin-bottom:14px">
+        <div class="an-panel-head">
+          <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Spike Investigation</span></div>
           <div class="da-tabs" style="border-bottom:none;margin-bottom:0">
             <button class="da-tab on" type="button" role="tab" aria-selected="true" data-an-si-tab="drivers">Drivers</button>
             <button class="da-tab" type="button" role="tab" aria-selected="false" data-an-si-tab="assets">Assets</button>
           </div>
         </div>
-        <div id="an-si-summary" style="padding:2px 17px 12px;font-size:12px;color:var(--text-dim)">Loading&hellip;</div>
+        <div id="an-si-summary" style="padding:2px 0 12px;font-size:12px;color:var(--text-dim)">Loading&hellip;</div>
         <div style="overflow-x:auto;flex:1">
           <table class="an-alerts-table">
             <thead><tr id="an-si-thead"><th>Driver</th><th>Alert Types</th><th>Total</th><th>Reviewed</th><th>Case Status</th><th>Last Action</th><th></th></tr></thead>
@@ -3843,6 +3654,14 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- Chart.js: Analytics-page-only dependency, added for the dashboard
+     v1.1.5 redesign (Trend/Hourly line charts, Alert Type/Shift donuts).
+     Every other chart in this app is hand-rolled inline SVG by deliberate
+     choice (see index.html's own comments on the Analytics page's earlier
+     Alert Trend chart, where Chart.js was tried once and reverted for a
+     consistent look) — this is a scoped exception for the new page's own
+     chart types specifically, not a reversal of that choice app-wide. -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
   // ---------- Shared Supabase client (Phase 3+: real backend, not mock data) ----------
   // Same project/key index.html uses (publishable key — safe to ship client-side,
@@ -5457,7 +5276,6 @@
   // Key Insights grid under the page's previously-empty section header.
   (function(){
     var guard = makeGuard();
-    function fmtPct(n, d){ return (n == null ? 0 : n).toFixed(d == null ? 0 : d) + '%'; }
 
     // Single source of truth for every filter/selection on this page — the
     // filter bar (month/year/from/to/asset/shift) AND every click-to-select
@@ -5540,15 +5358,6 @@
     }
 
     var UNSPECIFIED_OPERATOR = 'Unspecified';
-    // "Top Employees by Alerts" shows the driver's emp_no (not their full
-    // resolved name) per direct instruction — long "SURNAME, First Middle"
-    // names were wrapping to 2-3 lines each in this ranked list, reading as
-    // cluttered/messy against the single-line asset-ID rows in the sibling
-    // "Top Assets" list right beside it. .empNo is the raw employee number;
-    // .id is the resolved display name, kept as a fallback only for the
-    // rare row that has no empNo at all (so the row still shows something
-    // rather than going blank).
-    var driverLabel = function(o){ return o.empNo || o.id; };
 
     // ---- clock (same pattern as Overview) ----
     var clockTimeEl = document.querySelector('#page-analytics .time');
@@ -5578,14 +5387,6 @@
           return res.data;
         });
     }
-    function fetchFactors(){
-      return DB.from('contributing_factors').select('factor_type,detail,start_time,end_time')
-        .then(function(res){
-          if(res.error) throw res.error;
-          return res.data || [];
-        });
-    }
-
     function deltaChip(cur, prev){
       if(prev == null || cur == null || prev === 0) return { cls:'good', text:'—' };
       var pct = Math.round((cur - prev) / prev * 100);
@@ -5599,119 +5400,81 @@
       var h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
       return h + 'h ' + m + 'm';
     }
-    // periodLabel names the comparison window (e.g. "7 days"/"month"/
-    // "quarter") — previously a hardcoded "7 days" regardless of the
-    // actual filter range, which read as nonsense next to a delta computed
-    // from months of data. See comparisonPeriodLabel() below.
-    function setKpi(key, curVal, p7Val, sparkVals, formatter, periodLabel){
-      var valueEl = document.getElementById('an-kpi-' + key + '-value');
-      var changeEl = document.getElementById('an-kpi-' + key + '-change');
-      var sparkEl = document.getElementById('an-kpi-' + key + '-spark');
-      var fillEl = document.getElementById('an-kpi-' + key + '-fill');
-      var glowEl = document.getElementById('an-kpi-' + key + '-glow');
-      var dotEl = document.getElementById('an-kpi-' + key + '-dot');
-      var fmt = formatter || fmtNum;
-      if(valueEl) valueEl.textContent = fmt(curVal);
-      if(changeEl){
-        var d7 = deltaChip(curVal, p7Val);
-        changeEl.innerHTML = '<span class="delta ' + (d7.cls === 'good' ? 'up' : (d7.cls === 'bad' ? 'down' : 'flat')) + '">' + esc(d7.text) + '</span> vs previous ' + esc(periodLabel || '7 days');
-      }
-      if(sparkEl){
-        // Viewbox is 100x56 (widened from the old 100x32 so the sparkline
-        // has real vertical room of its own, per direct instruction) — the
-        // line plots within y=6..50, leaving 6px headroom top and bottom
-        // before the fill/glow/dot are added on top of it.
-        var B = 50, T = 6;
-        if(sparkVals && sparkVals.length){
-          var max = Math.max.apply(null, sparkVals.concat([1]));
-          var min = Math.min.apply(null, sparkVals.concat([0]));
-          var range = Math.max(max - min, 1);
-          var n = sparkVals.length;
-          var ptsXY = sparkVals.map(function(v, i){
-            var x = n === 1 ? 0 : (i / (n - 1)) * 100;
-            var y = B - ((v - min) / range) * (B - T);
-            return [x, y];
-          });
-          var lineD = smoothPathD(ptsXY);
-          sparkEl.setAttribute('d', lineD);
-          if(fillEl) fillEl.setAttribute('d', lineD + ' L100,56 L0,56 Z');
-          var last = ptsXY[ptsXY.length - 1];
-          if(glowEl){ glowEl.setAttribute('cx', last[0].toFixed(1)); glowEl.setAttribute('cy', last[1].toFixed(1)); }
-          if(dotEl){ dotEl.setAttribute('cx', last[0].toFixed(1)); dotEl.setAttribute('cy', last[1].toFixed(1)); }
-        } else {
-          // No data for the window (e.g. right after a fleet data reset) —
-          // reset to the markup's own flat-line baseline rather than
-          // leaving the previous fetch's sparkline shape in place.
-          sparkEl.setAttribute('d', 'M0,28 L100,28');
-          if(fillEl) fillEl.setAttribute('d', '');
-          if(glowEl){ glowEl.setAttribute('cx', '100'); glowEl.setAttribute('cy', '28'); }
-          if(dotEl){ dotEl.setAttribute('cx', '100'); dotEl.setAttribute('cy', '28'); }
-        }
-      }
+    // 6 headline cards (dashboard v1.1.5's KPI grid) — Actionable/
+    // Non-Actionable counts are derived from kpis.actionableRatio (an
+    // exact percentage of kpis.totalAlerts, both already server-computed)
+    // rather than a new RPC field, since the ratio already encodes them.
+    var KPI_ICONS2 = {
+      alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 1 21h22z"/><path d="M12 9v5M12 17h.01"/></svg>',
+      flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="M5 4h13l-3 5 3 5H5"/></svg>',
+      check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',
+      percent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="M17 7 7 17"/></svg>',
+      clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+      timer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4"/><path d="M12 6v6l3 2"/><circle cx="12" cy="13" r="8"/></svg>'
+    };
+    var KPI_DEFS2 = [
+      { key:'totalAlerts', label:'Total Alerts', accent:'var(--blue)', icon:'alert' },
+      { key:'actionableAlerts', label:'Actionable Alerts', accent:'var(--red)', icon:'flag' },
+      { key:'nonActionableAlerts', label:'Non-Actionable Alerts', accent:'var(--green)', icon:'check' },
+      { key:'actionableRate', label:'Actionable Rate', accent:'var(--orange)', icon:'percent', unit:'%' },
+      { key:'avgInterval', label:'Avg. Interval', accent:'var(--purple)', icon:'clock' },
+      { key:'avgAlertDuration', label:'Avg. Alert Duration', accent:'var(--series-5)', icon:'timer' }
+    ];
+    function computeKpiValues(kpis){
+      var total = kpis.totalAlerts || 0;
+      var actionable = Math.round(total * (kpis.actionableRatio || 0) / 100);
+      return {
+        totalAlerts: total,
+        actionableAlerts: actionable,
+        nonActionableAlerts: total - actionable,
+        actionableRate: kpis.actionableRatio,
+        avgInterval: kpis.avgSyncSeconds,
+        avgAlertDuration: kpis.avgAlertDurationSeconds
+      };
     }
-    function fmtAlertsPerHour(v){ return v == null ? '—' : v.toFixed(1) + '/hr'; }
-    // "Most Affected Unit" isn't one of dds_metrics()'s own kpis — it's
-    // the #1 row of the SAME Alerts by Unit ranked list this page already
-    // renders below (fetchTopAssets/dds_asset_event_summary), not a
-    // separate query, so the KPI can never disagree with the chart it
-    // summarizes. Called from renderTopAssets() once that list resolves,
-    // not from renderKpis(), since it depends on that list's own data.
-    function renderMostAffectedUnit(rows){
-      var valueEl = document.getElementById('an-kpi-topunit-value');
-      var subEl = document.getElementById('an-kpi-topunit-change');
-      if(!valueEl) return;
-      var top = rows && rows[0];
-      if(!top){ valueEl.textContent = '—'; if(subEl) subEl.textContent = 'No data for this filter'; return; }
-      var totalAll = rows.reduce(function(s, r){ return s + (r.total || 0); }, 0);
-      var pct = totalAll > 0 ? Math.round((top.total / totalAll) * 100) : 0;
-      valueEl.textContent = top.assetId;
-      if(subEl) subEl.textContent = fmtNum(top.total) + ' alerts · ' + pct + '% of units in view';
-    }
-    function renderKpis(cur, prev7d, spanDays){
+    function renderKpis2(cur, prev, spanDays){
       var kpis = cur.kpis || {};
-      var p7 = prev7d ? prev7d.kpis : null;
-      var trend = cur.trend || [];
+      var vals = computeKpiValues(kpis);
+      var prevVals = prev ? computeKpiValues(prev.kpis || {}) : null;
       var periodLabel = comparisonPeriodLabel(spanDays || 7);
-      // units summed per bucket (a bucket's total alerts), everything else
-      // averaged per bucket (a "typical day" figure for that week/month) —
-      // same sum-vs-average split aggregateTrend uses for the main chart.
-      var totalsSpark = bucketSparkline(trend, function(t){ return t.units; }, 'sum');
-      // dds_metrics()'s trend[] already carries a per-day avgSyncSeconds
-      // (confirmed in its own CTE) — previously unused here, so this card
-      // fell back to the "no data" flat baseline every time even though a
-      // real per-day shape was available.
-      // Days with only a handful of rows (an import still trickling in for
-      // "today", confirmed live: 09/07 had exactly 1 event) produce an
-      // average from a single data point — plotting it at full weight made
-      // the line take a sharp dive at the very end even while the real
-      // week-over-week average (the headline "+31%") was rising, which read
-      // as the chart flatly contradicting the number beside it. Per direct
-      // instruction: drop those near-empty trailing days from the sparkline
-      // rather than let a 1-row average outweigh a 300-row one visually —
-      // now applied per-bucket via bucketSparkline's minSample, so a wide
-      // range's weekly/monthly buckets get the same treatment.
-      var MIN_SYNC_SAMPLE = 5;
-      var syncSpark = bucketSparkline(trend, function(t){ return t.avgSyncSeconds; }, 'avg', MIN_SYNC_SAMPLE);
-      // alertsPerOperatingHour is already computed per-day in trend[]
-      // (0109/0115) — same rate-metric treatment as avgSyncSeconds above.
-      var rateSpark = bucketSparkline(trend, function(t){ return t.alertsPerOperatingHour; }, 'avg', MIN_SYNC_SAMPLE);
-
-      setKpi('total', kpis.totalAlerts, p7 ? p7.totalAlerts : null, totalsSpark, null, periodLabel);
-      setKpi('units', kpis.alertsPerOperatingHour, p7 ? p7.alertsPerOperatingHour : null, rateSpark, fmtAlertsPerHour, periodLabel);
-      setKpi('sync', kpis.avgSyncSeconds, p7 ? p7.avgSyncSeconds : null, syncSpark, fmtSyncSeconds, periodLabel);
-      // 'topunit' (Most Affected Unit) is set by renderMostAffectedUnit()
-      // from the Alerts by Unit list, not here — see its own comment above.
+      var grid = document.getElementById('an-kpi-grid');
+      if(!grid) return;
+      grid.innerHTML = KPI_DEFS2.map(function(def){
+        var v = vals[def.key];
+        var display, unit = def.unit || '';
+        if(def.key === 'actionableRate'){
+          display = v != null ? v.toFixed(1) : '—';
+        } else if(def.key === 'avgInterval' || def.key === 'avgAlertDuration'){
+          display = fmtSyncSeconds(v); unit = '';
+        } else {
+          display = fmtNum(v || 0);
+        }
+        var pv = prevVals ? prevVals[def.key] : null;
+        var d = deltaChip(v, pv);
+        var deltaCls = d.cls === 'good' ? 'down' : (d.cls === 'bad' ? 'up' : 'flat');
+        var footHtml = prevVals
+          ? '<span class="an-kpi-delta ' + deltaCls + '">' + esc(d.text) + '</span><span class="an-kpi-foot-label">vs previous ' + esc(periodLabel) + '</span>'
+          : '<span class="an-kpi-foot-label">Insufficient history</span>';
+        return '<div class="an-kpi-card" style="--accent:' + def.accent + '">' +
+          '<div class="an-kpi-top"><span class="an-kpi-label">' + esc(def.label) + '</span><span class="an-kpi-icon">' + KPI_ICONS2[def.icon] + '</span></div>' +
+          '<div class="an-kpi-value">' + esc(display) + (unit ? '<span class="unit">' + esc(unit) + '</span>' : '') + '</div>' +
+          '<div class="an-kpi-foot">' + footHtml + '</div>' +
+        '</div>';
+      }).join('');
     }
 
-    // ==================== Alert Trend: Alerts / Operating Hours ====================
-    // Chart.js (bar + 2 lines, each on its own y-axis), replacing the old
-    // hand-rolled SVG shared-axis plot per direct instruction (design
-    // adapted from a supplied mockup). No date-range control of its own —
-    // the mockup's own filter dropdown is deliberately NOT reproduced here;
-    // this chart reads `cur.trend`, the same dds_metrics() response the
-    // page's real filter bar (Month/Year/From/To/Asset) already drives, so
-    // it's affected by every one of those exactly like every other panel
-    // on this page.
+    // ==================== Alert Trend (Chart.js) ====================
+    // dashboard v1.1.5's Trend of Alerts panel: a line chart of alert
+    // volume with optional Avg. Interval / Unique Units overlays on their
+    // own axes, plus a Daily/Weekly/Monthly granularity toggle — all
+    // reading from the SAME cur.trend this page's real filter bar already
+    // drives. cssVar() resolves this app's own light/dark tokens to real
+    // color strings at render time (canvas needs literal colors, not raw
+    // var() strings — unlike the DOM/SVG this app uses everywhere else),
+    // and a MutationObserver near the bottom of this IIFE re-renders every
+    // Chart.js visual on this page when the Dark mode toggle flips, so
+    // colors baked into a canvas don't go stale.
+    function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
     function trendDateLabel(mdy){
       // trend[].date is "MM/DD/YYYY" (dds_metrics()'s own format) — reformatted
       // to "Mon D" to match the chart's compact x-axis, same idea as
@@ -5743,195 +5506,9 @@
       var yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
       return Math.ceil((((t - yearStart) / 86400000) + 1) / 7);
     }
-    // A daily point stays legible up to ~a month; past that the category
-    // count (and, for a bar, the scroll distance needed to see all of it)
-    // grows faster than the extra day-by-day detail is worth — a
-    // multi-month filter would otherwise need hundreds of hairline-thin
-    // bars/points or an unreadable sparkline. Wider ranges roll the daily
-    // trend[] up into calendar weeks, and very wide ranges (4+ months)
-    // into calendar months, same idea as most trend dashboards switching
-    // granularity as you zoom out. Shared by the Alert Trend chart
-    // (aggregateTrend) and the KPI sparklines (bucketSparkline) below, so
-    // both reflect the same selected range at the same granularity rather
-    // than the sparklines showing a fixed, unrelated trailing window.
-    var TREND_DAILY_MAX_POINTS = 31;
-    var TREND_WEEKLY_MAX_POINTS = 120;
-    function trendBuckets(trend){
-      if(trend.length <= TREND_DAILY_MAX_POINTS){
-        return trend.map(function(t){ return { label: trendDateLabel(t.date), items: [t] }; });
-      }
-      var byMonth = trend.length > TREND_WEEKLY_MAX_POINTS;
-      var buckets = [];
-      var byKey = {};
-      trend.forEach(function(t){
-        var d = trendParseDate(t.date);
-        var key, sortDate, label;
-        if(byMonth){
-          sortDate = new Date(d.getFullYear(), d.getMonth(), 1);
-          key = sortDate.getTime();
-          label = MONTH_NAMES[d.getMonth()]; // "MMM" — no year, per direct instruction
-        } else {
-          sortDate = trendWeekStart(d);
-          key = sortDate.getTime();
-          label = 'W' + trendIsoWeekNumber(sortDate); // "W#" (ISO week number) — no year, per direct instruction
-        }
-        var bucket = byKey[key];
-        if(!bucket){ bucket = byKey[key] = { sortDate: sortDate, label: label, items: [] }; buckets.push(bucket); }
-        bucket.items.push(t);
-      });
-      buckets.sort(function(a, b){ return a.sortDate - b.sortDate; });
-      return buckets;
-    }
-    function aggregateTrend(trend){
-      return trendBuckets(trend).map(function(b){
-        var units = 0, operatingHours = 0;
-        b.items.forEach(function(t){ units += t.units || 0; operatingHours += t.operatingHours || 0; });
-        // dates: the raw per-day trend[] dates rolled into this bucket —
-        // needed by the factor-band overlay below to test "was a given
-        // contributing factor active on any day in this bucket", which the
-        // summed units/operatingHours fields alone can't answer.
-        return { label: b.label, units: units, operatingHours: operatingHours, dates: b.items.map(function(t){ return t.date; }) };
-      });
-    }
-    // The real day span a plotted bucket covers — a single day for a daily
-    // bucket, the whole week/month for a rolled-up one — used by the Alert
-    // Trend chart's click-to-filter (renderTrend below) to narrow the
-    // page's From/To range to exactly what was clicked. p.dates is already
-    // sorted ascending (trendBuckets built it from trend[], itself ordered
-    // by shift_date), so the first/last entries are the bucket's bounds.
-    function trendBucketRange(p){
-      if(!p || !p.dates || !p.dates.length) return null;
-      return { from: toISO(factorToDate(p.dates[0])), to: toISO(factorToDate(p.dates[p.dates.length - 1])) };
-    }
-
-    // ==================== Alert Trend — contributing-factor overlay ====================
-    // trendPoints/trendGeom cache renderTrend()'s last-computed bucket
-    // points and x-axis geometry so the factor legend/bands below can
-    // redraw against them without re-fetching dds_metrics() — both a
-    // legend-checkbox click and the factors RPC settling later than cur
-    // (see load()) need to redraw independently of a full page reload.
-    var trendPoints = null;
-    var trendGeom = null;
-    var trendAlertsOn = true;
-    // trendFactorsByType/trendFactorTypes: real public.contributing_factors
-    // factor_type values that actually overlap at least one day in the
-    // CURRENT visible trend window — never a fixed/hardcoded list, since
-    // factor_type is free text (see 0003_contributing_factors.sql) and a
-    // fleet with none logged for this period should show no factor legend
-    // items at all rather than empty placeholders.
-    var trendFactorsByType = {};
-    var trendFactorTypes = [];
-    var trendFactorOn = {};
-    function applyTrendAlertsVisibility(){
-      var legendEl = document.querySelector('#an-trend-legend [data-trend-toggle="alerts"]');
-      if(legendEl) legendEl.classList.toggle('active', trendAlertsOn);
-      ['an-trend-alerts-area', 'an-trend-alerts-line'].forEach(function(id){
-        var el = document.getElementById(id);
-        if(el) el.style.display = trendAlertsOn ? '' : 'none';
-      });
-    }
-    var trendAlertsToggleEl = document.querySelector('#an-trend-legend [data-trend-toggle="alerts"]');
-    if(trendAlertsToggleEl) trendAlertsToggleEl.addEventListener('click', function(){
-      trendAlertsOn = !trendAlertsOn;
-      applyTrendAlertsVisibility();
-    });
-    // Called once both cur.trend and factors have resolved (see load()'s
-    // Promise.all below) — decoupled from renderTrend() itself since the
-    // factors fetch settles on its own, separate timeline (same reasoning
-    // as renderFactorImpact()) and shouldn't hold up the Alerts/Operating
-    // Hours lines rendering first.
-    function setupTrendFactors(cur, factors){
-      var trend = cur.trend || [];
-      var byType = {};
-      factors.forEach(function(f){ (byType[f.factor_type] = byType[f.factor_type] || []).push(f); });
-      var present = Object.keys(byType).filter(function(type){
-        return trend.some(function(t){
-          var d = factorToDate(t.date);
-          return byType[type].some(function(f){ return factorActiveOnDay(d, f); });
-        });
-      }).sort();
-      trendFactorsByType = byType;
-      trendFactorTypes = present;
-      var nextOn = {};
-      present.forEach(function(type){ nextOn[type] = trendFactorOn.hasOwnProperty(type) ? trendFactorOn[type] : false; });
-      trendFactorOn = nextOn;
-      renderTrendFactorLegend();
-      renderTrendFactorBands();
-    }
-    function clearTrendFactors(){
-      trendFactorsByType = {}; trendFactorTypes = []; trendFactorOn = {};
-      renderTrendFactorLegend();
-      renderTrendFactorBands();
-    }
-    // Series colors start at index 2 (var(--series-3)) — series-1/-2 are
-    // already Alerts/Operating Hours on this same chart.
-    function renderTrendFactorLegend(){
-      var el = document.getElementById('an-trend-factor-legend');
-      if(!el) return;
-      el.innerHTML = trendFactorTypes.map(function(type, i){
-        var on = trendFactorOn[type];
-        return '<span class="an-legend-toggle' + (on ? ' active' : '') + '" data-trend-factor="' + esc(type) + '" title="Click to show/hide"><i class="an-swatch" style="background:' + seriesVar(i + 2) + '"></i>' + esc(type) + '</span>';
-      }).join('');
-      el.querySelectorAll('[data-trend-factor]').forEach(function(span){
-        span.addEventListener('click', function(){
-          var type = span.getAttribute('data-trend-factor');
-          trendFactorOn[type] = !trendFactorOn[type];
-          renderTrendFactorLegend();
-          renderTrendFactorBands();
-        });
-      });
-    }
-    function renderTrendFactorBands(){
-      var el = document.getElementById('an-trend-factor-bands');
-      if(!el) return;
-      if(!trendPoints || !trendGeom || !trendFactorTypes.length){ el.innerHTML = ''; return; }
-      var xFor = trendGeom.xFor, L = trendGeom.L, R = trendGeom.R, T = trendGeom.T, B = trendGeom.B;
-      var n = trendPoints.length;
-      function bucketEdges(i){
-        var left = i === 0 ? L : (xFor(i - 1) + xFor(i)) / 2;
-        var right = i === n - 1 ? R : (xFor(i) + xFor(i + 1)) / 2;
-        return [left, right];
-      }
-      var rects = [];
-      trendFactorTypes.forEach(function(type, ti){
-        if(!trendFactorOn[type]) return;
-        var fList = trendFactorsByType[type] || [];
-        var color = seriesVar(ti + 2);
-        trendPoints.forEach(function(p, i){
-          var active = (p.dates || []).some(function(dateStr){
-            var d = factorToDate(dateStr);
-            return fList.some(function(f){ return factorActiveOnDay(d, f); });
-          });
-          if(!active) return;
-          var edges = bucketEdges(i);
-          rects.push('<rect x="' + edges[0].toFixed(1) + '" y="' + T + '" width="' + (edges[1] - edges[0]).toFixed(1) + '" height="' + (B - T) + '" style="fill:' + color + '" opacity="0.16"/>');
-        });
-      });
-      el.innerHTML = rects.join('');
-    }
-
-    // KPI sparklines used to always plot the last 14 raw days regardless of
-    // the selected filter range — for a multi-month range that showed a
-    // small, unrelated recent slice rather than the actual period the KPI
-    // number covers. Reuses the same daily/weekly/monthly tiers as the
-    // Alert Trend chart so a sparkline always represents the WHOLE selected
-    // range, just at coarser grain for wider ones. minSample (when given)
-    // drops a day from its bucket if events are too few for its average to
-    // be meaningful (same idea the old fixed-window filter applied) —
-    // averaged, not summed, fields only.
-    function bucketSparkline(trend, valueFn, mode, minSample){
-      var out = [];
-      trendBuckets(trend).forEach(function(b){
-        var items = minSample ? b.items.filter(function(t){ return (t.events || 0) >= minSample; }) : b.items;
-        if(!items.length) return;
-        var sum = items.reduce(function(s, t){ return s + (valueFn(t) || 0); }, 0);
-        out.push(mode === 'sum' ? sum : sum / items.length);
-      });
-      return out;
-    }
-    // Mirrors the granularity language aggregateTrend/bucketSparkline use
-    // (day/week/month) so the KPI row's "vs previous X" always names the
-    // actual comparison window instead of a hardcoded "7 days" that read as
+    // Mirrors the granularity language trendGranBuckets uses (day/week/
+    // month) so the KPI row's "vs previous X" always names the actual
+    // comparison window instead of a hardcoded "7 days" that read as
     // nonsense next to a delta computed from months of data.
     function comparisonPeriodLabel(spanDays){
       if(spanDays <= 13) return spanDays + ' day' + (spanDays === 1 ? '' : 's');
@@ -5939,144 +5516,145 @@
       if(spanDays <= 120) return 'quarter';
       return Math.round(spanDays / 30) + ' months';
     }
-    // Hand-rolled SVG (smoothPathD + wireChartHover) — the same technique
-    // Overview's Total Alerts chart and this page's own Hourly Trend/Alert
-    // Sync Time cards already use, per direct instruction to match that
-    // character rather than Chart.js. Two lines (Alerts, Operating Hours),
-    // each independently scaled, both drawn across a FIXED x-range via
-    // xFor(i) = index/(n-1) — since that's a continuous coordinate mapping
-    // rather than a per-category pixel width, any number of aggregated
-    // points (daily/weekly/monthly, see aggregateTrend above) always
-    // spreads evenly across this one fixed-size viewport with no scrolling
-    // case to handle, unlike a bar chart's discrete per-category slots.
-    function renderTrend(cur){
+    // Groups cur.trend (one row per day) into daily/weekly/monthly buckets
+    // for the Trend chart's explicit granularity toggle. avgSyncSeconds/assets
+    // are AVERAGED across a multi-day bucket (a real per-day figure,
+    // averaged — not a true distinct-count union, which trend[] doesn't
+    // carry enough raw data to compute across multiple days) — same
+    // honesty tradeoff as this app's other per-bucket averages.
+    function trendGranBuckets(trend, gran){
+      if(gran === 'daily'){
+        return trend.map(function(t){
+          return { label: trendDateLabel(t.date), units: t.units || 0, avgSyncSeconds: t.avgSyncSeconds, assets: t.assets, dates: [t.date] };
+        });
+      }
+      var byKey = {}, order = [];
+      trend.forEach(function(t){
+        var d = trendParseDate(t.date);
+        var key, label, sortDate;
+        if(gran === 'monthly'){
+          sortDate = new Date(d.getFullYear(), d.getMonth(), 1);
+          key = sortDate.getTime(); label = MONTH_NAMES[d.getMonth()] + ' ' + d.getFullYear();
+        } else {
+          sortDate = trendWeekStart(d);
+          key = sortDate.getTime(); label = 'W' + trendIsoWeekNumber(sortDate);
+        }
+        if(!byKey[key]){ byKey[key] = { sortDate: sortDate, label: label, units:0, syncSum:0, syncN:0, assetsSum:0, assetsN:0, dates:[] }; order.push(key); }
+        var b = byKey[key];
+        b.units += t.units || 0;
+        if(t.avgSyncSeconds != null){ b.syncSum += t.avgSyncSeconds; b.syncN++; }
+        if(t.assets != null){ b.assetsSum += t.assets; b.assetsN++; }
+        b.dates.push(t.date);
+      });
+      order.sort(function(a, b){ return byKey[a].sortDate - byKey[b].sortDate; });
+      return order.map(function(k){
+        var b = byKey[k];
+        return {
+          label: b.label, units: b.units,
+          avgSyncSeconds: b.syncN ? b.syncSum / b.syncN : null,
+          assets: b.assetsN ? Math.round(b.assetsSum / b.assetsN) : null,
+          dates: b.dates
+        };
+      });
+    }
+    var trendChart = null;
+    var trendGranularity = 'daily';
+    var trendShowInterval = false;
+    var trendShowUnits = false;
+    function renderTrendChart2(cur){
       var trend = cur.trend || [];
-      var linesEl = document.getElementById('an-trend-lines');
-      if(!linesEl) return;
-      var axisEl = document.getElementById('an-trend-axis');
-      var yAlertsEl = document.getElementById('an-trend-yaxis-alerts');
-      var yHoursEl = document.getElementById('an-trend-yaxis-hours');
+      var canvas = document.getElementById('an-chart-trend');
+      if(!canvas) return;
+      if(trendChart){ trendChart.destroy(); trendChart = null; }
       if(!trend.length){
-        linesEl.innerHTML = '';
-        if(axisEl) axisEl.innerHTML = '';
-        if(yAlertsEl) yAlertsEl.innerHTML = '';
-        if(yHoursEl) yHoursEl.innerHTML = '';
-        trendPoints = null; trendGeom = null;
-        renderTrendFactorBands();
+        var ic0 = document.getElementById('an-trend-interval-checkbox'); if(ic0) ic0.disabled = true;
+        var uc0 = document.getElementById('an-trend-units-checkbox'); if(uc0) uc0.disabled = true;
         return;
       }
-
-      var points = aggregateTrend(trend);
-      // R=460 (not the 480 this page's other charts use) — the extra 20px
-      // is reserved for the Operating Hours axis label on the right, which
-      // (unlike a single-axis chart) needs its own room to avoid clipping
-      // against the SVG's edge.
-      var L = 40, R = 460, T = 25, B = 208;
-      var xFor = function(i){ return points.length === 1 ? (L+R)/2 : L + (i / (points.length - 1)) * (R - L); };
-      var maxAlerts = Math.max.apply(null, points.map(function(p){ return p.units || 0; }).concat([1]));
-      var maxHours = Math.max.apply(null, points.map(function(p){ return p.operatingHours || 0; }).concat([1]));
-      var topAlerts = Math.max(maxAlerts, 4), topHours = Math.max(maxHours, 4);
-      var yForAlerts = function(v){ return B - (v / topAlerts) * (B - T); };
-      var yForHours = function(v){ return B - (v / topHours) * (B - T); };
-
-      var ptsAlerts = points.map(function(p, i){ return [xFor(i), yForAlerts(p.units || 0)]; });
-      var ptsHours = points.map(function(p, i){ return [xFor(i), yForHours(p.operatingHours || 0)]; });
-      var alertsLineD = smoothPathD(ptsAlerts);
-      var alertsAreaD = alertsLineD + ' L' + xFor(points.length-1).toFixed(1) + ',' + B + ' L' + xFor(0).toFixed(1) + ',' + B + ' Z';
-      var hoursLineD = smoothPathD(ptsHours);
-      // an-trend-alerts-area/-line carry their own ids so the Alerts legend
-      // toggle (below) can show/hide them directly without re-deriving the
-      // path data — a plain visibility flip, not a re-render.
-      linesEl.innerHTML =
-        '<path id="an-trend-alerts-area" d="' + alertsAreaD + '" fill="url(#anTrendFill)" stroke="none"/>' +
-        '<path d="' + hoursLineD + '" fill="none" style="stroke:var(--series-2)" stroke-width="2.5" stroke-dasharray="6 4" stroke-linecap="round" stroke-linejoin="round"/>' +
-        '<path id="an-trend-alerts-line" d="' + alertsLineD + '" fill="none" style="stroke:var(--series-1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
-      applyTrendAlertsVisibility();
-
-      if(yAlertsEl){
-        yAlertsEl.innerHTML = '<text x="34" y="' + (T+4) + '" class="an-axis" text-anchor="end">' + fmtNum(Math.round(topAlerts)) + '</text>' +
-          '<text x="34" y="' + (B+4) + '" class="an-axis" text-anchor="end">0</text>';
+      var buckets = trendGranBuckets(trend, trendGranularity);
+      var labels = buckets.map(function(b){ return b.label; });
+      var values = buckets.map(function(b){ return b.units; });
+      var seriesColor = cssVar('--series-1');
+      var datasets = [{
+        label:'Alert Volume', data: values, borderColor: seriesColor, backgroundColor: seriesColor + '26',
+        fill:true, tension:0.35, borderWidth:2.5, pointRadius: values.length > 40 ? 0 : 3,
+        pointBackgroundColor: seriesColor, yAxisID:'y'
+      }];
+      var intervalCapable = trendShowInterval && buckets.some(function(b){ return b.avgSyncSeconds != null; });
+      if(intervalCapable){
+        datasets.push({
+          label:'Avg. Interval', data: buckets.map(function(b){ return b.avgSyncSeconds; }),
+          borderColor: cssVar('--purple'), backgroundColor:'transparent', fill:false, tension:0.35,
+          borderWidth:2, borderDash:[5,3], pointRadius: values.length > 40 ? 0 : 3,
+          pointBackgroundColor: cssVar('--purple'), spanGaps:true, yAxisID:'y1'
+        });
       }
-      if(yHoursEl){
-        yHoursEl.innerHTML = '<text x="466" y="' + (T+4) + '" class="an-axis" style="fill:var(--series-2)">' + fmtNum(Math.round(topHours)) + '</text>' +
-          '<text x="466" y="' + (B+4) + '" class="an-axis" style="fill:var(--series-2)">0</text>';
+      var unitsCapable = trendShowUnits && buckets.some(function(b){ return b.assets != null; });
+      if(unitsCapable){
+        datasets.push({
+          label:'Unique Units', data: buckets.map(function(b){ return b.assets; }),
+          borderColor: cssVar('--green'), backgroundColor:'transparent', fill:false, tension:0.35,
+          borderWidth:2, borderDash:[2,2], pointRadius: values.length > 40 ? 0 : 3,
+          pointBackgroundColor: cssVar('--green'), spanGaps:true, yAxisID:'y2'
+        });
       }
-      if(axisEl){
-        // One label per point reads fine up to ~a dozen; a 30-day daily
-        // view or many weekly buckets would otherwise print an unreadable
-        // pile of overlapping text — always keeps the first/last so the
-        // range's actual bounds stay visible regardless of spacing.
-        var labelStep = Math.max(1, Math.ceil(points.length / 8));
-        var lastIdx = points.length - 1;
-        var showIdx = {};
-        for(var li = 0; li <= lastIdx; li += labelStep) showIdx[li] = true;
-        // The regular step doesn't necessarily land exactly on the last
-        // point — showing both it and the true last point when they're
-        // this close crowds two labels ("Aug 29"/"Aug 30") into the same
-        // few px, so a too-close trailing one is replaced rather than kept.
-        var lastShown = Math.floor(lastIdx / labelStep) * labelStep;
-        if(lastShown !== lastIdx){
-          if(lastIdx - lastShown < labelStep / 2) delete showIdx[lastShown];
-          showIdx[lastIdx] = true;
-        }
-        axisEl.innerHTML = points.map(function(p, i){
-          if(!showIdx[i]) return '';
-          return '<text x="' + xFor(i).toFixed(1) + '" y="228" class="an-axis" text-anchor="middle">' + esc(p.label) + '</text>';
-        }).join('');
-      }
-
-      wireChartHover({
-        rectId: 'an-trend-hover-rect', crosshairId: 'an-trend-crosshair',
-        dotId: 'an-trend-hover-dot', dot2Id: 'an-trend-hover-dot2',
-        tooltipId: 'an-trend-tooltip', dateId: 'an-trend-tooltip-date', valueId: 'an-trend-tooltip-value',
-        getPoints: function(){ return ptsAlerts; },
-        getPoints2: function(){ return ptsHours; },
-        getInfo: function(i){
-          var p = points[i];
-          return { label: p.label, value: fmtNum(p.units) + ' alerts · ' + fmtNum(Math.round(p.operatingHours || 0)) + ' hrs' };
+      var gridColor = cssVar('--grid'), tickColor = cssVar('--muted');
+      var scales = {
+        x:{ grid:{color:gridColor, drawTicks:false}, ticks:{color:tickColor, font:{size:10}}, offset:true },
+        y:{ grid:{color:gridColor, drawTicks:false}, ticks:{color:tickColor, font:{size:10}}, beginAtZero:true }
+      };
+      if(intervalCapable) scales.y1 = { position:'right', grid:{drawOnChartArea:false}, ticks:{color:tickColor, font:{size:10}, callback:function(v){ return fmtSyncSeconds(v); }}, beginAtZero:true };
+      if(unitsCapable) scales.y2 = { position:'right', grid:{drawOnChartArea:false}, ticks:{color:tickColor, font:{size:10}, precision:0}, beginAtZero:true };
+      trendChart = new Chart(canvas, {
+        type:'line', data:{ labels: labels, datasets: datasets },
+        options:{
+          responsive:true, maintainAspectRatio:false, animation:{duration:300},
+          interaction:{mode:'index', intersect:false}, scales: scales,
+          onClick: function(evt, els){
+            if(!els.length) return;
+            var b = buckets[els[0].index];
+            if(!b || !b.dates || !b.dates.length) return;
+            setTrendDateFilter(toISO(trendParseDate(b.dates[0])), toISO(trendParseDate(b.dates[b.dates.length - 1])));
+          },
+          onHover: function(evt, els){ evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+          plugins:{
+            legend:{ display: intervalCapable || unitsCapable, position:'top', align:'end', labels:{color: cssVar('--muted'), boxWidth:9, boxHeight:2, font:{size:10}} },
+            tooltip:{
+              backgroundColor: cssVar('--card'), titleColor: cssVar('--text'), bodyColor: cssVar('--muted'),
+              borderColor: cssVar('--border'), borderWidth:1, padding:9, cornerRadius:8, displayColors:false,
+              callbacks:{ label:function(ctx){
+                if(ctx.dataset.yAxisID === 'y1') return ' ' + ctx.dataset.label + ': ' + fmtSyncSeconds(ctx.parsed.y);
+                if(ctx.dataset.yAxisID === 'y2') return ' ' + ctx.dataset.label + ': ' + fmtNum(ctx.parsed.y) + ' units';
+                return ' ' + ctx.dataset.label + ': ' + fmtNum(ctx.parsed.y) + ' alerts';
+              } }
+            }
+          }
         }
       });
-      // Click-to-filter (own listener, not part of the shared wireChartHover
-      // helper — same reasoning/pattern as Hourly Trend's own click handler
-      // below). Clicking a point narrows the page's From/To range to that
-      // bucket's real day span (a single day for a daily bucket, the whole
-      // week/month for a rolled-up one) — previously this chart was the
-      // only one on the page with no click-to-filter at all, so selecting
-      // a date here had no effect on any other card.
-      var trendRect = document.getElementById('an-trend-hover-rect');
-      if(trendRect){
-        var oldTrendClick = trendRect.__trendClickHandler;
-        if(oldTrendClick) trendRect.removeEventListener('click', oldTrendClick);
-        var trendClick = function(e){
-          var svg = trendRect.ownerSVGElement;
-          var pt = svg.createSVGPoint();
-          pt.x = e.clientX; pt.y = e.clientY;
-          var ctm = trendRect.getScreenCTM();
-          if(!ctm) return;
-          var svgX = pt.matrixTransform(ctm.inverse()).x;
-          var nearest = 0, nearestDist = Infinity;
-          for(var i = 0; i < ptsAlerts.length; i++){
-            var dist = Math.abs(ptsAlerts[i][0] - svgX);
-            if(dist < nearestDist){ nearestDist = dist; nearest = i; }
-          }
-          var range = trendBucketRange(points[nearest]);
-          if(range) setTrendDateFilter(range.from, range.to);
-        };
-        trendRect.addEventListener('click', trendClick);
-        trendRect.__trendClickHandler = trendClick;
-      }
-
-      // Cached so the contributing-factor band overlay (setupTrendFactors/
-      // renderTrendFactorBands — factors resolve on a separate, slower
-      // fetch than cur, see load() below) can redraw its bands against the
-      // SAME point positions without re-fetching or re-deriving them, and
-      // so a legend checkbox click can redraw instantly with no fetch at all.
-      trendPoints = points;
-      trendGeom = { xFor: xFor, L: L, R: R, T: T, B: B };
-      renderTrendFactorBands();
+      var ic = document.getElementById('an-trend-interval-checkbox');
+      if(ic) ic.disabled = !buckets.some(function(b){ return b.avgSyncSeconds != null; });
+      var uc = document.getElementById('an-trend-units-checkbox');
+      if(uc) uc.disabled = !buckets.some(function(b){ return b.assets != null; });
     }
+    document.querySelectorAll('#an-trend-gran .an-seg-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        trendGranularity = btn.getAttribute('data-gran');
+        document.querySelectorAll('#an-trend-gran .an-seg-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+        if(analyticsLastCur) renderTrendChart2(analyticsLastCur);
+      });
+    });
+    var trendIntervalCk = document.getElementById('an-trend-interval-checkbox');
+    if(trendIntervalCk) trendIntervalCk.addEventListener('change', function(){
+      trendShowInterval = trendIntervalCk.checked;
+      if(analyticsLastCur) renderTrendChart2(analyticsLastCur);
+    });
+    var trendUnitsCk = document.getElementById('an-trend-units-checkbox');
+    if(trendUnitsCk) trendUnitsCk.addEventListener('change', function(){
+      trendShowUnits = trendUnitsCk.checked;
+      if(analyticsLastCur) renderTrendChart2(analyticsLastCur);
+    });
 
-    // ==================== Hourly Trend by Month ====================
+    // ==================== Alerts by Hour of Day (Chart.js) ====================
     var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     // dds_metrics()'s hourlyByMonth[] entries carry `month` as a "YYYY-MM"
     // key (confirmed in MIGRATION_STATUS.md and the live function), not a
@@ -6091,154 +5669,51 @@
       var mi = Number(parts[1]) - 1;
       return (MONTH_NAMES[mi] || monthKey) + ' ' + parts[0];
     }
-    // Fixed categorical order (the validated --series-1..8 slots), never
-    // cycled by rank — a chart with more than 8 months on screen at once
-    // is already past the point a line chart reads clearly, so the 9th+
-    // month reusing slot 1's hue is an accepted edge case, not a redesign.
-    // Slots 3-5 (aqua/yellow/magenta) sit under 3:1 contrast on the light
-    // card surface — the required "relief" is the legend this view renders
-    // below the chart, with every month directly labeled, never color-alone.
-    function seriesVar(i){ return 'var(--series-' + ((i % 8) + 1) + ')'; }
-    function renderHourlyMonthly(cur){
+    // One line per calendar month present in the filtered range (dashboard
+    // v1.1.5's own design — every month always shown, toggled via the
+    // legend, rather than a By Hour/By Month view switch) — replaces the
+    // old two-view hand-rolled SVG chart (average-per-hour OR by-month,
+    // never both at once) with dds_metrics()'s hourlyByMonth[], which
+    // already carries every month's own 24-hour shape.
+    var hourlyChart = null;
+    function renderHourlyChart2(cur){
       var months = cur.hourlyByMonth || [];
-      var el = document.getElementById('an-hourly-lines');
-      var axisEl = document.getElementById('an-hourly-axis');
-      var yaxisEl = document.getElementById('an-hourly-yaxis');
-      var noteEl = document.getElementById('an-hourly-note');
-      var legendEl = document.getElementById('an-hourly-month-legend');
-      if(!el) return;
-      if(!months.length){
-        el.innerHTML = ''; if(axisEl) axisEl.innerHTML=''; if(yaxisEl) yaxisEl.innerHTML='';
-        if(legendEl) legendEl.innerHTML = '';
-        if(noteEl) noteEl.textContent = 'No monthly data yet.';
-        return;
-      }
-      var L = 40, R = 480, T = 25, B = 208;
-      var max = Math.max.apply(null, months.flatMap(function(m){ return m.hours; }).concat([1]));
-      var xFor = function(h){ return L + (h / 23) * (R - L); };
-      var yFor = function(v){ return B - (v / max) * (B - T); };
-      el.innerHTML = months.map(function(m, i){
-        var ptsXY = m.hours.map(function(v, h){ return [xFor(h), yFor(v)]; });
-        return '<path d="' + smoothPathD(ptsXY) + '" fill="none" style="stroke:' + seriesVar(i) + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
-      }).join('');
-      if(yaxisEl){
-        yaxisEl.innerHTML = '<text x="34" y="' + (T+4) + '" class="an-axis" text-anchor="end">' + fmtNum(Math.round(max)) + '</text>' +
-          '<text x="34" y="' + (B+4) + '" class="an-axis" text-anchor="end">0</text>';
-      }
-      if(axisEl){
-        var hourLabels = [1,5,9,13,17,21];
-        axisEl.innerHTML = hourLabels.map(function(h){
-          return '<text x="' + xFor(h).toFixed(1) + '" y="228" class="an-axis">' + h + ':00</text>';
-        }).join('');
-      }
-      if(legendEl){
-        legendEl.style.display = 'flex';
-        legendEl.innerHTML = months.map(function(m, i){
-          return '<span><i class="an-swatch" style="background:' + seriesVar(i) + '"></i>' + esc(monthLabel(m.month)) + '</span>';
-        }).join('');
-      }
-      if(noteEl) noteEl.textContent = 'One line per month — ' + months.length + ' month(s) shown.';
-    }
-
-    // ==================== Hourly Trend — By Hour (average alerts per hour, DAY/NIGHT) ====================
-    function renderHourlyAverage(cur){
-      var hourly = cur.hourly || { DAY:[], NIGHT:[] };
-      var day = hourly.DAY || [], night = hourly.NIGHT || [];
-      var totals = Array.from({length:24}, function(_,h){ return (day[h]||0) + (night[h]||0); });
-      var el = document.getElementById('an-hourly-lines');
-      var axisEl = document.getElementById('an-hourly-axis');
-      var yaxisEl = document.getElementById('an-hourly-yaxis');
-      var noteEl = document.getElementById('an-hourly-note');
-      var legendEl = document.getElementById('an-hourly-month-legend');
-      if(legendEl){ legendEl.style.display = 'none'; legendEl.innerHTML = ''; }
-      if(!el) return;
-      var L = 40, R = 480, T = 25, B = 208;
-      var max = Math.max.apply(null, totals.concat([1]));
-      var xFor = function(h){ return L + (h / 23) * (R - L); };
-      var yFor = function(v){ return B - (v / max) * (B - T); };
-      var ptsXY = totals.map(function(v, h){ return [xFor(h), yFor(v)]; });
-      var lineD = smoothPathD(ptsXY);
-      var areaD = lineD + ' L' + xFor(23).toFixed(1) + ',' + B + ' L' + xFor(0).toFixed(1) + ',' + B + ' Z';
-      el.innerHTML = '<path d="' + areaD + '" fill="url(#anHourlyFill)" stroke="none"/>' +
-        '<path d="' + lineD + '" fill="none" style="stroke:var(--series-1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
-      if(yaxisEl){
-        yaxisEl.innerHTML = '<text x="34" y="' + (T+4) + '" class="an-axis" text-anchor="end">' + fmtNum(Math.round(max)) + '</text>' +
-          '<text x="34" y="' + (B+4) + '" class="an-axis" text-anchor="end">0</text>';
-      }
-      if(axisEl){
-        var hourLabels = [0,4,8,12,16,20];
-        axisEl.innerHTML = hourLabels.map(function(h){
-          return '<text x="' + xFor(h).toFixed(1) + '" y="228" class="an-axis">' + String(h).padStart(2,'0') + ':00</text>';
-        }).join('');
-      }
-      if(noteEl){
-        var peakHour = 0;
-        for(var i=1;i<24;i++){ if(totals[i] > totals[peakHour]) peakHour = i; }
-        noteEl.textContent = totals[peakHour] > 0
-          ? ('Highest concentration around ' + String(peakHour).padStart(2,'0') + ':00.')
-          : 'No hourly data yet.';
-      }
-      var hourlyGrandTotal = totals.reduce(function(s,v){ return s+v; }, 0);
-      wireChartHover({
-        rectId: 'an-hourly-hover-rect', crosshairId: 'an-hourly-crosshair',
-        dotId: 'an-hourly-hover-dot', tooltipId: 'an-hourly-tooltip',
-        dateId: 'an-hourly-tooltip-date', valueId: 'an-hourly-tooltip-value',
-        getPoints: function(){ return ptsXY; },
-        getInfo: function(h){
-          var share = hourlyGrandTotal ? fmtPct((totals[h] / hourlyGrandTotal) * 100, 1) : '0%';
-          return { label: String(h).padStart(2,'0') + ':00', value: fmtNum(totals[h]) + ' alerts · ' + share + ' of day' };
+      var canvas = document.getElementById('an-chart-hourly');
+      if(!canvas) return;
+      if(hourlyChart){ hourlyChart.destroy(); hourlyChart = null; }
+      if(!months.length) return;
+      var labels = []; for(var h = 0; h < 24; h++) labels.push(String(h).padStart(2, '0') + ':00');
+      var gridColor = cssVar('--grid'), tickColor = cssVar('--muted');
+      var datasets = months.map(function(m, i){
+        var color = cssVar('--series-' + ((i % 8) + 1));
+        return {
+          label: monthLabel(m.month), data: m.hours || [], borderColor: color, backgroundColor:'transparent',
+          fill:false, tension:0.35, borderWidth:2, pointRadius:0, pointHitRadius:8, pointHoverRadius:5,
+          pointBackgroundColor: color
+        };
+      });
+      hourlyChart = new Chart(canvas, {
+        type:'line', data:{ labels: labels, datasets: datasets },
+        options:{
+          responsive:true, maintainAspectRatio:false, animation:{duration:300},
+          interaction:{mode:'index', intersect:false},
+          scales:{
+            x:{ grid:{color:gridColor, drawTicks:false}, ticks:{color:tickColor, font:{size:9}, maxRotation:0, autoSkip:true, maxTicksLimit:12} },
+            y:{ grid:{color:gridColor, drawTicks:false}, ticks:{color:tickColor, font:{size:10}}, beginAtZero:true }
+          },
+          onClick: function(evt, els){ if(els.length) setFilterDim('hour', els[0].index); },
+          onHover: function(evt, els){ evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+          plugins:{
+            legend:{ display: months.length > 1, position:'top', align:'end', labels:{color: cssVar('--muted'), boxWidth:9, boxHeight:2, font:{size:10}} },
+            tooltip:{
+              backgroundColor: cssVar('--card'), titleColor: cssVar('--text'), bodyColor: cssVar('--muted'),
+              borderColor: cssVar('--border'), borderWidth:1, padding:9, cornerRadius:8, displayColors:false,
+              callbacks:{ label:function(ctx){ return ' ' + ctx.dataset.label + ': ' + fmtNum(ctx.parsed.y) + ' alerts'; } }
+            }
+          }
         }
       });
-      // Click-to-filter (own listener, not part of the shared wireChartHover
-      // helper — that helper is reused by other pages' charts too, and its
-      // hover-only contract shouldn't grow an Analytics-specific side
-      // effect). Same nearest-point-by-x lookup wireChartHover uses
-      // internally, rebuilt here against this render's own `ptsXY` closure
-      // and re-bound on every call so a filter change's re-render doesn't
-      // click against stale data.
-      var hourlyRect = document.getElementById('an-hourly-hover-rect');
-      if(hourlyRect){
-        var oldHourClick = hourlyRect.__hourClickHandler;
-        if(oldHourClick) hourlyRect.removeEventListener('click', oldHourClick);
-        var hourClick = function(e){
-          var svg = hourlyRect.ownerSVGElement;
-          var pt = svg.createSVGPoint();
-          pt.x = e.clientX; pt.y = e.clientY;
-          var ctm = hourlyRect.getScreenCTM();
-          if(!ctm) return;
-          var svgX = pt.matrixTransform(ctm.inverse()).x;
-          var nearest = 0, nearestDist = Infinity;
-          for(var h = 0; h < ptsXY.length; h++){
-            var dist = Math.abs(ptsXY[h][0] - svgX);
-            if(dist < nearestDist){ nearestDist = dist; nearest = h; }
-          }
-          setFilterDim('hour', nearest);
-        };
-        hourlyRect.addEventListener('click', hourClick);
-        hourlyRect.__hourClickHandler = hourClick;
-      }
     }
-
-    var hourlyView = 'hour';
-    var hourlyLastCur = null;
-    function renderHourlyChart(cur){
-      hourlyLastCur = cur;
-      var hoverEls = ['an-hourly-crosshair','an-hourly-hover-dot'].map(function(id){ return document.getElementById(id); });
-      hoverEls.forEach(function(el){ if(el) el.style.display = hourlyView === 'month' ? 'none' : ''; });
-      if(hourlyView === 'month') renderHourlyMonthly(cur); else renderHourlyAverage(cur);
-    }
-    (function(){
-      var btnHour = document.getElementById('an-hourly-view-hour');
-      var btnMonth = document.getElementById('an-hourly-view-month');
-      function setView(view){
-        hourlyView = view;
-        if(btnHour) btnHour.classList.toggle('active', view === 'hour');
-        if(btnMonth) btnMonth.classList.toggle('active', view === 'month');
-        if(hourlyLastCur) renderHourlyChart(hourlyLastCur);
-      }
-      if(btnHour) btnHour.addEventListener('click', function(){ setView('hour'); });
-      if(btnMonth) btnMonth.addEventListener('click', function(){ setView('month'); });
-    })();
 
     // ==================== Alert Count by Sync Interval ====================
     var SYNC_LABELS = ['<3h','3-6h','6-8h','8-10h','10h+'];
@@ -6250,94 +5725,77 @@
     // change what they mean), so color encodes bucket identity — position
     // in the delay sequence — not which bar is currently biggest.
     var SYNC_ORD = ['var(--ord-1)','var(--ord-2)','var(--ord-3)','var(--ord-4)','var(--ord-5)'];
-    function renderSyncInterval(cur){
-      var buckets = cur.syncBuckets || { labels: SYNC_LABELS, actionable: [], nonActionable: [] };
-      var totals = SYNC_LABELS.map(function(_, i){
-        return (buckets.actionable[i] || 0) + (buckets.nonActionable[i] || 0);
-      });
-      var L = 40, R = 480, T = 25, B = 208;
+    // Shared plain-DOM bar-list renderer (dashboard v1.1.5's .bar-list) for
+    // the two fixed-band panels (Sync Interval, Alert Count Bucket) below.
+    // onClick is optional: Alert Count Bucket has no matching dds_metrics()
+    // filter param to narrow by (unlike Sync Interval's real p_sync_bucket),
+    // so it renders as an honest read-only breakdown rather than a control
+    // that looks clickable but silently does nothing.
+    function renderBandBarList(containerId, labels, totals, colors, activeIdx, onClick){
+      var el = document.getElementById(containerId);
+      if(!el) return;
+      if(!totals.some(function(v){ return v > 0; })){ el.innerHTML = '<div class="an-bar-list-empty">No data for this filter</div>'; return; }
       var peak = Math.max.apply(null, totals.concat([1]));
-      var barW = 42, gap = (R - L - SYNC_LABELS.length * barW) / (SYNC_LABELS.length + 1);
-      var barsEl = document.getElementById('an-sync-bars');
-      var axisEl = document.getElementById('an-sync-axis');
-      var syncGrandTotal = totals.reduce(function(s,v){ return s+v; }, 0);
-      if(barsEl){
-        barsEl.innerHTML = totals.map(function(v, i){
-          var h = Math.max((v / peak) * (B - T), 0);
-          var x = L + gap + i * (barW + gap);
-          var y = B - h;
-          var share = syncGrandTotal ? fmtPct((v / syncGrandTotal) * 100, 1) : '0%';
-          var isActive = filterState.syncBucket === i;
-          return '<path class="hbar' + (isActive ? ' active' : '') + '" tabindex="0" role="img" aria-label="' + esc(SYNC_LABELS[i]) + ' sync time, ' + v + ' events" ' +
-            'data-tip-label="' + esc(SYNC_LABELS[i]) + ' sync" data-tip-value="' + fmtNum(v) + ' alert' + (v===1?'':'s') + ' · ' + share + ' share" ' +
-            'data-sync-bucket="' + i + '" ' +
-            'd="' + roundTopRectPath(x, y, barW, h, 4) + '" style="fill:' + SYNC_ORD[i] + '"></path>';
-        }).join('');
-        wireBarHover({ containerId: 'an-sync-bars', tooltipId: 'an-sync-tooltip', dateId: 'an-sync-tooltip-date', valueId: 'an-sync-tooltip-value' });
-        barsEl.querySelectorAll('[data-sync-bucket]').forEach(function(bar){
-          bar.addEventListener('click', function(){
-            setFilterDim('syncBucket', Number(bar.getAttribute('data-sync-bucket')));
-          });
+      el.innerHTML = labels.map(function(label, i){
+        var v = totals[i] || 0;
+        var pct = Math.round((v / peak) * 100);
+        var isActive = activeIdx === i;
+        var attrs = onClick ? ' data-band-idx="' + i + '" style="cursor:pointer' + (isActive ? ';background:var(--surface2)' : '') + '"' : ' style="cursor:default"';
+        return '<div class="an-bar-row"' + attrs + '>' +
+          '<span class="an-bar-row-label">' + esc(label) + '</span>' +
+          '<span class="an-bar-row-track"><span class="an-bar-row-fill" style="width:' + pct + '%;background:' + colors[i] + '"></span></span>' +
+          '<span class="an-bar-row-value">' + fmtNum(v) + '</span>' +
+        '</div>';
+      }).join('');
+      if(onClick){
+        el.querySelectorAll('[data-band-idx]').forEach(function(row){
+          row.addEventListener('click', function(){ onClick(Number(row.getAttribute('data-band-idx'))); });
         });
       }
-      if(axisEl){
-        axisEl.innerHTML = SYNC_LABELS.map(function(label, i){
-          var x = L + gap + i * (barW + gap) + barW/2;
-          return '<text x="' + x.toFixed(1) + '" y="228" class="an-axis">' + esc(label) + '</text>';
-        }).join('');
-      }
-      var worstIdx = SYNC_LABELS.length - 1;
-      var noteEl = document.getElementById('an-sync-note');
-      if(noteEl){
-        var total = totals.reduce(function(s,v){ return s+v; }, 0);
-        var worstShare = total ? totals[worstIdx] / total : 0;
-        noteEl.textContent = (total > 0 && worstShare >= 0.1)
-          ? fmtNum(totals[worstIdx]) + ' event(s) (' + fmtPct(worstShare*100) + ') took over 10 hours to sync.'
-          : 'No events in the 10h+ sync bucket.';
-      }
+    }
+    function renderSyncInterval2(cur){
+      var buckets = cur.syncBuckets || { labels: SYNC_LABELS, actionable: [], nonActionable: [] };
+      var totals = SYNC_LABELS.map(function(_, i){ return (buckets.actionable[i] || 0) + (buckets.nonActionable[i] || 0); });
+      renderBandBarList('an-bl-sync', SYNC_LABELS, totals, SYNC_ORD, filterState.syncBucket, function(i){ setFilterDim('syncBucket', i); });
+    }
+    var ALERT_BUCKET_LABELS = ['<5','5-10','10-15','15-20','20+'];
+    var ALERT_BUCKET_COLORS = ['var(--ord-1)','var(--ord-2)','var(--ord-3)','var(--ord-4)','var(--ord-5)'];
+    function renderAlertBucket2(cur){
+      var buckets = cur.alertBuckets || { labels: ALERT_BUCKET_LABELS, actionable: [], nonActionable: [] };
+      var totals = ALERT_BUCKET_LABELS.map(function(_, i){ return (buckets.actionable[i] || 0) + (buckets.nonActionable[i] || 0); });
+      renderBandBarList('an-bl-bucket', ALERT_BUCKET_LABELS, totals, ALERT_BUCKET_COLORS, null, null);
     }
 
     // ==================== Alert Count by Driver / Alert Volume by Top Asset (ranked bar lists) ====================
-    function niceAxisMax(peak){
-      if(peak <= 0) return 1;
-      var mag = Math.pow(10, Math.floor(Math.log10(peak)));
-      var norm = peak / mag;
-      var step = norm <= 1 ? 1 : (norm <= 2 ? 2 : (norm <= 5 ? 5 : 10));
-      return step * mag;
-    }
-    // items: [{label, value, key}]. `key` (emp_no or asset id) drives the
-    // click-to-cross-filter selection and its active-row highlight; `kind`
-    // says which filterState field a click sets.
-    function renderRankedList(containerId, items, opts){
-      var body = document.getElementById(containerId);
-      if(!body) return;
+    // items: [{label, value, key, rank}]. `key` (emp_no or asset id) drives
+    // the click-to-cross-filter selection and its active-row highlight;
+    // `kind` says which filterState field a click sets. `rank` is the
+    // item's 0-based position in the TRUE descending-by-value order (not
+    // necessarily this array's own display order — see the High→Low/
+    // Low→High sort toggle below) so the top-5 amber highlight always
+    // means "5 largest values", never "whichever 5 happen to render first".
+    function renderRankedBarList(containerId, items, opts){
+      var el = document.getElementById(containerId);
+      if(!el) return;
       opts = opts || {};
-      if(!items.length){
-        body.innerHTML = '<div class="da-empty">' + esc(opts.emptyText || 'No data') + '</div>';
-        return;
-      }
-      var rawPeak = Math.max.apply(null, items.map(function(i){ return i.value; }).concat([1]));
-      var axisMax = niceAxisMax(rawPeak);
+      if(!items.length){ el.innerHTML = '<div class="an-bar-list-empty">' + esc(opts.emptyText || 'No data') + '</div>'; return; }
+      var peak = Math.max.apply(null, items.map(function(i){ return i.value; }).concat([1]));
       var activeKey = opts.kind === 'asset' ? filterState.assetId : filterState.empNo;
-      var rows = items.map(function(item){
-        var pct = Math.round((item.value / axisMax) * 100);
+      var accentColor = cssVar(opts.accentVar || '--red');
+      var topColor = cssVar('--orange');
+      el.innerHTML = items.map(function(item){
+        var pct = Math.round((item.value / peak) * 100);
         var isActive = activeKey != null && activeKey === item.key;
-        // Highest-count row (ties included) stands out in red — the rest
-        // stay the lighter default fill (see .an-rank-fill/.an-rank-
-        // fill.top) — rather than every row reading as the same uniform
-        // blue with no visual cue for which one is actually the standout.
-        var isTop = item.value === rawPeak && rawPeak > 0;
-        return '<div class="an-rank-row' + (isActive ? ' active' : '') + '" data-an-rank-key="' + esc(item.key) + '" title="Click to filter this page to ' + esc(item.label) + '"><span class="an-rank-name" title="' + esc(item.label) + '">' + esc(item.label) +
-          '</span><span class="an-rank-track"><span class="an-rank-fill' + (isTop ? ' top' : '') + '" style="width:' + pct + '%"></span></span>' +
-          '<span class="an-rank-value">' + fmtNum(item.value) + '</span></div>';
+        var color = item.rank < 5 ? topColor : accentColor;
+        return '<div class="an-bar-row" data-rank-key="' + esc(item.key) + '" style="cursor:pointer' + (isActive ? ';background:var(--surface2)' : '') + '" title="Click to filter this page to ' + esc(item.label) + '">' +
+          '<span class="an-bar-row-label">' + esc(item.label) + '</span>' +
+          '<span class="an-bar-row-track"><span class="an-bar-row-fill" style="width:' + pct + '%;background:' + color + '"></span></span>' +
+          '<span class="an-bar-row-value">' + fmtNum(item.value) + '</span>' +
+        '</div>';
       }).join('');
-      var ticks = [0, 0.25, 0.5, 0.75, 1].map(function(f){ return fmtNum(Math.round(axisMax * f)); });
-      body.innerHTML = '<div class="an-rank-list">' + rows + '</div>' +
-        '<div class="an-rank-axis">' + ticks.map(function(t){ return '<span>' + esc(t) + '</span>'; }).join('') + '</div>';
-      body.querySelectorAll('.an-rank-row').forEach(function(row){
+      el.querySelectorAll('[data-rank-key]').forEach(function(row){
         row.addEventListener('click', function(){
-          var key = row.getAttribute('data-an-rank-key');
-          setFilterDim(opts.kind === 'asset' ? 'assetId' : 'empNo', key);
+          setFilterDim(opts.kind === 'asset' ? 'assetId' : 'empNo', row.getAttribute('data-rank-key'));
         });
       });
     }
@@ -6400,31 +5858,63 @@
         return (res.data || {}).rows || [];
       });
     }
-    // Full ranked list (no Top-N cap), matching "Alerts by Unit"'s own
-    // renderTopAssets() below — per direct instruction, this list now
-    // behaves identically to that one rather than capping at a fixed size.
-    function renderTopDrivers(from, to){
+    // Full ranked list (no Top-N cap) — dashboard v1.1.5's Equipment/Driver
+    // panels show every unit/driver with alerts, scrolling within a fixed-
+    // height panel (.an-bar-list.scroll-y) rather than capping the list.
+    // Rows are cached so the High→Low/Low→High sort toggle can re-render
+    // instantly without a re-fetch.
+    var lastTopAssetsRows = [], lastTopDriversRows = [];
+    var equipSortDir = 'desc', driverSortDir = 'desc';
+    function itemsFromRows(rows, kind){
+      return rows.map(function(r, i){
+        var v = kind === 'asset' ? r.assetId : r.empNo;
+        return { label: v, value: r.total, key: v, rank: i };
+      });
+    }
+    function renderEquipmentList(){
+      var items = itemsFromRows(lastTopAssetsRows, 'asset');
+      if(equipSortDir === 'asc') items = items.slice().reverse();
+      renderRankedBarList('an-bl-equipment', items, { emptyText: 'No assets for this filter', kind: 'asset', accentVar: '--red' });
+    }
+    function renderDriverList(){
+      var items = itemsFromRows(lastTopDriversRows, 'driver');
+      if(driverSortDir === 'asc') items = items.slice().reverse();
+      renderRankedBarList('an-bl-driver', items, { emptyText: 'No driver data for this filter', kind: 'driver', accentVar: '--purple' });
+    }
+    function renderTopDrivers2(from, to){
       return fetchTopDrivers(from, to).then(function(rows){
-        var items = rows.map(function(r){ return { label: r.empNo, value: r.total, key: r.empNo }; });
-        renderRankedList('an-topdrivers-body', items,
-          { emptyText: 'No driver data for this filter', kind: 'driver' });
+        lastTopDriversRows = rows;
+        renderDriverList();
       }).catch(function(err){
         console.error('Top drivers fetch failed', err);
-        renderRankedList('an-topdrivers-body', [], { emptyText: 'Could not load driver data' });
+        lastTopDriversRows = [];
+        renderRankedBarList('an-bl-driver', [], { emptyText: 'Could not load driver data' });
       });
     }
-    function renderTopAssets(from, to){
+    function renderTopAssets2(from, to){
       return fetchTopAssets(from, to).then(function(rows){
-        var items = rows.map(function(r){ return { label: r.assetId, value: r.total, key: r.assetId }; });
-        renderRankedList('an-topassets-body', items,
-          { emptyText: 'No assets for this filter', kind: 'asset' });
-        renderMostAffectedUnit(rows);
+        lastTopAssetsRows = rows;
+        renderEquipmentList();
       }).catch(function(err){
         console.error('Top assets fetch failed', err);
-        renderRankedList('an-topassets-body', [], { emptyText: 'Could not load asset data' });
-        renderMostAffectedUnit([]);
+        lastTopAssetsRows = [];
+        renderRankedBarList('an-bl-equipment', [], { emptyText: 'Could not load asset data' });
       });
     }
+    document.querySelectorAll('[data-sort-target="assets"] .an-seg-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        equipSortDir = btn.getAttribute('data-sort');
+        document.querySelectorAll('[data-sort-target="assets"] .an-seg-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+        renderEquipmentList();
+      });
+    });
+    document.querySelectorAll('[data-sort-target="drivers"] .an-seg-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        driverSortDir = btn.getAttribute('data-sort');
+        document.querySelectorAll('[data-sort-target="drivers"] .an-seg-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+        renderDriverList();
+      });
+    });
 
     // ==================== Spike investigation (0157) ====================
     // The direct "is it driver-specific or fleet-wide, what was done about
@@ -6525,206 +6015,105 @@
       });
     });
 
-    // ==================== Alert Type Distribution (donut) ====================
-    // Grouped by real event code (cur.eventCodeDistribution), not severity
-    // tier — matches dashboard.jsx's AlertTypeDonutCard, which names each
-    // slice after its actual alert type. Colors come from severityBadge()'s
-    // per-tier palette so "Sleep Alert"/"Drowsiness Alert" keep the same
-    // red/amber meaning used elsewhere on this page; anything beyond the
-    // top 5 codes is folded into a real "Other" slice rather than dropped.
+    // ==================== Alert Type / Shift Distribution (Chart.js donuts) ====================
+    // Alert Type: grouped by real event code (cur.eventCodeDistribution),
+    // colored via severityBadge()'s per-tier palette so "Sleep Alert"/
+    // "Drowsiness Alert" keep the same red/amber meaning used elsewhere on
+    // this page; anything beyond the top 5 codes folds into a real "Other"
+    // slice rather than being dropped. Shift: cur.shiftDistribution
+    // (DAY/NIGHT), same var(--series-1)/var(--series-2) convention Overview
+    // already uses for Day/Night. Both replace the dashboard v1.1.5
+    // reference's Driver Tenure/Age donuts — this app has never tracked
+    // either field, and two donuts permanently stuck on "no data" would be
+    // worse than two dimensions the app actually has.
     var DONUT_OTHER_COLOR = '#c7ccd9';
-    function renderAlertTypeDonut(cur){
+    var donutCharts = {};
+    function renderDonutChart2(canvasId, totalId, legendId, slices, opts){
+      opts = opts || {};
+      var canvas = document.getElementById(canvasId);
+      if(!canvas) return;
+      if(donutCharts[canvasId]){ donutCharts[canvasId].destroy(); delete donutCharts[canvasId]; }
+      var total = slices.reduce(function(s, x){ return s + x.value; }, 0);
+      var totalEl = document.getElementById(totalId);
+      if(totalEl) totalEl.textContent = fmtNum(total);
+      var legendEl = document.getElementById(legendId);
+      if(!total){ if(legendEl) legendEl.innerHTML = '<div class="an-bar-list-empty">No data for this filter</div>'; return; }
+      var nonZero = slices.filter(function(s){ return s.value > 0; });
+      donutCharts[canvasId] = new Chart(canvas, {
+        type:'doughnut',
+        data:{ labels: nonZero.map(function(s){ return s.name; }), datasets:[{
+          data: nonZero.map(function(s){ return s.value; }),
+          backgroundColor: nonZero.map(function(s){ return s.color; }),
+          borderColor: cssVar('--card'), borderWidth: 2, hoverOffset: 4
+        }] },
+        options:{
+          responsive:true, maintainAspectRatio:false, cutout:'62%', animation:{duration:300},
+          plugins:{
+            legend:{ display:false },
+            tooltip:{
+              backgroundColor: cssVar('--card'), titleColor: cssVar('--text'), bodyColor: cssVar('--muted'),
+              borderColor: cssVar('--border'), borderWidth:1, padding:9, cornerRadius:8, displayColors:false,
+              callbacks:{ label:function(ctx){ return ' ' + ctx.label + ': ' + fmtNum(ctx.parsed) + ' (' + Math.round(ctx.parsed / total * 100) + '%)'; } }
+            }
+          },
+          onClick: function(evt, els){
+            if(!els.length || !opts.onSliceClick) return;
+            var slice = nonZero[els[0].index];
+            if(slice.clickable !== false) opts.onSliceClick(slice);
+          },
+          onHover: function(evt, els){ if(opts.onSliceClick) evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; }
+        }
+      });
+      if(legendEl){
+        legendEl.innerHTML = nonZero.map(function(s){
+          var pct = Math.round(s.value / total * 100);
+          var clickAttrs = opts.onSliceClick && s.clickable !== false ? ' data-legend-slice="' + esc(s.code || s.name) + '" style="cursor:pointer"' : '';
+          return '<div class="an-donut-legend2-row"' + clickAttrs + '>' +
+            '<span class="an-donut-legend2-dot" style="background:' + s.color + '"></span>' +
+            '<span class="an-donut-legend2-label">' + esc(s.name) + '</span>' +
+            '<span class="an-donut-legend2-value">' + fmtNum(s.value) + '<span class="pct">(' + pct + '%)</span></span>' +
+          '</div>';
+        }).join('');
+        if(opts.onSliceClick){
+          legendEl.querySelectorAll('[data-legend-slice]').forEach(function(row){
+            row.addEventListener('click', function(){
+              var code = row.getAttribute('data-legend-slice');
+              var slice = nonZero.filter(function(s){ return (s.code || s.name) === code; })[0];
+              if(slice) opts.onSliceClick(slice);
+            });
+          });
+        }
+      }
+    }
+    function renderAlertTypeDonut2(cur){
       var all = (cur.eventCodeDistribution || []).slice().sort(function(a,b){ return b.units - a.units; });
-      var arcsEl = document.getElementById('an-donut-arcs');
-      var totalEl = document.getElementById('an-donut-total');
-      var legendEl = document.getElementById('an-donut-legend');
-      if(!arcsEl) return;
       var top = all.slice(0, 5);
       var rest = all.slice(5).reduce(function(s,c){ return s + c.units; }, 0);
       var slices = top.map(function(c){ return { name: c.code || 'Other', value: c.units, color: severityBadge(c.code).color, code: c.code, clickable: true }; });
-      if(rest > 0) slices.push({ name: 'Other', value: rest, color: DONUT_OTHER_COLOR, code: null, clickable: false });
-      var total = slices.reduce(function(s,c){ return s + c.value; }, 0);
-      if(totalEl) totalEl.textContent = fmtNum(cur.kpis ? cur.kpis.totalAlerts : total);
-      if(!total){ arcsEl.innerHTML = ''; if(legendEl) legendEl.textContent = 'No event data.'; return; }
-      var cx = 95, cy = 95, r = 62, innerR = 42;
-      var startAngle = -90;
-      var paths = slices.filter(function(s){ return s.value > 0; }).map(function(s){
-        var frac = s.value / total;
-        // A slice at exactly 100% share puts the arc's start and end point
-        // at the same coordinate — SVG's arc command needs two distinct
-        // points to know which way to sweep, so a true 360° sweep silently
-        // renders as nothing. Capping just under a full circle keeps the
-        // endpoints distinct while being visually indistinguishable from a
-        // complete ring.
-        var sweep = Math.min(frac * 360, 359.99);
-        var endAngle = startAngle + sweep;
-        var large = (endAngle - startAngle) > 180 ? 1 : 0;
-        var toXY = function(angle, rad){
-          var t = angle * Math.PI / 180;
-          return [cx + rad * Math.cos(t), cy + rad * Math.sin(t)];
-        };
-        var o1 = toXY(startAngle, r), o2 = toXY(endAngle, r);
-        var i1 = toXY(endAngle, innerR), i2 = toXY(startAngle, innerR);
-        var d = 'M' + o1[0].toFixed(1) + ' ' + o1[1].toFixed(1) +
-          ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + o2[0].toFixed(1) + ' ' + o2[1].toFixed(1) +
-          ' L' + i1[0].toFixed(1) + ' ' + i1[1].toFixed(1) +
-          ' A' + innerR + ' ' + innerR + ' 0 ' + large + ' 0 ' + i2[0].toFixed(1) + ' ' + i2[1].toFixed(1) + ' Z';
-        startAngle = endAngle;
-        // Selected slice keeps its real color; every other slice (the
-        // aggregated "Other" wedge included) dims — same "highlight the
-        // selection, fade the rest" treatment as the sync bars/rank rows,
-        // rather than only outlining the one that's picked.
-        var isDimmed = filterState.eventCode != null && s.code !== filterState.eventCode;
-        var classes = [];
-        if(s.clickable) classes.push('an-donut-arc-click');
-        if(isDimmed) classes.push('an-donut-arc-dimmed');
-        var attrs = s.clickable ? ' data-donut-code="' + esc(s.code) + '"' : '';
-        return '<path class="' + classes.join(' ') + '" d="' + d + '" fill="' + s.color + '"' + attrs + '/>';
+      if(rest > 0) slices.push({ name:'Other', value: rest, color: DONUT_OTHER_COLOR, code:null, clickable:false });
+      renderDonutChart2('an-donut-type', 'an-donut-type-total', 'an-donut-type-legend', slices, {
+        onSliceClick: function(s){ setFilterDim('eventCode', s.code); }
       });
-      arcsEl.innerHTML = paths.join('');
-      arcsEl.querySelectorAll('[data-donut-code]').forEach(function(path){
-        path.addEventListener('click', function(){
-          setFilterDim('eventCode', path.getAttribute('data-donut-code'));
-        });
-      });
-      if(legendEl){
-        legendEl.innerHTML = slices.map(function(s){
-          var pct = total ? Math.round(s.value/total*100) : 0;
-          return '<div class="an-donut-legend-row"><span class="an-donut-legend-name"><i style="background:' + s.color + '"></i>' + esc(s.name) + '</span>' +
-            '<span class="an-donut-legend-val">' + fmtNum(s.value) + ' <b>(' + pct + '%)</b></span></div>';
-        }).join('');
-      }
     }
-
-    // ==================== Contributing Factors ====================
-    // Per user decision: group by REAL factor_type (3 possible values —
-    // 'Power Interruption'/'Weather Condition'/'Others' — confirmed against
-    // the contributing_factors schema), not the mock's original 7 fabricated
-    // category labels which have no real backing taxonomy. Day-level
-    // approximation (trend[] date overlap vs. factor start/end), not a raw
-    // events row fetch — index.html's own factorImpact() matches individual
-    // alert timestamps using already-loaded local data, which this mock has
-    // no equivalent of; per user decision, day-grain here avoids downloading
-    // raw rows, matching the master prompt's server-side-aggregation rule.
-    // Shared by computeFactorImpact() below and the Alert Trend chart's own
-    // factor-band overlay (setupTrendFactors/renderTrendFactorBands) — same
-    // day-level approximation (trend[] date vs. factor start/end), one
-    // definition of "was this factor active on this day" for both.
-    function factorToDate(mdy){
-      var p = mdy.split('/');
-      return new Date(Number(p[2]), Number(p[0])-1, Number(p[1]));
-    }
-    function factorActiveOnDay(dayDate, f){
-      var start = new Date(f.start_time); start.setHours(0,0,0,0);
-      var end = f.end_time ? new Date(f.end_time) : new Date();
-      end.setHours(0,0,0,0);
-      return dayDate.getTime() >= start.getTime() && dayDate.getTime() <= end.getTime();
-    }
-    function computeFactorImpact(cur, factors){
-      var trend = cur.trend || [];
-      if(!factors.length || !trend.length) return null;
-      var byCategory = {};
-      factors.forEach(function(f){ byCategory[f.factor_type] = byCategory[f.factor_type] || []; byCategory[f.factor_type].push(f); });
-
-      var baselineUnits = 0, baselineDays = 0;
-      trend.forEach(function(t){
-        var dayDate = factorToDate(t.date);
-        var inAny = factors.some(function(f){ return factorActiveOnDay(dayDate, f); });
-        if(inAny) return;
-        baselineUnits += t.units; baselineDays++;
-      });
-      var baselineRate = baselineDays ? baselineUnits / baselineDays : 0;
-
-      var categories = Object.keys(byCategory).map(function(cat){
-        var fList = byCategory[cat];
-        var units = 0, days = 0;
-        trend.forEach(function(t){
-          var dayDate = factorToDate(t.date);
-          if(fList.some(function(f){ return factorActiveOnDay(dayDate, f); })){ units += t.units; days++; }
-        });
-        var rate = days ? units / days : 0;
-        var ratio = baselineRate > 0 ? rate / baselineRate : (rate > 0 ? Infinity : 0);
-        return { category: cat, rate: rate, ratio: ratio, elevated: baselineRate > 0 && ratio >= 1.2 };
-      });
-      return { categories: categories, baselineRate: baselineRate };
-    }
-    // Table presentation (reference-image format: Factor / Impact / Correlation / Details)
-    // replacing the previous grouped-bar chart — same real computeFactorImpact()
-    // categories, just a different, more scannable layout. Impact badge is a
-    // High/Medium/Low bucket of the real ratio-vs-baseline (elevated>=1.2x plus
-    // magnitude), not an invented value; "View details" expands the same
-    // baseline-comparison sentence the old chart's note used, inline per row.
-    function impactBadge(c){
-      if(c.elevated && c.ratio >= 1.5) return { tier:'high', label:'High' };
-      if(c.elevated) return { tier:'medium', label:'Medium' };
-      return { tier:'low', label:'Low' };
-    }
-    function renderFactorImpact(cur, factors){
-      var body = document.getElementById('an-factors-body');
-      if(!body) return;
-      var result = computeFactorImpact(cur, factors);
-      if(!result || !result.categories.length){
-        body.innerHTML = '<div class="an-factors-empty"><div class="an-factors-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="an-factors-empty-text">No contributing factors logged yet.</div></div>';
-        return;
-      }
-      var cats = result.categories.slice().sort(function(a,b){ return b.rate - a.rate; });
-      var rows = cats.map(function(c, i){
-        var badge = impactBadge(c);
-        var corr = isFinite(c.ratio) ? c.ratio.toFixed(2) : '—';
-        var detail = c.elevated
-          ? (esc(c.category) + ' days average ' + c.rate.toFixed(1) + ' alerts/day, vs a ' + result.baselineRate.toFixed(1) + '/day baseline on other days — associated with higher alerts, not necessarily the cause.')
-          : (esc(c.category) + ' runs at or below the ' + result.baselineRate.toFixed(1) + '/day baseline.');
-        return '<tr>' +
-          '<td>' + esc(c.category) + '</td>' +
-          '<td><span class="an-impact-badge ' + badge.tier + '">' + badge.label + '</span></td>' +
-          '<td>' + corr + '</td>' +
-          '<td><button type="button" class="an-factor-link" data-factor-row="' + i + '">View details</button></td>' +
-          '</tr>' +
-          '<tr class="an-factor-detail-row" id="an-factor-detail-' + i + '" style="display:none"><td colspan="4" class="an-factor-detail">' + detail + '</td></tr>';
-      }).join('');
-      body.innerHTML = '<table class="an-factor-table"><thead><tr><th>Factor</th><th>Impact</th><th>Ratio vs. baseline</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
-      body.querySelectorAll('[data-factor-row]').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          var row = document.getElementById('an-factor-detail-' + btn.getAttribute('data-factor-row'));
-          if(row) row.style.display = row.style.display === 'none' ? '' : 'none';
-        });
+    function renderShiftDonut2(cur){
+      var d = cur.shiftDistribution || {};
+      var slices = [
+        { name:'Day', value: (d.DAY && d.DAY.units) || 0, color: cssVar('--series-1'), code:'DAY', clickable:true },
+        { name:'Night', value: (d.NIGHT && d.NIGHT.units) || 0, color: cssVar('--series-2'), code:'NIGHT', clickable:true }
+      ];
+      renderDonutChart2('an-donut-shift', 'an-donut-shift-total', 'an-donut-shift-legend', slices, {
+        onSliceClick: function(s){ setFilterDim('shift', s.code); }
       });
     }
 
     // ==================== Recent Alerts Overview (page-local preview — Alert Logs owns the full paginated table) ====================
-    var recentAlertsSort = { key: null, dir: 'desc' };
-    var recentAlertsLastCur = null;
-    function renderRecentAlerts(cur){
-      recentAlertsLastCur = cur;
+    function renderRecentAlerts2(cur){
       var body = document.getElementById('an-recent-alerts-body');
       if(!body) return;
-      var all = cur.recentAlerts || [];
-      var rows = all.slice(0, 8);
-      var showingEl = document.getElementById('an-recent-alerts-showing');
-      if(showingEl) showingEl.textContent = rows.length ? ('Showing 1 to ' + rows.length + ' of ' + fmtNum(all.length) + ' entries') : '—';
+      var rows = (cur.recentAlerts || []).slice(0, 8);
       if(!rows.length){
         body.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:14px 10px">No alerts recorded.</td></tr>';
         return;
-      }
-      // Client-side sort: this widget's own data is already the full,
-      // server-bounded top-list (dds_metrics()'s recentAlerts, capped at
-      // 8 server-side) rather than a paginated fetch, so re-sorting what's
-      // already in hand needs no round trip — unlike the real Alert Logs
-      // table this one links to via "View all alerts", which sorts server-
-      // side because it isn't bounded the same way.
-      var sortKey = recentAlertsSort.key, sortDir = recentAlertsSort.dir;
-      if(sortKey){
-        rows = rows.slice().sort(function(a, b){
-          var av = sortKey === 'time' ? new Date(a.time || 0).getTime()
-            : sortKey === 'count' ? (a.count || 0)
-            : String(a[sortKey] || '').toLowerCase();
-          var bv = sortKey === 'time' ? new Date(b.time || 0).getTime()
-            : sortKey === 'count' ? (b.count || 0)
-            : String(b[sortKey] || '').toLowerCase();
-          if(av < bv) return sortDir === 'asc' ? -1 : 1;
-          if(av > bv) return sortDir === 'asc' ? 1 : -1;
-          return 0;
-        });
       }
       body.innerHTML = rows.map(function(r){
         var t = r.time ? new Date(r.time) : null;
@@ -6739,93 +6128,46 @@
           '<td>' + esc(r.shift === 'NIGHT' ? 'Night' : 'Day') + '</td>' +
           '</tr>';
       }).join('');
-      document.querySelectorAll('.an-alerts-table th[data-sort]').forEach(function(th){
-        var col = th.getAttribute('data-sort');
-        th.classList.toggle('sorted', col === sortKey);
-        th.classList.toggle('asc', col === sortKey && sortDir === 'asc');
-      });
     }
-    document.querySelectorAll('.an-alerts-table th[data-sort]').forEach(function(th){
-      th.addEventListener('click', function(){
-        var col = th.getAttribute('data-sort');
-        if(recentAlertsSort.key === col) recentAlertsSort.dir = recentAlertsSort.dir === 'asc' ? 'desc' : 'asc';
-        else { recentAlertsSort.key = col; recentAlertsSort.dir = col === 'time' || col === 'count' ? 'desc' : 'asc'; }
-        if(recentAlertsLastCur) renderRecentAlerts(recentAlertsLastCur);
-      });
-    });
 
     // ==================== orchestration ====================
+    var analyticsLastCur = null;
     function signedOutState(){
-      var kpiRow = document.getElementById('an-kpi-row');
-      if(kpiRow){
-        ['total','units','sync','ratio','drivers'].forEach(function(key){
-          var v = document.getElementById('an-kpi-' + key + '-value');
-          var c = document.getElementById('an-kpi-' + key + '-change');
-          if(v) v.textContent = '—';
-          if(c) c.textContent = 'Sign in to load real data';
-        });
-      }
-      ['an-topdrivers-body','an-topassets-body'].forEach(function(id){
+      var grid = document.getElementById('an-kpi-grid');
+      if(grid) grid.innerHTML = '<div class="an-bar-list-empty" style="grid-column:1/-1">Sign in to load real data.</div>';
+      ['an-bl-equipment','an-bl-driver','an-bl-sync','an-bl-bucket'].forEach(function(id){
         var el = document.getElementById(id);
-        if(el) el.innerHTML = '<div class="da-empty">Sign in to load real data.</div>';
+        if(el) el.innerHTML = '<div class="an-bar-list-empty">Sign in to load real data.</div>';
       });
-      var factorsBody = document.getElementById('an-factors-body');
-      if(factorsBody) factorsBody.innerHTML = '<div class="da-empty">Sign in to load real data.</div>';
       var alertsBody = document.getElementById('an-recent-alerts-body');
       if(alertsBody) alertsBody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:14px 10px">Sign in to load real data.</td></tr>';
-      var donutLegend = document.getElementById('an-donut-legend');
-      if(donutLegend) donutLegend.textContent = 'Sign in to load real data.';
+      ['an-donut-type-legend','an-donut-shift-legend'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.innerHTML = '<div class="an-bar-list-empty">Sign in to load real data.</div>';
+      });
     }
     function errorState(err){
-      // an-synced-note (the removed "Key Insights"/"Data synced" header)
-      // used to be where a total fetch failure surfaced — with it gone,
-      // this now uses the same "replace the primary content with the
-      // error" idiom every other page/panel in this app already uses.
-      var kpiRow = document.getElementById('an-kpi-row');
-      if(kpiRow) kpiRow.innerHTML = '<div class="da-empty" style="padding:30px 0;color:#c0271f">Could not load: ' + esc((err && err.message) || 'unknown error') + '</div>';
+      var grid = document.getElementById('an-kpi-grid');
+      if(grid) grid.innerHTML = '<div class="an-bar-list-empty" style="grid-column:1/-1;color:#c0271f">Could not load: ' + esc((err && err.message) || 'unknown error') + '</div>';
     }
-    // Audit finding: dds_metrics() feeds SIX cards (KPIs, Alert Trend, Hourly
-    // Trend, Alert Sync Time, Alert Type Distribution, Recent Alerts) plus
-    // Contributing Factors — but load() used to await it and
-    // contributing_factors together in one Promise.all, so EITHER one
-    // failing left every one of those cards frozen on its initial
-    // "Loading…" markup forever, with only the KPI row ever told about the
-    // failure. Each card below now gets its own explicit error state,
-    // reusing the exact same idioms already used elsewhere on this page
-    // for the "no data yet" case (the .an-note span under each chart, the
-    // red table-row pattern) rather than inventing a new one.
+    // Each card below gets its own explicit error state (rather than one
+    // shared failure freezing every card on its initial "Loading…" markup
+    // forever) — same idiom this page already used before this redesign.
     function metricsErrorState(err){
       var msg = 'Could not load: ' + esc((err && err.message) || 'unknown error');
       errorState(err);
-      ['an-trend-lines','an-trend-axis','an-trend-yaxis-alerts','an-trend-yaxis-hours'].forEach(function(id){
-        var el = document.getElementById(id); if(el) el.innerHTML = '';
+      ['an-bl-equipment','an-bl-driver','an-bl-sync','an-bl-bucket'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.innerHTML = '<div class="an-bar-list-empty" style="color:#c0271f">' + msg + '</div>';
       });
-      var trendNote = document.getElementById('an-trend-note');
-      if(trendNote){ trendNote.textContent = msg; trendNote.style.color = '#c0271f'; }
-      ['an-hourly-lines','an-hourly-axis','an-hourly-yaxis'].forEach(function(id){
-        var el = document.getElementById(id); if(el) el.innerHTML = '';
+      ['an-donut-type-legend','an-donut-shift-legend'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.innerHTML = '<div class="an-bar-list-empty" style="color:#c0271f">' + msg + '</div>';
       });
-      var hourlyNote = document.getElementById('an-hourly-note');
-      if(hourlyNote){ hourlyNote.textContent = msg; hourlyNote.style.color = '#c0271f'; }
-      ['an-sync-bars','an-sync-axis'].forEach(function(id){
-        var el = document.getElementById(id); if(el) el.innerHTML = '';
-      });
-      var syncNote = document.getElementById('an-sync-note');
-      if(syncNote){ syncNote.textContent = msg; syncNote.style.color = '#c0271f'; }
-      var donutArcs = document.getElementById('an-donut-arcs');
-      if(donutArcs) donutArcs.innerHTML = '';
-      var donutTotal = document.getElementById('an-donut-total');
-      if(donutTotal) donutTotal.textContent = '—';
-      var donutLegend = document.getElementById('an-donut-legend');
-      if(donutLegend) donutLegend.textContent = msg;
-      var donutNote = document.getElementById('an-donut-note');
-      if(donutNote){ donutNote.textContent = msg; donutNote.style.color = '#c0271f'; }
       var alertsBody = document.getElementById('an-recent-alerts-body');
       if(alertsBody) alertsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#c0271f;padding:14px 10px">' + msg + '</td></tr>';
-    }
-    function factorsErrorState(err){
-      var body = document.getElementById('an-factors-body');
-      if(body) body.innerHTML = '<div class="da-empty" style="color:#c0271f">Could not load: ' + esc((err && err.message) || 'unknown error') + '</div>';
+      if(trendChart){ trendChart.destroy(); trendChart = null; }
+      if(hourlyChart){ hourlyChart.destroy(); hourlyChart = null; }
     }
 
     function toMDY(d){ return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + '/' + d.getFullYear(); }
@@ -6873,12 +6215,10 @@
         var prevPeriodEnd = new Date(winFrom); prevPeriodEnd.setDate(prevPeriodEnd.getDate()-1);
         var prevPeriodStart = new Date(prevPeriodEnd); prevPeriodStart.setDate(prevPeriodStart.getDate()-(spanDays-1));
 
-        // dds_metrics and contributing_factors now settle independently —
-        // each of the 7 cards that depend on one or the other gets its own
-        // error state instead of every card sharing one Promise.all that
-        // used to freeze all of them on "Loading…" if either fetch failed.
-        // Top Drivers/Top Assets already catch their own errors internally
-        // (renderTopDrivers/renderTopAssets never reject) so they're
+        // Each card below gets its own explicit error state instead of one
+        // shared failure freezing all of them on "Loading…". Top Drivers/
+        // Top Assets already catch their own errors internally
+        // (renderTopDrivers2/renderTopAssets2 never reject) so they're
         // unaffected either way and still fire immediately below.
         var metricsResult = fetchMetrics(toMDY(winFrom), toMDY(winTo)).then(function(cur){
           return { ok: true, cur: cur };
@@ -6886,23 +6226,20 @@
           console.error('Analytics metrics fetch failed', err);
           return { ok: false, err: err };
         });
-        var factorsResult = fetchFactors().then(function(factors){
-          return { ok: true, factors: factors };
-        }).catch(function(err){
-          console.error('Analytics contributing-factors fetch failed', err);
-          return { ok: false, err: err };
-        });
 
         metricsResult.then(function(m){
           if(!guard.isCurrent(token)) return;
           if(!m.ok){ metricsErrorState(m.err); return; }
           var cur = m.cur;
-          renderTrend(cur);
-          renderHourlyChart(cur);
-          renderSyncInterval(cur);
-          renderAlertTypeDonut(cur);
-          renderRecentAlerts(cur);
-          renderKpis(cur, null, spanDays);
+          analyticsLastCur = cur;
+          renderTrendChart2(cur);
+          renderHourlyChart2(cur);
+          renderSyncInterval2(cur);
+          renderAlertBucket2(cur);
+          renderAlertTypeDonut2(cur);
+          renderShiftDonut2(cur);
+          renderRecentAlerts2(cur);
+          renderKpis2(cur, null, spanDays);
 
           // Comparison window: the same span length immediately before the
           // primary window above — a real like-for-like delta, not a
@@ -6912,31 +6249,19 @@
           // of the page already rendered from `cur` above.
           fetchMetrics(toMDY(prevPeriodStart), toMDY(prevPeriodEnd)).then(function(p7){
             if(!guard.isCurrent(token)) return;
-            renderKpis(cur, p7, spanDays);
+            renderKpis2(cur, p7, spanDays);
           }).catch(function(err){
             if(!guard.isCurrent(token)) return;
             console.warn('Analytics comparison fetch failed — showing KPIs without deltas', err);
           });
         });
 
-        // Contributing Factors needs BOTH cur.trend and factors, so it
-        // waits on both settled results and shows its own specific error if
-        // either failed, without blocking the cards above (which only need
-        // cur and already rendered by the time this resolves).
-        Promise.all([metricsResult, factorsResult]).then(function(results){
-          if(!guard.isCurrent(token)) return;
-          var m = results[0], f = results[1];
-          if(!m.ok){ factorsErrorState(m.err); clearTrendFactors(); }
-          else if(!f.ok){ factorsErrorState(f.err); clearTrendFactors(); }
-          else { renderFactorImpact(m.cur, f.factors); setupTrendFactors(m.cur, f.factors); }
-        });
-
-        var topDriversResult = renderTopDrivers(toISO(winFrom), toISO(winTo));
-        var topAssetsResult = renderTopAssets(toISO(winFrom), toISO(winTo));
+        var topDriversResult = renderTopDrivers2(toISO(winFrom), toISO(winTo));
+        var topAssetsResult = renderTopAssets2(toISO(winFrom), toISO(winTo));
         var spikeResult = renderSpikeInvestigation(toISO(winFrom), toISO(winTo));
 
         // Hides the spinner once every fetch this click/dropdown change
-        // kicked off has settled (renderTopDrivers/renderTopAssets/
+        // kicked off has settled (renderTopDrivers2/renderTopAssets2/
         // renderSpikeInvestigation already never reject, so this always
         // resolves — it doesn't need its own .catch). The secondary
         // comparison-window fetch above is left out on purpose: it only
@@ -6944,7 +6269,7 @@
         // "non-fatal, degrades gracefully" reasoning as its own comment
         // gives, so waiting on it would just make the spinner linger for a
         // fetch nothing is visibly waiting on.
-        Promise.all([metricsResult, factorsResult, topDriversResult, topAssetsResult, spikeResult]).then(function(){
+        Promise.all([metricsResult, topDriversResult, topAssetsResult, spikeResult]).then(function(){
           if(guard.isCurrent(token)) hideAnalyticsLoading();
         });
       }).catch(function(err){
@@ -7095,6 +6420,21 @@
         search: filterState.empNo || filterState.assetId || ''
       });
     });
+
+    // Chart.js canvases bake colors in at render time (getComputedStyle via
+    // cssVar()) — unlike this app's hand-rolled SVG charts elsewhere, which
+    // pick up var(--x) live through the CSS cascade, a canvas won't repaint
+    // itself when Dark mode toggles. Re-rendering the 4 Chart.js visuals
+    // here (from the already-fetched analyticsLastCur, no re-fetch) on any
+    // data-theme change keeps them in sync regardless of which page (this
+    // one, Settings, or the sidebar toggle directly) flipped it.
+    new MutationObserver(function(){
+      if(!analyticsLastCur) return;
+      renderTrendChart2(analyticsLastCur);
+      renderHourlyChart2(analyticsLastCur);
+      renderAlertTypeDonut2(analyticsLastCur);
+      renderShiftDonut2(analyticsLastCur);
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     // Phase 8: re-fetch on every nav to this page — see window.__ddsPageLoad.
     window.__ddsPageLoad.analytics = load;

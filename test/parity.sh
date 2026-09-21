@@ -182,6 +182,15 @@ js=norm(json.load(open(sys.argv[1]))); sq=norm(json.load(open(sys.argv[2])))
 # trend[].alertsPerOperatingHour/stillArriving are SQL-only for the same
 # reason as operatingHours above: both are derived from minestat_shifts
 # data (0109/0110), which derive() has no input for at all.
+#
+# kpis.avgAlertDurationSeconds/trend[].avgDurationSeconds (0161) are SQL-only
+# for a different reason than the above: unlike operatingHours, derive()'s
+# own DDS-row input DOES carry start/end times an equivalent could be
+# computed from — but nothing in this codebase calls derive() for anything
+# but the historical local-import preview, which has no consumer for a
+# duration figure, so it was never extended to match. SQL-only by omission,
+# not by structural impossibility; add a JS-side equivalent if a consumer
+# for it in that path ever appears.
 for t in (sq.get('trend') or []):
     t.pop('operatingHours', None)
     t.pop('actionableRatio', None)
@@ -190,6 +199,7 @@ for t in (sq.get('trend') or []):
     t.pop('criticalUnits', None)
     t.pop('highUnits', None)
     t.pop('stillArriving', None)
+    t.pop('avgDurationSeconds', None)
 for t in (js.get('trend') or []):
     t.pop('operators', None)
     t.pop('sleep', None)
@@ -200,6 +210,7 @@ for t in (js.get('trend') or []):
 for d in (js.get('kpis') or {}), (sq.get('kpis') or {}):
     d.pop('distinctOperators', None)
 sq.get('kpis', {}).pop('alertsPerOperatingHour', None)
+sq.get('kpis', {}).pop('avgAlertDurationSeconds', None)
 # meta.stillArrivingThresholdDays (0110) is a server-side config constant
 # (a threshold, not a derived value) with no equivalent concept in a
 # one-shot local import; SQL-only by design.
