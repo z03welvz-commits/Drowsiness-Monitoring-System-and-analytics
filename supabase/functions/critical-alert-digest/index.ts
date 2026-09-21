@@ -94,7 +94,11 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  const fromAddress = Deno.env.get("ALERT_DIGEST_FROM") || "alerts@resend.dev";
+  // onboarding@resend.dev is Resend's own documented sandbox sender — the
+  // only address that works with just an API key, before any sending
+  // domain has been verified. ALERT_DIGEST_FROM overrides it once a real
+  // domain (and address on it) is verified in the Resend dashboard.
+  const fromAddress = Deno.env.get("ALERT_DIGEST_FROM") || "onboarding@resend.dev";
 
   if (!resendApiKey) {
     return jsonResponse({ error: "MISSING_RESEND_API_KEY" }, 500);
