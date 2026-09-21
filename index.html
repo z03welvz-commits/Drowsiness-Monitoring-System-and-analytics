@@ -3406,7 +3406,7 @@
               <span class="se-pref-icon" style="background:#e3edfd;color:#3b7cf6" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span>
               <div class="se-pref-text">
                 <div class="se-pref-label">Sound</div>
-                <div class="se-pref-sub">Play a chime for new critical and high-severity alerts</div>
+                <div class="se-pref-sub">Plays a confirmation chime when turned on. Alert-triggered sound while the app is in the background isn't built yet.</div>
               </div>
               <div class="se-pref-control">
                 <span class="se-field-hint" id="se-sound-state">On</span>
@@ -3418,7 +3418,7 @@
               <span class="se-pref-icon" style="background:#fdf0dc;color:#e8952e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span>
               <div class="se-pref-text">
                 <div class="se-pref-label">Brightness</div>
-                <div class="se-pref-sub">Adjust display brightness for this session</div>
+                <div class="se-pref-sub">Dims the main content area — handy for a control room at night. Saved to your account.</div>
               </div>
               <div class="se-pref-control">
                 <div class="se-brightness">
@@ -3481,20 +3481,21 @@
         <section class="card">
           <div class="se-card-head">
             <div>
-              <h3 class="se-card-title">Critical Alert Recipients</h3>
-              <div class="se-card-sub">Everyone listed here gets an email within minutes of a new critical drowsiness event</div>
+              <h3 class="se-card-title">Critical Alert Recipients <span class="se-wip-badge">Draft</span></h3>
+              <div class="se-card-sub">Everyone listed here will get an email within minutes of a new critical drowsiness event, once email delivery is finished being set up</div>
             </div>
           </div>
           <div class="se-users-toolbar">
             <span class="se-users-count" id="se-alertrecip-count">Loading…</span>
           </div>
-          <div class="se-field-row" id="se-alertrecip-addrow" style="display:none;grid-template-columns:1fr auto;align-items:end;margin-bottom:16px">
+          <div class="se-field-row" id="se-alertrecip-addrow" style="display:none;grid-template-columns:1fr auto;align-items:end;margin-bottom:8px">
             <div class="se-field">
               <label for="se-alertrecip-email">Add recipient</label>
               <input type="email" id="se-alertrecip-email" placeholder="name@example.com" autocomplete="off" />
             </div>
             <button class="se-btn-primary" type="button" id="se-alertrecip-add">Add</button>
           </div>
+          <div class="se-field-hint" id="se-alertrecip-err" style="display:none;color:#c0271f;margin-bottom:16px"></div>
           <div class="se-table-wrap">
             <table class="se-table">
               <thead>
@@ -3642,6 +3643,25 @@
         <div class="se-confirm-actions">
           <button class="se-btn-ghost" type="button" id="se-confirm-cancel">Cancel</button>
           <button class="se-btn-danger solid" type="button" id="se-confirm-ok">Yes, delete everything</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings: generic confirm modal — Approve/Reject a sign-up, Remove an
+         alert recipient. A separate instance from se-confirm-mask above (that
+         one's wiring is destructive-reset-specific) so this one stays a
+         plain, reusable yes/no dialog, filled in per action via showConfirm(). -->
+    <div class="se-confirm-mask" id="se-genconfirm-mask">
+      <div class="se-confirm" role="alertdialog" aria-modal="true" aria-labelledby="se-genconfirm-title">
+        <div class="se-confirm-icon" aria-hidden="true" id="se-genconfirm-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+        </div>
+        <div class="se-confirm-title" id="se-genconfirm-title">—</div>
+        <div class="se-confirm-body" id="se-genconfirm-body">—</div>
+        <div class="se-addform-err" id="se-genconfirm-err"></div>
+        <div class="se-confirm-actions">
+          <button class="se-btn-ghost" type="button" id="se-genconfirm-cancel">Cancel</button>
+          <button class="se-btn-primary" type="button" id="se-genconfirm-ok">Confirm</button>
         </div>
       </div>
     </div>
@@ -7606,7 +7626,7 @@
       var initials = ((p.display_name || p.username || '?').trim().split(/\s+/).map(function(w){ return w[0]; }).slice(0,2).join('')).toUpperCase();
       document.getElementById('se-profile-avatar').textContent = initials || '?';
       document.getElementById('se-profile-name').textContent = p.display_name || p.username;
-      document.getElementById('se-profile-role').textContent = (ROLE_LABEL[p.role] || p.role) + ' · MTSO';
+      document.getElementById('se-profile-role').textContent = ROLE_LABEL[p.role] || p.role;
       var badgeEl = document.getElementById('se-profile-badge');
       badgeEl.textContent = p.status === 'approved' ? 'Active' : (p.status === 'pending' ? 'Pending' : 'Rejected');
       badgeEl.className = 'se-profile-badge' + (p.status !== 'approved' ? ' pending' : '');
@@ -7793,16 +7813,24 @@
     // meant to run in a control room. Scoped to .main only (not the
     // sidebar) so the slider and navigation always stay legible however
     // low it's dragged — no way to dim yourself into a control you can't
-    // see to undo. Matches the field's own "for this session" copy, so
-    // it's live-only and intentionally not persisted like theme/sound.
+    // see to undo. Now persisted like theme/sound (previously session-only
+    // by design — revisited since a preference that silently resets on
+    // reload reads as broken, not intentional, from the UI alone).
     var brightnessRange = document.getElementById('se-brightness-range');
     var brightnessVal = document.getElementById('se-brightness-val');
     var brightnessTarget = document.querySelector('.main');
+    function applyBrightness(pct){
+      brightnessRange.value = pct;
+      brightnessVal.textContent = pct + '%';
+      if(brightnessTarget) brightnessTarget.style.filter = 'brightness(' + pct + '%)';
+    }
     if(brightnessRange){
       brightnessRange.addEventListener('input', function(){
-        var pct = brightnessRange.value;
-        brightnessVal.textContent = pct + '%';
-        if(brightnessTarget) brightnessTarget.style.filter = 'brightness(' + pct + '%)';
+        applyBrightness(brightnessRange.value);
+        // Debounced: this fires on every pixel of drag, and saving is a
+        // network write — save the settled value, not every intermediate one.
+        clearTimeout(brightnessRange._saveTimer);
+        brightnessRange._saveTimer = setTimeout(function(){ savePreferences({ brightness: brightnessRange.value }); }, 400);
       });
     }
 
@@ -7897,6 +7925,7 @@
             setSoundUI(prefs.soundEnabled !== false); // default on, matching the old mock's initial state
             window.__ddsSoundEnabled = prefs.soundEnabled !== false;
             applyTheme(prefs.theme === 'dark', true);
+            applyBrightness(prefs.brightness || 80);
           });
       }).catch(function(err){ console.error('Preferences load failed', err); });
     }
@@ -7977,13 +8006,68 @@
     }
 
     function updateProfile(userId, patch){
+      // Callers decide how to surface a failure (inline banner, modal error
+      // slot, etc.) — this only does the write and the local state patch.
       return DB.from('profiles').update(patch).eq('user_id', userId).then(function(res){
         if(res.error) throw res.error;
         var row = accessState.profiles.find(function(p){ return p.user_id === userId; });
         if(row) Object.assign(row, patch);
         renderUsers();
-      }).catch(function(err){
-        window.alert('Could not update this user: ' + ((err && err.message) || 'unknown error'));
+      });
+    }
+
+    // ---- Generic confirm modal (se-genconfirm-*) ----
+    // A plain, reusable yes/no dialog for actions that used to fire a
+    // native window.confirm() — those look jarring next to every other
+    // dialog in this app being custom-styled. Kept separate from
+    // se-confirm-mask (Delete All Data) since that one's JS wiring is
+    // already specific to that one destructive action; this one is
+    // filled in fresh per call via showConfirm().
+    var genConfirmMask = document.getElementById('se-genconfirm-mask');
+    var genConfirmTitle = document.getElementById('se-genconfirm-title');
+    var genConfirmBody = document.getElementById('se-genconfirm-body');
+    var genConfirmErr = document.getElementById('se-genconfirm-err');
+    var genConfirmCancelBtn = document.getElementById('se-genconfirm-cancel');
+    var genConfirmOkBtn = document.getElementById('se-genconfirm-ok');
+    var genConfirmActive = null;
+
+    function closeGenConfirm(){
+      if(genConfirmMask) genConfirmMask.classList.remove('on');
+      genConfirmActive = null;
+    }
+    // opts: { title, body, confirmLabel, danger, onConfirm } — onConfirm
+    // returns a promise; rejecting it shows its message in the modal's own
+    // error slot instead of closing, matching se-confirm-mask's pattern.
+    function showConfirm(opts){
+      if(!genConfirmMask) return;
+      genConfirmActive = opts;
+      genConfirmTitle.textContent = opts.title;
+      genConfirmBody.textContent = opts.body;
+      genConfirmOkBtn.textContent = opts.confirmLabel || 'Confirm';
+      genConfirmOkBtn.className = opts.danger ? 'se-btn-danger solid' : 'se-btn-primary';
+      genConfirmErr.classList.remove('on');
+      genConfirmErr.textContent = '';
+      genConfirmMask.classList.add('on');
+    }
+    if(genConfirmCancelBtn) genConfirmCancelBtn.addEventListener('click', closeGenConfirm);
+    if(genConfirmMask) genConfirmMask.addEventListener('click', function(e){ if(e.target === genConfirmMask) closeGenConfirm(); });
+    if(genConfirmOkBtn){
+      genConfirmOkBtn.addEventListener('click', function(){
+        if(!genConfirmActive) return;
+        var original = genConfirmOkBtn.textContent;
+        genConfirmOkBtn.disabled = true;
+        genConfirmCancelBtn.disabled = true;
+        genConfirmErr.classList.remove('on');
+        genConfirmActive.onConfirm().then(function(){
+          genConfirmOkBtn.disabled = false;
+          genConfirmCancelBtn.disabled = false;
+          closeGenConfirm();
+        }).catch(function(err){
+          genConfirmOkBtn.disabled = false;
+          genConfirmCancelBtn.disabled = false;
+          genConfirmErr.textContent = (err && err.message) || 'Something went wrong.';
+          genConfirmErr.classList.add('on');
+        });
       });
     }
 
@@ -7992,16 +8076,29 @@
       usersTbody.addEventListener('click', function(e){
         var approveBtn = e.target.closest('[data-se-approve]');
         // Approve is the higher-risk action of the pair — it grants real
-        // system access — so it gets the same confirm() guard Reject
+        // system access — so it gets the same confirm guard Reject
         // already had, not the reverse (Reject only undoes a sign-up
         // request; Approve is much harder to walk back unnoticed).
         if(approveBtn){
-          if(window.confirm('Approve this sign-up request? This grants them full system access.')) updateProfile(approveBtn.getAttribute('data-se-approve'), { status: 'approved' });
+          var approveId = approveBtn.getAttribute('data-se-approve');
+          showConfirm({
+            title: 'Approve this sign-up request?',
+            body: 'This grants them full system access.',
+            confirmLabel: 'Approve',
+            onConfirm: function(){ return updateProfile(approveId, { status: 'approved' }); }
+          });
           return;
         }
         var rejectBtn = e.target.closest('[data-se-reject]');
         if(rejectBtn){
-          if(window.confirm('Reject this sign-up request?')) updateProfile(rejectBtn.getAttribute('data-se-reject'), { status: 'rejected' });
+          var rejectId = rejectBtn.getAttribute('data-se-reject');
+          showConfirm({
+            title: 'Reject this sign-up request?',
+            body: 'They will need to sign up again to request access.',
+            confirmLabel: 'Reject',
+            danger: true,
+            onConfirm: function(){ return updateProfile(rejectId, { status: 'rejected' }); }
+          });
           return;
         }
         var roleBtn = e.target.closest('[data-se-changerole]');
@@ -8037,7 +8134,21 @@
     if(roleSaveBtn){
       roleSaveBtn.addEventListener('click', function(){
         if(!roleTargetId) return;
-        updateProfile(roleTargetId, { role: roleSelect.value }).then(closeRoleModal);
+        roleErr.classList.remove('on');
+        roleSaveBtn.disabled = true;
+        roleCancelBtn.disabled = true;
+        var original = roleSaveBtn.textContent;
+        roleSaveBtn.textContent = 'Saving…';
+        updateProfile(roleTargetId, { role: roleSelect.value }).then(function(){
+          closeRoleModal();
+        }).catch(function(err){
+          roleErr.textContent = 'Could not update role: ' + ((err && err.message) || 'unknown error');
+          roleErr.classList.add('on');
+        }).finally(function(){
+          roleSaveBtn.disabled = false;
+          roleCancelBtn.disabled = false;
+          roleSaveBtn.textContent = original;
+        });
       });
     }
 
@@ -8179,6 +8290,15 @@
         });
     }
 
+    var alertRecipErr = document.getElementById('se-alertrecip-err');
+    function flashAlertRecipErr(message){
+      if(!alertRecipErr) return;
+      alertRecipErr.textContent = message;
+      alertRecipErr.style.display = '';
+      clearTimeout(alertRecipErr._timer);
+      alertRecipErr._timer = setTimeout(function(){ alertRecipErr.style.display = 'none'; }, 4000);
+    }
+
     var alertRecipTbody = document.getElementById('se-alertrecip-tbody');
     if(alertRecipTbody){
       alertRecipTbody.addEventListener('click', function(e){
@@ -8191,18 +8311,26 @@
             if(res.error) throw res.error;
             trow.active = !trow.active;
             renderAlertRecipients();
-          }).catch(function(err){ window.alert('Could not update recipient: ' + ((err && err.message) || 'unknown error')); });
+          }).catch(function(err){ flashAlertRecipErr('Could not update recipient: ' + ((err && err.message) || 'unknown error')); });
           return;
         }
         var removeBtn = e.target.closest('[data-se-alertrecip-remove]');
         if(removeBtn){
           var rid = removeBtn.getAttribute('data-se-alertrecip-remove');
-          if(!window.confirm('Remove this recipient? They will stop receiving critical alert emails.')) return;
-          DB.from('alert_recipients').delete().eq('id', rid).then(function(res){
-            if(res.error) throw res.error;
-            alertRecipState.rows = alertRecipState.rows.filter(function(r){ return r.id !== rid; });
-            renderAlertRecipients();
-          }).catch(function(err){ window.alert('Could not remove recipient: ' + ((err && err.message) || 'unknown error')); });
+          var removeEmail = (alertRecipState.rows.find(function(r){ return r.id === rid; }) || {}).email || 'this recipient';
+          showConfirm({
+            title: 'Remove this recipient?',
+            body: removeEmail + ' will stop receiving critical alert emails.',
+            confirmLabel: 'Remove',
+            danger: true,
+            onConfirm: function(){
+              return DB.from('alert_recipients').delete().eq('id', rid).then(function(res){
+                if(res.error) throw res.error;
+                alertRecipState.rows = alertRecipState.rows.filter(function(r){ return r.id !== rid; });
+                renderAlertRecipients();
+              });
+            }
+          });
         }
       });
     }
@@ -8213,7 +8341,7 @@
       alertRecipAddBtn.addEventListener('click', function(){
         var email = alertRecipEmailInput.value.trim().toLowerCase();
         if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-          window.alert('Enter a valid email address.');
+          flashAlertRecipErr('Enter a valid email address.');
           return;
         }
         DB.from('alert_recipients').insert({ email: email }).select('id, email, active, created_at').then(function(res){
@@ -8222,7 +8350,7 @@
           alertRecipEmailInput.value = '';
           renderAlertRecipients();
         }).catch(function(err){
-          window.alert('Could not add recipient: ' + ((err && err.message) || 'unknown error'));
+          flashAlertRecipErr('Could not add recipient: ' + ((err && err.message) || 'unknown error'));
         });
       });
     }
