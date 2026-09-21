@@ -570,7 +570,20 @@
      depending on exactly when that measurement happened. A fixed height
      removes the ambiguity outright, for the chart and every one of its
      ancestors alike. */
-  .an-chart-panel .an-chart-wrap{height:280px;flex:none}
+  /* 158px brings the whole panel (header + padding included) to exactly
+     230px total — the same height every other Analytics panel type
+     (Sync Interval, donuts, ranked bar lists) already settles at via
+     .an-panel's own min-height, confirmed by direct measurement — rather
+     than Trend/Hourly being their own taller, separate size. Shorter than
+     a naive "match the OTHER panels' 230px minus a generic header height"
+     calculation would suggest, since this panel's own header (the Daily/
+     Weekly/Monthly toolbar, fullscreen/minimize buttons) runs taller than
+     Sync Interval's plain text header. */
+  /* min-height:0 is required here — the base .an-chart-wrap rule above sets
+     min-height:180px, and CSS resolves computed height as max(height,
+     min-height), so without this override that 180px silently floors the
+     158px above regardless. */
+  .an-chart-panel .an-chart-wrap{height:158px;min-height:0;flex:none}
   .an-panel.an-minimized .an-chart-wrap,.an-panel.an-minimized .an-note{display:none}
   .an-panel:fullscreen,.an-panel:-webkit-full-screen{width:100%;height:100%;margin:0;padding:22px 26px}
   /* In true Fullscreen API mode the ancestor chain up to the viewport IS a
@@ -595,7 +608,10 @@
   .an-bar-row{display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer;border-radius:5px}
   .an-bar-row-label{font-size:11px;color:var(--muted);flex:0 0 68px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .an-bar-row-track{flex:1;height:14px;border-radius:4px;background:var(--surface2);position:relative;overflow:hidden;min-width:0}
-  .an-bar-row-fill{height:100%;border-radius:4px;transition:filter .12s}
+  /* min-width guarantees a visible sliver of color even for a band whose
+     share of the peak rounds to a couple of percent — a very short/pale
+     fill against the near-white track otherwise reads as no color at all. */
+  .an-bar-row-fill{height:100%;min-width:3px;border-radius:4px;transition:filter .12s}
   .an-bar-row:hover .an-bar-row-fill{filter:brightness(1.12)}
   .an-bar-row-value{font-size:11px;font-weight:700;color:var(--text);flex:0 0 auto;white-space:nowrap;min-width:56px;text-align:right}
   .an-bar-row-value .pct{color:var(--muted);font-weight:600}
