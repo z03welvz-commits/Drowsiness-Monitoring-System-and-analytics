@@ -570,7 +570,7 @@
      depending on exactly when that measurement happened. A fixed height
      removes the ambiguity outright, for the chart and every one of its
      ancestors alike. */
-  .an-chart-panel .an-chart-wrap{height:380px;flex:none}
+  .an-chart-panel .an-chart-wrap{height:280px;flex:none}
   .an-panel.an-minimized .an-chart-wrap,.an-panel.an-minimized .an-note{display:none}
   .an-panel:fullscreen,.an-panel:-webkit-full-screen{width:100%;height:100%;margin:0;padding:22px 26px}
   /* In true Fullscreen API mode the ancestor chain up to the viewport IS a
@@ -5594,9 +5594,14 @@
       var labels = buckets.map(function(b){ return b.label; });
       var values = buckets.map(function(b){ return b.units; });
       var seriesColor = cssVar('--series-1');
+      // Plain, unfilled, dot-free lines throughout — same visual language
+      // as Alerts by Hour's lines (which can't use a fill/dot treatment
+      // without every one of its up-to-9 overlapping month lines turning
+      // into visual noise), rather than this chart's primary series being
+      // the one outlier with an area fill and vertex dots.
       var datasets = [{
-        label:'Alert Volume', data: values, borderColor: seriesColor, backgroundColor: seriesColor + '26',
-        fill:true, tension:0.35, borderWidth:2.5, pointRadius: values.length > 40 ? 0 : 3,
+        label:'Alert Volume', data: values, borderColor: seriesColor, backgroundColor:'transparent',
+        fill:false, tension:0.35, borderWidth:2, pointRadius:0,
         pointBackgroundColor: seriesColor, yAxisID:'y'
       }];
       var intervalCapable = trendShowInterval && buckets.some(function(b){ return b.avgSyncSeconds != null; });
@@ -5604,7 +5609,7 @@
         datasets.push({
           label:'Avg. Interval', data: buckets.map(function(b){ return b.avgSyncSeconds; }),
           borderColor: cssVar('--purple'), backgroundColor:'transparent', fill:false, tension:0.35,
-          borderWidth:2, borderDash:[5,3], pointRadius: values.length > 40 ? 0 : 3,
+          borderWidth:2, borderDash:[5,3], pointRadius:0,
           pointBackgroundColor: cssVar('--purple'), spanGaps:true, yAxisID:'y1'
         });
       }
@@ -5613,13 +5618,16 @@
         datasets.push({
           label:'Unique Units', data: buckets.map(function(b){ return b.assets; }),
           borderColor: cssVar('--green'), backgroundColor:'transparent', fill:false, tension:0.35,
-          borderWidth:2, borderDash:[2,2], pointRadius: values.length > 40 ? 0 : 3,
+          borderWidth:2, borderDash:[2,2], pointRadius:0,
           pointBackgroundColor: cssVar('--green'), spanGaps:true, yAxisID:'y2'
         });
       }
       var gridColor = cssVar('--grid'), tickColor = cssVar('--muted');
+      // No offset here (unlike a bar chart's category axis) — matches
+      // Alerts by Hour's x-axis, whose line runs flush to the plot area's
+      // left/right edges instead of inset from them.
       var scales = {
-        x:{ grid:{color:gridColor, drawTicks:false}, ticks:{color:tickColor, font:{size:10}}, offset:true },
+        x:{ grid:{color:gridColor, drawTicks:false}, ticks:{color:tickColor, font:{size:10}} },
         y:{ grid:{color:gridColor, drawTicks:false}, ticks:{color:tickColor, font:{size:10}}, beginAtZero:true }
       };
       if(intervalCapable) scales.y1 = { position:'right', grid:{drawOnChartArea:false}, ticks:{color:tickColor, font:{size:10}, callback:function(v){ return fmtSyncSeconds(v); }}, beginAtZero:true };
