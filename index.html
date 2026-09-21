@@ -12169,11 +12169,32 @@
     // Severity mirrors Overview's Required Attention rule: a lone qualifying
     // day is 'high', 2+ consecutive qualifying days is 'critical'.
     function streakSeverity(r){ return (r.streakDays || 0) >= 2 ? 'critical' : 'high'; }
-    function streakDescription(r){
-      if(streakSeverity(r) === 'critical'){
-        return 'Daily alert count has held at 20+ for ' + fmtNum(r.streakDays) + ' consecutive days (' + esc(r.runStart) + '–' + esc(r.runEnd) + ').';
+    // Names the actual dds_qualifying_days() (0153) criterion the run's peak
+    // day met — a single event's own count > 10, or one event_code's summed
+    // count for that day > 20 — using the peakDayTrigger* fields resolved by
+    // dds_monitoring_streaks() (0162), rather than a flat "20+" restatement
+    // that doesn't reflect the real, per-event-type rule.
+    function triggerCriterionText(r){
+      var code = r.peakDayTriggerCode, val = r.peakDayTriggerValue;
+      if(r.peakDayTriggerType === 'single_event' && code != null && val != null){
+        return 'a single ' + esc(code) + ' event recorded ' + fmtNum(val) + ' occurrence(s), exceeding the per-event threshold of 10';
       }
-      return 'Observed ' + fmtNum(r.peakCount || r.runTotalCount || 0) + ' alerts in one day on ' + esc(r.peakDate || r.runStart) + ' — exceeds the daily threshold of 20.';
+      if(r.peakDayTriggerType === 'daily_total' && code != null && val != null){
+        return esc(code) + ' events totaled ' + fmtNum(val) + ' for the day, exceeding the daily threshold of 20 for a single alert type';
+      }
+      return 'the recorded alert volume exceeded the applicable monitoring threshold';
+    }
+    function streakDescription(r){
+      var kindLabel = state.kind === 'drivers' ? 'driver' : 'asset';
+      var unitPhrase = (state.kind === 'drivers' && r.unit) ? ', operating unit ' + esc(r.unit) + ',' : '';
+      var shiftPhrase = r.dominantShift === 'NIGHT' ? ' during the night shift'
+        : r.dominantShift === 'DAY' ? ' during the day shift' : '';
+      var peakDate = esc(r.peakDate || r.runStart);
+      var criterion = triggerCriterionText(r);
+      if(streakSeverity(r) === 'critical'){
+        return 'This ' + kindLabel + unitPhrase + ' was flagged following ' + fmtNum(r.streakDays) + ' consecutive qualifying days from ' + esc(r.runStart) + ' to ' + esc(r.runEnd) + ', totaling ' + fmtNum(r.runTotalCount) + ' alert(s) at an average of ' + fmtNum(r.avgCount) + ' per day. The streak peaked on ' + peakDate + ' with ' + fmtNum(r.peakCount) + ' alert(s)' + shiftPhrase + '. Criterion met: ' + criterion + '.';
+      }
+      return 'This ' + kindLabel + unitPhrase + ' was flagged for a single qualifying day on ' + peakDate + ', recording ' + fmtNum(r.peakCount || r.runTotalCount || 0) + ' alert(s)' + shiftPhrase + '. Criterion met: ' + criterion + '.';
     }
     function actionButtonLabel(r){
       var la = r.lastAction;
