@@ -4295,6 +4295,17 @@
     });
   }
 
+  // The signed-in person's real name, resolved once by the auth gate below
+  // before any page content is ever shown (same guarantee __session
+  // documents). profiles.display_name is the same field Personal Info and
+  // Access Management already treat as canonical — NOT
+  // sess.user.user_metadata.full_name, which nothing in this app's actual
+  // account-creation path (supabase/functions/invite-user) ever sets, so
+  // every header username, the Overview greeting, and the "Logged by"
+  // prefill were silently falling through to the person's raw email
+  // address instead of their configured name.
+  var __displayName = null;
+
   // The "Logged by" field on every action-logging modal used to be a free
   // free-typed name — anyone signed in could type a colleague's or
   // supervisor's name into it, so the human-visible audit trail (who
@@ -4307,9 +4318,7 @@
   // can be opened (the app's own auth gate blocks all content, this
   // included, until requireSession() has resolved once).
   function currentUserDisplayName(){
-    var u = __session && __session.user;
-    if(!u) return '';
-    return (u.user_metadata && u.user_metadata.full_name) || u.email || '';
+    return __displayName || (__session && __session.user && __session.user.email) || '';
   }
 
   // ---- Auth gate: no signed-out viewing of index.html, plus an
@@ -4333,9 +4342,23 @@
         window.location.replace('login.html');
         return; // gate stays up for the remainder of this page's life
       }
-      if(gate) gate.remove();
-      armInactivityTimeout();
-      EditLock.init();
+      // Resolve the real display name once, here, before any content is
+      // shown — same guarantee __session already gives every other page.
+      // A failed lookup still falls back to the email rather than leaving
+      // __displayName null and blocking the gate on it.
+      return DB.from('profiles').select('display_name, username').eq('user_id', sess.user.id).maybeSingle()
+        .then(function(res){
+          var p = res && res.data;
+          __displayName = (p && (p.display_name || p.username)) || sess.user.email || 'there';
+        })
+        .catch(function(){
+          __displayName = sess.user.email || 'there';
+        })
+        .then(function(){
+          if(gate) gate.remove();
+          armInactivityTimeout();
+          EditLock.init();
+        });
     }).catch(function(err){
       console.error('Auth gate check failed', err);
       window.location.replace('login.html');
@@ -4373,16 +4396,6 @@
     reset();
   }
 
-  // Sets the header username chip (`.user` span with id="*-username" —
-  // each page's own markup) from a real signed-in session. Previously
-  // only wired on Overview; every other page's header chip stayed the
-  // hardcoded mock name "z_03welvz" even when signed in.
-  function setHeaderUsername(sess, elId){
-    var el = document.getElementById(elId);
-    if(!el || !sess) return;
-    el.textContent = (sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there';
-  }
-
   // Turns a page's header username chip into a real profile dropdown
   // (name, email, theme toggle, sign out) — see the .profile-menu CSS
   // comment for why. `prefix` locates every piece by naming convention:
@@ -4395,7 +4408,7 @@
   // wiring only binds once per trigger (data-pm-wired guard).
   function wireProfileMenu(sess, prefix, usernameElId){
     if(!sess) return;
-    var name = (sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there';
+    var name = __displayName || sess.user.email || 'there';
     var nameEl = document.getElementById(usernameElId || (prefix + '-username'));
     if(nameEl) nameEl.textContent = name;
     var pmNameEl = document.getElementById(prefix + '-pm-name');
@@ -5327,7 +5340,7 @@
           if(raBody) raBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real data — this page reads live data, not a mock.</td></tr>';
           return;
         }
-        setUsername((sess.user.user_metadata && sess.user.user_metadata.full_name) || sess.user.email || 'there');
+        setUsername(__displayName || sess.user.email || 'there');
 
         // Resolves the active range: whatever the filter bar currently
         // has, or — on first load only — the 7 days ending on the latest
