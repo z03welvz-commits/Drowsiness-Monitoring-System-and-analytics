@@ -532,11 +532,11 @@
 
   #page-analytics > .an-grid-row{margin-bottom:14px}
   .an-grid-row{display:grid;gap:10px}
-  /* Trend of Alerts and Alerts by Hour each get a full-width row of their
-     own (see .an-chart-panel/.an-chart-wrap below) so they can run taller
-     without a shorter, unrelated panel sharing — and being squeezed by —
-     their row. */
-  .an-grid-row.cols-full{grid-template-columns:1fr}
+  /* Trend of Alerts and Alerts by Hour side by side, balanced (see
+     .an-chart-panel/.an-chart-wrap below for their shared taller height) —
+     a full-width row each looked dominant/unbalanced with mostly-empty
+     chart area at typical desktop widths. */
+  .an-grid-row.cols-charts{grid-template-columns:repeat(2,1fr)}
   /* Sync Interval | Alert Count Bucket */
   .an-grid-row.cols-a{grid-template-columns:repeat(2,1fr)}
   /* Alert Type donut | Shift donut */
@@ -1477,7 +1477,7 @@
     .ov-charts-row > .chart-card .chart-area{flex:none;height:auto}
     .ov-charts-row > .chart-card .chart-area svg{height:auto}
     .stat-tiles{grid-template-columns:1fr 1fr 1fr}
-    .an-grid-row.cols-a,.an-grid-row.cols-b,.an-grid-row.cols-c{grid-template-columns:1fr}
+    .an-grid-row.cols-a,.an-grid-row.cols-b,.an-grid-row.cols-c,.an-grid-row.cols-charts{grid-template-columns:1fr}
     .dm-toprow > .card{flex-basis:100%}
     .su-grid{grid-template-columns:1fr}
     .se-sys-grid{grid-template-columns:1fr}
@@ -1919,7 +1919,7 @@
            in Data Management → Contributing Factors. -->
       <div class="an-kpi-grid" id="an-kpi-grid" aria-label="Key metrics"></div>
 
-      <div class="an-grid-row cols-full">
+      <div class="an-grid-row cols-charts">
         <div class="an-panel an-chart-panel" id="an-panel-trend" style="--accent:var(--blue)">
           <div class="an-panel-head">
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Trend of Alerts Over Time</span></div>
@@ -1937,9 +1937,7 @@
           </div>
           <div class="an-chart-wrap"><canvas id="an-chart-trend"></canvas></div>
         </div>
-      </div>
 
-      <div class="an-grid-row cols-full">
         <div class="an-panel an-chart-panel" id="an-panel-hourly" style="--accent:var(--orange)">
           <div class="an-panel-head">
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alerts by Hour of Day</span></div>
@@ -5641,6 +5639,16 @@
           }
         }
       });
+      // Constructing back-to-back Chart.js instances in one synchronous
+      // callback (this one, then Hourly) is a known Chart.js gotcha: the
+      // FIRST chart in the sequence can measure its container before the
+      // browser has given it a real laid-out size (0×0), and its own
+      // internal ResizeObserver doesn't always self-correct from that —
+      // rendering nothing at all, axes included, even though the data is
+      // valid. An explicit resize() forces a fresh measurement immediately
+      // after construction, which is cheap and harmless when the size was
+      // already correct.
+      trendChart.resize();
       var ic = document.getElementById('an-trend-interval-checkbox');
       if(ic) ic.disabled = !buckets.some(function(b){ return b.avgSyncSeconds != null; });
       var uc = document.getElementById('an-trend-units-checkbox');
@@ -5723,6 +5731,7 @@
           }
         }
       });
+      hourlyChart.resize(); // see trendChart.resize()'s comment above — same fix
     }
 
     // ---------- Chart panel tools: fullscreen + minimize (Trend/Hourly) ----------
