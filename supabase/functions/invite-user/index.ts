@@ -22,7 +22,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ALLOWED_ROLES = ["admin", "oa", "b2b"];
+const ALLOWED_ROLES = ["admin", "supervisor", "office_assistant"];
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 // index.html is a static file served from disk today (file:// or a bare
@@ -111,7 +111,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const email = (body.email || "").trim().toLowerCase();
-  const role = body.role || "oa";
+  const role = body.role || "supervisor";
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return jsonResponse({ error: "INVALID_EMAIL" }, 400);
   }

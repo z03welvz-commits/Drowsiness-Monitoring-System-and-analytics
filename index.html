@@ -3586,8 +3586,8 @@
             <label for="se-role-select">Role</label>
             <select id="se-role-select">
               <option value="admin">Admin</option>
-              <option value="oa">OA</option>
-              <option value="b2b">B2B</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="office_assistant">Office Assistant</option>
             </select>
           </div>
           <div class="se-addform-err" id="se-role-err">Could not update role.</div>
@@ -3616,8 +3616,8 @@
           <div class="se-field">
             <label for="se-invite-role">Role</label>
             <select id="se-invite-role">
-              <option value="oa">OA</option>
-              <option value="b2b">B2B</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="office_assistant">Office Assistant</option>
               <option value="admin">Admin</option>
             </select>
           </div>
@@ -7914,7 +7914,7 @@
     // signed-in user is an approved admin — approve/reject pending
     // sign-ups and change an approved user's role. "Add user"/"Remove"
     // from the old mock aren't representable against this schema.
-    var ROLE_LABEL = { admin: 'Admin', oa: 'OA', b2b: 'B2B' };
+    var ROLE_LABEL = { admin: 'Admin', supervisor: 'Supervisor', office_assistant: 'Office Assistant' };
     var AVATAR_COLORS = ['#3b82f6','#7c3aed','#e8952e','#18a05e','#e53553','#0ea5e9'];
     var accessState = { profiles: [], isAdmin: false, currentUserId: null };
 
@@ -8052,7 +8052,7 @@
 
     function openInviteModal(){
       inviteEmailInput.value = '';
-      inviteRoleSelect.value = 'oa';
+      inviteRoleSelect.value = 'supervisor';
       inviteErr.classList.remove('on');
       inviteMask.classList.add('on');
       inviteEmailInput.focus();
