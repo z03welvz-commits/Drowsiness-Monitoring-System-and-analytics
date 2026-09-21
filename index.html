@@ -2476,6 +2476,7 @@
             </select>
             <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search raw name..." id="dm-review-dds-search"></div>
             <button class="al-filter" type="button" id="dm-review-dds-recheck" style="cursor:pointer" title="Re-run name matching for every open DDS review row against the masterlist as it stands right now — useful after correcting a name or adding an alias">↻&nbsp; Re-check unresolved names</button>
+            <button class="al-filter" type="button" id="dm-review-dds-broaden" style="cursor:pointer" title="Search for additional possible matches using a looser, broader comparison — for rows the standard check found no candidate for at all. Never assigns anyone automatically; only adds suggestions here for you to confirm or reject.">🔍&nbsp; Broaden search</button>
             <div class="dm-recheck-progress" id="dm-review-dds-recheck-progress" hidden>
               <div class="dm-recheck-progress-track"><div class="dm-recheck-progress-fill" id="dm-review-dds-recheck-fill"></div></div>
               <span class="dm-recheck-progress-label" id="dm-review-dds-recheck-label">0%</span>
@@ -2501,6 +2502,7 @@
             </select>
             <div class="dm-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" placeholder="Search raw name..." id="dm-review-minestat-search"></div>
             <button class="al-filter" type="button" id="dm-review-minestat-recheck" style="cursor:pointer" title="Re-run name matching for every open Minestat review row against the masterlist as it stands right now — useful after correcting a name or adding an alias">↻&nbsp; Re-check unresolved names</button>
+            <button class="al-filter" type="button" id="dm-review-minestat-broaden" style="cursor:pointer" title="Search for additional possible matches using a looser, broader comparison — for rows the standard check found no candidate for at all. Never assigns anyone automatically; only adds suggestions here for you to confirm or reject.">🔍&nbsp; Broaden search</button>
             <div class="dm-recheck-progress" id="dm-review-minestat-recheck-progress" hidden>
               <div class="dm-recheck-progress-track"><div class="dm-recheck-progress-fill" id="dm-review-minestat-recheck-fill"></div></div>
               <span class="dm-recheck-progress-label" id="dm-review-minestat-recheck-label">0%</span>
@@ -10506,8 +10508,8 @@
     // (writes a driver_aliases row so the same spelling never needs asking
     // again) or mark it not-a-driver (TEST rows, blank-plate placeholders).
     var REVIEW = {
-      dds:      { search: '', state: 'open', tbodySel: '#dm-table-review-dds tbody',      titleSel: '#dm-review-dds-title small',      footSel: '#dm-review-dds-foot',      list: 'dds_name_review_list',      resolve: 'dds_resolve_review',      ignore: 'dds_ignore_review',      reopen: 'dds_reopen_review',          recheck: 'dds_reresolve_all',          waitingLabel: 'Alert rows waiting' },
-      minestat: { search: '', state: 'open', tbodySel: '#dm-table-review-minestat tbody', titleSel: '#dm-review-minestat-title small', footSel: '#dm-review-minestat-foot', list: 'dds_minestat_name_review_list', resolve: 'dds_minestat_resolve_review', ignore: 'dds_minestat_ignore_review', reopen: 'dds_minestat_reopen_review', recheck: 'dds_minestat_reresolve_all', waitingLabel: 'Shift rows waiting' }
+      dds:      { search: '', state: 'open', tbodySel: '#dm-table-review-dds tbody',      titleSel: '#dm-review-dds-title small',      footSel: '#dm-review-dds-foot',      list: 'dds_name_review_list',      resolve: 'dds_resolve_review',      ignore: 'dds_ignore_review',      reopen: 'dds_reopen_review',          recheck: 'dds_reresolve_all',          broaden: 'dds_review_trigram_fallback',          waitingLabel: 'Alert rows waiting' },
+      minestat: { search: '', state: 'open', tbodySel: '#dm-table-review-minestat tbody', titleSel: '#dm-review-minestat-title small', footSel: '#dm-review-minestat-foot', list: 'dds_minestat_name_review_list', resolve: 'dds_minestat_resolve_review', ignore: 'dds_minestat_ignore_review', reopen: 'dds_minestat_reopen_review', recheck: 'dds_minestat_reresolve_all', broaden: 'dds_minestat_review_trigram_fallback', waitingLabel: 'Shift rows waiting' }
     };
 
     // ---- Shared bulk re-check runner (used by BOTH the Name Review tab's
@@ -10618,6 +10620,35 @@
       return { none: 'No match found', fuzzy_review: 'Ambiguous spelling match', ambiguous_exact: 'Matches 2+ employees exactly', blank: 'Blank name' }[tier] || (tier || 'Unresolved');
     }
 
+    // ---- Broaden search: a looser, no-first-letter-anchor similarity pass
+    // (dds_review_trigram_fallback / dds_minestat_review_trigram_fallback,
+    // 0125/0164) for rows the standard matcher found nothing for at all.
+    // Deliberately a single request, not the batching loop above — it only
+    // ever touches the current open backlog once and never auto-assigns
+    // anyone, so there is nothing to page through or retry against a
+    // moving target.
+    function runBroadenSearch(kind, btn, onDone){
+      var cfg = REVIEW[kind];
+      if(!btn || btn.disabled) return;
+      btn.disabled = true;
+      var original = btn.textContent;
+      btn.textContent = 'Searching…';
+      requireSession().then(function(sess){
+        if(!sess) throw new Error('Sign in required.');
+        return DB.rpc(cfg.broaden, { p_limit: 500 });
+      }).then(function(res){
+        if(res.error) throw res.error;
+        var d = res.data || {};
+        btn.textContent = (d.candidatesAdded || 0) + ' suggestion(s) added';
+        if(onDone) onDone();
+        setTimeout(function(){ btn.textContent = original; btn.disabled = false; }, 3500);
+      }).catch(function(err){
+        console.error('Broaden search failed', err);
+        btn.textContent = 'Could not search — try again';
+        setTimeout(function(){ btn.textContent = original; btn.disabled = false; }, 3500);
+      });
+    }
+
     // Row-action buttons depend on the row's OWN state, not the filter
     // selected — a table filtered to "All" can show open/resolved/ignored
     // rows side by side, each needing a different action set:
@@ -10702,8 +10733,10 @@
             var candidates = (r.candidates || []).slice(0, 3);
             var candHtml = candidates.length
               ? candidates.map(function(c){
-                  return '<button type="button" data-review-pick="' + esc(c.emp_no) + '">' + esc(c.name) + '</button>' +
-                    (c.distance != null ? ' <span style="color:var(--muted)">(dist ' + c.distance + ')</span>' : '');
+                  var hint = c.distance != null ? ' <span style="color:var(--muted)">(dist ' + c.distance + ')</span>'
+                    : c.similarity != null ? ' <span style="color:var(--muted)" title="Broader similarity search — verify before confirming">(' + Math.round(c.similarity * 100) + '% match)</span>'
+                    : '';
+                  return '<button type="button" data-review-pick="' + esc(c.emp_no) + '">' + esc(c.name) + '</button>' + hint;
                 }).join('<br>')
               : '<span style="color:var(--muted)">No close match</span>';
             var stateTag = cfg.state === 'all'
@@ -10829,6 +10862,12 @@
           }, function(){ loadNameReviewQueue(kind); });
         });
       }
+      var broadenBtn = document.getElementById('dm-review-' + kind + '-broaden');
+      if(broadenBtn){
+        broadenBtn.addEventListener('click', function(){
+          runBroadenSearch(kind, broadenBtn, function(){ loadNameReviewQueue(kind); });
+        });
+      }
     });
 
     // ---- Confirm Match modal: wired to dds_resolve_review / dds_minestat_resolve_review ----
@@ -10848,7 +10887,10 @@
       if(candidates && candidates.length){
         reviewModalCandWrap.style.display = '';
         reviewModalCand.innerHTML = candidates.slice(0, 5).map(function(c){
-          return '<button type="button" data-review-modal-pick="' + esc(c.emp_no) + '">' + esc(c.name) + ' — ' + esc(c.emp_no) + '</button>';
+          var hint = c.distance != null ? ' (dist ' + c.distance + ')'
+            : c.similarity != null ? ' (' + Math.round(c.similarity * 100) + '% match — verify)'
+            : '';
+          return '<button type="button" data-review-modal-pick="' + esc(c.emp_no) + '">' + esc(c.name) + ' — ' + esc(c.emp_no) + hint + '</button>';
         }).join('<br>');
       } else {
         reviewModalCandWrap.style.display = 'none';
