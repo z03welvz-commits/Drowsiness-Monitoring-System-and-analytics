@@ -6030,43 +6030,35 @@
     // Alerts by Driver only ever shows the top 6 (TOP_N below) as bars — the
     // full ranked list matching the page's current filters, for a manager
     // who wants every driver's total alert count, not just the busiest few.
-    // dds_driver_event_summary() clamps p_limit to 200 server-side, and the
-    // live dataset has 733 distinct drivers all-time — a real number, not a
-    // hypothetical edge case — so this pages through it the same way Alert
-    // Logs'/Driver & Asset Monitoring's own exports already page through
-    // their RPC's cap, rather than reusing fetchTopDrivers()'s single
-    // capped page.
-    var AN_DRIVER_TOTALS_PAGE_SIZE = 200;
-    var AN_DRIVER_TOTALS_MAX_ROWS = 20000;
+    //
+    // This calls dds_driver_alert_totals_all() (0165), NOT
+    // dds_driver_event_summary() — that function's p_limit is clamped to
+    // 200 server-side, and paging through it (as this first shipped) meant
+    // RE-RUNNING its expensive nested per-event-code aggregation from
+    // scratch on every page (p_limit/p_offset are only applied after the
+    // full aggregation already ran), which timed out in production
+    // ("canceling statement due to statement timeout") for a broad/all-time
+    // filter window. dds_driver_alert_totals_all() skips that per-event-
+    // code breakdown entirely (this report doesn't need it) and returns
+    // every driver in one pass — confirmed live at ~350ms for the full
+    // all-time, no-filter case (734 drivers), vs. ~4.5s for a SINGLE 200-
+    // row page of the old approach.
     var lastDriverTotalsRows = [];
     function fetchAllDriverTotals(from, to){
-      var collected = [];
-      function loop(offset){
-        return DB.rpc('dds_driver_event_summary', {
-          p_search: null, p_sort: 'total', p_dir: 'desc',
-          p_limit: AN_DRIVER_TOTALS_PAGE_SIZE, p_offset: offset,
-          p_from: from || null, p_to: to || null, p_shift: filterState.shift || null,
-          p_asset_id: (activeAssetIds() || [null])[0],
-          p_event_code: filterState.eventCode || null,
-          p_hour: filterState.hour != null ? filterState.hour : null,
-          p_sync_bucket: filterState.syncBucket != null ? filterState.syncBucket : null,
-          p_emp_no: filterState.empNo || null
-        }).then(function(res){
-          if(res.error) throw res.error;
-          var rawRows = (res.data || {}).rows || [];
-          // UNSPECIFIED_OPERATOR is a real sentinel value (not a driver),
-          // same filter fetchTopDrivers() already applies — excluded from
-          // the collected list, but the RAW page size (before this filter)
-          // is what tells us whether the server had more pages to give.
-          collected = collected.concat(rawRows.filter(function(r){ return r.empNo && r.empNo !== UNSPECIFIED_OPERATOR.toUpperCase(); }));
-          var hitCap = collected.length >= AN_DRIVER_TOTALS_MAX_ROWS;
-          if(rawRows.length < AN_DRIVER_TOTALS_PAGE_SIZE || hitCap){
-            return collected.slice(0, AN_DRIVER_TOTALS_MAX_ROWS);
-          }
-          return loop(offset + AN_DRIVER_TOTALS_PAGE_SIZE);
-        });
-      }
-      return loop(0);
+      return DB.rpc('dds_driver_alert_totals_all', {
+        p_from: from || null, p_to: to || null, p_shift: filterState.shift || null,
+        p_asset_id: (activeAssetIds() || [null])[0],
+        p_event_code: filterState.eventCode || null,
+        p_hour: filterState.hour != null ? filterState.hour : null,
+        p_sync_bucket: filterState.syncBucket != null ? filterState.syncBucket : null,
+        p_emp_no: filterState.empNo || null
+      }).then(function(res){
+        if(res.error) throw res.error;
+        var rawRows = (res.data || {}).rows || [];
+        // UNSPECIFIED_OPERATOR is a real sentinel value (not a driver),
+        // same filter fetchTopDrivers() already applies.
+        return rawRows.filter(function(r){ return r.empNo && r.empNo !== UNSPECIFIED_OPERATOR.toUpperCase(); });
+      });
     }
     var AN_DRIVER_TOTALS_EXPORT_COLUMNS = [
       { key:'rank', label:'Rank' }, { key:'empName', label:'Driver' },
