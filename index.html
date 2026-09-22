@@ -135,6 +135,8 @@
   :root[data-theme="dark"] .kpi-icon svg,:root[data-theme="dark"] .stat-tile-icon svg,:root[data-theme="dark"] .chart-icon svg{opacity:.92}
   :root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea{color-scheme:dark}
   :root[data-theme="dark"] .al-badge.moderate{background:#1d2b4a}
+  :root[data-theme="dark"] .al-badge.high{background:#2e2410}
+  :root[data-theme="dark"] .da-tab.on .da-tab-count{background:#132542;color:#7fb0f5}
   :root[data-theme="dark"] .al-status.ack::before{background:#8a94ab}
   :root[data-theme="dark"] .dm-empty,:root[data-theme="dark"] .da-empty{color:var(--muted)}
   :root[data-theme="dark"] .da-bulk-bar{background:#132542}
@@ -774,6 +776,7 @@
   .al-status.ack{color:var(--muted)}
   .al-status.ack::before{background:#94a3b8}
   .al-table tbody tr{cursor:pointer}
+  .al-table tbody tr:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--blue)}
   .al-table tbody tr .al-check-cell{cursor:default}
   /* Checkbox column stays out of the way until "Select" is toggled on.
      This used to be display:none/table-cell on the cells themselves, but
@@ -1051,6 +1054,7 @@
   .da-table th[data-da-sort].sorted::after{content:' ▾';font-size:8px}
   .da-table th[data-da-sort].sorted.asc::after{content:' ▴'}
   .da-table td{height:34px;border-bottom:1px solid var(--border);padding:0 14px;font-size:var(--fs-body);color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .da-table tbody tr[role="button"]:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--blue)}
   /* This column holds only the Action button (.da-action-btn), which never
      needs ellipsis, so overflow:visible here costs nothing. */
   .da-table td.da-td-action{overflow:visible}
@@ -1116,6 +1120,7 @@
      dropdowns use. */
   td.ds-clickfilter{cursor:pointer}
   td.ds-clickfilter:hover{background:var(--surface2);text-decoration:underline}
+  td.ds-clickfilter:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--blue)}
   th.ds-clickfilter{cursor:pointer}
   #ds-table th{overflow:hidden;text-overflow:ellipsis}
   .ds-chart-bar{cursor:pointer}
@@ -4352,6 +4357,22 @@
       isCurrent: function(token){ return token === current; }
     };
   }
+
+  // Every modal/mask in this app (Analytics, Alert Logs, Driver & Asset,
+  // Data Management, Settings — confirmed live via a survey of every
+  // xxxMask.classList.add/remove('on') call in this file) follows the
+  // exact same convention: an element whose id ends "-mask", opened by
+  // adding the "on" class and closed by removing it. None of them
+  // previously closed on Escape, only via their own close button or a
+  // backdrop click. One shared handler covers all of them without
+  // needing per-modal wiring, and stays correct automatically for any
+  // future modal that follows the same "-mask" id convention.
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Escape') return;
+    document.querySelectorAll('[id$="-mask"].on').forEach(function(mask){
+      mask.classList.remove('on');
+    });
+  });
 
   // ---- App-wide single-editor lock ----
   // Only one signed-in user may perform a shared-data write at a time; see
@@ -11588,8 +11609,10 @@
     function renderSortHeaders(){
       document.querySelectorAll('.al-table th[data-sort]').forEach(function(th){
         var col = th.getAttribute('data-sort');
-        th.classList.toggle('sorted', col === state.sort);
-        th.classList.toggle('asc', col === state.sort && state.dir === 'asc');
+        var isSorted = col === state.sort;
+        th.classList.toggle('sorted', isSorted);
+        th.classList.toggle('asc', isSorted && state.dir === 'asc');
+        th.setAttribute('aria-sort', isSorted ? (state.dir === 'asc' ? 'ascending' : 'descending') : 'none');
       });
     }
 
@@ -11650,7 +11673,7 @@
       var driver = r.driverDisplayName || r.driverName || driverLinkLabel(r.empNo, r.operator);
       var needsReview = !!r.needsReview;
       var statusLabel = r.statusValue ? esc(r.statusValue) : '<span style="color:var(--muted)">Not logged</span>';
-      return '<tr data-al-row-id="' + r.id + '" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '">' +
+      return '<tr data-al-row-id="' + r.id + '" data-shiftdate="' + esc(r.shiftDate) + '" data-shift="' + esc(r.shift) + '" data-asset="' + esc(r.assetId) + '" data-eventcode="' + esc(r.eventCode) + '" tabindex="0">' +
         '<td class="al-check-cell"><input type="checkbox" class="al-row-check" data-al-check="' + r.id + '"></td>' +
         '<td>' + esc(fmtDateOnly(r.shiftDate)) + '</td>' +
         '<td class="al-asset">' + esc(r.assetId || '—') + '</td>' +
@@ -11818,12 +11841,19 @@
     // ---- group detail modal (View button) ----
     var detailMask = document.getElementById('al-detail-mask');
     var detailBody = document.getElementById('al-detail-body');
+    // Own dedicated guard — separate from the page's main `guard` (used by
+    // load()'s own table fetch) since opening one group's detail has
+    // nothing to do with another in-flight table reload, and sharing one
+    // guard between the two would wrongly invalidate either.
+    var detailGuard = makeGuard();
     function openGroupDetail(shiftDate, shift, assetId, eventCode){
+      var token = detailGuard.start();
       detailBody.innerHTML = '<div class="da-empty" style="padding:30px 0">Loading…</div>';
       detailMask.classList.add('on');
       DB.rpc('dds_alert_group_details', {
         p_shift_date: shiftDate, p_shift: shift, p_asset_id: assetId, p_event_code: eventCode
       }).then(function(res){
+        if(!detailGuard.isCurrent(token)) return;
         if(res.error) throw res.error;
         var data = res.data || {};
         var rows = data.rows || [];
@@ -11846,6 +11876,7 @@
           }).join('') + '</tbody></table>' +
           '<div class="an-note" style="margin:10px 4px 0"><i>i</i> ' + fmtNum(data.total || 0) + ' total counts across ' + fmtNum(data.rowCount || rows.length) + ' events in this group.</div>';
       }).catch(function(err){
+        if(!detailGuard.isCurrent(token)) return;
         console.error('Group detail fetch failed', err);
         detailBody.innerHTML = '<div class="da-empty" style="padding:30px 0;color:#c0271f">Could not load: ' + esc(err.message || 'unknown error') + '</div>';
       });
@@ -11908,12 +11939,27 @@
     // Clicking a row (anywhere except its checkbox) opens the same
     // read-only group-detail view the old "View" column's button did —
     // dropped as a dedicated column since it wasn't part of the requested
-    // header set, folded into the row itself instead.
+    // header set, folded into the row itself instead. The row itself
+    // also carries tabindex="0" (see alRowHtml()) so a keyboard user can
+    // reach and open it too; the keydown listener below only fires when
+    // the ROW ITSELF is the actual event target (not one of its own
+    // nested checkbox/inputs/select, which stay separately tabbable and
+    // must keep their own Enter behavior, e.g. submitting an edit).
+    function openRowDetail(tr){
+      openGroupDetail(tr.getAttribute('data-shiftdate'), tr.getAttribute('data-shift'), tr.getAttribute('data-asset'), tr.getAttribute('data-eventcode'));
+    }
     alTbody.addEventListener('click', function(e){
       if(e.target.closest('[data-al-check], [data-al-empid], [data-al-action], [data-al-action-other]')) return;
       var tr = e.target.closest('tr[data-al-row-id]');
       if(!tr) return;
-      openGroupDetail(tr.getAttribute('data-shiftdate'), tr.getAttribute('data-shift'), tr.getAttribute('data-asset'), tr.getAttribute('data-eventcode'));
+      openRowDetail(tr);
+    });
+    alTbody.addEventListener('keydown', function(e){
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      var tr = e.target.closest('tr[data-al-row-id]');
+      if(!tr || e.target !== tr) return;
+      e.preventDefault();
+      openRowDetail(tr);
     });
     document.getElementById('al-detail-close').addEventListener('click', function(){ detailMask.classList.remove('on'); });
     detailMask.addEventListener('click', function(e){ if(e.target === detailMask) detailMask.classList.remove('on'); });
@@ -12528,8 +12574,8 @@
       var sev = streakSeverity(r);
       return '<tr data-da-row="' + i + '">' +
         checkboxCellHtml(r) +
-        '<td class="num ds-clickfilter" data-ds-filter="date" data-ds-value="' + esc(mdyToIso(r.runEnd) || '') + '" title="Filter by this date">' + esc(r.runStart) + '</td>' +
-        '<td class="num ds-clickfilter" data-ds-filter="search" data-ds-value="' + esc(r.id) + '" title="' + esc(r.name || '') + ' — filter by this ' + (state.kind === 'drivers' ? 'Emp No' : 'Asset ID') + '">' + esc(r.id) + '</td>' +
+        '<td class="num ds-clickfilter" data-ds-filter="date" data-ds-value="' + esc(mdyToIso(r.runEnd) || '') + '" title="Filter by this date" role="button" tabindex="0">' + esc(r.runStart) + '</td>' +
+        '<td class="num ds-clickfilter" data-ds-filter="search" data-ds-value="' + esc(r.id) + '" title="' + esc(r.name || '') + ' — filter by this ' + (state.kind === 'drivers' ? 'Emp No' : 'Asset ID') + '" role="button" tabindex="0">' + esc(r.id) + '</td>' +
         '<td class="num"><span class="al-badge ' + (sev === 'critical' ? 'critical' : 'high') + '">' + (sev === 'critical' ? 'Critical' : 'High') + '</span>&nbsp;' + fmtNum(r.streakDays) + '</td>' +
         '<td class="num">' + fmtNum(r.runTotalCount) + '</td>' +
         '<td class="da-td-action"><button type="button" class="da-action-btn" data-da-openaction="' + i + '">' + esc(actionButtonLabel(r)) + '</button></td>' +
@@ -12769,11 +12815,27 @@
         }).catch(function(err){ console.warn('Unit filter list fetch failed', err); });
     }
 
+    // Reflects state.sort/dir onto the sortable headers' sorted/asc CSS
+    // classes (drives the ▾/▴ indicator already defined for this exact
+    // widget, CSS lines 1054-1055) and aria-sort — previously the click
+    // handler below updated state but never touched either, so a sort
+    // actually took effect with zero visual or assistive-tech feedback
+    // on which column/direction was active.
+    function renderSortHeaders(){
+      document.querySelectorAll('#da-table th[data-da-sort]').forEach(function(th){
+        var col = th.getAttribute('data-da-sort');
+        var isSorted = col === state.sort;
+        th.classList.toggle('sorted', isSorted);
+        th.classList.toggle('asc', isSorted && state.dir === 'asc');
+        th.setAttribute('aria-sort', isSorted ? (state.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+      });
+    }
     document.querySelectorAll('#da-table th[data-da-sort]').forEach(function(th){
       th.addEventListener('click', function(){
         var col = th.getAttribute('data-da-sort');
         if(state.sort === col) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
         else { state.sort = col; state.dir = 'desc'; }
+        renderSortHeaders();
         load();
       });
     });
@@ -12794,21 +12856,31 @@
       }
       var cell = e.target.closest('.ds-clickfilter');
       if(cell){
-        var kindF = cell.getAttribute('data-ds-filter');
-        var value = cell.getAttribute('data-ds-value');
-        if(!value) return;
-        if(kindF === 'search'){
-          state.search = value;
-          if(searchInput) searchInput.value = value;
-        } else if(kindF === 'date'){
-          state.from = value; state.to = value;
-          if(fromInput) fromInput.value = value;
-          if(toInput) toInput.value = value;
-          clearWindowHighlight();
-        }
-        state.offset = 0;
-        load();
+        applyClickFilter(cell);
       }
+    });
+    function applyClickFilter(cell){
+      var kindF = cell.getAttribute('data-ds-filter');
+      var value = cell.getAttribute('data-ds-value');
+      if(!value) return;
+      if(kindF === 'search'){
+        state.search = value;
+        if(searchInput) searchInput.value = value;
+      } else if(kindF === 'date'){
+        state.from = value; state.to = value;
+        if(fromInput) fromInput.value = value;
+        if(toInput) toInput.value = value;
+        clearWindowHighlight();
+      }
+      state.offset = 0;
+      load();
+    }
+    tbody.addEventListener('keydown', function(e){
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      var cell = e.target.closest('.ds-clickfilter');
+      if(!cell || e.target !== cell) return;
+      e.preventDefault();
+      applyClickFilter(cell);
     });
 
     // ---- drivers-only bulk-apply bar (main table): unchanged capability
@@ -13254,7 +13326,7 @@
             var last = rec.lastAction;
             if(!last) return '';
             var lastActionLabel = (last.type === 'Other' && last.otherText) ? last.otherText : last.type;
-            return '<tr class="da-hist-row" data-da-hist-row="' + idx + '" style="cursor:pointer"><td class="da-hist-name">' + esc(rec.name) + ' <span class="da-id-sub">(' + esc(rec.id) + ')</span></td>' +
+            return '<tr class="da-hist-row" data-da-hist-row="' + idx + '" role="button" tabindex="0" style="cursor:pointer"><td class="da-hist-name">' + esc(rec.name) + ' <span class="da-id-sub">(' + esc(rec.id) + ')</span></td>' +
               '<td>' + esc(lastActionLabel) + '</td><td>' + esc(last.by) + '</td><td>' + (last.at ? new Date(last.at).toLocaleString() : '—') + '</td></tr>';
           }).join('') + '</tbody></table>';
       }).catch(function(err){
@@ -13262,13 +13334,23 @@
         histBody.innerHTML = '<div class="da-empty" style="padding:30px 0;color:#c0271f"><div>Could not load: ' + esc((err && err.message) || 'unknown error') + '</div></div>';
       });
     });
-    histBody.addEventListener('click', function(e){
-      var row = e.target.closest('[data-da-hist-row]');
-      if(!row) return;
+    function openHistRow(row){
       var rec = histRows[Number(row.getAttribute('data-da-hist-row'))];
       if(!rec) return;
       histMask.classList.remove('on');
       openDetailModal(rec);
+    }
+    histBody.addEventListener('click', function(e){
+      var row = e.target.closest('[data-da-hist-row]');
+      if(!row) return;
+      openHistRow(row);
+    });
+    histBody.addEventListener('keydown', function(e){
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      var row = e.target.closest('[data-da-hist-row]');
+      if(!row) return;
+      e.preventDefault();
+      openHistRow(row);
     });
     document.getElementById('da-history-close').addEventListener('click', function(){ histMask.classList.remove('on'); });
     histMask.addEventListener('click', function(e){ if(e.target === histMask) histMask.classList.remove('on'); });
