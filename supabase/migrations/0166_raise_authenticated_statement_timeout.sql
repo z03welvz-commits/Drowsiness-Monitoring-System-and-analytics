@@ -1,0 +1,38 @@
+-- ============================================================================
+-- DDS — 0166_raise_authenticated_statement_timeout
+-- ----------------------------------------------------------------------------
+-- Reproduced live in production: Analytics with a broad date range (e.g.
+-- "All months, All years") hit "canceling statement due to statement
+-- timeout" across several panels (Sync Interval, Alert Count Bucket, both
+-- donuts) — all fed by dds_metrics(), not by anything changed this session.
+--
+-- Root cause, confirmed via EXPLAIN ANALYZE against the `authenticated`
+-- role specifically (the role the live app actually runs as via PostgREST,
+-- NOT the elevated role a direct/admin connection uses — the exact same
+-- "runs fine directly, times out through the app" pattern migration 0062
+-- already documented and fixed once for a different function):
+--   - The `authenticated` role's statement_timeout is 8s (set well before
+--     this session, confirmed via pg_roles.rolconfig).
+--   - dds_metrics() over a 9-month range (01/01/2026-09/22/2026) scans
+--     83,986 of 84,484 total `events` rows — essentially the entire table
+--     — through ~15 separate aggregation passes (trend, hourly, sync/alert
+--     buckets, per-asset/per-operator consistency, top-10 lists, etc.).
+--     Measured runtime varied 1.8s-4.7s across repeated identical calls on
+--     this same data — well under 8s on a good run, but with too little
+--     margin against normal variance (shared-instance contention, cold
+--     cache) to be reliable. `events` is a small, plain 16MB table with no
+--     generated columns and a real WHERE-clause selectivity of ~99% for
+--     this range, so no index can help — an index scan over nearly the
+--     whole table is not faster than the sequential scan Postgres already
+--     correctly chooses.
+--
+-- This is a resource-ceiling problem, not a fixable query-shape one: a
+-- legitimately necessary broad-range aggregation needs more than 8s of
+-- headroom on this instance's variance, not a rewrite. Raises the
+-- `authenticated` role's statement_timeout to 25s — comfortable margin
+-- above the observed 1.8-4.7s range (including a worse-contention case)
+-- while still bounding truly runaway queries. `anon` is left untouched
+-- (this app has public sign-up disabled; anon traffic is not a real path).
+-- ============================================================================
+
+alter role authenticated set statement_timeout = '25s';
