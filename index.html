@@ -139,6 +139,7 @@
   :root[data-theme="dark"] .dm-empty,:root[data-theme="dark"] .da-empty{color:var(--muted)}
   :root[data-theme="dark"] .da-bulk-bar{background:#132542}
   :root[data-theme="dark"] .an-active-filter{background:#132542;color:#7fb0f5}
+  :root[data-theme="dark"] .su-trend-title-icon{background:#132542}
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   html,body{margin:0;width:100%;min-height:100%;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--text);background:var(--bg)}
@@ -707,9 +708,11 @@
   .al-search{flex:0 1 40%;min-width:160px;height:36px;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 11px;color:var(--muted);font-size:11px}
   .al-search svg{width:13px;height:13px;flex:0 0 auto;color:var(--muted)}
   .al-filter{all:unset;box-sizing:border-box;cursor:pointer;height:36px;flex:1 1 0;min-width:100px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:0 11px;display:flex;align-items:center;justify-content:center;gap:7px;color:var(--text-dim);font-size:11px}
+  .al-filter:focus-visible{box-shadow:var(--focus-ring);border-color:var(--blue)}
   .al-filter svg{width:10px;height:10px;color:var(--muted)}
   .al-filter strong{font-weight:700;color:var(--text-dim)}
   .al-clear{all:unset;box-sizing:border-box;cursor:pointer;flex:0 0 auto;margin-left:4px;color:#2563eb;font-size:11px;font-weight:650;padding:0 10px;height:36px;display:flex;align-items:center;border-radius:6px;white-space:nowrap}
+  .al-clear:focus-visible{box-shadow:var(--focus-ring)}
   .al-clear:hover{background:#edf5ff}
 
   .al-table-wrap{overflow-x:auto;overflow-y:auto}
@@ -1269,6 +1272,7 @@
   .su-range{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 13px;font-size:var(--fs-body);color:var(--text-dim);font-weight:650}
   .su-range svg{width:13px;height:13px;color:var(--muted)}
   button.su-export{all:unset;box-sizing:border-box;cursor:pointer;height:38px;display:inline-flex;align-items:center;gap:8px;padding:0 15px;border-radius:9px;background:var(--blue);color:#fff;font-size:var(--fs-body);font-weight:650}
+  button.su-export:focus-visible{box-shadow:var(--focus-ring)}
   button.su-export:hover{background:#1d4fd1}
   button.su-export svg{width:13px;height:13px}
 
@@ -1316,6 +1320,7 @@
   .su-open-cta{margin:2px 17px 15px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:center}
   .su-open-cta button{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:var(--fs-body);font-weight:650;padding:6px 12px;border-radius:7px;display:inline-flex;align-items:center;gap:6px}
   .su-open-cta button:hover{background:#edf5ff}
+  .su-open-cta button:focus-visible{box-shadow:var(--focus-ring)}
   .su-open-cta svg{width:11px;height:11px}
 
   .su-risk-card{padding:0;margin-top:14px}
@@ -1324,6 +1329,7 @@
   .su-risk-title small{font-size:var(--fs-caption);color:var(--muted);font-weight:500}
   .su-risk-goto{all:unset;box-sizing:border-box;cursor:pointer;color:#2563eb;font-size:11px;font-weight:650;padding:6px 10px;border-radius:7px;display:inline-flex;align-items:center;gap:6px}
   .su-risk-goto:hover{background:#edf5ff}
+  .su-risk-goto:focus-visible{box-shadow:var(--focus-ring)}
   .su-risk-goto svg{width:11px;height:11px}
   .su-risk-table{width:100%;border-collapse:collapse}
   .su-risk-table th{height:30px;text-align:left;color:var(--muted);font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:0 17px;background:var(--surface2);white-space:nowrap}
@@ -1717,9 +1723,9 @@
       <input type="date" class="al-filter" id="ov-from" aria-label="From date" style="flex:0 0 auto">
       <span class="ov-filter-to">to</span>
       <input type="date" class="al-filter" id="ov-to" aria-label="To date" style="flex:0 0 auto">
-      <button class="al-filter" type="button" data-ov-quick="7" style="flex:0 0 auto">7D</button>
-      <button class="al-filter" type="button" data-ov-quick="30" style="flex:0 0 auto">30D</button>
-      <button class="al-filter" type="button" data-ov-quick="90" style="flex:0 0 auto">90D</button>
+      <button class="al-filter" type="button" data-ov-quick="7" aria-pressed="false" style="flex:0 0 auto">7D</button>
+      <button class="al-filter" type="button" data-ov-quick="30" aria-pressed="false" style="flex:0 0 auto">30D</button>
+      <button class="al-filter" type="button" data-ov-quick="90" aria-pressed="false" style="flex:0 0 auto">90D</button>
       <button class="al-clear" type="button" id="ov-filter-reset">Reset</button>
       <span class="ov-filter-note" id="ov-filter-note"></span>
     </section>
@@ -3105,7 +3111,7 @@
               </div>
             </div>
             <div class="su-open-cta">
-              <button type="button" id="su-review-pending-btn" data-goto="alerts">
+              <button type="button" id="su-review-pending-btn">
                 Review pending alerts
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
               </button>
@@ -5149,11 +5155,12 @@
     // consecutive days each >= 20/day, 'high' otherwise. Excludes
     // actioned/resolved drivers. Scoped to the page's own date filter, same
     // as the KPIs/trend/hourly chart above it.
-    function renderRequiredAttention(from, to){
+    function renderRequiredAttention(from, to, token){
       var tbody = document.getElementById('ov-ra-tbody');
       var shownEl = document.getElementById('ov-ra-shown');
       if(!tbody) return;
       DB.rpc('dds_required_attention', { p_from: from, p_to: to }).then(function(res){
+        if(!guard.isCurrent(token)) return;
         if(res.error) throw res.error;
         var rows = (res.data || {}).rows || [];
         if(shownEl) shownEl.textContent = 'Showing ' + fmtNum(rows.length);
@@ -5185,6 +5192,7 @@
           });
         });
       }).catch(function(err){
+        if(!guard.isCurrent(token)) return;
         console.error('Required attention fetch failed', err);
         tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc(err.message || 'unknown error') + '</td></tr>';
       });
@@ -5256,7 +5264,7 @@
             var week = results[0], prevWeek = results[1];
             setStatus(true);
             renderTrend(week);
-            renderRequiredAttention(state.from, state.to);
+            renderRequiredAttention(state.from, state.to, token);
             renderKpis(week, prevWeek);
             var periodLabel = 'vs prior ' + rangeDays + 'd';
             ['total','sleep','drowsy','drivers','assets'].forEach(function(key){
@@ -5285,8 +5293,11 @@
             console.error('Overview metrics fetch failed', err);
             var text = document.getElementById('ov-status-text');
             if(text) text.textContent = 'Unable to load fleet data';
-            var raBody = document.getElementById('ov-ra-tbody');
-            if(raBody) raBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#c0271f;padding:30px 0">Could not load: ' + esc(err.message || 'unknown error') + '</td></tr>';
+            // Required Attention is deliberately NOT wiped here — it loads
+            // from its own independent RPC (dds_required_attention via
+            // renderRequiredAttention(), called just above this catch's
+            // try block) and may already be showing correct data even
+            // though the KPI/trend/hourly metrics fetch failed.
           });
         }).catch(function(err){
           if(!guard.isCurrent(token)) return;
@@ -5314,7 +5325,9 @@
       if(ovToInput) ovToInput.value = dateToIso(mdyToDate(state.to));
       var days = Math.round((mdyToDate(state.to) - mdyToDate(state.from)) / 86400000) + 1;
       ovQuickBtns.forEach(function(b){
-        b.classList.toggle('on', Number(b.getAttribute('data-ov-quick')) === days);
+        var on = Number(b.getAttribute('data-ov-quick')) === days;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', String(on));
       });
       if(ovFilterNote) ovFilterNote.textContent = cachedLatestDate ? ('Latest data: ' + toMDY(cachedLatestDate)) : '';
     }
