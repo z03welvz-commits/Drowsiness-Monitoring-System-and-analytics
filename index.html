@@ -2035,6 +2035,7 @@
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alerts by Driver</span></div>
             <div class="an-panel-tools">
               <div class="an-seg" data-sort-target="drivers"><button class="an-seg-btn active" type="button" data-sort="desc">High→Low</button><button class="an-seg-btn" type="button" data-sort="asc">Low→High</button></div>
+              <button type="button" class="view-all" id="an-driver-totals-viewall">View all</button>
             </div>
           </div>
           <div class="an-bar-list scroll-y" id="an-bl-driver"><div class="an-bar-list-empty">Loading&hellip;</div></div>
@@ -2247,6 +2248,30 @@
         </div>
         <div class="da-history-card">
           <div class="da-table-wrap" id="al-detail-body" style="padding:6px 4px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics: full "Alerts by Driver" totals modal (View all button) —
+         same rank/total the ranked bar-list panel shows, but the complete
+         list matching the page's current filters, not just the top 6, with
+         its own Export button. -->
+    <div class="da-modal-mask" id="an-driver-totals-mask">
+      <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="an-driver-totals-title" style="max-width:640px">
+        <div class="da-modal-head">
+          <div>
+            <div class="da-modal-title" id="an-driver-totals-title">All Drivers — Total Alerts</div>
+            <div class="dm-modal-sub" id="an-driver-totals-sub"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button type="button" class="view-all" id="an-driver-totals-export">Export</button>
+            <button class="da-modal-close" type="button" id="an-driver-totals-close" aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="da-history-card">
+          <div class="da-table-wrap" id="an-driver-totals-body" style="padding:6px 4px;max-height:60vh;overflow-y:auto"></div>
         </div>
       </div>
     </div>
@@ -6000,6 +6025,95 @@
         renderRankedBarList('an-bl-equipment', [], { emptyText: 'Could not load asset data' });
       });
     }
+
+    // ==================== "View all" driver totals modal ====================
+    // Alerts by Driver only ever shows the top 6 (TOP_N below) as bars — the
+    // full ranked list matching the page's current filters, for a manager
+    // who wants every driver's total alert count, not just the busiest few.
+    // dds_driver_event_summary() clamps p_limit to 200 server-side, and the
+    // live dataset has 733 distinct drivers all-time — a real number, not a
+    // hypothetical edge case — so this pages through it the same way Alert
+    // Logs'/Driver & Asset Monitoring's own exports already page through
+    // their RPC's cap, rather than reusing fetchTopDrivers()'s single
+    // capped page.
+    var AN_DRIVER_TOTALS_PAGE_SIZE = 200;
+    var AN_DRIVER_TOTALS_MAX_ROWS = 20000;
+    var lastDriverTotalsRows = [];
+    function fetchAllDriverTotals(from, to){
+      var collected = [];
+      function loop(offset){
+        return DB.rpc('dds_driver_event_summary', {
+          p_search: null, p_sort: 'total', p_dir: 'desc',
+          p_limit: AN_DRIVER_TOTALS_PAGE_SIZE, p_offset: offset,
+          p_from: from || null, p_to: to || null, p_shift: filterState.shift || null,
+          p_asset_id: (activeAssetIds() || [null])[0],
+          p_event_code: filterState.eventCode || null,
+          p_hour: filterState.hour != null ? filterState.hour : null,
+          p_sync_bucket: filterState.syncBucket != null ? filterState.syncBucket : null,
+          p_emp_no: filterState.empNo || null
+        }).then(function(res){
+          if(res.error) throw res.error;
+          var rawRows = (res.data || {}).rows || [];
+          // UNSPECIFIED_OPERATOR is a real sentinel value (not a driver),
+          // same filter fetchTopDrivers() already applies — excluded from
+          // the collected list, but the RAW page size (before this filter)
+          // is what tells us whether the server had more pages to give.
+          collected = collected.concat(rawRows.filter(function(r){ return r.empNo && r.empNo !== UNSPECIFIED_OPERATOR.toUpperCase(); }));
+          var hitCap = collected.length >= AN_DRIVER_TOTALS_MAX_ROWS;
+          if(rawRows.length < AN_DRIVER_TOTALS_PAGE_SIZE || hitCap){
+            return collected.slice(0, AN_DRIVER_TOTALS_MAX_ROWS);
+          }
+          return loop(offset + AN_DRIVER_TOTALS_PAGE_SIZE);
+        });
+      }
+      return loop(0);
+    }
+    var AN_DRIVER_TOTALS_EXPORT_COLUMNS = [
+      { key:'rank', label:'Rank' }, { key:'empName', label:'Driver' },
+      { key:'empNo', label:'Emp No' }, { key:'total', label:'Total Alerts' }
+    ];
+    function driverTotalsExportRows(){
+      return lastDriverTotalsRows.map(function(r, i){
+        return { rank: i + 1, empName: r.empName || r.empNo || '', empNo: r.empNo || '', total: r.total || 0 };
+      });
+    }
+    function renderDriverTotalsModal(rows){
+      var body = document.getElementById('an-driver-totals-body');
+      if(!rows.length){
+        body.innerHTML = '<div class="da-empty" style="padding:30px 0">No driver activity in this range.</div>';
+        return;
+      }
+      // .da-table's shared min-width:920px (sized for wider tables
+      // elsewhere) would push this 4-column table's last column out past
+      // this modal's 640px width — overridden inline since only this
+      // instance is this narrow.
+      body.innerHTML = '<table class="da-table" style="min-width:0"><thead><tr><th>#</th><th>Driver</th><th>Emp No</th><th>Total Alerts</th></tr></thead><tbody>' +
+        rows.map(function(r, i){
+          return '<tr><td>' + (i + 1) + '</td><td>' + esc(r.empName || r.empNo) + '</td><td>' + esc(r.empNo) + '</td><td>' + fmtNum(r.total || 0) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+    var driverTotalsMask = document.getElementById('an-driver-totals-mask');
+    var driverTotalsViewAllBtn = document.getElementById('an-driver-totals-viewall');
+    if(driverTotalsViewAllBtn){
+      driverTotalsViewAllBtn.addEventListener('click', function(){
+        var body = document.getElementById('an-driver-totals-body');
+        body.innerHTML = '<div class="da-empty" style="padding:30px 0">Loading&hellip;</div>';
+        document.getElementById('an-driver-totals-sub').textContent =
+          'Window: ' + (analyticsLastWindow.from || '—') + ' to ' + (analyticsLastWindow.to || '—') +
+          (filterState.shift ? ' · Shift: ' + filterState.shift : '');
+        driverTotalsMask.classList.add('on');
+        fetchAllDriverTotals(analyticsLastWindow.from, analyticsLastWindow.to).then(function(rows){
+          lastDriverTotalsRows = rows;
+          renderDriverTotalsModal(rows);
+        }).catch(function(err){
+          console.error('Driver totals fetch failed', err);
+          body.innerHTML = '<div class="da-empty" style="padding:30px 0;color:#c0271f">Could not load: ' + esc(err.message || 'unknown error') + '</div>';
+        });
+      });
+      document.getElementById('an-driver-totals-close').addEventListener('click', function(){ driverTotalsMask.classList.remove('on'); });
+      driverTotalsMask.addEventListener('click', function(e){ if(e.target === driverTotalsMask) driverTotalsMask.classList.remove('on'); });
+      wireExportButton('an-driver-totals-export', 'driver_alert_totals', AN_DRIVER_TOTALS_EXPORT_COLUMNS, driverTotalsExportRows);
+    }
     document.querySelectorAll('[data-sort-target="assets"] .an-seg-btn').forEach(function(btn){
       btn.addEventListener('click', function(){
         equipSortDir = btn.getAttribute('data-sort');
@@ -6207,6 +6321,12 @@
 
     // ==================== orchestration ====================
     var analyticsLastCur = null;
+    // The primary window load() last resolved (filter bar's explicit range,
+    // or the trailing-7-day default) — captured so the "View all" driver-
+    // totals modal (opened on a later click, outside load()'s own closure)
+    // fetches the exact same window Alerts by Driver is currently showing,
+    // instead of guessing or re-deriving it.
+    var analyticsLastWindow = { from: null, to: null };
     function signedOutState(){
       var grid = document.getElementById('an-kpi-grid');
       if(grid) grid.innerHTML = '<div class="an-bar-list-empty" style="grid-column:1/-1">Sign in to load real data.</div>';
@@ -6326,6 +6446,7 @@
           });
         });
 
+        analyticsLastWindow = { from: toISO(winFrom), to: toISO(winTo) };
         var topDriversResult = renderTopDrivers2(toISO(winFrom), toISO(winTo));
         var topAssetsResult = renderTopAssets2(toISO(winFrom), toISO(winTo));
         var spikeResult = renderSpikeInvestigation(toISO(winFrom), toISO(winTo));
@@ -12257,13 +12378,15 @@
     // Severity mirrors Overview's Required Attention rule: a lone qualifying
     // day is 'high', 2+ consecutive qualifying days is 'critical'.
     function streakSeverity(r){ return (r.streakDays || 0) >= 2 ? 'critical' : 'high'; }
-    // States the specific count/alert type that tripped the flag, then the
+    // Formal, third-person memo register: names the subject (driver, with
+    // employee no. and operating unit, or the asset itself), states the
+    // specific count/alert type that tripped the flag, then cites the
     // general dds_qualifying_days() (0153) rule as the threshold definition
     // — a single event's own count > 10, OR one event_code's summed count
     // for that shift/day > 20 — using peakDayTrigger* resolved by
     // dds_monitoring_streaks() (0162) for the actual count/type.
     //
-    // Which date anchors the sentence depends on which of those two criteria
+    // Which date anchors the record depends on which of those two criteria
     // actually fired: a single event's own count > 10 is an acute, one-time
     // trigger, so it's anchored to the qualifying run's START date rather
     // than wherever the day-total happened to peak; the cumulative-total
@@ -12273,10 +12396,6 @@
     // data has (events are aggregated per shift_date/shift, not the instant).
     function streakDescription(r){
       var isDriver = state.kind === 'drivers';
-      var subject = isDriver ? 'you' : 'this asset';
-      var verb = isDriver ? 'have been observed' : 'has been observed';
-      var subjectNoun = isDriver ? 'driver' : 'asset';
-      var assetNumber = esc(isDriver ? (r.unit || '—') : r.id);
       var hasTrigger = r.peakDayTriggerCode != null && r.peakDayTriggerValue != null;
       var isSingleEvent = hasTrigger && r.peakDayTriggerType === 'single_event';
       var shiftPhrase = r.dominantShift === 'NIGHT' ? ', during the night shift'
@@ -12284,14 +12403,17 @@
       var dateClause = isSingleEvent ? esc(r.runStart) : (esc(r.peakDate || r.runStart) + shiftPhrase);
       var count = fmtNum(hasTrigger ? r.peakDayTriggerValue : (r.peakCount || r.runTotalCount || 0));
       var alertType = hasTrigger ? esc(r.peakDayTriggerCode) : 'alert';
-      var lead = streakSeverity(r) === 'critical'
-        ? 'Following ' + fmtNum(r.streakDays) + ' consecutive qualifying days from ' + esc(r.runStart) + ' to ' + esc(r.runEnd) + ' (totaling ' + fmtNum(r.runTotalCount) + ' alert(s), averaging ' + fmtNum(r.avgCount) + ' per day), on '
-        : 'On ';
-      return lead + dateClause + ', ' + subject + ' ' + verb + ' to have ' + count +
-        ' alert(s) of ' + alertType + ' associated with ' + assetNumber + '. This alert encompasses the given' +
-        ' threshold — either a single event recording more than 10 occurrences, or the combined count of that' +
-        ' alert type in one shift/day exceeding 20 for that ' + subjectNoun + ' — which raises a safety concern' +
-        ' related to fatigue.';
+      var subjectClause = isDriver
+        ? 'Driver ' + esc(r.name || r.id) + ' (Employee No. ' + esc(r.id) + ')' + (r.unit ? ', operating Unit ' + esc(r.unit) + ',' : '')
+        : 'Asset ' + esc(r.id);
+      var streakPreamble = streakSeverity(r) === 'critical'
+        ? 'over ' + fmtNum(r.streakDays) + ' consecutive qualifying days from ' + esc(r.runStart) + ' to ' + esc(r.runEnd) + ' (totaling ' + fmtNum(r.runTotalCount) + ' alert(s), averaging ' + fmtNum(r.avgCount) + ' per day), '
+        : '';
+      return 'This is to formally record that, ' + streakPreamble + subjectClause + ' registered ' + count +
+        ' alert(s) of ' + alertType + ' on ' + dateClause + '. This finding meets the qualifying threshold established' +
+        ' under the fatigue-monitoring protocol: a single event exceeding ten (10) occurrences, or the combined' +
+        ' count of one alert type within a single shift-day exceeding twenty (20). Accordingly, this record is' +
+        ' flagged for supervisory review in connection with driver fatigue risk.';
     }
     function actionButtonLabel(r){
       var la = r.lastAction;
