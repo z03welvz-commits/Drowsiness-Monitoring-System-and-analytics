@@ -7,6 +7,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<script>
+  // Applies a cached theme preference synchronously, before the stylesheet
+  // below is even parsed, so dark-mode users never see a flash of light
+  // mode on load. The REAL source of truth is still the user_settings
+  // fetch in Settings' own applyTheme()/loadPreferences() (unchanged) —
+  // that auth-gated round trip can't run this early (it needs a session),
+  // so this is a fast local guess that gets corrected if ever stale
+  // (e.g. after switching theme on another device). Same localStorage-
+  // cache-for-instant-paint pattern this app already uses for the sidebar
+  // pin state (SIDEBAR_PIN_KEY).
+  try{
+    if(localStorage.getItem('dds_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  }catch(e){}
+</script>
 <style>
   :root{
     --navy:#0b3b78; --navy2:#0e4b98; --blue:#2563eb; --blue2:#3b82f6;
@@ -138,6 +152,13 @@
   :root[data-theme="dark"] .al-badge.high{background:#2e2410}
   :root[data-theme="dark"] .da-tab.on .da-tab-count{background:#132542;color:#7fb0f5}
   :root[data-theme="dark"] .dm-dropzone.drag{background:#132542}
+  :root[data-theme="dark"] .se-profile-badge{background:#132b1f}
+  :root[data-theme="dark"] .se-profile-badge.pending{background:#2e2410}
+  :root[data-theme="dark"] .se-theme-opt.on{background:#132542;color:#7fb0f5}
+  :root[data-theme="dark"] .se-role-badge.admin{background:#2a1f42}
+  :root[data-theme="dark"] .se-wip-badge{background:#2e2410}
+  :root[data-theme="dark"] .se-conf-badge.high{background:#132b1f}
+  :root[data-theme="dark"] .se-conf-badge.med{background:#2e2410}
   :root[data-theme="dark"] .al-status.ack::before{background:#8a94ab}
   :root[data-theme="dark"] .dm-empty,:root[data-theme="dark"] .da-empty{color:var(--muted)}
   :root[data-theme="dark"] .da-bulk-bar{background:#132542}
@@ -1422,7 +1443,7 @@
   /* Personalization */
   .se-pref-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--border)}
   .se-pref-row:last-child{border-bottom:none}
-  .se-pref-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto}
+  .se-pref-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;background:color-mix(in srgb,var(--accent,var(--blue)) 16%,transparent);color:var(--accent,var(--blue))}
   .se-pref-icon svg{width:17px;height:17px}
   .se-pref-text{flex:1;min-width:0}
   .se-pref-label{font-size:12.5px;font-weight:700;color:var(--text-dim)}
@@ -1492,7 +1513,7 @@
   .se-sys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:20px 20px 6px}
   .se-sys-tile{border:1px solid var(--border);border-radius:12px;padding:16px}
   .se-sys-tile-head{display:flex;align-items:center;gap:9px;margin-bottom:12px}
-  .se-sys-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto}
+  .se-sys-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto;background:color-mix(in srgb,var(--accent,var(--blue)) 16%,transparent);color:var(--accent,var(--blue))}
   .se-sys-icon svg{width:14px;height:14px}
   .se-sys-tile-title{font-size:var(--fs-body);font-weight:750;color:var(--text-dim)}
   .se-sys-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:11px;color:var(--text-dim)}
@@ -3234,6 +3255,7 @@
                 <input type="email" id="se-email" placeholder="Email address">
               </div>
             </div>
+            <div class="se-field-hint" id="se-profile-err" style="display:none;color:#c0271f"></div>
 
             <h3 class="se-section-label">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -3280,9 +3302,10 @@
               <div class="se-card-sub">Sound, brightness, and theme for this device</div>
             </div>
           </div>
+          <div class="se-field-hint" id="se-pref-err" style="display:none;color:#c0271f;margin-bottom:8px"></div>
           <div class="se-panel">
             <div class="se-pref-row">
-              <span class="se-pref-icon" style="background:#e3edfd;color:#3b7cf6" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span>
+              <span class="se-pref-icon" style="--accent:var(--blue)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span>
               <div class="se-pref-text">
                 <div class="se-pref-label">Sound</div>
                 <div class="se-pref-sub">Plays a confirmation chime when turned on. Alert-triggered sound while the app is in the background isn't built yet.</div>
@@ -3294,7 +3317,7 @@
             </div>
 
             <div class="se-pref-row">
-              <span class="se-pref-icon" style="background:#fdf0dc;color:#e8952e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span>
+              <span class="se-pref-icon" style="--accent:var(--orange)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span>
               <div class="se-pref-text">
                 <div class="se-pref-label">Brightness</div>
                 <div class="se-pref-sub">Dims the main content area — handy for a control room at night. Saved to your account.</div>
@@ -3309,7 +3332,7 @@
             </div>
 
             <div class="se-pref-row">
-              <span class="se-pref-icon" style="background:#f0e9fc;color:#7c3aed" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>
+              <span class="se-pref-icon" style="--accent:var(--purple)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>
               <div class="se-pref-text">
                 <div class="se-pref-label">Theme</div>
                 <div class="se-pref-sub">Applies across the whole app, including the sidebar toggle</div>
@@ -3399,7 +3422,7 @@
           <div class="se-sys-grid">
             <div class="se-sys-tile">
               <div class="se-sys-tile-head">
-                <span class="se-sys-icon" style="background:#dff5ea;color:#18a05e" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
+                <span class="se-sys-icon" style="--accent:var(--green)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
                 <span class="se-sys-tile-title">Database status</span>
               </div>
               <div class="se-sys-row"><span>Connection</span><strong id="se-sys-connection" style="color:var(--muted)">Checking…</strong></div>
@@ -3410,7 +3433,7 @@
 
             <div class="se-sys-tile">
               <div class="se-sys-tile-head">
-                <span class="se-sys-icon" style="background:#e3edfd;color:#3b7cf6" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></span>
+                <span class="se-sys-icon" style="--accent:var(--blue)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></span>
                 <span class="se-sys-tile-title">Data confidence</span>
               </div>
               <div class="se-sys-row"><span>Field completeness</span><span class="se-conf-badge high" id="se-sys-confidence">—</span></div>
@@ -3421,7 +3444,7 @@
 
             <div class="se-sys-tile">
               <div class="se-sys-tile-head">
-                <span class="se-sys-icon" style="background:#f0e9fc;color:#7c3aed" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+                <span class="se-sys-icon" style="--accent:var(--purple)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
                 <span class="se-sys-tile-title">Information security</span>
               </div>
               <div class="se-sys-row"><span>Data at rest</span><strong style="color:#18a05e">Encrypted</strong></div>
@@ -7242,6 +7265,17 @@
       pwHint.textContent = text;
       pwHint.style.color = isError ? '#c0271f' : '';
     }
+    var profileErrEl = document.getElementById('se-profile-err');
+    function setProfileErr(text){
+      if(!profileErrEl) return;
+      profileErrEl.textContent = text;
+      profileErrEl.style.display = text ? '' : 'none';
+    }
+    function showSavedToast(){
+      personalToast.classList.add('on');
+      clearTimeout(personalSaveBtn._toastTimer);
+      personalSaveBtn._toastTimer = setTimeout(function(){ personalToast.classList.remove('on'); }, 2600);
+    }
 
     if(personalSaveBtn){
       personalSaveBtn.addEventListener('click', function(){
@@ -7252,57 +7286,73 @@
           if(pwNew.value.length < 8){ setPwHint(PW_HINT_DEFAULT, true); return; }
         }
         setPwHint(PW_HINT_DEFAULT, false);
+        setProfileErr('');
 
         var newName = nameInput.value.trim();
         var newEmail = emailInput.value.trim();
         var p = personalState.profile;
+        // Each step is labeled so a failure can be routed to the field it
+        // actually concerns, and so whichever steps completed BEFORE a
+        // later one failed can still be reflected + acknowledged — a single
+        // shared catch used to attribute every failure to the password
+        // section and silently drop any name/email change that had
+        // already succeeded.
         var steps = [];
 
         if(p && newName && newName !== p.display_name){
-          steps.push(function(){
+          steps.push({ label: 'name', run: function(){
             return DB.from('profiles').update({ display_name: newName }).eq('user_id', p.user_id).then(function(res){
               if(res.error) throw res.error;
               p.display_name = newName;
             });
-          });
+          }});
         }
         if(newEmail && newEmail !== personalState.email){
-          steps.push(function(){
+          steps.push({ label: 'email', run: function(){
             return DB.auth.updateUser({ email: newEmail }).then(function(res){
               if(res.error) throw res.error;
             });
-          });
+          }});
         }
         if(wantsPwChange){
-          steps.push(function(){
+          steps.push({ label: 'password', run: function(){
             return DB.auth.signInWithPassword({ email: personalState.email, password: pwCurrent.value }).then(function(res){
               if(res.error) throw new Error('Current password is incorrect.');
               return DB.auth.updateUser({ password: pwNew.value });
             }).then(function(res){
               if(res && res.error) throw res.error;
             });
-          });
+          }});
         }
 
         if(!steps.length){
-          personalToast.classList.add('on');
-          clearTimeout(personalSaveBtn._toastTimer);
-          personalSaveBtn._toastTimer = setTimeout(function(){ personalToast.classList.remove('on'); }, 2600);
+          showSavedToast();
           return;
         }
 
         personalSaveBtn.disabled = true;
         personalSaveBtn.textContent = 'Saving…';
-        steps.reduce(function(chain, step){ return chain.then(step); }, Promise.resolve())
+        var completed = [];
+        steps.reduce(function(chain, step){
+          return chain.then(function(){ return step.run(); }).then(function(){ completed.push(step.label); });
+        }, Promise.resolve())
           .then(function(){
             pwCurrent.value = ''; pwNew.value = ''; pwConfirm.value = '';
             fillPersonalFields();
-            personalToast.classList.add('on');
-            clearTimeout(personalSaveBtn._toastTimer);
-            personalSaveBtn._toastTimer = setTimeout(function(){ personalToast.classList.remove('on'); }, 2600);
+            showSavedToast();
           })
           .catch(function(err){
-            setPwHint((err && err.message) || 'Could not save changes.', true);
+            var failedStep = steps[completed.length] ? steps[completed.length].label : null;
+            var message = (err && err.message) || 'Could not save changes.';
+            if(failedStep === 'password'){
+              setPwHint(message, true);
+            }else{
+              setProfileErr((failedStep === 'email' ? 'Could not update email: ' : 'Could not save name: ') + message);
+            }
+            if(completed.length){
+              fillPersonalFields();
+              showSavedToast();
+            }
           })
           .finally(function(){
             personalSaveBtn.disabled = false;
@@ -7316,6 +7366,7 @@
         pwNew.value = '';
         pwConfirm.value = '';
         setPwHint(PW_HINT_DEFAULT, false);
+        setProfileErr('');
         personalToast.classList.remove('on');
         fillPersonalFields();
       });
@@ -7329,7 +7380,21 @@
     // jsonb column holds both prefs so a single upsert covers either
     // control without a schema migration.
     var prefsState = { userId: null, preferences: {} };
+    var prefErrEl = document.getElementById('se-pref-err');
+    function flashPrefErr(message){
+      if(!prefErrEl) return;
+      prefErrEl.textContent = message;
+      prefErrEl.style.display = '';
+      clearTimeout(prefErrEl._timer);
+      prefErrEl._timer = setTimeout(function(){ prefErrEl.style.display = 'none'; }, 4000);
+    }
+    // Rejects (unlike the old version, which only console.error'd and always
+    // resolved) so callers can revert their optimistic UI update and show an
+    // error — also rolls prefsState.preferences itself back to its
+    // pre-patch value on failure, so a failed save can't leave the
+    // in-memory state ahead of what's actually persisted.
     function savePreferences(patch){
+      var prevPrefs = Object.assign({}, prefsState.preferences);
       Object.assign(prefsState.preferences, patch);
       // Re-derive the session here instead of trusting prefsState.userId to
       // already be set: loadPreferences() only runs once at page-load, so if
@@ -7340,16 +7405,20 @@
       // in the UI, meaning every save was hitting the old `if(!userId) return`
       // guard and never reaching the network at all.
       return requireSession().then(function(sess){
-        if(!sess) return;
+        if(!sess) throw new Error('Not signed in');
         prefsState.userId = sess.user.id;
         return DB.from('user_settings').upsert({
           user_id: prefsState.userId,
           preferences: prefsState.preferences,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' }).then(function(res){
-          if(res.error) console.error('Could not save preference', res.error);
+          if(res.error) throw res.error;
         });
-      }).catch(function(err){ console.error('Could not save preference', err); });
+      }).catch(function(err){
+        prefsState.preferences = prevPrefs;
+        console.error('Could not save preference', err);
+        throw err;
+      });
     }
 
     // ---- Personalization: sound switch (persisted) ----
@@ -7388,11 +7457,16 @@
     }
     if(soundSwitch){
       soundSwitch.addEventListener('click', function(){
-        var on = !soundSwitch.classList.contains('on');
+        var was = soundSwitch.classList.contains('on');
+        var on = !was;
         setSoundUI(on);
         window.__ddsSoundEnabled = on;
-        savePreferences({ soundEnabled: on });
         if(on) playSoundTestBeep();
+        savePreferences({ soundEnabled: on }).catch(function(){
+          setSoundUI(was);
+          window.__ddsSoundEnabled = was;
+          flashPrefErr('Could not save sound preference. Please try again.');
+        });
       });
     }
 
@@ -7411,6 +7485,7 @@
     var brightnessRange = document.getElementById('se-brightness-range');
     var brightnessVal = document.getElementById('se-brightness-val');
     var brightnessTarget = document.querySelector('.main');
+    var lastSavedBrightness = brightnessRange ? brightnessRange.value : 80;
     function applyBrightness(pct){
       brightnessRange.value = pct;
       brightnessVal.textContent = pct + '%';
@@ -7422,7 +7497,15 @@
         // Debounced: this fires on every pixel of drag, and saving is a
         // network write — save the settled value, not every intermediate one.
         clearTimeout(brightnessRange._saveTimer);
-        brightnessRange._saveTimer = setTimeout(function(){ savePreferences({ brightness: brightnessRange.value }); }, 400);
+        brightnessRange._saveTimer = setTimeout(function(){
+          var pending = brightnessRange.value;
+          savePreferences({ brightness: pending }).then(function(){
+            lastSavedBrightness = pending;
+          }).catch(function(){
+            applyBrightness(lastSavedBrightness);
+            flashPrefErr('Could not save brightness. Reverted to the last saved value.');
+          });
+        }, 400);
       });
     }
 
@@ -7439,15 +7522,26 @@
     var isDark = false;
 
     function applyTheme(dark, skipSave){
+      var wasDark = isDark;
       isDark = dark;
       document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      // Keeps the <head> flash-prevention script's cache fresh (see its
+      // own comment) — this call is the only place a theme ever actually
+      // changes, whether from the real user_settings load or a user
+      // toggling it live, so it's the one place that needs to write here.
+      try{ localStorage.setItem('dds_theme', dark ? 'dark' : 'light'); }catch(e){}
       themeOpts.forEach(function(opt){
         var on = opt.getAttribute('data-se-theme') === (dark ? 'dark' : 'light');
         opt.classList.toggle('on', on);
         opt.setAttribute('aria-checked', on ? 'true' : 'false');
       });
       if(sidebarModeToggle) sidebarModeToggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
-      if(!skipSave) savePreferences({ theme: dark ? 'dark' : 'light' });
+      if(!skipSave){
+        savePreferences({ theme: dark ? 'dark' : 'light' }).catch(function(){
+          applyTheme(wasDark, true);
+          flashPrefErr('Could not save theme preference. Reverted to the last saved value.');
+        });
+      }
     }
 
     // ---- Sidebar auto-collapse: icon-only rail by default, expands on
@@ -7518,6 +7612,7 @@
             window.__ddsSoundEnabled = prefs.soundEnabled !== false;
             applyTheme(prefs.theme === 'dark', true);
             applyBrightness(prefs.brightness || 80);
+            lastSavedBrightness = prefs.brightness || 80;
           });
       }).catch(function(err){ console.error('Preferences load failed', err); });
     }
@@ -7809,10 +7904,13 @@
       });
     }
 
+    var usersGuard = makeGuard();
     function loadUsers(){
       var tbody = document.getElementById('se-users-tbody');
       var countEl = document.getElementById('se-users-count');
+      var token = usersGuard.start();
       requireSession().then(function(sess){
+        if(!usersGuard.isCurrent(token)) return;
         if(!sess){
           if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px 0">Sign in to load real user data.</td></tr>';
           if(countEl) countEl.textContent = '';
@@ -7821,6 +7919,7 @@
         accessState.currentUserId = sess.user.id;
         return DB.from('profiles').select('user_id, username, display_name, role, status, created_at').order('created_at')
           .then(function(res){
+            if(!usersGuard.isCurrent(token)) return;
             if(res.error) throw res.error;
             accessState.profiles = res.data || [];
             var me = accessState.profiles.find(function(p){ return p.user_id === sess.user.id; });
@@ -7828,6 +7927,7 @@
             renderUsers();
           });
       }).catch(function(err){
+        if(!usersGuard.isCurrent(token)) return;
         if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#c0271f;padding:30px 0">Could not load users: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
       });
     }
@@ -7870,14 +7970,18 @@
       }).join('');
     }
 
+    var alertRecipGuard = makeGuard();
     function loadAlertRecipients(){
       var tbody = document.getElementById('se-alertrecip-tbody');
+      var token = alertRecipGuard.start();
       DB.from('alert_recipients').select('id, email, active, created_at').order('created_at')
         .then(function(res){
+          if(!alertRecipGuard.isCurrent(token)) return;
           if(res.error) throw res.error;
           alertRecipState.rows = res.data || [];
           renderAlertRecipients();
         }).catch(function(err){
+          if(!alertRecipGuard.isCurrent(token)) return;
           if(tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#c0271f;padding:30px 0">Could not load recipients: ' + esc((err && err.message) || 'unknown error') + '</td></tr>';
         });
     }
@@ -7936,6 +8040,8 @@
           flashAlertRecipErr('Enter a valid email address.');
           return;
         }
+        alertRecipAddBtn.disabled = true;
+        alertRecipAddBtn.textContent = 'Adding…';
         DB.from('alert_recipients').insert({ email: email }).select('id, email, active, created_at').then(function(res){
           if(res.error) throw res.error;
           alertRecipState.rows = alertRecipState.rows.concat(res.data || []);
@@ -7943,6 +8049,9 @@
           renderAlertRecipients();
         }).catch(function(err){
           flashAlertRecipErr('Could not add recipient: ' + ((err && err.message) || 'unknown error'));
+        }).finally(function(){
+          alertRecipAddBtn.disabled = false;
+          alertRecipAddBtn.textContent = 'Add';
         });
       });
     }
