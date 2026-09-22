@@ -545,10 +545,19 @@
      a full-width row each looked dominant/unbalanced with mostly-empty
      chart area at typical desktop widths. */
   .an-grid-row.cols-charts{grid-template-columns:repeat(2,1fr)}
-  /* Sync Interval | Alert Count Bucket */
-  .an-grid-row.cols-a{grid-template-columns:repeat(2,1fr)}
-  /* Alert Type donut | Shift donut */
-  .an-grid-row.cols-b{grid-template-columns:repeat(2,1fr)}
+  /* Sync Interval | Alert Count Bucket | Alert Type donut | Shift donut —
+     one shared row (was two separate 2-up rows) using auto-fit so the
+     column count adapts to whatever width is actually available instead
+     of a fixed guess: 4 across once there's room for four >=230px panels,
+     2 across at moderate widths, matching the old fixed layout exactly
+     once even 2 don't fit (see the <=1080px override below, unchanged).
+     230px floor: donuts tolerate it (96px fixed canvas + a legend that
+     truncates its label via ellipsis and keeps the value's own width) as
+     long as .an-donut-body carries min-width:0 — without it, the donut's
+     flex row refuses to shrink below its content's natural width and
+     bleeds past the panel edge; bar-lists keep a readable track after
+     their own fixed-width label/value columns. */
+  .an-grid-row.cols-a{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
   /* Alerts by Equipment | Alerts by Driver */
   .an-grid-row.cols-c{grid-template-columns:repeat(2,1fr)}
 
@@ -634,8 +643,9 @@
      a center-total overlay, legend list on the right; replaces the old
      hand-rolled SVG arc donut (an-donut-wrap/an-donut-arcs/an-donut-center/
      an-donut-legend, all retired along with it). */
-  .an-donut-body{display:flex;align-items:center;gap:12px;flex:1;min-height:0}
+  .an-donut-body{display:flex;align-items:center;gap:12px;flex:1;min-width:0;min-height:0}
   .an-donut-canvas-wrap{flex:0 0 auto;width:96px;height:96px;position:relative}
+  .an-donut-canvas-wrap canvas{max-width:100%;max-height:100%}
   .an-donut-total2{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center}
   .an-donut-total2 b{font-size:16px;font-weight:800;color:var(--text);line-height:1.1}
   .an-donut-total2 span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
@@ -1517,7 +1527,7 @@
     .ov-charts-row > .chart-card .chart-area{flex:none;height:auto}
     .ov-charts-row > .chart-card .chart-area svg{height:auto}
     .stat-tiles{grid-template-columns:1fr 1fr 1fr}
-    .an-grid-row.cols-a,.an-grid-row.cols-b,.an-grid-row.cols-c,.an-grid-row.cols-charts{grid-template-columns:1fr}
+    .an-grid-row.cols-a,.an-grid-row.cols-c,.an-grid-row.cols-charts{grid-template-columns:1fr}
     .dm-toprow > .card{flex-basis:100%}
     .su-grid{grid-template-columns:1fr}
     .se-sys-grid{grid-template-columns:1fr}
@@ -2006,9 +2016,7 @@
           <div class="an-bar-list" id="an-bl-bucket"><div class="an-bar-list-empty">Loading&hellip;</div></div>
           <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Which EVENT_COUNT band is most common &mdash; click a band to isolate it.</span></div>
         </div>
-      </div>
 
-      <div class="an-grid-row cols-b">
         <div class="an-panel" style="--accent:var(--blue)">
           <div class="an-panel-head">
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alert Type Distribution</span></div>
