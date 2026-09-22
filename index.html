@@ -137,6 +137,7 @@
   :root[data-theme="dark"] .al-badge.moderate{background:#1d2b4a}
   :root[data-theme="dark"] .al-badge.high{background:#2e2410}
   :root[data-theme="dark"] .da-tab.on .da-tab-count{background:#132542;color:#7fb0f5}
+  :root[data-theme="dark"] .dm-dropzone.drag{background:#132542}
   :root[data-theme="dark"] .al-status.ack::before{background:#8a94ab}
   :root[data-theme="dark"] .dm-empty,:root[data-theme="dark"] .da-empty{color:var(--muted)}
   :root[data-theme="dark"] .da-bulk-bar{background:#132542}
@@ -2337,12 +2338,12 @@
         </div>
       </header>
 
-      <nav class="dm-tabs" aria-label="Data sources" id="dm-source-tabs">
-        <button class="dm-tab on" type="button" data-source="dds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>DDS Data</button>
-        <button class="dm-tab" type="button" data-source="minestat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg>Minestat Data</button>
-        <button class="dm-tab" type="button" data-source="masterlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15 14.2c2.9.4 5 2.5 5 5.8"/></svg>Masterlist</button>
-        <button class="dm-tab" type="button" data-source="factors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Contributing Factors</button>
-        <button class="dm-tab" type="button" data-source="review" id="dm-tab-review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v3l2 2"/></svg>Name Review<span class="dm-review-badge" id="dm-review-badge" hidden></span></button>
+      <nav class="dm-tabs" aria-label="Data sources" id="dm-source-tabs" role="tablist">
+        <button class="dm-tab on" type="button" data-source="dds" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>DDS Data</button>
+        <button class="dm-tab" type="button" data-source="minestat" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-5 3 3L19 6"/></svg>Minestat Data</button>
+        <button class="dm-tab" type="button" data-source="masterlist" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15 14.2c2.9.4 5 2.5 5 5.8"/></svg>Masterlist</button>
+        <button class="dm-tab" type="button" data-source="factors" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Contributing Factors</button>
+        <button class="dm-tab" type="button" data-source="review" id="dm-tab-review" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v3l2 2"/></svg>Name Review<span class="dm-review-badge" id="dm-review-badge" hidden></span></button>
       </nav>
 
       <!-- ============ DDS DATA ============ -->
@@ -8635,7 +8636,9 @@
 
     // ==================== DDS Data ====================
     var ddsState = { search: '', total: 0, sort: 'start_time', dir: 'desc' };
+    var ddsGuard = makeGuard();
     function loadDds(){
+      var token = ddsGuard.start();
       var tbody = document.querySelector('#dm-table-dds tbody');
       var titleSmall = document.querySelector('#dm-source-dds .dm-records-title small');
       var foot = document.querySelector('#dm-source-dds .dm-table-foot span');
@@ -8646,11 +8649,13 @@
         th.classList.toggle('asc', col === ddsState.sort && ddsState.dir === 'asc');
       });
       requireSession().then(function(sess){
+        if(!ddsGuard.isCurrent(token)) return;
         if(!sess){ tbody.innerHTML = signedOutRow(6, 'DDS records'); clearCounts(titleSmall, foot); return; }
         return DB.rpc('dds_alert_logs', {
           p_limit: 8, p_offset: 0, p_sort: ddsState.sort, p_dir: ddsState.dir,
           p_search: ddsState.search || null
         }).then(function(res){
+          if(!ddsGuard.isCurrent(token)) return;
           if(res.error) throw res.error;
           var total = res.data && res.data.total || 0;
           var rows = (res.data && res.data.rows) || [];
@@ -8691,7 +8696,10 @@
             '</tr>';
           }).join('');
         });
-      }).catch(function(err){ tbody.innerHTML = errorRow(6, err); });
+      }).catch(function(err){
+        if(!ddsGuard.isCurrent(token)) return;
+        tbody.innerHTML = errorRow(6, err);
+      });
     }
 
     // ==================== Minestat Data ====================
@@ -8712,7 +8720,9 @@
       return 'MIE_STAT';
     }
     var minestatState = { search: '', sort: 'created_at', dir: 'desc' };
+    var minestatGuard = makeGuard();
     function loadMinestat(){
+      var token = minestatGuard.start();
       var tbody = document.querySelector('#dm-table-minestat tbody');
       var titleSmall = document.querySelector('#dm-source-minestat .dm-records-title small');
       var foot = document.querySelector('#dm-source-minestat .dm-table-foot span');
@@ -8723,11 +8733,13 @@
         th.classList.toggle('asc', col === minestatState.sort && minestatState.dir === 'asc');
       });
       requireSession().then(function(sess){
+        if(!minestatGuard.isCurrent(token)) return;
         if(!sess){ tbody.innerHTML = signedOutRow(8, 'Minestat uploads'); clearCounts(titleSmall, foot); return; }
         var q = DB.from('imports').select('id, original_name, row_count, status, created_at', { count: 'exact' })
           .eq('kind', 'minestat').order(minestatState.sort, { ascending: minestatState.dir === 'asc' }).limit(8);
         if(minestatState.search) q = q.ilike('original_name', '%' + minestatState.search + '%');
         return q.then(function(res){
+          if(!minestatGuard.isCurrent(token)) return;
           if(res.error) throw res.error;
           var rows = res.data || [];
           var total = res.count || rows.length;
@@ -8751,7 +8763,10 @@
             '</tr>';
           }).join('');
         });
-      }).catch(function(err){ tbody.innerHTML = errorRow(8, err); });
+      }).catch(function(err){
+        if(!minestatGuard.isCurrent(token)) return;
+        tbody.innerHTML = errorRow(8, err);
+      });
     }
 
     // dds_minestat_reresolve_all() (0027) has existed since the review-
@@ -8790,6 +8805,7 @@
     // scroll listener to the way the flex-scrolling D&A tabs do.
     var MASTERLIST_PAGE_LIMIT = 50;
     var masterlistState = { search: '', sort: 'full_name', dir: 'asc', offset: 0, limit: MASTERLIST_PAGE_LIMIT, total: 0, loadingMore: false, reachedEnd: false };
+    var masterlistGuard = makeGuard();
     function masterlistRowHtml(r){
       var d = r.details || {};
       var statusLabel = r.status === 'inactive' ? 'Inactive' : (d.status_label || 'Active');
@@ -8815,6 +8831,13 @@
       opts = opts || {};
       var isLoadMore = !!opts.loadMore;
       if(isLoadMore && (masterlistState.loadingMore || masterlistState.reachedEnd)) return;
+      // Guards the fresh-load path (search/sort), not just load-more's own
+      // re-entrancy check above — without this, a fresh search/sort fired
+      // while a load-more request is still in flight could let that old
+      // load-more's response land AFTER the fresh query's results and
+      // append stale, off-query rows onto the end of the table via
+      // insertAdjacentHTML below.
+      var token = masterlistGuard.start();
       var tbody = document.querySelector('#dm-table-masterlist tbody');
       var titleSmall = document.querySelector('#dm-source-masterlist .dm-records-title small');
       var foot = document.getElementById('dm-masterlist-foot');
@@ -8833,6 +8856,7 @@
         masterlistState.reachedEnd = false;
       }
       requireSession().then(function(sess){
+        if(!masterlistGuard.isCurrent(token)) return;
         if(!sess){ tbody.innerHTML = signedOutRow(6, 'the masterlist'); clearCounts(titleSmall, foot); if(loadMoreBtn) loadMoreBtn.hidden = true; return; }
         var q = DB.from('drivers').select('emp_no, full_name, status, details', { count: 'exact' })
           .order(masterlistState.sort || 'full_name', { ascending: masterlistState.dir !== 'desc' })
@@ -8842,6 +8866,7 @@
           q = q.or('full_name.ilike.' + like + ',emp_no.ilike.' + like);
         }
         return q.then(function(res){
+          if(!masterlistGuard.isCurrent(token)) return;
           if(res.error) throw res.error;
           var rows = res.data || [];
           var total = res.count || 0;
@@ -8858,7 +8883,10 @@
           }
           updateMasterlistFoot();
         });
-      }).catch(function(err){ if(!isLoadMore) tbody.innerHTML = errorRow(6, err); })
+      }).catch(function(err){
+        if(!masterlistGuard.isCurrent(token)) return;
+        if(!isLoadMore) tbody.innerHTML = errorRow(6, err);
+      })
         .finally(function(){
           masterlistState.loadingMore = false;
           if(loadMoreBtn){ loadMoreBtn.disabled = false; loadMoreBtn.textContent = 'Load more'; }
@@ -8872,7 +8900,9 @@
     // ==================== Contributing Factors ====================
     var CATEGORY_TAG = { 'Power Interruption': 'amber', 'Weather Condition': 'bluebg', 'Others': 'purplebg' };
     var factorsState = { search: '', sort: 'start_time', dir: 'desc' };
+    var factorsGuard = makeGuard();
     function loadFactors(){
+      var token = factorsGuard.start();
       var tbody = document.querySelector('#dm-table-factors tbody');
       var titleSmall = document.querySelector('#dm-source-factors .dm-records-title small');
       var foot = document.querySelector('#dm-source-factors .dm-table-foot span');
@@ -8883,6 +8913,7 @@
         th.classList.toggle('asc', col === factorsState.sort && factorsState.dir === 'asc');
       });
       requireSession().then(function(sess){
+        if(!factorsGuard.isCurrent(token)) return;
         if(!sess){ tbody.innerHTML = signedOutRow(7, 'contributing factors'); clearCounts(titleSmall, foot); return; }
         var q = DB.from('contributing_factors')
           .select('id, factor_type, detail, start_time, end_time, shift, duration_hours, logged_at', { count: 'exact' })
@@ -8895,6 +8926,7 @@
           q = q.or('factor_type.ilike.' + like + ',detail.ilike.' + like);
         }
         return q.then(function(res){
+            if(!factorsGuard.isCurrent(token)) return;
             if(res.error) throw res.error;
             var rows = res.data || [];
             var total = res.count || rows.length;
@@ -8918,7 +8950,10 @@
               '</tr>';
             }).join('');
           });
-      }).catch(function(err){ tbody.innerHTML = errorRow(7, err); });
+      }).catch(function(err){
+        if(!factorsGuard.isCurrent(token)) return;
+        tbody.innerHTML = errorRow(7, err);
+      });
     }
 
     // ==================== Upload History (per-source panels) ====================
@@ -9023,7 +9058,11 @@
     // ---- tabs (unchanged interaction, now triggers a real load on first view) ----
     var sourceTabs = document.querySelectorAll('#dm-source-tabs .dm-tab[data-source]');
     function goToSource(key){
-      sourceTabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-source') === key); });
+      sourceTabs.forEach(function(t){
+        var on = t.getAttribute('data-source') === key;
+        t.classList.toggle('on', on);
+        t.setAttribute('aria-selected', String(on));
+      });
       document.querySelectorAll('.dm-source').forEach(function(s){ s.classList.remove('on'); });
       var target = document.getElementById('dm-source-' + key);
       if(target) target.classList.add('on');
@@ -10836,7 +10875,12 @@
           totalChecked += d.checked || 0;
           totalResolved += d.resolved || 0;
           if(startingOpen === null) startingOpen = (d.checked || 0) + (d.remainingOpen || 0);
-          var pct = startingOpen > 0 ? Math.round((totalChecked / startingOpen) * 100) : 100;
+          // Clamped to 100 — startingOpen is only a snapshot taken from the
+          // FIRST batch; if new rows enter the open queue mid-run (e.g. a
+          // concurrent upload), totalChecked can end up exceeding that
+          // snapshot, which without this clamp showed a progress readout
+          // like "134 of 100 checked (134%)" before finishing.
+          var pct = startingOpen > 0 ? Math.min(100, Math.round((totalChecked / startingOpen) * 100)) : 100;
           showProgress(pct, totalChecked + ' of ' + startingOpen + ' checked (' + pct + '%)');
           // A batch that checked fewer rows than it asked for means there
           // were no more open rows to pull — done, regardless of
@@ -10953,15 +10997,24 @@
       return { open: 'Open', resolved: 'Resolved', ignored: 'Ignored' }[state] || state;
     }
 
+    // One guard PER kind — dds/minestat write to different tbodies and can
+    // legitimately have overlapping in-flight requests (e.g. loadNameReview()
+    // below fires both at once), so a single shared guard would wrongly
+    // invalidate one kind's request whenever the other kind's load started.
+    var reviewGuards = { dds: makeGuard(), minestat: makeGuard() };
     function loadNameReviewQueue(kind){
       var cfg = REVIEW[kind];
+      var guard = reviewGuards[kind];
+      var token = guard.start();
       var tbody = document.querySelector(cfg.tbodySel);
       var titleSmall = document.querySelector(cfg.titleSel);
       var foot = document.querySelector(cfg.footSel);
       if(!tbody) return;
       requireSession().then(function(sess){
+        if(!guard.isCurrent(token)) return;
         if(!sess){ tbody.innerHTML = signedOutRow(5, 'the review queue'); clearCounts(titleSmall, foot); return; }
         return DB.rpc(cfg.list, { p_state: cfg.state, p_limit: 50, p_offset: 0 }).then(function(res){
+          if(!guard.isCurrent(token)) return;
           if(res.error) throw res.error;
           var data = res.data || {};
           var rows = data.rows || [];
@@ -11017,7 +11070,10 @@
             '</tr>';
           }).join('');
         });
-      }).catch(function(err){ tbody.innerHTML = errorRow(5, err); });
+      }).catch(function(err){
+        if(!guard.isCurrent(token)) return;
+        tbody.innerHTML = errorRow(5, err);
+      });
     }
 
     function loadNameReview(){
@@ -11034,14 +11090,18 @@
     // apply here: a conflict isn't a name that failed to match anything,
     // it's two sources that both matched, disagreeing).
     var conflictsState = 'open';
+    var conflictsGuard = makeGuard();
     function loadAttributionConflicts(){
+      var token = conflictsGuard.start();
       var tbody = document.querySelector('#dm-table-conflicts tbody');
       var titleSmall = document.getElementById('dm-conflicts-title') && document.getElementById('dm-conflicts-title').querySelector('small');
       var foot = document.getElementById('dm-conflicts-foot');
       if(!tbody) return;
       requireSession().then(function(sess){
+        if(!conflictsGuard.isCurrent(token)) return;
         if(!sess){ tbody.innerHTML = signedOutRow(6, 'attribution conflicts'); clearCounts(titleSmall, foot); return; }
         return DB.rpc('dds_attribution_conflicts_list', { p_state: conflictsState, p_limit: 50, p_offset: 0 }).then(function(res){
+          if(!conflictsGuard.isCurrent(token)) return;
           if(res.error) throw res.error;
           var data = res.data || {};
           var rows = data.rows || [];
@@ -11070,7 +11130,10 @@
             '</tr>';
           }).join('');
         });
-      }).catch(function(err){ tbody.innerHTML = errorRow(6, err); });
+      }).catch(function(err){
+        if(!conflictsGuard.isCurrent(token)) return;
+        tbody.innerHTML = errorRow(6, err);
+      });
     }
     var conflictsStateSelect = document.getElementById('dm-conflicts-state');
     if(conflictsStateSelect){
@@ -11084,6 +11147,13 @@
       conflictsTbody.addEventListener('click', function(e){
         var btn = e.target.closest('[data-conflict-pick]');
         if(!btn) return;
+        // Unlike the Name Review queue's resolve/ignore (reversible via
+        // dds_reopen_review/dds_minestat_reopen_review — see that queue's
+        // own comment on why it skips a confirm dialog), this write has no
+        // undo path: no dds_attribution_conflicts_reopen-style RPC exists.
+        // Same "reversible -> no confirm needed" logic this codebase
+        // already applies elsewhere, the other way around.
+        if(!confirm('Attribute this alert to "' + btn.textContent.trim() + '"? This directly changes who the alert is attributed to and cannot be undone from here.')) return;
         var id = Number(btn.getAttribute('data-conflict-pick'));
         var choice = btn.getAttribute('data-conflict-choice');
         var row = btn.closest('tr');
@@ -11246,6 +11316,8 @@
           return;
         }
         if(e.target.closest('[data-review-ignore]')){
+          var ignoreBtn = e.target.closest('[data-review-ignore]');
+          ignoreBtn.disabled = true;
           requireSession().then(function(sess){
             if(!sess) throw new Error('Sign in required.');
             return DB.rpc(REVIEW[kind].ignore, { p_review_id: id });
@@ -11255,6 +11327,7 @@
           }).catch(function(err){
             console.error('Ignore failed', err);
             alert('Could not ignore: ' + (err.message || 'unknown error'));
+            ignoreBtn.disabled = false;
           });
         }
         // Edit a past decision (resolved or ignored row): dds_reopen_review/
