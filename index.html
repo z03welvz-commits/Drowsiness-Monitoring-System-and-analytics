@@ -26,6 +26,7 @@
        just independent picks across sessions. One token, no visual
        change (kept the majority value). */
     --red-soft:#fdeaea;
+    --green-soft:#dff5ea;
     --shadow:0 3px 12px rgba(15,23,42,.045);
     --shadow-hover:0 6px 20px rgba(15,23,42,.08);
     --focus-ring:0 0 0 3px rgba(37,99,235,.35);
@@ -137,6 +138,7 @@
   :root[data-theme="dark"] .al-status.ack::before{background:#8a94ab}
   :root[data-theme="dark"] .dm-empty,:root[data-theme="dark"] .da-empty{color:var(--muted)}
   :root[data-theme="dark"] .da-bulk-bar{background:#132542}
+  :root[data-theme="dark"] .an-active-filter{background:#132542;color:#7fb0f5}
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   html,body{margin:0;width:100%;min-height:100%;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--text);background:var(--bg)}
@@ -534,7 +536,7 @@
   .an-kpi-foot{margin-top:6px;font-size:11px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .an-kpi-delta{font-weight:700;padding:2px 6px;border-radius:5px}
   .an-kpi-delta.up{color:#c0271f;background:var(--red-soft)}
-  .an-kpi-delta.down{color:var(--green);background:#dff5ea}
+  .an-kpi-delta.down{color:var(--green);background:var(--green-soft)}
   .an-kpi-delta.flat{color:var(--muted);background:var(--surface2)}
   .an-kpi-foot-label{color:var(--muted)}
 
@@ -572,6 +574,7 @@
   .an-seg-btn{font-size:10.5px;font-weight:650;color:var(--muted);background:transparent;border:none;padding:4px 8px;border-radius:5px;cursor:pointer;transition:all .12s}
   .an-seg-btn.active{background:var(--blue);color:#fff}
   .an-seg-btn:not(.active):hover{color:var(--text)}
+  .an-seg-btn:focus-visible{outline:none;box-shadow:var(--focus-ring)}
   .an-seg-check{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);cursor:pointer;padding:0 6px}
   .an-seg-check input{width:12px;height:12px;margin:0}
   .an-seg-check.disabled{opacity:.45;cursor:not-allowed}
@@ -635,6 +638,7 @@
      share of the peak rounds to a couple of percent. */
   .an-bar-row-fill{display:block;height:100%;min-width:3px;border-radius:4px;transition:filter .12s}
   .an-bar-row:hover .an-bar-row-fill{filter:brightness(1.12)}
+  .an-bar-row[role="button"]:focus-visible,.an-donut-legend2-row[role="button"]:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:5px}
   .an-bar-row-value{font-size:11px;font-weight:700;color:var(--text);flex:0 0 auto;white-space:nowrap;min-width:56px;text-align:right}
   .an-bar-row-value .pct{color:var(--muted);font-weight:600}
   .an-bar-list-empty{color:var(--muted);font-size:12px;text-align:center;margin:auto}
@@ -950,6 +954,7 @@
   .da-tab{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:11px 16px 12px;font-size:12.5px;font-weight:650;color:var(--muted);border-bottom:2px solid transparent}
   .da-tab:hover{color:var(--text-dim)}
   .da-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+  .da-tab:focus-visible{box-shadow:var(--focus-ring);border-radius:4px}
   .da-tab-count{font-size:var(--fs-label);font-weight:750;background:var(--surface2);color:var(--text-dim);padding:2px 7px;border-radius:var(--radius-pill)}
   .da-tab.on .da-tab-count{background:#dbe8fd;color:var(--link-blue)}
 
@@ -1977,9 +1982,9 @@
               <label class="an-seg-check" id="an-trend-interval-toggle" title="Overlay average alert-end-to-dashboard-sync interval on a second axis"><input type="checkbox" id="an-trend-interval-checkbox"><span>Avg. Interval</span></label>
               <label class="an-seg-check" id="an-trend-units-toggle" title="Overlay the count of distinct units alerting on a second axis"><input type="checkbox" id="an-trend-units-checkbox"><span>Unique Units</span></label>
               <div class="an-seg" id="an-trend-gran">
-                <button class="an-seg-btn active" type="button" data-gran="daily">Daily</button>
-                <button class="an-seg-btn" type="button" data-gran="weekly">Weekly</button>
-                <button class="an-seg-btn" type="button" data-gran="monthly">Monthly</button>
+                <button class="an-seg-btn active" type="button" data-gran="daily" aria-pressed="true">Daily</button>
+                <button class="an-seg-btn" type="button" data-gran="weekly" aria-pressed="false">Weekly</button>
+                <button class="an-seg-btn" type="button" data-gran="monthly" aria-pressed="false">Monthly</button>
               </div>
               <button class="dm-icon-btn" type="button" data-chart-minimize title="Minimize" aria-label="Minimize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h12"/></svg></button>
               <button class="dm-icon-btn" type="button" data-chart-fullscreen title="Fullscreen" aria-label="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
@@ -2014,7 +2019,7 @@
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alert Count Bucket</span></div>
           </div>
           <div class="an-bar-list" id="an-bl-bucket"><div class="an-bar-list-empty">Loading&hellip;</div></div>
-          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Which EVENT_COUNT band is most common &mdash; click a band to isolate it.</span></div>
+          <div class="an-note"><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></i> <span>Which EVENT_COUNT band is most common in this filtered range.</span></div>
         </div>
 
         <div class="an-panel" style="--accent:var(--blue)">
@@ -2045,7 +2050,7 @@
           <div class="an-panel-head">
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alerts by Equipment</span></div>
             <div class="an-panel-tools">
-              <div class="an-seg" data-sort-target="assets"><button class="an-seg-btn active" type="button" data-sort="desc">High→Low</button><button class="an-seg-btn" type="button" data-sort="asc">Low→High</button></div>
+              <div class="an-seg" data-sort-target="assets"><button class="an-seg-btn active" type="button" data-sort="desc" aria-pressed="true">High→Low</button><button class="an-seg-btn" type="button" data-sort="asc" aria-pressed="false">Low→High</button></div>
             </div>
           </div>
           <div class="an-bar-list scroll-y" id="an-bl-equipment"><div class="an-bar-list-empty">Loading&hellip;</div></div>
@@ -2055,7 +2060,7 @@
           <div class="an-panel-head">
             <div class="an-panel-title-group"><span class="an-panel-dot"></span><span class="an-panel-title">Alerts by Driver</span></div>
             <div class="an-panel-tools">
-              <div class="an-seg" data-sort-target="drivers"><button class="an-seg-btn active" type="button" data-sort="desc">High→Low</button><button class="an-seg-btn" type="button" data-sort="asc">Low→High</button></div>
+              <div class="an-seg" data-sort-target="drivers"><button class="an-seg-btn active" type="button" data-sort="desc" aria-pressed="true">High→Low</button><button class="an-seg-btn" type="button" data-sort="asc" aria-pressed="false">Low→High</button></div>
               <button type="button" class="view-all" id="an-driver-totals-viewall">View all</button>
             </div>
           </div>
@@ -5738,7 +5743,11 @@
     document.querySelectorAll('#an-trend-gran .an-seg-btn').forEach(function(btn){
       btn.addEventListener('click', function(){
         trendGranularity = btn.getAttribute('data-gran');
-        document.querySelectorAll('#an-trend-gran .an-seg-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+        document.querySelectorAll('#an-trend-gran .an-seg-btn').forEach(function(b){
+          var on = b === btn;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-pressed', String(on));
+        });
         if(analyticsLastCur) renderTrendChart2(analyticsLastCur);
       });
     });
@@ -5852,6 +5861,7 @@
           var isFs = document.fullscreenElement === panel;
           fsBtn.title = isFs ? 'Exit fullscreen' : 'Fullscreen';
           fsBtn.setAttribute('aria-label', fsBtn.title);
+          fsBtn.setAttribute('aria-pressed', String(isFs));
           var chart = getChart();
           if(chart) setTimeout(function(){ chart.resize(); }, 50);
         });
@@ -5885,7 +5895,9 @@
         var v = totals[i] || 0;
         var pct = Math.round((v / peak) * 100);
         var isActive = activeIdx === i;
-        var attrs = onClick ? ' data-band-idx="' + i + '" style="cursor:pointer' + (isActive ? ';background:var(--surface2)' : '') + '"' : ' style="cursor:default"';
+        var attrs = onClick
+          ? ' data-band-idx="' + i + '" role="button" tabindex="0" aria-pressed="' + isActive + '" style="cursor:pointer' + (isActive ? ';background:var(--surface2)' : '') + '"'
+          : ' style="cursor:default"';
         return '<div class="an-bar-row"' + attrs + '>' +
           '<span class="an-bar-row-label">' + esc(label) + '</span>' +
           '<span class="an-bar-row-track"><span class="an-bar-row-fill" style="width:' + pct + '%;background:' + colors[i] + '"></span></span>' +
@@ -5895,6 +5907,9 @@
       if(onClick){
         el.querySelectorAll('[data-band-idx]').forEach(function(row){
           row.addEventListener('click', function(){ onClick(Number(row.getAttribute('data-band-idx'))); });
+          row.addEventListener('keydown', function(e){
+            if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); onClick(Number(row.getAttribute('data-band-idx'))); }
+          });
         });
       }
     }
@@ -5932,7 +5947,7 @@
         var pct = Math.round((item.value / peak) * 100);
         var isActive = activeKey != null && activeKey === item.key;
         var color = item.rank < 5 ? topColor : accentColor;
-        return '<div class="an-bar-row" data-rank-key="' + esc(item.key) + '" style="cursor:pointer' + (isActive ? ';background:var(--surface2)' : '') + '" title="Click to filter this page to ' + esc(item.label) + '">' +
+        return '<div class="an-bar-row" data-rank-key="' + esc(item.key) + '" role="button" tabindex="0" aria-pressed="' + isActive + '" style="cursor:pointer' + (isActive ? ';background:var(--surface2)' : '') + '" title="Click to filter this page to ' + esc(item.label) + '">' +
           '<span class="an-bar-row-label">' + esc(item.label) + '</span>' +
           '<span class="an-bar-row-track"><span class="an-bar-row-fill" style="width:' + pct + '%;background:' + color + '"></span></span>' +
           '<span class="an-bar-row-value">' + fmtNum(item.value) + '</span>' +
@@ -5941,6 +5956,12 @@
       el.querySelectorAll('[data-rank-key]').forEach(function(row){
         row.addEventListener('click', function(){
           setFilterDim(opts.kind === 'asset' ? 'assetId' : 'empNo', row.getAttribute('data-rank-key'));
+        });
+        row.addEventListener('keydown', function(e){
+          if(e.key === 'Enter' || e.key === ' '){
+            e.preventDefault();
+            setFilterDim(opts.kind === 'asset' ? 'assetId' : 'empNo', row.getAttribute('data-rank-key'));
+          }
         });
       });
     }
@@ -6026,21 +6047,25 @@
       if(driverSortDir === 'asc') items = items.slice().reverse();
       renderRankedBarList('an-bl-driver', items, { emptyText: 'No driver data for this filter', kind: 'driver', accentVar: '--purple' });
     }
-    function renderTopDrivers2(from, to){
+    function renderTopDrivers2(from, to, token){
       return fetchTopDrivers(from, to).then(function(rows){
+        if(!guard.isCurrent(token)) return;
         lastTopDriversRows = rows;
         renderDriverList();
       }).catch(function(err){
+        if(!guard.isCurrent(token)) return;
         console.error('Top drivers fetch failed', err);
         lastTopDriversRows = [];
         renderRankedBarList('an-bl-driver', [], { emptyText: 'Could not load driver data' });
       });
     }
-    function renderTopAssets2(from, to){
+    function renderTopAssets2(from, to, token){
       return fetchTopAssets(from, to).then(function(rows){
+        if(!guard.isCurrent(token)) return;
         lastTopAssetsRows = rows;
         renderEquipmentList();
       }).catch(function(err){
+        if(!guard.isCurrent(token)) return;
         console.error('Top assets fetch failed', err);
         lastTopAssetsRows = [];
         renderRankedBarList('an-bl-equipment', [], { emptyText: 'Could not load asset data' });
@@ -6130,14 +6155,22 @@
     document.querySelectorAll('[data-sort-target="assets"] .an-seg-btn').forEach(function(btn){
       btn.addEventListener('click', function(){
         equipSortDir = btn.getAttribute('data-sort');
-        document.querySelectorAll('[data-sort-target="assets"] .an-seg-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+        document.querySelectorAll('[data-sort-target="assets"] .an-seg-btn').forEach(function(b){
+          var on = b === btn;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-pressed', String(on));
+        });
         renderEquipmentList();
       });
     });
     document.querySelectorAll('[data-sort-target="drivers"] .an-seg-btn').forEach(function(btn){
       btn.addEventListener('click', function(){
         driverSortDir = btn.getAttribute('data-sort');
-        document.querySelectorAll('[data-sort-target="drivers"] .an-seg-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+        document.querySelectorAll('[data-sort-target="drivers"] .an-seg-btn').forEach(function(b){
+          var on = b === btn;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-pressed', String(on));
+        });
         renderDriverList();
       });
     });
@@ -6195,9 +6228,10 @@
       }).join('');
     }
 
-    function renderSpikeInvestigation(from, to){
+    function renderSpikeInvestigation(from, to, token){
       siRange.from = from; siRange.to = to;
       return DB.rpc('dds_spike_investigation', { p_from: from, p_to: to }).then(function(res){
+        if(!guard.isCurrent(token)) return;
         if(res.error) throw res.error;
         siData = res.data;
         var summaryEl = document.getElementById('an-si-summary');
@@ -6210,6 +6244,7 @@
         }
         renderSpikeTable();
       }).catch(function(err){
+        if(!guard.isCurrent(token)) return;
         console.error('Spike investigation fetch failed', err);
         siData = null;
         var summaryEl = document.getElementById('an-si-summary');
@@ -6293,7 +6328,7 @@
       if(legendEl){
         legendEl.innerHTML = nonZero.map(function(s){
           var pct = Math.round(s.value / total * 100);
-          var clickAttrs = opts.onSliceClick && s.clickable !== false ? ' data-legend-slice="' + esc(s.code || s.name) + '" style="cursor:pointer"' : '';
+          var clickAttrs = opts.onSliceClick && s.clickable !== false ? ' data-legend-slice="' + esc(s.code || s.name) + '" role="button" tabindex="0" style="cursor:pointer"' : '';
           return '<div class="an-donut-legend2-row"' + clickAttrs + '>' +
             '<span class="an-donut-legend2-dot" style="background:' + s.color + '"></span>' +
             '<span class="an-donut-legend2-label">' + esc(s.name) + '</span>' +
@@ -6301,11 +6336,15 @@
           '</div>';
         }).join('');
         if(opts.onSliceClick){
+          var activateSlice = function(row){
+            var code = row.getAttribute('data-legend-slice');
+            var slice = nonZero.filter(function(s){ return (s.code || s.name) === code; })[0];
+            if(slice) opts.onSliceClick(slice);
+          };
           legendEl.querySelectorAll('[data-legend-slice]').forEach(function(row){
-            row.addEventListener('click', function(){
-              var code = row.getAttribute('data-legend-slice');
-              var slice = nonZero.filter(function(s){ return (s.code || s.name) === code; })[0];
-              if(slice) opts.onSliceClick(slice);
+            row.addEventListener('click', function(){ activateSlice(row); });
+            row.addEventListener('keydown', function(e){
+              if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); activateSlice(row); }
             });
           });
         }
@@ -6360,15 +6399,28 @@
     // shared failure freezing every card on its initial "Loading…" markup
     // forever) — same idiom this page already used before this redesign.
     function metricsErrorState(err){
+      // Equipment/Driver bar lists are deliberately NOT included here —
+      // they're populated by their own independent RPCs (fetchTopAssets/
+      // fetchTopDrivers via renderTopAssets2/renderTopDrivers2, which
+      // "never reject" per that call site's own comment), so a
+      // dds_metrics() failure says nothing about whether those two
+      // already-rendered (or still loading) panels are actually broken —
+      // wiping them here would stomp correct data with a misleading error.
       var msg = 'Could not load: ' + esc((err && err.message) || 'unknown error');
       errorState(err);
-      ['an-bl-equipment','an-bl-driver','an-bl-sync','an-bl-bucket'].forEach(function(id){
+      ['an-bl-sync','an-bl-bucket'].forEach(function(id){
         var el = document.getElementById(id);
         if(el) el.innerHTML = '<div class="an-bar-list-empty" style="color:#c0271f">' + msg + '</div>';
       });
       ['an-donut-type-legend','an-donut-shift-legend'].forEach(function(id){
         var el = document.getElementById(id);
         if(el) el.innerHTML = '<div class="an-bar-list-empty" style="color:#c0271f">' + msg + '</div>';
+      });
+      // Clear the donut CHARTS too, not just their legend text — otherwise
+      // the canvas keeps rendering the last successful load's slices while
+      // the legend right next to it says "Could not load".
+      ['an-donut-type','an-donut-shift'].forEach(function(id){
+        if(donutCharts[id]){ donutCharts[id].destroy(); delete donutCharts[id]; }
       });
       if(trendChart){ trendChart.destroy(); trendChart = null; }
       if(hourlyChart){ hourlyChart.destroy(); hourlyChart = null; }
@@ -6460,9 +6512,9 @@
         });
 
         analyticsLastWindow = { from: toISO(winFrom), to: toISO(winTo) };
-        var topDriversResult = renderTopDrivers2(toISO(winFrom), toISO(winTo));
-        var topAssetsResult = renderTopAssets2(toISO(winFrom), toISO(winTo));
-        var spikeResult = renderSpikeInvestigation(toISO(winFrom), toISO(winTo));
+        var topDriversResult = renderTopDrivers2(toISO(winFrom), toISO(winTo), token);
+        var topAssetsResult = renderTopAssets2(toISO(winFrom), toISO(winTo), token);
+        var spikeResult = renderSpikeInvestigation(toISO(winFrom), toISO(winTo), token);
 
         // Hides the spinner once every fetch this click/dropdown change
         // kicked off has settled (renderTopDrivers2/renderTopAssets2/
