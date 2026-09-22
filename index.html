@@ -608,10 +608,15 @@
   .an-bar-row{display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer;border-radius:5px}
   .an-bar-row-label{font-size:11px;color:var(--muted);flex:0 0 68px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .an-bar-row-track{flex:1;height:14px;border-radius:4px;background:var(--surface2);position:relative;overflow:hidden;min-width:0}
-  /* min-width guarantees a visible sliver of color even for a band whose
-     share of the peak rounds to a couple of percent — a very short/pale
-     fill against the near-white track otherwise reads as no color at all. */
-  .an-bar-row-fill{height:100%;min-width:3px;border-radius:4px;transition:filter .12s}
+  /* display:block is required — this is a <span> (inline by default), and
+     CSS width/height/min-width are all ignored on inline elements. Without
+     it, the inline `style="width:X%;background:Y"` each row sets has zero
+     effect: the fill renders with no visible area at all regardless of its
+     background color, which was the real cause of bar-list fills showing
+     no color (confirmed live) — not a low-contrast/visibility issue.
+     min-width guarantees a visible sliver of color even for a band whose
+     share of the peak rounds to a couple of percent. */
+  .an-bar-row-fill{display:block;height:100%;min-width:3px;border-radius:4px;transition:filter .12s}
   .an-bar-row:hover .an-bar-row-fill{filter:brightness(1.12)}
   .an-bar-row-value{font-size:11px;font-weight:700;color:var(--text);flex:0 0 auto;white-space:nowrap;min-width:56px;text-align:right}
   .an-bar-row-value .pct{color:var(--muted);font-weight:600}
