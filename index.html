@@ -8955,7 +8955,7 @@
     // there's no single scrollable container here to attach a near-bottom
     // scroll listener to the way the flex-scrolling D&A tabs do.
     var MASTERLIST_PAGE_LIMIT = 50;
-    var masterlistState = { search: '', sort: 'full_name', dir: 'asc', offset: 0, limit: MASTERLIST_PAGE_LIMIT, total: 0, loadingMore: false, reachedEnd: false };
+    var masterlistState = { search: '', sort: 'full_name', dir: 'asc', offset: 0, limit: MASTERLIST_PAGE_LIMIT, total: 0, loading: false, loadingMore: false, reachedEnd: false };
     var masterlistGuard = makeGuard();
     function masterlistRowHtml(r){
       var d = r.details || {};
@@ -8981,7 +8981,20 @@
     function loadMasterlist(opts){
       opts = opts || {};
       var isLoadMore = !!opts.loadMore;
-      if(isLoadMore && (masterlistState.loadingMore || masterlistState.reachedEnd)) return;
+      // masterlistState.loading covers BOTH a fresh load and a load-more
+      // request — checking only loadingMore here missed the opposite-
+      // order race: a fresh search/sort resets offset/reachedEnd
+      // synchronously before its OWN response lands, so a "Load more"
+      // click fired in that window passed this check (loadingMore was
+      // still false), fired a second, overlapping request that invalidated
+      // the fresh search's guard token, and — since the fresh search's
+      // now-stale response gets discarded before it can replace tbody's
+      // contents — the load-more response then got appended via
+      // insertAdjacentHTML onto whatever the table still showed from
+      // BEFORE the search, mixing two different queries' rows in one
+      // table. Checking `loading` (set for every request, not just
+      // load-more) closes this regardless of click order.
+      if(isLoadMore && (masterlistState.loading || masterlistState.reachedEnd)) return;
       // Guards the fresh-load path (search/sort), not just load-more's own
       // re-entrancy check above — without this, a fresh search/sort fired
       // while a load-more request is still in flight could let that old
@@ -8989,6 +9002,7 @@
       // append stale, off-query rows onto the end of the table via
       // insertAdjacentHTML below.
       var token = masterlistGuard.start();
+      masterlistState.loading = true;
       var tbody = document.querySelector('#dm-table-masterlist tbody');
       var titleSmall = document.querySelector('#dm-source-masterlist .dm-records-title small');
       var foot = document.getElementById('dm-masterlist-foot');
@@ -9005,6 +9019,10 @@
       } else {
         masterlistState.offset = 0;
         masterlistState.reachedEnd = false;
+        // Also lock the button during a fresh search/sort, not just its
+        // own load-more request — this is the interaction that used to
+        // slip past the old loadingMore-only check above.
+        if(loadMoreBtn) loadMoreBtn.disabled = true;
       }
       requireSession().then(function(sess){
         if(!masterlistGuard.isCurrent(token)) return;
@@ -9039,6 +9057,7 @@
         if(!isLoadMore) tbody.innerHTML = errorRow(6, err);
       })
         .finally(function(){
+          masterlistState.loading = false;
           masterlistState.loadingMore = false;
           if(loadMoreBtn){ loadMoreBtn.disabled = false; loadMoreBtn.textContent = 'Load more'; }
         });
