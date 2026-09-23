@@ -933,6 +933,7 @@
   .dm-table td{height:40px;border-bottom:1px solid var(--border);padding:0 10px;font-size:11px;color:var(--text-dim);white-space:nowrap}
   .dm-table tr:last-child td{border-bottom:none}
   .dm-table tr:hover td{background:var(--surface2)}
+  #dm-rawpreview-tablewrap thead th{position:sticky;top:0;z-index:1}
   .dm-file{display:flex;align-items:center;gap:9px;font-weight:650;color:var(--text-dim)}
   .dm-file-icon{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;font-size:var(--fs-badge);font-weight:800;color:#fff;flex:0 0 auto}
   .dm-tag{font-size:10px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap}
@@ -2719,6 +2720,31 @@
           <div class="dm-modal-foot">
             <button class="dm-modal-cancel" type="button" id="dm-modal-cancel">Cancel</button>
             <button class="dm-modal-save" type="button" id="dm-modal-save">Save Record</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ RAW FILE PREVIEW: exact file contents before any processing ============ -->
+      <!-- Shows the uploaded file's own header row and every row exactly as
+           parsed from the file — before any renaming, resolution, or
+           calculation touches it — so a user can verify the SOURCE file
+           itself is correct. Filterable across every column. Runs first,
+           ahead of the cleaned-dataset preview below. -->
+      <div class="dm-modal-mask" id="dm-rawpreview-mask">
+        <div class="dm-modal" role="dialog" aria-modal="true" aria-labelledby="dm-rawpreview-title" style="max-width:1040px">
+          <div class="dm-modal-head">
+            <div><div class="dm-modal-title" id="dm-rawpreview-title">Preview: <span id="dm-rawpreview-filename"></span></div><div class="dm-modal-sub" id="dm-rawpreview-sub"></div></div>
+          </div>
+          <div class="dm-modal-body" style="display:block">
+            <div class="al-search" style="max-width:340px;margin-bottom:10px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="dm-rawpreview-filter" placeholder="Filter preview rows..." style="all:unset;flex:1;min-width:0;font-size:11px;color:var(--text-dim)">
+            </div>
+            <div style="max-height:52vh;overflow:auto;border:1px solid var(--border);border-radius:8px" id="dm-rawpreview-tablewrap"></div>
+          </div>
+          <div class="dm-modal-foot">
+            <button class="dm-modal-cancel" type="button" id="dm-rawpreview-cancel">Cancel upload</button>
+            <button class="dm-modal-save" type="button" id="dm-rawpreview-confirm">Looks correct — continue</button>
           </div>
         </div>
       </div>
@@ -9920,6 +9946,70 @@
     var preflightCancelBtn = document.getElementById('dm-preflight-cancel');
     var preflightConfirmBtn = document.getElementById('dm-preflight-confirm');
 
+    // ==================== Raw file preview (pre-processing) ====================
+    // Shows the uploaded file's own header row and EVERY row exactly as
+    // SheetJS parsed it — before workbookRowToXRow()'s renaming/resolution
+    // touches anything — so a user can verify the SOURCE file itself is
+    // correct, not just what this app later derives from it (the cleaned-
+    // dataset preview below covers that derived view separately). The
+    // filter input does a simple case-insensitive substring match across
+    // every cell in a row, entirely client-side — the whole file is
+    // already parsed into memory by the time this runs.
+    var rawPreviewMask = document.getElementById('dm-rawpreview-mask');
+    var rawPreviewFilenameEl = document.getElementById('dm-rawpreview-filename');
+    var rawPreviewSubEl = document.getElementById('dm-rawpreview-sub');
+    var rawPreviewFilterInput = document.getElementById('dm-rawpreview-filter');
+    var rawPreviewTableWrap = document.getElementById('dm-rawpreview-tablewrap');
+    var rawPreviewCancelBtn = document.getElementById('dm-rawpreview-cancel');
+    var rawPreviewConfirmBtn = document.getElementById('dm-rawpreview-confirm');
+
+    function rawPreviewCellText(v){
+      if(v == null) return '';
+      if(v instanceof Date) return isNaN(v) ? '' : v.toLocaleString();
+      return String(v);
+    }
+    function showRawFilePreviewModal(rawRows, filename, callback){
+      var headers = rawRows.length ? Object.keys(rawRows[0]) : [];
+      rawPreviewFilenameEl.textContent = filename;
+
+      function renderRows(rows, shownCount, totalCount){
+        rawPreviewSubEl.textContent = (shownCount === totalCount ? fmtNum(totalCount) : 'Showing ' + fmtNum(shownCount) + ' of ' + fmtNum(totalCount)) +
+          ' row(s), ' + fmtNum(headers.length) + ' column(s) — exactly as read from the file';
+        if(!rows.length){
+          rawPreviewTableWrap.innerHTML = '<div class="da-empty" style="padding:30px 0">No rows match this filter.</div>';
+          return;
+        }
+        var theadHtml = '<thead><tr>' + headers.map(function(h){ return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead>';
+        var tbodyHtml = '<tbody>' + rows.map(function(r){
+          return '<tr>' + headers.map(function(h){ return '<td>' + esc(rawPreviewCellText(r[h])) + '</td>'; }).join('') + '</tr>';
+        }).join('') + '</tbody>';
+        rawPreviewTableWrap.innerHTML = '<table class="dm-table" style="margin:0">' + theadHtml + tbodyHtml + '</table>';
+      }
+      function applyFilter(){
+        var q = rawPreviewFilterInput.value.trim().toLowerCase();
+        var filtered = !q ? rawRows : rawRows.filter(function(r){
+          return headers.some(function(h){ return rawPreviewCellText(r[h]).toLowerCase().indexOf(q) !== -1; });
+        });
+        renderRows(filtered, filtered.length, rawRows.length);
+      }
+
+      rawPreviewFilterInput.value = '';
+      renderRows(rawRows, rawRows.length, rawRows.length);
+      rawPreviewMask.classList.add('on');
+
+      function cleanup(){
+        rawPreviewMask.classList.remove('on');
+        rawPreviewFilterInput.removeEventListener('input', applyFilter);
+        rawPreviewConfirmBtn.removeEventListener('click', onConfirm);
+        rawPreviewCancelBtn.removeEventListener('click', onCancel);
+      }
+      function onConfirm(){ cleanup(); callback(true); }
+      function onCancel(){ cleanup(); callback(false); }
+      rawPreviewFilterInput.addEventListener('input', applyFilter);
+      rawPreviewConfirmBtn.addEventListener('click', onConfirm);
+      rawPreviewCancelBtn.addEventListener('click', onCancel);
+    }
+
     // ==================== Cleaned-dataset preview (post-resolution) ====================
     // Runs AFTER client-side normalization/calculation/employee-linking,
     // showing the ACTUAL rows that will reach Supabase — Date/Shift/Sync
@@ -10244,17 +10334,26 @@
         Promise.resolve().then(function(){
           var rawRows = parseWorkbookRows(reader.result, file.name);
           rawRowCount = rawRows.length;
+          hideCancelButton(kind);
+          return new Promise(function(resolve){
+            showRawFilePreviewModal(rawRows, file.name, function(proceed){ resolve(proceed ? rawRows : null); });
+          });
+        }).then(function(rawRows){
+          if(rawRows === null){
+            zone.classList.remove('busy');
+            setDropzoneStatus(kind, 'Upload cancelled.', '');
+            return null;
+          }
           rows = rawRows.map(workbookRowToIngestRow).filter(Boolean);
           skipped = rawRows.length - rows.length;
           if(!rows.length) throw new Error('No valid rows found — check START_TIME/UPDATE_TIME/ASSET_ID/EVENT_CODE/EVENT_COUNT in "' + file.name + '".');
-
-          hideCancelButton(kind);
           return runPreflight({
-            rows: rows, rawCount: rawRows.length, skippedCount: skipped,
+            rows: rows, rawCount: rawRowCount, skippedCount: skipped,
             keyFn: ddsRowKey, keepFirst: true,
             fetchExisting: fetchExistingDdsKeys
           });
         }).then(function(pf){
+          if(pf === null) return null; // raw-file preview was cancelled
           if(!pf.proceed){
             zone.classList.remove('busy');
             setDropzoneStatus(kind, 'Upload cancelled.', '');
@@ -10462,13 +10561,21 @@
         Promise.resolve().then(function(){
           var rawRows = parseWorkbookRows(reader.result, file.name, []);
           rawRowCount = rawRows.length;
+          hideCancelButton(kind);
+          return new Promise(function(resolve){
+            showRawFilePreviewModal(rawRows, file.name, function(proceed){ resolve(proceed ? rawRows : null); });
+          });
+        }).then(function(rawRows){
+          if(rawRows === null){
+            zone.classList.remove('busy');
+            setDropzoneStatus(kind, 'Upload cancelled.', '');
+            return null;
+          }
           rows = rawRows.map(workbookRowToMinestatRow).filter(Boolean);
           skipped = rawRows.length - rows.length;
           if(!rows.length) throw new Error('No valid rows found — check Unit/Asset, Date, and Shift columns in "' + file.name + '".');
-
-          hideCancelButton(kind);
           return runPreflight({
-            rows: rows, rawCount: rawRows.length, skippedCount: skipped,
+            rows: rows, rawCount: rawRowCount, skippedCount: skipped,
             // minestat_shifts' shift check constraint (0024_minestat.sql)
             // only accepts DAY/NIGHT — anything else would fail the whole
             // batch server-side; caught here as an early, friendly skip
@@ -10479,6 +10586,7 @@
             fetchExisting: fetchExistingMinestatKeys
           });
         }).then(function(pf){
+          if(pf === null) return null; // raw-file preview was cancelled
           if(!pf.proceed){
             zone.classList.remove('busy');
             setDropzoneStatus(kind, 'Upload cancelled.', '');
@@ -10612,17 +10720,26 @@
         var rows, skipped;
         Promise.resolve().then(function(){
           var rawRows = parseWorkbookRows(reader.result, file.name, []);
+          hideCancelButton(kind);
+          return new Promise(function(resolve){
+            showRawFilePreviewModal(rawRows, file.name, function(proceed){ resolve(proceed ? rawRows : null); });
+          });
+        }).then(function(rawRows){
+          if(rawRows === null){
+            zone.classList.remove('busy');
+            setDropzoneStatus(kind, 'Upload cancelled.', '');
+            return null;
+          }
           rows = rawRows.map(workbookRowToMasterlistRow).filter(Boolean);
           skipped = rawRows.length - rows.length;
           if(!rows.length) throw new Error('No valid rows found — check Employee ID/Name columns in "' + file.name + '".');
-
-          hideCancelButton(kind);
           return runPreflight({
             rows: rows, rawCount: rawRows.length, skippedCount: skipped,
             keyFn: masterlistRowKey, keepFirst: false,
             fetchExisting: fetchExistingMasterlistKeys
           });
         }).then(function(pf){
+          if(pf === null) return null; // raw-file preview was cancelled
           if(!pf.proceed){
             zone.classList.remove('busy');
             setDropzoneStatus(kind, 'Upload cancelled.', '');
@@ -10700,20 +10817,29 @@
       reader.onload = function(){
         var rows, skipped;
         Promise.resolve().then(function(){
+          var rawRows = parseWorkbookRows(reader.result, file.name, []);
+          hideCancelButton(kind);
+          return new Promise(function(resolve){
+            showRawFilePreviewModal(rawRows, file.name, function(proceed){ resolve(proceed ? rawRows : null); });
+          });
+        }).then(function(rawRows){
+          if(rawRows === null){
+            zone.classList.remove('busy');
+            setDropzoneStatus(kind, 'Upload cancelled.', '');
+            return null;
+          }
           return requireSession().then(function(sess){
             if(!sess) throw new Error('Sign in required to upload records.');
-            var rawRows = parseWorkbookRows(reader.result, file.name, []);
             rows = rawRows.map(function(r){ return workbookRowToFactorRow(r, sess.user.id); }).filter(Boolean);
             skipped = rawRows.length - rows.length;
             if(!rows.length) throw new Error('No valid rows found — check Factor/Category columns in "' + file.name + '".');
-
-            hideCancelButton(kind);
             return runPreflight({
               rows: rows, rawCount: rawRows.length, skippedCount: skipped,
               keyFn: factorRowKey, dedupe: false // no DB dedup key exists for this source — informational only
             });
           });
         }).then(function(pf){
+          if(pf === null) return null; // raw-file preview was cancelled
           if(!pf.proceed){
             zone.classList.remove('busy');
             setDropzoneStatus(kind, 'Upload cancelled.', '');
