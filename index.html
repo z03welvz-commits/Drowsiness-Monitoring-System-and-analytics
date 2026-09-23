@@ -4989,6 +4989,7 @@
       var prevDrowsy = prevKpis ? countByTier(prev.eventCodeDistribution, 'high') : null;
       var trend = cur.trend || [];
       var totalsSpark = trend.slice(-7).map(function(t){ return t.units; });
+      var driversSpark = trend.slice(-7).map(function(t){ return t.distinctOperators; });
       var assetsSpark = trend.slice(-7).map(function(t){ return t.assets; });
       // Per-day severity split (0115_dds_metrics_severity_trend.sql) — each
       // KPI card's own shape, not a copy of the Total Alerts line these two
@@ -4999,7 +5000,7 @@
       renderKpi('total', kpis.totalAlerts, prevKpis ? prevKpis.totalAlerts : null, totalsSpark);
       renderKpi('sleep', curSleep, prevSleep, sleepSpark);
       renderKpi('drowsy', curDrowsy, prevDrowsy, drowsySpark);
-      renderKpi('drivers', kpis.distinctOperators, prevKpis ? prevKpis.distinctOperators : null, assetsSpark);
+      renderKpi('drivers', kpis.distinctOperators, prevKpis ? prevKpis.distinctOperators : null, driversSpark);
       renderKpi('assets', kpis.distinctAssets, prevKpis ? prevKpis.distinctAssets : null, assetsSpark);
     }
 
@@ -7098,15 +7099,19 @@
 
     // "Pending review" = rows with no action logged yet, same 'unset' status
     // value Alert Logs' own filter dropdown uses ("Action status: Not yet
-    // logged") — dds_alert_logs()'s `total` field is a filtered count
-    // independent of page size, so a 1-row fetch is enough to read it.
-    function fetchAlertLogsTotal(from, to, status){
+    // logged") — dds_alert_logs()'s `total`/`criticalTotal`/`actionableTotal`
+    // fields are filtered counts independent of page size, so a 1-row fetch
+    // is enough to read them. `actionable` (optional) scopes the count to
+    // only actionable rows, via 0169's p_actionable param.
+    function fetchAlertLogsTotal(from, to, status, actionable){
       return DB.rpc('dds_alert_logs', {
         p_from: from, p_to: to, p_shift: null, p_status: status,
-        p_search: null, p_limit: 1, p_offset: 0, p_sort: 'start_time', p_dir: 'desc'
+        p_search: null, p_limit: 1, p_offset: 0, p_sort: 'start_time', p_dir: 'desc',
+        p_actionable: actionable == null ? null : actionable
       }).then(function(res){
         if(res.error) throw res.error;
-        return (res.data || {}).total || 0;
+        var data = res.data || {};
+        return { total: data.total || 0, criticalTotal: data.criticalTotal || 0, actionableTotal: data.actionableTotal || 0 };
       });
     }
 
@@ -7142,19 +7147,30 @@
 
           var totalEl = document.getElementById('su-open-total'), critEl = document.getElementById('su-open-critical');
           if(totalEl) totalEl.textContent = fmtNum((week.meta || {}).rowCount != null ? week.meta.rowCount : kpis.totalAlerts);
-          if(critEl) critEl.textContent = fmtNum(curSleep);
 
+          // Both figures on this card must share "Events in view"'s row
+          // grain — curSleep (used for the separate "Sleep Alerts" KPI card
+          // elsewhere on this page) sums event_count units, which let
+          // "Critical severity" display a bigger number than "Events in
+          // view" itself. dds_alert_logs()'s criticalTotal is a row count
+          // (count(*) filter event_code ilike sleep%), matching rowCount's
+          // grain exactly — same fix applies to "Actioned (of actionable)",
+          // which used to divide by ALL rows despite its own label; now
+          // scoped to actionable rows via 0169's p_actionable filter.
           Promise.all([
             fetchAlertLogsTotal(toMDY(weekStart), toMDY(today), 'unset'),
-            fetchAlertLogsTotal(toMDY(weekStart), toMDY(today), 'all')
+            fetchAlertLogsTotal(toMDY(weekStart), toMDY(today), 'all'),
+            fetchAlertLogsTotal(toMDY(weekStart), toMDY(today), 'unset', true)
           ]).then(function(counts){
             if(!summaryGuard.isCurrent(token)) return;
-            var pending = counts[0], totalRows = counts[1];
+            var pending = counts[0], allStatus = counts[1], actionablePending = counts[2];
+            if(critEl) critEl.textContent = fmtNum(allStatus.criticalTotal);
             var pendingEl = document.getElementById('su-open-pending');
-            if(pendingEl) pendingEl.textContent = fmtNum(pending);
+            if(pendingEl) pendingEl.textContent = fmtNum(pending.total);
             var actionedEl = document.getElementById('su-open-actioned');
             if(actionedEl){
-              var actionedPct = totalRows > 0 ? Math.round(((totalRows - pending) / totalRows) * 100) : 0;
+              var actionableTotal = allStatus.actionableTotal;
+              var actionedPct = actionableTotal > 0 ? Math.round(((actionableTotal - actionablePending.total) / actionableTotal) * 100) : 0;
               actionedEl.textContent = actionedPct + '%';
             }
           }).catch(function(err){
