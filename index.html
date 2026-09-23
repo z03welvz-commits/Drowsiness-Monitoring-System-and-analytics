@@ -2980,7 +2980,7 @@
             <thead>
               <tr>
                 <th class="da-th-check"><input type="checkbox" id="da-drivers-selectall" aria-label="Select all loaded rows"></th>
-                <th data-da-sort="run_end">Date Flag</th>
+                <th data-da-sort="run_start">Date Flag</th>
                 <th data-da-sort="entity_id"><span data-da-idlabel>Emp No</span></th>
                 <th data-da-sort="streak_days">Streak Days</th>
                 <th data-da-sort="run_total_count">Total Count</th>
@@ -12898,7 +12898,7 @@
       var sev = streakSeverity(r);
       return '<tr data-da-row="' + i + '">' +
         checkboxCellHtml(r) +
-        '<td class="num ds-clickfilter" data-ds-filter="date" data-ds-value="' + esc(mdyToIso(r.runEnd) || '') + '" title="Filter by this date" role="button" tabindex="0">' + esc(r.runStart) + '</td>' +
+        '<td class="num ds-clickfilter" data-ds-filter="date" data-ds-value="' + esc(mdyToIso(r.runStart) || '') + '" title="Filter by this date" role="button" tabindex="0">' + esc(r.runStart) + '</td>' +
         '<td class="num ds-clickfilter" data-ds-filter="search" data-ds-value="' + esc(r.id) + '" title="' + esc(r.name || '') + ' — filter by this ' + (state.kind === 'drivers' ? 'Emp No' : 'Asset ID') + '" role="button" tabindex="0">' + esc(r.id) + '</td>' +
         '<td class="num"><span class="al-badge ' + (sev === 'critical' ? 'critical' : 'high') + '">' + (sev === 'critical' ? 'Critical' : 'High') + '</span>&nbsp;' + fmtNum(r.streakDays) + '</td>' +
         '<td class="num">' + fmtNum(r.runTotalCount) + '</td>' +
