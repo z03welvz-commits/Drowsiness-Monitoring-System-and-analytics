@@ -6313,20 +6313,27 @@
       }).join('');
     }
 
+    function renderSpikeSummary(){
+      var summaryEl = document.getElementById('an-si-summary');
+      if(!summaryEl) return;
+      var d = siData || {};
+      var reviewPct = d.totalEvents > 0 ? Math.round((d.reviewedEvents || 0) / d.totalEvents * 100) : 0;
+      // top5Share is the driver-side concentration figure, top5AssetShare the
+      // asset-side one (0173) — they're computed independently and can differ
+      // substantially, so which one is shown must track the active tab.
+      var share = siKind === 'drivers' ? d.top5Share : d.top5AssetShare;
+      summaryEl.textContent = fmtNum(d.totalEvents || 0) + ' events (' + fmtNum(d.totalCount || 0) + ' total count) in this range — ' +
+        fmtNum(d.reviewedEvents || 0) + ' reviewed (' + reviewPct + '%). ' +
+        (share != null ? 'Top 5 ' + siKind + ' account for ' + share + '% of volume.' : '');
+    }
+
     function renderSpikeInvestigation(from, to, token){
       siRange.from = from; siRange.to = to;
       return DB.rpc('dds_spike_investigation', { p_from: from, p_to: to }).then(function(res){
         if(!guard.isCurrent(token)) return;
         if(res.error) throw res.error;
         siData = res.data;
-        var summaryEl = document.getElementById('an-si-summary');
-        if(summaryEl){
-          var d = siData || {};
-          var reviewPct = d.totalEvents > 0 ? Math.round((d.reviewedEvents || 0) / d.totalEvents * 100) : 0;
-          summaryEl.textContent = fmtNum(d.totalEvents || 0) + ' events (' + fmtNum(d.totalCount || 0) + ' total count) in this range — ' +
-            fmtNum(d.reviewedEvents || 0) + ' reviewed (' + reviewPct + '%). ' +
-            (d.top5Share != null ? 'Top 5 ' + siKind + ' account for ' + d.top5Share + '% of volume.' : '');
-        }
+        renderSpikeSummary();
         renderSpikeTable();
       }).catch(function(err){
         if(!guard.isCurrent(token)) return;
@@ -6347,6 +6354,7 @@
           b.classList.toggle('on', on);
           b.setAttribute('aria-selected', on ? 'true' : 'false');
         });
+        renderSpikeSummary();
         renderSpikeTable();
       });
     });
@@ -6655,9 +6663,27 @@
     function applyMonthYearQuickPick(){
       var monthVal = monthSelect ? monthSelect.value : '';
       var yearVal = yearSelect ? yearSelect.value : '';
+      var hadYear = !!filterState.year;
       filterState.month = monthVal || null;
       filterState.year = yearVal || null;
-      if(!yearVal) return;
+      if(!yearVal){
+        // Reselecting "All years" (a real year -> blank) must clear the
+        // range this quick-pick itself applied earlier — without this,
+        // filterState.from/to (and the From/To inputs) silently kept their
+        // stale values while the UI showed "All years" selected, applying
+        // a range the user could no longer see anywhere. Only clear when a
+        // year was actually selected before (hadYear): picking just a
+        // Month with no Year ever chosen is documented above as a no-op,
+        // and must not blow away a range the user typed directly into the
+        // From/To inputs instead of using this quick-pick.
+        if(hadYear){
+          filterState.from = null;
+          filterState.to = null;
+          if(fromInput) fromInput.value = '';
+          if(toInput) toInput.value = '';
+        }
+        return;
+      }
       var year = Number(yearVal);
       var startMonth = monthVal ? Number(monthVal) - 1 : 0;
       var endMonth = monthVal ? Number(monthVal) - 1 : 11;
