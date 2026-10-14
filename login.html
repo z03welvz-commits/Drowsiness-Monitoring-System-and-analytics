@@ -442,10 +442,39 @@ button{font-family:inherit;cursor:pointer}
      and only rebuilt on submit if the box has been unchecked. Unchecking
      keeps the session in memory for this tab only (nothing written to
      localStorage), so it doesn't survive a reload/new tab. */
+  /* Shared with index.html — the two pages MUST agree on where the session
+     lives. Reads look in sessionStorage first, then localStorage; writes go
+     to whichever store already holds the key (default localStorage); removes
+     clear both. Keep this block identical to the one in index.html. */
+  var authStorage = {
+    getItem: function(k){
+      try {
+        var v = window.sessionStorage.getItem(k);
+        if (v !== null) return v;
+      } catch(e){}
+      try { return window.localStorage.getItem(k); } catch(e){ return null; }
+    },
+    setItem: function(k, v){
+      try {
+        if (window.sessionStorage.getItem(k) !== null) { window.sessionStorage.setItem(k, v); return; }
+      } catch(e){}
+      try { window.localStorage.setItem(k, v); } catch(e){}
+    },
+    removeItem: function(k){
+      try { window.sessionStorage.removeItem(k); } catch(e){}
+      try { window.localStorage.removeItem(k); } catch(e){}
+    }
+  };
+
+  /* "Remember me" off: the session is held in sessionStorage — per tab, and
+     it survives the redirect to index.html (a full page load, which is what
+     broke persistSession:false: the in-memory session died on navigation and
+     index.html bounced the user straight back here). A new tab or closed
+     browser still starts signed out. */
   function makeClient(persist){
     if (typeof supabase === 'undefined') return null;
     return supabase.createClient(SUPABASE_URL, SUPABASE_KEY,
-      { auth: { persistSession: persist } });
+      { auth: { storage: persist ? authStorage : window.sessionStorage } });
   }
   var client = makeClient(true);
 
