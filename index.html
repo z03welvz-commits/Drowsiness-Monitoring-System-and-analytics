@@ -3814,9 +3814,36 @@
   // Same project/key index.html uses (publishable key — safe to ship client-side,
   // RLS is the real access boundary, see MIGRATION_MAP.md §9). One client, shared
   // by every real-data IIFE below, so they're never out of sync about the session.
+  // Auth storage — shared with login.html, which puts the session in
+  // sessionStorage when "Remember me" is off and in localStorage otherwise.
+  // This client must read from either, or an unchecked sign-in is invisible
+  // here and the auth gate bounces the user back to login.html. Reads look in
+  // sessionStorage first, then localStorage; writes go to whichever store
+  // already holds the key (default localStorage); removes clear both. Keep
+  // this block identical to the one in login.html.
+  var authStorage = {
+    getItem: function(k){
+      try {
+        var v = window.sessionStorage.getItem(k);
+        if (v !== null) return v;
+      } catch(e){}
+      try { return window.localStorage.getItem(k); } catch(e){ return null; }
+    },
+    setItem: function(k, v){
+      try {
+        if (window.sessionStorage.getItem(k) !== null) { window.sessionStorage.setItem(k, v); return; }
+      } catch(e){}
+      try { window.localStorage.setItem(k, v); } catch(e){}
+    },
+    removeItem: function(k){
+      try { window.sessionStorage.removeItem(k); } catch(e){}
+      try { window.localStorage.removeItem(k); } catch(e){}
+    }
+  };
   var DB = supabase.createClient(
     'https://rispydfovrnvnwvfwrnw.supabase.co',
-    'sb_publishable_1Yulb6qb-xKI5i8QfuEv0Q_EkOhs-yG'
+    'sb_publishable_1Yulb6qb-xKI5i8QfuEv0Q_EkOhs-yG',
+    { auth: { storage: authStorage } }
   );
 
   // Phase 8 (Full Integration): a real-data page that only fetches once at
